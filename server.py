@@ -33,6 +33,7 @@ VIRTUAL_DOMAIN = "https://openapivts.koreainvestment.com:29443"  # 모의투자
 # API paths
 STOCK_PRICE_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"  # 현재가조회
 BALANCE_PATH = "/uapi/domestic-stock/v1/trading/inquire-balance"  # 잔고조회
+PENSION_BALANCE_PATH = "/uapi/domestic-stock/v1/trading/pension/inquire-balance"  # 퇴직연금잔고조회
 TOKEN_PATH = "/oauth2/tokenP"  # 토큰발급
 HASHKEY_PATH = "/uapi/hashkey"  # 해시키발급
 ORDER_PATH = "/uapi/domestic-stock/v1/trading/order-cash"  # 현금주문
@@ -72,6 +73,7 @@ class TrIdManager:
     REAL = {
         # 국내주식
         "balance": "TTTC8434R",  # 잔고조회
+        "pension_balance": "TTTC2208R",  # 퇴직연금 잔고조회
         "price": "FHKST01010100",  # 현재가조회
         "buy": "TTTC0802U",  # 주식매수
         "sell": "TTTC0801U",  # 주식매도
@@ -100,6 +102,7 @@ class TrIdManager:
     VIRTUAL = {
         # 국내주식
         "balance": "VTTC8434R",  # 잔고조회
+        "pension_balance": "TTTC2208R",  # 퇴직연금 잔고조회 (모의 없음)
         "price": "FHKST01010100",  # 현재가조회
         "buy": "VTTC0802U",  # 주식매수
         "sell": "VTTC0801U",  # 주식매도
@@ -164,7 +167,7 @@ class TrIdManager:
         return DOMAIN if is_real_account else VIRTUAL_DOMAIN
 
 # Token storage
-TOKEN_FILE = Path(__file__).resolve().parent / "token.json"
+TOKEN_FILE = Path(__file__).resolve().parent / f"token_{os.environ.get('KIS_CANO', 'default')}.json"
 
 def load_token():
     """Load token from file if it exists and is not expired"""
@@ -301,51 +304,67 @@ async def inquery_stock_price(symbol: str):
 )
 async def inquery_balance():
     """
-    Get current stock balance information from Korea Investment & Securities
-    
-    Returns:
-        Dictionary containing stock balance information including:
-        - pdno: Stock code
-        - prdt_name: Stock name
-        - hldg_qty: Holding quantity
-        - pchs_amt: Purchase amount
-        - prpr: Current price
-        - evlu_amt: Evaluation amount
-        - evlu_pfls_amt: Evaluation profit/loss amount
-        - evlu_pfls_rt: Evaluation profit/loss rate
+    Get current stock balance information from Korea Investment & Securities.
+    Automatically routes to pension API when KIS_ACNT_PRDT_CD is "22" (연금저축)
+    or "29" (IRP), otherwise uses standard balance API.
     """
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
+    is_pension = acnt_prdt_cd == "29"  # IRP만 pension API, 연금저축("22")은 표준 API
+
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client)
-        logger.info(f"TrIdManager.get_tr_id('balance'): {TrIdManager.get_tr_id('balance')}")
-        # Prepare request data
-        request_data = {
-            "CANO": os.environ["KIS_CANO"],  # 계좌번호
-            "ACNT_PRDT_CD": "01",  # 계좌상품코드 (기본값: 01)
-            "AFHR_FLPR_YN": "N",  # 시간외단일가여부
-            "INQR_DVSN": "01",  # 조회구분
-            "UNPR_DVSN": "01",  # 단가구분
-            "FUND_STTL_ICLD_YN": "N",  # 펀드결제분포함여부
-            "FNCG_AMT_AUTO_RDPT_YN": "N",  # 융자금액자동상환여부
-            "PRCS_DVSN": "00",  # 처리구분
-            "CTX_AREA_FK100": "",  # 연속조회검색조건100
-            "CTX_AREA_NK100": "",  # 연속조회키100
-            "OFL_YN": ""  # 오프라인여부
-        }
-        response = await client.get(
-            f"{TrIdManager.get_domain('balance')}{BALANCE_PATH}",
-            headers={
-                "content-type": CONTENT_TYPE,
-                "authorization": f"{AUTH_TYPE} {token}",
-                "appkey": os.environ["KIS_APP_KEY"],
-                "appsecret": os.environ["KIS_APP_SECRET"],
-                "tr_id": TrIdManager.get_tr_id("balance")
-            },
-            params=request_data
-        )
-        
+
+        if is_pension:
+            logger.info(f"Pension account detected (ACNT_PRDT_CD={acnt_prdt_cd}), using TTTC2208R")
+            request_data = {
+                "CANO": os.environ["KIS_CANO"],
+                "ACNT_PRDT_CD": acnt_prdt_cd,
+                "ACCA_DVSN_CD": "00",   # 적립금구분코드 (00: 전체)
+                "INQR_DVSN": "00",       # 조회구분 (00: 전체)
+                "CTX_AREA_FK100": "",
+                "CTX_AREA_NK100": "",
+            }
+            response = await client.get(
+                f"{DOMAIN}{PENSION_BALANCE_PATH}",
+                headers={
+                    "content-type": CONTENT_TYPE,
+                    "authorization": f"{AUTH_TYPE} {token}",
+                    "appkey": os.environ["KIS_APP_KEY"],
+                    "appsecret": os.environ["KIS_APP_SECRET"],
+                    "tr_id": TrIdManager.get_tr_id("pension_balance"),
+                },
+                params=request_data,
+            )
+        else:
+            logger.info(f"Standard account (ACNT_PRDT_CD={acnt_prdt_cd}), using TTTC8434R")
+            request_data = {
+                "CANO": os.environ["KIS_CANO"],
+                "ACNT_PRDT_CD": acnt_prdt_cd,
+                "AFHR_FLPR_YN": "N",
+                "INQR_DVSN": "01",
+                "UNPR_DVSN": "01",
+                "FUND_STTL_ICLD_YN": "N",
+                "FNCG_AMT_AUTO_RDPT_YN": "N",
+                "PRCS_DVSN": "00",
+                "CTX_AREA_FK100": "",
+                "CTX_AREA_NK100": "",
+                "OFL_YN": "",
+            }
+            response = await client.get(
+                f"{TrIdManager.get_domain('balance')}{BALANCE_PATH}",
+                headers={
+                    "content-type": CONTENT_TYPE,
+                    "authorization": f"{AUTH_TYPE} {token}",
+                    "appkey": os.environ["KIS_APP_KEY"],
+                    "appsecret": os.environ["KIS_APP_SECRET"],
+                    "tr_id": TrIdManager.get_tr_id("balance"),
+                },
+                params=request_data,
+            )
+
         if response.status_code != 200:
             raise Exception(f"Failed to get balance: {response.text}")
-        
+
         return response.json()
 
 @mcp.tool(
@@ -762,6 +781,352 @@ async def inquery_overseas_stock_price(symbol: str, market: str):
             raise Exception(f"Failed to get overseas stock price: {response.text}")
         
         return response.json()
+
+@mcp.tool(
+    name="inquery-overseas-balance",
+    description="Get overseas (foreign) stock balance from Korea Investment & Securities. Queries all major exchanges (US, HK, CN, JP) and returns combined holdings.",
+)
+async def inquery_overseas_balance(exchange: str = "ALL"):
+    """
+    Get overseas stock balance.
+
+    Args:
+        exchange: Exchange code to query. Use "ALL" to query all major exchanges,
+                  or specify one: "NASD" (NASDAQ), "NYSE", "AMEX",
+                  "SEHK" (Hong Kong), "SHAA" (Shanghai), "SZAA" (Shenzhen),
+                  "TKSE" (Tokyo), "HASE" (Hanoi), "VNSE" (Ho Chi Minh).
+
+    Returns:
+        Dictionary with holdings per exchange.
+    """
+    # 거래소별 통화코드 매핑
+    EXCHANGE_CURRENCY = {
+        "NASD": "USD", "NYSE": "USD", "AMEX": "USD",
+        "SEHK": "HKD",
+        "SHAA": "CNY", "SZAA": "CNY",
+        "TKSE": "JPY",
+        "HASE": "VND", "VNSE": "VND",
+    }
+
+    if exchange == "ALL":
+        targets = list(EXCHANGE_CURRENCY.items())
+    else:
+        if exchange not in EXCHANGE_CURRENCY:
+            raise ValueError(f"Unknown exchange: {exchange}. Use ALL or one of {list(EXCHANGE_CURRENCY)}")
+        targets = [(exchange, EXCHANGE_CURRENCY[exchange])]
+
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
+    results = {}
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client)
+
+        for excg_cd, crcy_cd in targets:
+            try:
+                response = await client.get(
+                    f"{DOMAIN}{OVERSEAS_BALANCE_PATH}",
+                    headers={
+                        "content-type": CONTENT_TYPE,
+                        "authorization": f"{AUTH_TYPE} {token}",
+                        "appkey": os.environ["KIS_APP_KEY"],
+                        "appsecret": os.environ["KIS_APP_SECRET"],
+                        "tr_id": "TTTS3012R",  # 해외주식 잔고조회 (실전)
+                    },
+                    params={
+                        "CANO": os.environ["KIS_CANO"],
+                        "ACNT_PRDT_CD": acnt_prdt_cd,
+                        "OVRS_EXCG_CD": excg_cd,
+                        "TR_CRCY_CD": crcy_cd,
+                        "CTX_AREA_FK200": "",
+                        "CTX_AREA_NK200": "",
+                    },
+                )
+                data = response.json()
+                # 잔고 있는 거래소만 포함
+                output1 = data.get("output1", [])
+                if output1:
+                    results[excg_cd] = data
+            except Exception as e:
+                logger.warning(f"Failed to fetch {excg_cd} balance: {e}")
+
+    if not results:
+        return {"message": "No overseas holdings found across queried exchanges."}
+    return results
+
+
+@mcp.tool(
+    name="inquery-overseas-deposit",
+    description="해외주식 체결기준현재잔고 조회 (예수금 포함). 통화별 외화 예수금과 원화환산 총자산을 반환합니다.",
+)
+async def inquery_overseas_deposit(
+    wcrc_frcr_dvsn_cd: str = "02",
+    natn_cd: str = "000",
+):
+    """
+    Get overseas cash deposit (예수금) using 해외주식 체결기준현재잔고 API (CTRP6504R).
+
+    Args:
+        wcrc_frcr_dvsn_cd: "01" = 원화환산, "02" = 외화 (default: "02")
+        natn_cd: 국가코드. "000"=전체, "840"=미국, "344"=홍콩, "156"=중국, "392"=일본, "704"=베트남
+
+    Returns:
+        Dict with output2 (통화별 잔고) and output3 (예수금 총계).
+    """
+    OVERSEAS_PRESENT_BALANCE_PATH = "/uapi/overseas-stock/v1/trading/inquire-present-balance"
+    TR_ID = "CTRP6504R"
+
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client)
+        response = await client.get(
+            f"{DOMAIN}{OVERSEAS_PRESENT_BALANCE_PATH}",
+            headers={
+                "content-type": CONTENT_TYPE,
+                "authorization": f"{AUTH_TYPE} {token}",
+                "appkey": os.environ["KIS_APP_KEY"],
+                "appsecret": os.environ["KIS_APP_SECRET"],
+                "tr_id": TR_ID,
+            },
+            params={
+                "CANO": os.environ["KIS_CANO"],
+                "ACNT_PRDT_CD": acnt_prdt_cd,
+                "WCRC_FRCR_DVSN_CD": wcrc_frcr_dvsn_cd,
+                "NATN_CD": natn_cd,
+                "TR_MKET_CD": "00",
+                "INQR_DVSN_CD": "00",
+            },
+        )
+        data = response.json()
+
+    # output2: 통화별 외화예수금, output3: 원화환산 총계 (예수금액, 총예수금액 등)
+    result = {}
+    if data.get("output2"):
+        result["통화별_잔고"] = data["output2"]
+    if data.get("output3"):
+        o3 = data["output3"]
+        result["예수금_총계"] = {
+            "예수금액": o3.get("dncl_amt"),
+            "총예수금액": o3.get("tot_dncl_amt"),
+            "외화예수금액": o3.get("frcr_dncl_amt_2"),
+            "외화사용가능금액": o3.get("frcr_use_psbl_amt"),
+            "인출가능총금액": o3.get("wdrw_psbl_tot_amt"),
+            "총자산금액": o3.get("tot_asst_amt"),
+            "CMA평가금액": o3.get("cma_evlu_amt"),
+        }
+        result["적용환율"] = {
+            "USD/KRW": o3.get("usd_frst_bltn_exrt"),
+            "HKD/KRW": o3.get("hkd_frst_bltn_exrt"),
+            "JPY/KRW": o3.get("jpy_frst_bltn_exrt"),
+            "CNY/KRW": o3.get("cny_frst_bltn_exrt"),
+        }
+    if not result:
+        result["raw"] = data
+    return result
+
+
+@mcp.tool(
+    name="inquery-exchange-rate-history",
+    description="환율 기간별 이력 조회. USD/KRW, JPY/KRW 등 주요 환율의 일/주/월별 시세를 반환합니다.",
+)
+async def inquery_exchange_rate_history(
+    currency: str = "USD",
+    start_date: str = "",
+    end_date: str = "",
+    period: str = "D",
+):
+    """
+    환율 기간별 시세 조회 (FHKST03030100).
+
+    Args:
+        currency: 통화코드. "USD"(달러), "JPY"(엔), "EUR"(유로), "CNY"(위안), "HKD"(홍콩달러)
+        start_date: 시작일 YYYYMMDD (빈값이면 오늘)
+        end_date:   종료일 YYYYMMDD (빈값이면 오늘)
+        period: D=일, W=주, M=월, Y=년
+    """
+    from datetime import date
+    today = date.today().strftime("%Y%m%d")
+    if not start_date:
+        start_date = today
+    if not end_date:
+        end_date = today
+
+    # KIS 환율 종목코드 매핑 (FID_COND_MRKT_DIV_CODE=X)
+    CURRENCY_ISCD = {
+        "USD": "FX@KRW",
+        "JPY": "FX@JPYKRW",
+        "EUR": "FX@EURKRW",
+        "CNY": "FX@CNYKRW",
+        "HKD": "FX@HKDKRW",
+        "VND": "FX@VNDKRW",
+    }
+    iscd = CURRENCY_ISCD.get(currency.upper(), f"FX@{currency.upper()}KRW")
+
+    OVERSEAS_CHARTPRICE_PATH = "/uapi/overseas-price/v1/quotations/inquire-daily-chartprice"
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client)
+        response = await client.get(
+            f"{DOMAIN}{OVERSEAS_CHARTPRICE_PATH}",
+            headers={
+                "content-type": CONTENT_TYPE,
+                "authorization": f"{AUTH_TYPE} {token}",
+                "appkey": os.environ["KIS_APP_KEY"],
+                "appsecret": os.environ["KIS_APP_SECRET"],
+                "tr_id": "FHKST03030100",
+            },
+            params={
+                "FID_COND_MRKT_DIV_CODE": "X",
+                "FID_INPUT_ISCD": iscd,
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date,
+                "FID_PERIOD_DIV_CODE": period,
+            },
+        )
+    return response.json()
+
+
+@mcp.tool(
+    name="inquery-overseas-stock-history",
+    description="해외주식 기간별 시세 이력 조회. 종목코드와 거래소를 지정하면 일/주/월별 OHLCV 데이터를 반환합니다.",
+)
+async def inquery_overseas_stock_history(
+    symbol: str,
+    exchange: str = "NAS",
+    end_date: str = "",
+    period: str = "0",
+):
+    """
+    해외주식 기간별시세 조회 (HHDFS76240000).
+
+    Args:
+        symbol:   종목코드 (예: "AAPL", "TSLA")
+        exchange: 거래소코드 NAS=나스닥, NYS=뉴욕, AMS=아멕스, HKS=홍콩, SHS=상해, SZS=심천, TSE=도쿄, HNX=하노이, HSX=호치민
+        end_date: 조회기준일(YYYYMMDD). 빈값이면 오늘 기준 최근 30일
+        period:   0=일, 1=주, 2=월
+    """
+    from datetime import date
+    if not end_date:
+        end_date = date.today().strftime("%Y%m%d")
+
+    OVERSEAS_DAILYPRICE_PATH = "/uapi/overseas-price/v1/quotations/dailyprice"
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client)
+        response = await client.get(
+            f"{DOMAIN}{OVERSEAS_DAILYPRICE_PATH}",
+            headers={
+                "content-type": CONTENT_TYPE,
+                "authorization": f"{AUTH_TYPE} {token}",
+                "appkey": os.environ["KIS_APP_KEY"],
+                "appsecret": os.environ["KIS_APP_SECRET"],
+                "tr_id": "HHDFS76240000",
+            },
+            params={
+                "AUTH": "",
+                "EXCD": exchange,
+                "SYMB": symbol,
+                "GUBN": period,
+                "BYMD": end_date,
+                "MODP": "0",
+            },
+        )
+    return response.json()
+
+
+@mcp.tool(
+    name="inquery-period-trade-profit",
+    description="국내주식 기간별 매매손익 현황 조회. 기간 내 종목별 매매손익·수익률을 반환합니다.",
+)
+async def inquery_period_trade_profit(
+    start_date: str,
+    end_date: str,
+):
+    """
+    국내주식 기간별매매손익현황 조회 (TTTC8715R).
+
+    Args:
+        start_date: 조회시작일 YYYYMMDD
+        end_date:   조회종료일 YYYYMMDD
+    """
+    PERIOD_TRADE_PROFIT_PATH = "/uapi/domestic-stock/v1/trading/inquire-period-trade-profit"
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client)
+        response = await client.get(
+            f"{DOMAIN}{PERIOD_TRADE_PROFIT_PATH}",
+            headers={
+                "content-type": CONTENT_TYPE,
+                "authorization": f"{AUTH_TYPE} {token}",
+                "appkey": os.environ["KIS_APP_KEY"],
+                "appsecret": os.environ["KIS_APP_SECRET"],
+                "tr_id": "TTTC8715R",
+            },
+            params={
+                "CANO": os.environ["KIS_CANO"],
+                "ACNT_PRDT_CD": acnt_prdt_cd,
+                "SORT_DVSN": "00",
+                "INQR_STRT_DT": start_date,
+                "INQR_END_DT": end_date,
+                "CBLC_DVSN": "00",
+                "PDNO": "",
+                "CTX_AREA_FK100": "",
+                "CTX_AREA_NK100": "",
+            },
+        )
+    return response.json()
+
+
+@mcp.tool(
+    name="inquery-overseas-period-profit",
+    description="해외주식 기간별 손익 조회. 기간 내 해외 종목 매매손익·수익률을 반환합니다.",
+)
+async def inquery_overseas_period_profit(
+    start_date: str,
+    end_date: str,
+    exchange: str = "",
+    currency: str = "",
+):
+    """
+    해외주식 기간손익 조회 (TTTS3039R).
+
+    Args:
+        start_date: 조회시작일 YYYYMMDD
+        end_date:   조회종료일 YYYYMMDD
+        exchange:   거래소코드. 빈값=전체, NASD=미국, SEHK=홍콩, SHAA=중국, TKSE=일본, HASE=베트남
+        currency:   통화코드. 빈값=전체, USD, HKD, CNY, JPY, VND
+    """
+    OVERSEAS_PERIOD_PROFIT_PATH = "/uapi/overseas-stock/v1/trading/inquire-period-profit"
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client)
+        response = await client.get(
+            f"{DOMAIN}{OVERSEAS_PERIOD_PROFIT_PATH}",
+            headers={
+                "content-type": CONTENT_TYPE,
+                "authorization": f"{AUTH_TYPE} {token}",
+                "appkey": os.environ["KIS_APP_KEY"],
+                "appsecret": os.environ["KIS_APP_SECRET"],
+                "tr_id": "TTTS3039R",
+            },
+            params={
+                "CANO": os.environ["KIS_CANO"],
+                "ACNT_PRDT_CD": acnt_prdt_cd,
+                "OVRS_EXCG_CD": exchange,
+                "NATN_CD": "",
+                "CRCY_CD": currency,
+                "PDNO": "",
+                "INQR_STRT_DT": start_date,
+                "INQR_END_DT": end_date,
+                "WCRC_FRCR_DVSN_CD": "02",
+                "CTX_AREA_FK200": "",
+                "CTX_AREA_NK200": "",
+            },
+        )
+    return response.json()
+
 
 if __name__ == "__main__":
     logger.info("Starting MCP server...")

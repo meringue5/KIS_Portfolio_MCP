@@ -1,11 +1,25 @@
+# 환경변수 / 시크릿
+.env
+*.env
+
+# KIS OAuth 토큰 캐시 (자동 갱신됨, 커밋 불필요)
+token_*.json
+
+# DuckDB 데이터베이스 파일
+*.db
+*.duckdb
+
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
 .venv/
+venv/
+.uv/
 
-# Environment and sensitive files
-.env
-token.json
-
-# OS
+# macOS
 .DS_Store
+
+# IDE
+.vscode/
+.idea/
