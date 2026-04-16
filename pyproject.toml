@@ -9,6 +9,7 @@ authors = [
     { name = "migusdn", email = "migusdn@gmail.com" }
 ]
 dependencies = [
+    "duckdb>=1.5.2",
     "fastmcp>=2.5.1",
     "httpx>=0.28.1",
     "mcp>=1.9.1",

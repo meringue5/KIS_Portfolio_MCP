@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 import httpx
 from mcp.server.fastmcp.server import FastMCP
+import db as kisdb
 
 # 로깅 설정: 반드시 stderr로 출력
 logging.basicConfig(
@@ -365,7 +366,29 @@ async def inquery_balance():
         if response.status_code != 200:
             raise Exception(f"Failed to get balance: {response.text}")
 
-        return response.json()
+        data = response.json()
+
+        # ── DB: 잔고 스냅샷 자동 저장 ──
+        try:
+            cano = os.environ.get("KIS_CANO", "unknown")
+            acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
+            type_map = {"01": "brokerage", "22": "pension", "29": "irp"}
+            # CANO로 계좌 타입 추가 구분 (claude_desktop_config 기준)
+            cano_type = {
+                "44299692": "ria", "43786274": "isa",
+                "43416048": "brokerage", "43362670": "irp", "43286118": "pension",
+            }
+            acct_type = cano_type.get(cano, type_map.get(acnt_prdt_cd, "unknown"))
+            # output2에서 총평가금액 추출 시도
+            total = None
+            o2 = data.get("output2", {})
+            if isinstance(o2, dict):
+                total = _i(o2.get("tot_evlu_amt") or o2.get("dnca_tota"))
+            kisdb.insert_portfolio_snapshot(cano, acct_type, data, total)
+        except Exception as e:
+            logger.warning(f"DB snapshot save failed (non-critical): {e}")
+
+        return data
 
 @mcp.tool(
     name="order-stock",
@@ -618,8 +641,31 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
         
         if response.status_code != 200:
             raise Exception(f"Failed to get stock history: {response.text}")
-        
-        return response.json()
+
+        data = response.json()
+
+        # ── DB: 주가 이력 캐시 저장 ──
+        try:
+            output = data.get("output2") or data.get("output", [])
+            if isinstance(output, list):
+                rows = []
+                for item in output:
+                    dt = item.get("stck_bsop_date") or item.get("stck_clpr_date")
+                    if dt:
+                        rows.append({
+                            "symbol": symbol, "exchange": "KRX", "date": dt,
+                            "open":  item.get("stck_oprc"),
+                            "high":  item.get("stck_hgpr"),
+                            "low":   item.get("stck_lwpr"),
+                            "close": item.get("stck_clpr"),
+                            "volume": item.get("acml_vol"),
+                        })
+                if rows:
+                    kisdb.upsert_price_history(rows)
+        except Exception as e:
+            logger.warning(f"DB price_history save failed (non-critical): {e}")
+
+        return data
 
 @mcp.tool(
     name="inquery-stock-ask",
@@ -1031,7 +1077,30 @@ async def inquery_overseas_stock_history(
                 "MODP": "0",
             },
         )
-    return response.json()
+    data = response.json()
+
+    # ── DB: 해외주식 가격 이력 캐시 저장 ──
+    try:
+        output = data.get("output2") or []
+        if isinstance(output, list):
+            rows = []
+            for item in output:
+                dt = item.get("xymd")  # YYYYMMDD
+                if dt:
+                    rows.append({
+                        "symbol": symbol, "exchange": exchange, "date": dt,
+                        "open":   item.get("open"),
+                        "high":   item.get("high"),
+                        "low":    item.get("low"),
+                        "close":  item.get("clos"),
+                        "volume": item.get("tvol"),
+                    })
+            if rows:
+                kisdb.upsert_price_history(rows)
+    except Exception as e:
+        logger.warning(f"DB overseas price_history save failed (non-critical): {e}")
+
+    return data
 
 
 @mcp.tool(
@@ -1075,7 +1144,13 @@ async def inquery_period_trade_profit(
                 "CTX_AREA_NK100": "",
             },
         )
-    return response.json()
+    data = response.json()
+    try:
+        cano = os.environ.get("KIS_CANO", "unknown")
+        kisdb.insert_trade_profit(cano, "domestic", start_date, end_date, data)
+    except Exception as e:
+        logger.warning(f"DB trade_profit save failed (non-critical): {e}")
+    return data
 
 
 @mcp.tool(
@@ -1125,7 +1200,90 @@ async def inquery_overseas_period_profit(
                 "CTX_AREA_NK200": "",
             },
         )
-    return response.json()
+    data = response.json()
+    try:
+        cano = os.environ.get("KIS_CANO", "unknown")
+        kisdb.insert_trade_profit(cano, "overseas", start_date, end_date, data)
+    except Exception as e:
+        logger.warning(f"DB overseas trade_profit save failed (non-critical): {e}")
+    return data
+
+
+# ═══════════════════════════════════════════
+# DB 조회 전용 툴 (API 호출 없음)
+# ═══════════════════════════════════════════
+
+@mcp.tool(
+    name="get-portfolio-history",
+    description="MotherDuck DB에서 계좌 잔고 스냅샷 이력을 조회합니다. API 호출 없이 과거 기록을 반환합니다.",
+)
+async def get_portfolio_history(
+    start_date: str = "",
+    end_date: str = "",
+    limit: int = 50,
+):
+    """
+    포트폴리오 스냅샷 이력 조회 (DB only).
+
+    Args:
+        start_date: 시작일 YYYYMMDD 또는 YYYY-MM-DD (빈값=전체)
+        end_date:   종료일 YYYYMMDD 또는 YYYY-MM-DD (빈값=전체)
+        limit:      최대 반환 건수 (기본 50)
+    """
+    cano = os.environ.get("KIS_CANO", "unknown")
+    rows = kisdb.get_portfolio_snapshots(cano, start_date or None, end_date or None, limit)
+    return {"account_id": cano, "count": len(rows), "snapshots": rows}
+
+
+@mcp.tool(
+    name="get-price-from-db",
+    description="MotherDuck DB에서 주가 이력을 조회합니다. API 호출 없이 캐시된 데이터를 반환합니다.",
+)
+async def get_price_from_db(
+    symbol: str,
+    start_date: str,
+    end_date: str,
+    exchange: str = "KRX",
+):
+    """
+    캐시된 주가 이력 조회 (DB only).
+
+    Args:
+        symbol:     종목코드 (예: "005930", "AAPL")
+        start_date: YYYYMMDD
+        end_date:   YYYYMMDD
+        exchange:   "KRX"(국내), "NAS"(나스닥), "NYSE" 등
+    """
+    rows = kisdb.get_price_history(symbol, exchange, start_date, end_date)
+    return {"symbol": symbol, "exchange": exchange, "count": len(rows), "data": rows}
+
+
+@mcp.tool(
+    name="get-exchange-rate-from-db",
+    description="MotherDuck DB에서 환율 이력을 조회합니다. API 호출 없이 캐시된 데이터를 반환합니다.",
+)
+async def get_exchange_rate_from_db(
+    currency: str = "USD",
+    start_date: str = "",
+    end_date: str = "",
+    period: str = "D",
+):
+    """
+    캐시된 환율 이력 조회 (DB only).
+
+    Args:
+        currency:   통화코드 "USD", "JPY", "CNY", "HKD", "VND"
+        start_date: YYYYMMDD
+        end_date:   YYYYMMDD
+        period:     D=일, W=주, M=월, Y=년
+    """
+    from datetime import date
+    if not start_date:
+        start_date = "20000101"
+    if not end_date:
+        end_date = date.today().strftime("%Y%m%d")
+    rows = kisdb.get_exchange_rate_history(currency, start_date, end_date, period)
+    return {"currency": currency, "period": period, "count": len(rows), "data": rows}
 
 
 if __name__ == "__main__":
