@@ -210,17 +210,6 @@ KIS_DATA_DIR=var
 
 ---
 
-## TODO
-
-- **토큰 발급 감사 이벤트 저장**: access token 원문은 `var/tokens/`의 런타임 secret cache에만 보관한다.
-  MotherDuck에는 `account_label`, masked account id, `issued_at`, `expires_at`, refresh reason,
-  token fingerprint 같은 메타데이터만 저장한다. 목적은 KIS의 1일 1회 발급/잦은 발급 차단 정책을
-  감시하는 것이며, 토큰 원문을 분석 DB나 Parquet 백업 경로에 섞지 않는다.
-- **remote MCP 인증 고도화**: 개인용 bearer token에서 OAuth/OIDC 기반 인증으로 승격할 필요가 있는지 검토한다.
-- **서비스 계층 분리**: MCP tool wrapper에서 포트폴리오 aggregate 로직을 더 얇게 분리한다.
-
----
-
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

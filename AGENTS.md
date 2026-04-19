@@ -229,10 +229,6 @@ KIS_ACNT_PRDT_CD_{ACCOUNT}=
 
 ---
 
-## 예정 작업
+## 작업 큐
 
-- 토큰 발급 감사 이벤트 저장: access token 원문은 계속 `var/tokens/`에만 두고,
-  MotherDuck에는 발급/만료/refresh reason/token fingerprint 같은 메타데이터만 저장
-- remote MCP 인증을 OAuth/OIDC로 승격할지 검토
-- 포트폴리오 aggregate tool을 서비스 계층으로 추가 분리
-- 상세 구현 명세: SPEC.md 참고
+자주 바뀌는 예정 작업은 `TODO.md`에서 관리한다. 결정된 설계 원칙은 `SPEC.md`에만 남긴다.
