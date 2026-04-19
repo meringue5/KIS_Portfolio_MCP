@@ -191,16 +191,18 @@ KIS_DATA_DIR=var
 
 ---
 
-### ADR-009: 컨테이너는 remote MCP 준비물이며, HTTP 어댑터는 별도 단계
+### ADR-009: 컨테이너와 bearer 인증 remote MCP 베이스라인
 
-**결정**: Dockerfile을 추가해 배포 가능한 실행 환경을 준비한다. 다만 현재 기본 엔트리포인트는
-local stdio MCP이며, ChatGPT custom MCP 같은 원격 클라이언트용 Streamable HTTP 어댑터는 별도 후속
-작업으로 둔다.
+**결정**: Dockerfile을 추가해 배포 가능한 실행 환경을 준비한다. 기본 엔트리포인트는 local stdio MCP로
+유지하고, 원격 클라이언트용 `kis-mcp-remote` 엔트리포인트는 `/mcp` Streamable HTTP endpoint를
+제공한다. remote endpoint는 `KIS_REMOTE_AUTH_TOKEN` 기반 bearer 인증을 요구한다.
 
 **이유**:
 - Fly.io, Render, Cloud Run 등은 컨테이너 배포와 runtime secret 관리가 자연스러움
 - KIS/MotherDuck secret은 이미지에 포함하지 않고 배포 플랫폼의 runtime env로 주입해야 함
 - local MCP 안정화와 remote MCP 인증/권한 설계를 분리해야 주문 기능 노출 위험을 줄일 수 있음
+- 개인용 초기 배포에는 공유 bearer token이 단순하고 검증하기 쉬움
+- 다중 사용자/조직 배포는 OAuth/OIDC로 승격해야 함
 
 상세 방향은 `docs/deployment.md` 참고.
 

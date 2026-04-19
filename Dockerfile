@@ -12,4 +12,6 @@ COPY . .
 
 RUN mkdir -p var/tokens var/local var/backup
 
+EXPOSE 8000
+
 CMD ["uv", "run", "python", "server.py"]

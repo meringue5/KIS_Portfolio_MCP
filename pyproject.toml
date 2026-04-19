@@ -15,6 +15,8 @@ dependencies = [
     "mcp>=1.9.1",
     "pathlib>=1.0.1",
     "python-dotenv>=1.1.0",
+    "starlette>=0.46.1",
+    "uvicorn>=0.34.0",
 ]
 
 [build-system]
@@ -23,6 +25,7 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 kis-mcp-server = "kis_mcp_server.app:main"
+kis-mcp-remote = "kis_mcp_server.remote:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/kis_mcp_server"]

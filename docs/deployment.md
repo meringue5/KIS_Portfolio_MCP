@@ -12,7 +12,22 @@ uv run python server.py
 
 Dockerfile은 이 local MCP 서버를 컨테이너에서 실행할 수 있게 하는 최소 베이스라인이다.
 ChatGPT custom MCP나 원격 Claude connector에 붙이려면 별도의 Streamable HTTP MCP 어댑터가
-필요하다.
+필요하다. 현재는 초기 remote 엔트리포인트 `kis-mcp-remote`를 제공하며, `/mcp` endpoint를
+Streamable HTTP로 노출한다.
+
+## Remote MCP 인증
+
+초기 remote 배포는 공유 bearer token 방식으로 보호한다.
+
+- 필수 환경변수: `KIS_REMOTE_AUTH_TOKEN`
+- 클라이언트 요청 헤더: `Authorization: Bearer <token>`
+- health check: `GET /healthz`는 인증 없이 응답
+- MCP endpoint: `/mcp`는 인증 필수
+
+`KIS_REMOTE_AUTH_DISABLED=true`는 로컬 터널 실험에만 사용한다. 운영 배포에서는 사용하지 않는다.
+
+다중 사용자나 조직 배포로 확장할 때는 OAuth/OIDC provider 기반 인증으로 승격한다. 그 전까지
+remote MCP는 개인용/비공개 endpoint로만 운영한다.
 
 ## Secret 원칙
 
@@ -52,11 +67,29 @@ docker run --rm -i \
 
 stdio MCP는 표준 입출력을 사용하므로 컨테이너 테스트도 `-i`가 필요하다.
 
+원격 MCP 실행 예시:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e KIS_REMOTE_AUTH_TOKEN=... \
+  -e KIS_APP_KEY=... \
+  -e KIS_APP_SECRET=... \
+  -e KIS_CANO=... \
+  -e KIS_ACNT_PRDT_CD=01 \
+  -e KIS_ACCOUNT_LABEL=brokerage \
+  -e KIS_ACCOUNT_TYPE=REAL \
+  -e KIS_DB_MODE=motherduck \
+  -e MOTHERDUCK_DATABASE=kis_portfolio \
+  -e MOTHERDUCK_TOKEN=... \
+  kis-mcp-server \
+  uv run kis-mcp-remote
+```
+
+remote endpoint는 `http://localhost:8000/mcp` 또는 배포 플랫폼의 HTTPS URL에서 `/mcp`이다.
+
 ## Remote MCP 후속 작업
 
-- `src/kis_mcp_server/adapters/mcp_http.py` 추가
-- Streamable HTTP endpoint: `/mcp`
-- 인증 middleware 추가
+- 인증 방식을 OAuth/OIDC로 승격
 - read-only mode 기본값 추가
 - 주문 tool은 `KIS_ENABLE_ORDER_TOOLS=false`를 기본값으로 유지
 - MCP inspector로 remote endpoint 검증
