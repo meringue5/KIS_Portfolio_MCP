@@ -102,6 +102,10 @@ var/
 MotherDuck 백업은 Parquet을 기본 포맷으로 둔다. `scripts/backup_motherduck.py`는 네 개의 핵심 테이블을
 `var/backup/parquet/YYYYMMDD_HHMMSS/` 아래로 export한다. 자세한 절차는 `docs/backup.md`를 참고한다.
 
+스냅샷 raw table은 append-only로 유지한다. 분/일 단위 중복 제거와 대표값 선택은 raw write path에서
+하지 않고 curated view 또는 향후 pipeline 단계에서 처리한다. 현재 `portfolio_daily_snapshots` view가
+계좌별/일자별 마지막 스냅샷을 제공한다. 자세한 방향은 `docs/data-pipeline.md`를 참고한다.
+
 환경변수:
 
 ```text

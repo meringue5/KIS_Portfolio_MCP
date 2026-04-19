@@ -152,6 +152,12 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 - Parquet 백업 스크립트: `uv run python scripts/backup_motherduck.py`
 - 기본 백업 위치: `var/backup/parquet/YYYYMMDD_HHMMSS/`
 
+**정제/분석 방향:**
+- `portfolio_snapshots`는 raw append-only로 유지
+- 분/일 단위 중복 제거는 저장 시점이 아니라 curated view/pipeline에서 처리
+- 현재 일별 대표값 view: `portfolio_daily_snapshots`
+- 상세 문서: `docs/data-pipeline.md`
+
 ## 신규 환경 온보딩
 
 새 맥이나 새 클론 후 Codex Desktop MCP를 복원하는 절차.

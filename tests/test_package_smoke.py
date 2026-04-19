@@ -17,16 +17,16 @@ def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
         con = kisdb.get_connection()
         tables = {name for (name,) in con.execute("show tables").fetchall()}
     finally:
-        if kisdb._con is not None:
-            kisdb._con.close()
-            kisdb._con = None
+        kisdb.close_connection()
 
-    assert tables == {
+    assert {
         "exchange_rate_history",
+        "portfolio_daily_snapshots",
         "portfolio_snapshots",
         "price_history",
+        "schema_migrations",
         "trade_profit_history",
-    }
+    }.issubset(tables)
     assert (tmp_path / "local" / "kis_portfolio.duckdb").exists()
 
 

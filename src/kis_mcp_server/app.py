@@ -1,13 +1,16 @@
-import json
 import logging
 import os
 import sys
 from dotenv import load_dotenv
-from datetime import datetime, date
 
 import httpx
 from mcp.server.fastmcp.server import FastMCP
 from .accounts import extract_total_eval_amt, infer_account_type, is_irp_account
+from .analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
+from .analytics.portfolio import (
+    get_portfolio_anomalies as analyze_portfolio_anomalies,
+    get_portfolio_trend as analyze_portfolio_trend,
+)
 from .auth import get_access_token, get_hashkey
 from . import db as kisdb
 
@@ -65,25 +68,6 @@ MARKET_CODES = {
     "HASE": "베트남 하노이",
     "VNSE": "베트남 호치민"
 }
-
-
-def _json_safe(value):
-    if isinstance(value, (datetime, date)):
-        return value.isoformat()
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except Exception:
-            return value
-    return value
-
-
-def _rows_to_dicts(cursor) -> list[dict]:
-    cols = [desc[0] for desc in cursor.description]
-    return [
-        {key: _json_safe(value) for key, value in zip(cols, row)}
-        for row in cursor.fetchall()
-    ]
 
 
 def _current_account_id(account_id: str = "") -> str:
@@ -1251,79 +1235,8 @@ async def get_bollinger_bands(
         num_std: 표준편차 배수
         limit: 반환할 최근 행 수
     """
-    window = max(2, min(int(window), 252))
-    num_std = max(0.1, float(num_std))
-    limit = max(1, min(int(limit), 250))
-
     con = kisdb.get_connection()
-    sql = f"""
-        WITH price_stats AS (
-            SELECT
-                symbol,
-                exchange,
-                date,
-                close,
-                count(close) OVER (
-                    PARTITION BY symbol, exchange
-                    ORDER BY date
-                    ROWS BETWEEN {window - 1} PRECEDING AND CURRENT ROW
-                ) AS observations,
-                avg(close) OVER (
-                    PARTITION BY symbol, exchange
-                    ORDER BY date
-                    ROWS BETWEEN {window - 1} PRECEDING AND CURRENT ROW
-                ) AS sma,
-                stddev(close) OVER (
-                    PARTITION BY symbol, exchange
-                    ORDER BY date
-                    ROWS BETWEEN {window - 1} PRECEDING AND CURRENT ROW
-                ) AS std
-            FROM price_history
-            WHERE symbol = ? AND exchange = ? AND close IS NOT NULL
-        )
-        SELECT
-            symbol,
-            exchange,
-            date,
-            close,
-            round(sma, 2) AS sma,
-            round(sma + {num_std} * std, 2) AS upper_band,
-            round(sma - {num_std} * std, 2) AS lower_band,
-            round((close - sma) / nullif(std, 0), 2) AS z_score,
-            CASE
-                WHEN close > sma + {num_std} * std THEN '과매수'
-                WHEN close < sma - {num_std} * std THEN '과매도'
-                ELSE '중립'
-            END AS signal
-        FROM price_stats
-        WHERE observations >= {window}
-        ORDER BY date DESC
-        LIMIT ?
-    """
-    rows = _rows_to_dicts(con.execute(sql, [symbol, exchange, limit]))
-    if not rows:
-        total_rows = con.execute("""
-            SELECT count(*)
-            FROM price_history
-            WHERE symbol=? AND exchange=? AND close IS NOT NULL
-        """, [symbol, exchange]).fetchone()[0]
-        return {
-            "symbol": symbol,
-            "exchange": exchange,
-            "count": 0,
-            "message": f"데이터가 부족합니다 (현재 {total_rows}개, 최소 {window}개 필요)",
-            "data": [],
-        }
-
-    return {
-        "symbol": symbol,
-        "exchange": exchange,
-        "window": window,
-        "num_std": num_std,
-        "count": len(rows),
-        "latest": rows[0],
-        "data": rows,
-    }
+    return analyze_bollinger_bands(con, symbol, exchange, window, num_std, limit)
 
 
 @mcp.tool(
@@ -1346,102 +1259,8 @@ async def get_portfolio_anomalies(
         limit: 반환할 최대 행 수
     """
     account_id = _current_account_id(account_id)
-    z_threshold = max(0.1, float(z_threshold))
-    lookback_days = max(2, min(int(lookback_days), 3650))
-    limit = max(1, min(int(limit), 250))
-
     con = kisdb.get_connection()
-    sql = f"""
-        WITH daily_snapshots AS (
-            SELECT
-                account_id,
-                CAST(snapshot_at AS DATE) AS snap_date,
-                arg_max(total_eval_amt, snapshot_at) AS total_eval_amt
-            FROM portfolio_snapshots
-            WHERE account_id = ?
-              AND snapshot_at >= current_date - INTERVAL '{lookback_days} days'
-              AND total_eval_amt IS NOT NULL
-            GROUP BY account_id, snap_date
-        ),
-        daily_returns AS (
-            SELECT
-                account_id,
-                snap_date,
-                total_eval_amt,
-                lag(total_eval_amt) OVER (
-                    PARTITION BY account_id ORDER BY snap_date
-                ) AS prev_total_eval_amt
-            FROM daily_snapshots
-        ),
-        return_stats AS (
-            SELECT
-                account_id,
-                avg(return_pct) AS mean_return,
-                stddev(return_pct) AS std_return
-            FROM (
-                SELECT
-                    account_id,
-                    (total_eval_amt - prev_total_eval_amt)
-                        / nullif(prev_total_eval_amt, 0) * 100 AS return_pct
-                FROM daily_returns
-                WHERE prev_total_eval_amt IS NOT NULL
-            )
-            GROUP BY account_id
-        )
-        SELECT
-            d.account_id,
-            d.snap_date,
-            d.total_eval_amt,
-            d.prev_total_eval_amt,
-            round(
-                (d.total_eval_amt - d.prev_total_eval_amt)
-                    / nullif(d.prev_total_eval_amt, 0) * 100,
-                2
-            ) AS return_pct,
-            round((
-                ((d.total_eval_amt - d.prev_total_eval_amt)
-                    / nullif(d.prev_total_eval_amt, 0) * 100) - s.mean_return
-            ) / nullif(s.std_return, 0), 2) AS z_score,
-            CASE
-                WHEN abs((
-                    ((d.total_eval_amt - d.prev_total_eval_amt)
-                        / nullif(d.prev_total_eval_amt, 0) * 100) - s.mean_return
-                ) / nullif(s.std_return, 0)) >= {z_threshold}
-                THEN '이상치'
-                ELSE '정상'
-            END AS status
-        FROM daily_returns d
-        JOIN return_stats s ON d.account_id = s.account_id
-        WHERE d.prev_total_eval_amt IS NOT NULL
-        ORDER BY abs((
-            ((d.total_eval_amt - d.prev_total_eval_amt)
-                / nullif(d.prev_total_eval_amt, 0) * 100) - s.mean_return
-        ) / nullif(s.std_return, 0)) DESC NULLS LAST
-        LIMIT ?
-    """
-    rows = _rows_to_dicts(con.execute(sql, [account_id, limit]))
-    anomaly_count = sum(1 for row in rows if row.get("status") == "이상치")
-    if not rows:
-        daily_count = con.execute("""
-            SELECT count(DISTINCT CAST(snapshot_at AS DATE))
-            FROM portfolio_snapshots
-            WHERE account_id=? AND total_eval_amt IS NOT NULL
-        """, [account_id]).fetchone()[0]
-        return {
-            "account_id": account_id,
-            "count": 0,
-            "message": f"데이터가 부족합니다 (총평가금액이 있는 일별 스냅샷 {daily_count}일)",
-            "data": [],
-        }
-
-    return {
-        "account_id": account_id,
-        "lookback_days": lookback_days,
-        "z_threshold": z_threshold,
-        "count": len(rows),
-        "anomaly_count": anomaly_count,
-        "data": rows,
-    }
+    return analyze_portfolio_anomalies(con, account_id, z_threshold, lookback_days, limit)
 
 
 @mcp.tool(
@@ -1464,83 +1283,8 @@ async def get_portfolio_trend(
         lookback_days: 조회 기간
     """
     account_id = _current_account_id(account_id)
-    short_window = max(2, min(int(short_window), 365))
-    long_window = max(short_window, min(int(long_window), 3650))
-    lookback_days = max(long_window, min(int(lookback_days), 3650))
-
     con = kisdb.get_connection()
-    sql = f"""
-        WITH daily_snapshots AS (
-            SELECT
-                account_id,
-                CAST(snapshot_at AS DATE) AS snap_date,
-                arg_max(total_eval_amt, snapshot_at) AS total_eval_amt
-            FROM portfolio_snapshots
-            WHERE account_id = ?
-              AND snapshot_at >= current_date - INTERVAL '{lookback_days} days'
-              AND total_eval_amt IS NOT NULL
-            GROUP BY account_id, snap_date
-        ),
-        trend_rows AS (
-            SELECT
-                account_id,
-                snap_date,
-                total_eval_amt,
-                count(total_eval_amt) OVER (
-                    PARTITION BY account_id
-                    ORDER BY snap_date
-                    ROWS BETWEEN {long_window - 1} PRECEDING AND CURRENT ROW
-                ) AS long_observations,
-                round(avg(total_eval_amt) OVER (
-                    PARTITION BY account_id
-                    ORDER BY snap_date
-                    ROWS BETWEEN {short_window - 1} PRECEDING AND CURRENT ROW
-                ), 0) AS short_sma,
-                round(avg(total_eval_amt) OVER (
-                    PARTITION BY account_id
-                    ORDER BY snap_date
-                    ROWS BETWEEN {long_window - 1} PRECEDING AND CURRENT ROW
-                ), 0) AS long_sma
-            FROM daily_snapshots
-        )
-        SELECT
-            account_id,
-            snap_date,
-            total_eval_amt,
-            short_sma,
-            long_sma,
-            CASE
-                WHEN short_sma > long_sma THEN '상승추세'
-                WHEN short_sma < long_sma THEN '하락추세'
-                ELSE '중립'
-            END AS trend
-        FROM trend_rows
-        WHERE long_observations >= {long_window}
-        ORDER BY snap_date DESC
-    """
-    rows = _rows_to_dicts(con.execute(sql, [account_id]))
-    if not rows:
-        daily_count = con.execute("""
-            SELECT count(DISTINCT CAST(snapshot_at AS DATE))
-            FROM portfolio_snapshots
-            WHERE account_id=? AND total_eval_amt IS NOT NULL
-        """, [account_id]).fetchone()[0]
-        return {
-            "account_id": account_id,
-            "count": 0,
-            "message": f"데이터가 부족합니다 (현재 {daily_count}일, 최소 {long_window}일 필요)",
-            "data": [],
-        }
-
-    return {
-        "account_id": account_id,
-        "short_window": short_window,
-        "long_window": long_window,
-        "lookback_days": lookback_days,
-        "count": len(rows),
-        "latest": rows[0],
-        "data": rows,
-    }
+    return analyze_portfolio_trend(con, account_id, short_window, long_window, lookback_days)
 
 
 def main() -> None:

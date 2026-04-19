@@ -152,6 +152,26 @@ KIS_DATA_DIR=var
 
 ---
 
+### ADR-007: Raw append-only 저장과 curated view 기반 분석
+
+**결정**: `portfolio_snapshots`는 같은 계좌/같은 날/짧은 시간 내 중복 조회라도 raw row를 삭제하거나
+덮어쓰지 않는다. 분석은 raw table이 아니라 curated view 또는 향후 pipeline 산출물을 사용한다.
+
+**이유**:
+- API 원본 응답을 보존해야 나중에 파싱 로직 변경이나 데이터 정제를 재수행할 수 있음
+- LLM/MCP 호출로 생성된 관측 이력을 감사할 수 있음
+- 일 단위, 분 단위, 장 마감 기준 등 대표값 정책이 바뀌어도 raw를 잃지 않음
+
+**현재 적용**:
+- raw table: `portfolio_snapshots`
+- curated view: `portfolio_daily_snapshots`
+- `portfolio_daily_snapshots`는 계좌별/일자별 마지막 스냅샷을 대표값으로 사용
+- 분석 함수는 이 view를 우선 사용
+
+상세 방향은 `docs/data-pipeline.md` 참고.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유
