@@ -110,7 +110,7 @@ env = {k: os.environ[k] for k in os.environ}
 username = os.environ.get('USER', os.popen('whoami').read().strip())
 repo_dir = "$REPO_DIR"
 uv_bin   = os.path.expanduser("~/.local/bin/uv")
-prefs    = $PREFS
+prefs    = json.loads(r'''$PREFS''')
 
 def srv(key_suffix, extra_env=None):
     e = {
