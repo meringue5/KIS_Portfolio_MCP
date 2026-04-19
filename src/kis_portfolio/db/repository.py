@@ -5,8 +5,8 @@ import logging
 from datetime import date, datetime
 from typing import Any
 
-from kis_mcp_server.db.connection import get_connection
-from kis_mcp_server.db.utils import normalize_row, to_float, to_int
+from kis_portfolio.db.connection import get_connection
+from kis_portfolio.db.utils import normalize_row, to_float, to_int
 
 logger = logging.getLogger(__name__)
 

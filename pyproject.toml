@@ -1,7 +1,7 @@
 [project]
-name = "kis-mcp-server"
+name = "kis-portfolio"
 version = "0.1.0"
-description = "한국투자증권 REST API를 사용한 MCP(Model Context Protocol) 서버"
+description = "한국투자증권 Open API 기반 포트폴리오 서비스"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
@@ -24,12 +24,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-kis-mcp-server = "kis_mcp_server.app:main"
-kis-mcp-remote = "kis_mcp_server.remote:main"
-kis-mcp-orchestrator = "kis_mcp_server.orchestrator:main"
+kis-portfolio-remote = "kis_portfolio.remote:main"
+kis-portfolio-mcp = "kis_portfolio.adapters.mcp:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/kis_mcp_server"]
+packages = ["src/kis_portfolio"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -1,4 +1,4 @@
-from kis_mcp_server.accounts import (
+from kis_portfolio.accounts import (
     extract_total_eval_amt,
     infer_account_type,
     is_irp_account,

@@ -55,15 +55,15 @@ Core service는 MCP를 몰라야 한다.
 ```text
 KIS API docs/examples
         ↓
-kis_mcp_server.services / kis_mcp_server.clients
+kis_portfolio.services / kis_portfolio.clients
         ↓
 repositories / warehouse / analytics
         ↓
 adapters: local MCP, remote MCP, batch jobs, future web API
 ```
 
-현재 코드가 이 구조를 완전히 따르지는 않는다. 다음 리팩토링은 `app.py`의 legacy tool 구현을 core service와
-adapter로 분리하는 방향으로 진행한다.
+현재 public MCP adapter는 `src/kis_portfolio/adapters/mcp/server.py`이며, KIS 호출 로직은
+`services/` 아래로 이동하는 중이다.
 
 ## Repository Identity
 
@@ -74,5 +74,5 @@ adapter로 분리하는 방향으로 진행한다.
 
 1. 현재 저장소와 history를 유지하며 구조 전환을 진행한다.
 2. README/SPEC에서 fork attribution은 유지하고, 프로젝트 설명은 포트폴리오 서비스 중심으로 변경한다.
-3. upstream 병합 가치가 낮아진 시점에 GitHub repository rename을 검토한다.
-4. 새 저장소 생성은 공개 브랜딩, 배포 대상, GitHub fork 관계 정리가 필요할 때 선택한다.
+3. Python package는 `kis_portfolio`, public MCP는 `kis-portfolio-mcp`로 사용한다.
+4. upstream 병합 가치가 낮아진 시점에 GitHub repository rename을 검토한다.

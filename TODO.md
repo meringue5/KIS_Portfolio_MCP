@@ -4,6 +4,12 @@
 
 ## High Priority
 
+- [x] KIS Portfolio Service 구조 전환을 구현한다.
+  - Python package를 `kis_portfolio`로 rename하고 CLI를 `kis-portfolio-*`로 정리한다.
+  - Claude 기본 MCP 설정은 `kis-portfolio` 단일 서버만 노출한다.
+  - `clients/services/adapters/mcp` 구조로 legacy MCP 중심 구현을 흡수한다.
+  - 기존 `inquery-*` tool alias는 새 MCP에 노출하지 않고 clean `get-*` tool 표면으로 재정리한다.
+  - 주문 기능은 실제 KIS 주문 호출 없이 disabled/stub으로만 제공한다.
 - [x] 오케스트레이터 MCP 병행 전환을 구현한다.
   - 기존 5개 계좌 MCP는 유지하고 `kis-portfolio` 서버를 추가한다.
   - `AccountRegistry`로 5개 계좌 설정을 읽고 계좌번호는 마스킹해 노출한다.

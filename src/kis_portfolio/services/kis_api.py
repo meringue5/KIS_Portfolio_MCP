@@ -4,17 +4,17 @@ import sys
 from dotenv import load_dotenv
 
 import httpx
-from mcp.server.fastmcp.server import FastMCP
-from .analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
-from .analytics.portfolio import (
+from ..analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
+from ..analytics.portfolio import (
     get_latest_portfolio_summary as analyze_latest_portfolio_summary,
     get_portfolio_daily_change as analyze_portfolio_daily_change,
     get_portfolio_anomalies as analyze_portfolio_anomalies,
     get_portfolio_trend as analyze_portfolio_trend,
 )
-from .auth import get_access_token, get_hashkey, get_token_status as inspect_token_status
-from .kis_balance import fetch_balance_snapshot
-from . import db as kisdb
+from ..auth import get_access_token, get_hashkey, get_token_status as inspect_token_status
+from ..clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN
+from .account import fetch_balance_snapshot
+from .. import db as kisdb
 
 # 로깅 설정: 반드시 stderr로 출력
 logging.basicConfig(
@@ -30,13 +30,6 @@ logger = logging.getLogger("mcp-server")
 # Load environment variables from .env file before resolving runtime paths.
 load_dotenv()
 
-# Create MCP instance
-mcp = FastMCP("KIS MCP Server", dependencies=["httpx", "xmltodict"])
-
-# Global strings for API endpoints and paths
-DOMAIN = "https://openapi.koreainvestment.com:9443"
-VIRTUAL_DOMAIN = "https://openapivts.koreainvestment.com:29443"  # 모의투자
-
 # API paths
 STOCK_PRICE_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"  # 현재가조회
 ORDER_PATH = "/uapi/domestic-stock/v1/trading/order-cash"  # 현금주문
@@ -51,10 +44,6 @@ OVERSEAS_STOCK_PRICE_PATH = "/uapi/overseas-price/v1/quotations/price"
 OVERSEAS_ORDER_PATH = "/uapi/overseas-stock/v1/trading/order"
 OVERSEAS_BALANCE_PATH = "/uapi/overseas-stock/v1/trading/inquire-balance"
 OVERSEAS_ORDER_LIST_PATH = "/uapi/overseas-stock/v1/trading/inquire-daily-ccld"
-
-# Headers and other constants
-CONTENT_TYPE = "application/json"
-AUTH_TYPE = "Bearer"
 
 # Market codes for overseas stock
 MARKET_CODES = {
@@ -185,10 +174,6 @@ class TrIdManager:
         # 거래 API는 계좌 타입에 따라 다른 도메인 사용
         return DOMAIN if is_real_account else VIRTUAL_DOMAIN
 
-@mcp.tool(
-    name="inquery-stock-price",
-    description="Get current stock price information from Korea Investment & Securities",
-)
 async def inquery_stock_price(symbol: str):
     """
     Get current stock price information from Korea Investment & Securities
@@ -232,10 +217,6 @@ async def inquery_stock_price(symbol: str):
         
         return response.json()["output"]
 
-@mcp.tool(
-    name="inquery-balance",
-    description="Get current stock balance information from Korea Investment & Securities",
-)
 async def inquery_balance():
     """
     Get current stock balance information from Korea Investment & Securities.
@@ -244,10 +225,6 @@ async def inquery_balance():
     """
     return await fetch_balance_snapshot(save_snapshot=True)
 
-@mcp.tool(
-    name="order-stock",
-    description="Order stock (buy/sell) from Korea Investment & Securities",
-)
 async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
     """
     Order stock (buy/sell) from Korea Investment & Securities
@@ -303,10 +280,6 @@ async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
         
         return response.json()
 
-@mcp.tool(
-    name="inquery-order-list",
-    description="Get daily order list from Korea Investment & Securities",
-)
 async def inquery_order_list(start_date: str, end_date: str):
     """
     Get daily order list from Korea Investment & Securities
@@ -356,10 +329,6 @@ async def inquery_order_list(start_date: str, end_date: str):
         
         return response.json()
 
-@mcp.tool(
-    name="inquery-order-detail",
-    description="Get order detail from Korea Investment & Securities",
-)
 async def inquery_order_detail(order_no: str, order_date: str):
     """
     Get order detail from Korea Investment & Securities
@@ -409,10 +378,6 @@ async def inquery_order_detail(order_no: str, order_date: str):
         
         return response.json()
 
-@mcp.tool(
-    name="inquery-stock-info",
-    description="Get daily stock price information from Korea Investment & Securities",
-)
 async def inquery_stock_info(symbol: str, start_date: str, end_date: str):
     """
     Get daily stock price information from Korea Investment & Securities
@@ -455,10 +420,6 @@ async def inquery_stock_info(symbol: str, start_date: str, end_date: str):
         
         return response.json()
 
-@mcp.tool(
-    name="inquery-stock-history",
-    description="Get daily stock price history from Korea Investment & Securities",
-)
 async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
     """
     Get daily stock price history from Korea Investment & Securities
@@ -524,10 +485,6 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
 
         return data
 
-@mcp.tool(
-    name="inquery-stock-ask",
-    description="Get stock ask price from Korea Investment & Securities",
-)
 async def inquery_stock_ask(symbol: str):
     """
     Get stock ask price from Korea Investment & Securities
@@ -564,10 +521,6 @@ async def inquery_stock_ask(symbol: str):
         
         return response.json()
 
-@mcp.tool(
-    name="order-overseas-stock",
-    description="Order overseas stock (buy/sell) from Korea Investment & Securities",
-)
 async def order_overseas_stock(symbol: str, quantity: int, price: float, order_type: str, market: str):
     """
     Order overseas stock (buy/sell)
@@ -649,10 +602,6 @@ async def order_overseas_stock(symbol: str, quantity: int, price: float, order_t
         
         return response.json()
 
-@mcp.tool(
-    name="inquery-overseas-stock-price",
-    description="Get overseas stock price from Korea Investment & Securities",
-)
 async def inquery_overseas_stock_price(symbol: str, market: str):
     """
     Get overseas stock price
@@ -688,10 +637,6 @@ async def inquery_overseas_stock_price(symbol: str, market: str):
         
         return response.json()
 
-@mcp.tool(
-    name="inquery-overseas-balance",
-    description="Get overseas (foreign) stock balance from Korea Investment & Securities. Queries all major exchanges (US, HK, CN, JP) and returns combined holdings.",
-)
 async def inquery_overseas_balance(exchange: str = "ALL"):
     """
     Get overseas stock balance.
@@ -760,10 +705,6 @@ async def inquery_overseas_balance(exchange: str = "ALL"):
     return results
 
 
-@mcp.tool(
-    name="inquery-overseas-deposit",
-    description="해외주식 체결기준현재잔고 조회 (예수금 포함). 통화별 외화 예수금과 원화환산 총자산을 반환합니다.",
-)
 async def inquery_overseas_deposit(
     wcrc_frcr_dvsn_cd: str = "02",
     natn_cd: str = "000",
@@ -831,10 +772,6 @@ async def inquery_overseas_deposit(
     return result
 
 
-@mcp.tool(
-    name="inquery-exchange-rate-history",
-    description="환율 기간별 이력 조회. USD/KRW, JPY/KRW 등 주요 환율의 일/주/월별 시세를 반환합니다.",
-)
 async def inquery_exchange_rate_history(
     currency: str = "USD",
     start_date: str = "",
@@ -909,10 +846,6 @@ async def inquery_exchange_rate_history(
     return data
 
 
-@mcp.tool(
-    name="inquery-overseas-stock-history",
-    description="해외주식 기간별 시세 이력 조회. 종목코드와 거래소를 지정하면 일/주/월별 OHLCV 데이터를 반환합니다.",
-)
 async def inquery_overseas_stock_history(
     symbol: str,
     exchange: str = "NAS",
@@ -980,10 +913,6 @@ async def inquery_overseas_stock_history(
     return data
 
 
-@mcp.tool(
-    name="inquery-period-trade-profit",
-    description="국내주식 기간별 매매손익 현황 조회. 기간 내 종목별 매매손익·수익률을 반환합니다.",
-)
 async def inquery_period_trade_profit(
     start_date: str,
     end_date: str,
@@ -1030,10 +959,6 @@ async def inquery_period_trade_profit(
     return data
 
 
-@mcp.tool(
-    name="inquery-overseas-period-profit",
-    description="해외주식 기간별 손익 조회. 기간 내 해외 종목 매매손익·수익률을 반환합니다.",
-)
 async def inquery_overseas_period_profit(
     start_date: str,
     end_date: str,
@@ -1090,10 +1015,6 @@ async def inquery_overseas_period_profit(
 # DB 조회 전용 툴 (API 호출 없음)
 # ═══════════════════════════════════════════
 
-@mcp.tool(
-    name="get-portfolio-history",
-    description="MotherDuck DB에서 계좌 잔고 스냅샷 이력을 조회합니다. API 호출 없이 과거 기록을 반환합니다.",
-)
 async def get_portfolio_history(
     start_date: str = "",
     end_date: str = "",
@@ -1112,10 +1033,6 @@ async def get_portfolio_history(
     return {"account_id": cano, "count": len(rows), "snapshots": rows}
 
 
-@mcp.tool(
-    name="get-token-status",
-    description="현재 MCP 인스턴스의 KIS 접근토큰 캐시 상태를 조회합니다. 토큰 값은 반환하지 않습니다.",
-)
 async def get_token_status():
     """
     KIS 접근토큰 캐시 상태 조회.
@@ -1126,10 +1043,6 @@ async def get_token_status():
     return inspect_token_status()
 
 
-@mcp.tool(
-    name="get-price-from-db",
-    description="MotherDuck DB에서 주가 이력을 조회합니다. API 호출 없이 캐시된 데이터를 반환합니다.",
-)
 async def get_price_from_db(
     symbol: str,
     start_date: str,
@@ -1149,10 +1062,6 @@ async def get_price_from_db(
     return {"symbol": symbol, "exchange": exchange, "count": len(rows), "data": rows}
 
 
-@mcp.tool(
-    name="get-exchange-rate-from-db",
-    description="MotherDuck DB에서 환율 이력을 조회합니다. API 호출 없이 캐시된 데이터를 반환합니다.",
-)
 async def get_exchange_rate_from_db(
     currency: str = "USD",
     start_date: str = "",
@@ -1177,10 +1086,6 @@ async def get_exchange_rate_from_db(
     return {"currency": currency, "period": period, "count": len(rows), "data": rows}
 
 
-@mcp.tool(
-    name="get-bollinger-bands",
-    description="DuckDB에 저장된 주가 이력으로 볼린저 밴드를 계산합니다. API 호출 없이 캐시된 데이터만 사용합니다.",
-)
 async def get_bollinger_bands(
     symbol: str,
     exchange: str = "KRX",
@@ -1202,10 +1107,6 @@ async def get_bollinger_bands(
     return analyze_bollinger_bands(con, symbol, exchange, window, num_std, limit)
 
 
-@mcp.tool(
-    name="get-latest-portfolio-summary",
-    description="MotherDuck DB에 저장된 최신 계좌 스냅샷을 합산해 계좌/계좌유형별 포트폴리오 요약을 반환합니다.",
-)
 async def get_latest_portfolio_summary(
     account_id: str = "",
     lookback_days: int = 30,
@@ -1221,10 +1122,6 @@ async def get_latest_portfolio_summary(
     return analyze_latest_portfolio_summary(con, account_id, lookback_days)
 
 
-@mcp.tool(
-    name="get-portfolio-daily-change",
-    description="MotherDuck DB의 일별 대표 스냅샷으로 전체 또는 단일 계좌 평가금액의 일별 변화를 계산합니다.",
-)
 async def get_portfolio_daily_change(
     account_id: str = "",
     days: int = 14,
@@ -1240,10 +1137,6 @@ async def get_portfolio_daily_change(
     return analyze_portfolio_daily_change(con, account_id, days)
 
 
-@mcp.tool(
-    name="get-portfolio-anomalies",
-    description="DuckDB에 저장된 계좌 잔고 스냅샷으로 일별 평가금액 변동 이상치를 탐지합니다.",
-)
 async def get_portfolio_anomalies(
     account_id: str = "",
     z_threshold: float = 2.0,
@@ -1264,10 +1157,6 @@ async def get_portfolio_anomalies(
     return analyze_portfolio_anomalies(con, account_id, z_threshold, lookback_days, limit)
 
 
-@mcp.tool(
-    name="get-portfolio-trend",
-    description="DuckDB에 저장된 계좌 잔고 스냅샷으로 일별 평가금액 이동평균과 추세를 계산합니다.",
-)
 async def get_portfolio_trend(
     account_id: str = "",
     short_window: int = 7,
@@ -1288,11 +1177,11 @@ async def get_portfolio_trend(
     return analyze_portfolio_trend(con, account_id, short_window, long_window, lookback_days)
 
 
-def main() -> None:
-    """Run the MCP server."""
-    logger.info("Starting MCP server...")
-    mcp.run()
+# Safety override: the public MCP exposes only disabled order stubs. Keep these
+# names non-operative even if an internal caller imports the legacy service.
+async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
+    return _disabled_order_response()
 
 
-if __name__ == "__main__":
-    main()
+async def order_overseas_stock(symbol: str, quantity: int, price: float, order_type: str, market: str):
+    return _disabled_order_response()

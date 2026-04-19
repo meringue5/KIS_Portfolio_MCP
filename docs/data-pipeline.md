@@ -65,8 +65,8 @@ portfolio_daily_snapshots
 
 ## 구현 위치
 
-- raw schema: `src/kis_mcp_server/db/schema.py`
-- raw repository: `src/kis_mcp_server/db/repository.py`
-- curated view DDL: `src/kis_mcp_server/db/schema.py`
-- analytics SQL: `src/kis_mcp_server/analytics/`
+- raw schema: `src/kis_portfolio/db/schema.py`
+- raw repository: `src/kis_portfolio/db/repository.py`
+- curated view DDL: `src/kis_portfolio/db/schema.py`
+- analytics SQL: `src/kis_portfolio/analytics/`
 - backup: `scripts/backup_motherduck.py`

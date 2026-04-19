@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 
-from kis_mcp_server import orchestrator
+from kis_portfolio.adapters.mcp import server as portfolio_mcp
 
 
 def apply_account_env(monkeypatch):
@@ -21,13 +21,22 @@ def apply_account_env(monkeypatch):
 
 
 def test_orchestrator_mcp_name():
-    assert orchestrator.mcp.name == "KIS Portfolio Orchestrator"
+    assert portfolio_mcp.mcp.name == "KIS Portfolio Service"
+
+
+def test_mcp_exposes_clean_tool_names_only():
+    tool_names = set(portfolio_mcp.mcp._tool_manager._tools)
+
+    assert "get-stock-price" in tool_names
+    assert "submit-stock-order" in tool_names
+    assert "inquery-stock-price" not in tool_names
+    assert "order-stock" not in tool_names
 
 
 def test_get_configured_accounts_masks_account_numbers(monkeypatch):
     apply_account_env(monkeypatch)
 
-    result = asyncio.run(orchestrator.get_configured_accounts())
+    result = asyncio.run(portfolio_mcp.get_configured_accounts())
     payload = json.dumps(result, ensure_ascii=False)
 
     assert result["count"] == 5
@@ -53,9 +62,9 @@ def test_get_all_token_statuses_never_returns_token_value(monkeypatch):
             "token_file": "token_11111111.json",
         }
 
-    monkeypatch.setattr(orchestrator, "inspect_token_status", fake_status)
+    monkeypatch.setattr(portfolio_mcp, "inspect_token_status", fake_status)
 
-    result = asyncio.run(orchestrator.get_all_token_statuses())
+    result = asyncio.run(portfolio_mcp.get_all_token_statuses())
     payload = json.dumps(result, ensure_ascii=False)
 
     assert result["count"] == 5
@@ -68,16 +77,19 @@ def test_refresh_all_account_snapshots_runs_sequentially_and_reports_account_err
     monkeypatch.setenv("KIS_ACCOUNT_LABEL", "previous")
     calls = []
 
-    async def fake_fetch_balance_snapshot(save_snapshot=True):
+    async def fake_fetch_balance_snapshot(save_snapshot=True, return_metadata=False):
         label = os.environ["KIS_ACCOUNT_LABEL"]
         calls.append(label)
         if label == "irp":
             raise RuntimeError("boom")
-        return {"label": label, "saved": save_snapshot}
+        raw = {"label": label, "saved": save_snapshot}
+        if return_metadata:
+            return {"raw": raw, "saved_snapshot_id": f"snapshot-{label}"}
+        return raw
 
-    monkeypatch.setattr(orchestrator, "fetch_balance_snapshot", fake_fetch_balance_snapshot)
+    monkeypatch.setattr(portfolio_mcp, "fetch_balance_snapshot", fake_fetch_balance_snapshot)
 
-    result = asyncio.run(orchestrator.refresh_all_account_snapshots())
+    result = asyncio.run(portfolio_mcp.refresh_all_account_snapshots())
 
     assert calls == ["ria", "isa", "brokerage", "irp", "pension"]
     assert result["count"] == 5
@@ -91,18 +103,22 @@ def test_refresh_all_account_snapshots_runs_sequentially_and_reports_account_err
 def test_get_account_balance_uses_requested_account(monkeypatch):
     apply_account_env(monkeypatch)
 
-    async def fake_fetch_balance_snapshot(save_snapshot=True):
-        return {
+    async def fake_fetch_balance_snapshot(save_snapshot=True, return_metadata=False):
+        raw = {
             "label": os.environ["KIS_ACCOUNT_LABEL"],
             "cano": os.environ["KIS_CANO"],
             "saved": save_snapshot,
         }
+        if return_metadata:
+            return {"raw": raw, "saved_snapshot_id": "snapshot-isa"}
+        return raw
 
-    monkeypatch.setattr(orchestrator, "fetch_balance_snapshot", fake_fetch_balance_snapshot)
+    monkeypatch.setattr(portfolio_mcp, "fetch_balance_snapshot", fake_fetch_balance_snapshot)
 
-    result = asyncio.run(orchestrator.get_account_balance("isa"))
+    result = asyncio.run(portfolio_mcp.get_account_balance("isa"))
 
     assert result["status"] == "ok"
     assert result["account"]["label"] == "isa"
     assert result["account"]["masked_cano"] == "22****22"
-    assert result["data"] == {"label": "isa", "cano": "22222222", "saved": True}
+    assert result["raw"] == {"label": "isa", "cano": "22222222", "saved": True}
+    assert result["saved_snapshot_id"] == "snapshot-isa"

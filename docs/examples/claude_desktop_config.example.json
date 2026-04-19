@@ -1,22 +1,15 @@
 {
   "mcpServers": {
-    "kis-api-search": {
+    "kis-portfolio": {
       "command": "/Users/YOUR_USERNAME/.local/bin/uv",
       "args": [
         "run",
         "--directory",
-        "/Users/YOUR_USERNAME/workspace/koreainvestment-mcp",
-        "--python", "3.13",
-        "python", "server.py"
+        "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server",
+        "kis-portfolio-mcp"
       ],
-      "env": {}
-    },
-    "kis-portfolio": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "kis-mcp-orchestrator"],
       "env": {
         "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": "false",
         "KIS_DB_MODE": "motherduck",
         "MOTHERDUCK_DATABASE": "kis_portfolio",
         "KIS_DATA_DIR": "var",
@@ -41,91 +34,6 @@
         "KIS_APP_SECRET_PENSION": "${KIS_APP_SECRET_PENSION}",
         "KIS_CANO_PENSION": "${KIS_CANO_PENSION}",
         "KIS_ACNT_PRDT_CD_PENSION": "${KIS_ACNT_PRDT_CD_PENSION}"
-      }
-    },
-    "kis-ria": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "python", "server.py"],
-      "env": {
-        "KIS_APP_KEY": "${KIS_APP_KEY_RIA}",
-        "KIS_APP_SECRET": "${KIS_APP_SECRET_RIA}",
-        "KIS_CANO": "${KIS_CANO_RIA}",
-        "KIS_ACNT_PRDT_CD": "${KIS_ACNT_PRDT_CD_RIA}",
-        "KIS_ACCOUNT_LABEL": "ria",
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": "false",
-        "KIS_DB_MODE": "motherduck",
-        "MOTHERDUCK_DATABASE": "kis_portfolio",
-        "KIS_DATA_DIR": "var",
-        "MOTHERDUCK_TOKEN": "${MOTHERDUCK_TOKEN}"
-      }
-    },
-    "kis-isa": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "python", "server.py"],
-      "env": {
-        "KIS_APP_KEY": "${KIS_APP_KEY_ISA}",
-        "KIS_APP_SECRET": "${KIS_APP_SECRET_ISA}",
-        "KIS_CANO": "${KIS_CANO_ISA}",
-        "KIS_ACNT_PRDT_CD": "${KIS_ACNT_PRDT_CD_ISA}",
-        "KIS_ACCOUNT_LABEL": "isa",
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": "false",
-        "KIS_DB_MODE": "motherduck",
-        "MOTHERDUCK_DATABASE": "kis_portfolio",
-        "KIS_DATA_DIR": "var",
-        "MOTHERDUCK_TOKEN": "${MOTHERDUCK_TOKEN}"
-      }
-    },
-    "kis-irp": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "python", "server.py"],
-      "env": {
-        "KIS_APP_KEY": "${KIS_APP_KEY_IRP}",
-        "KIS_APP_SECRET": "${KIS_APP_SECRET_IRP}",
-        "KIS_CANO": "${KIS_CANO_IRP}",
-        "KIS_ACNT_PRDT_CD": "${KIS_ACNT_PRDT_CD_IRP}",
-        "KIS_ACCOUNT_LABEL": "irp",
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": "false",
-        "KIS_DB_MODE": "motherduck",
-        "MOTHERDUCK_DATABASE": "kis_portfolio",
-        "KIS_DATA_DIR": "var",
-        "MOTHERDUCK_TOKEN": "${MOTHERDUCK_TOKEN}"
-      }
-    },
-    "kis-pension": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "python", "server.py"],
-      "env": {
-        "KIS_APP_KEY": "${KIS_APP_KEY_PENSION}",
-        "KIS_APP_SECRET": "${KIS_APP_SECRET_PENSION}",
-        "KIS_CANO": "${KIS_CANO_PENSION}",
-        "KIS_ACNT_PRDT_CD": "${KIS_ACNT_PRDT_CD_PENSION}",
-        "KIS_ACCOUNT_LABEL": "pension",
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": "false",
-        "KIS_DB_MODE": "motherduck",
-        "MOTHERDUCK_DATABASE": "kis_portfolio",
-        "KIS_DATA_DIR": "var",
-        "MOTHERDUCK_TOKEN": "${MOTHERDUCK_TOKEN}"
-      }
-    },
-    "kis-brokerage": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "python", "server.py"],
-      "env": {
-        "KIS_APP_KEY": "${KIS_APP_KEY_BROKERAGE}",
-        "KIS_APP_SECRET": "${KIS_APP_SECRET_BROKERAGE}",
-        "KIS_CANO": "${KIS_CANO_BROKERAGE}",
-        "KIS_ACNT_PRDT_CD": "${KIS_ACNT_PRDT_CD_BROKERAGE}",
-        "KIS_ACCOUNT_LABEL": "brokerage",
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": "false",
-        "KIS_DB_MODE": "motherduck",
-        "MOTHERDUCK_DATABASE": "kis_portfolio",
-        "KIS_DATA_DIR": "var",
-        "MOTHERDUCK_TOKEN": "${MOTHERDUCK_TOKEN}"
       }
     }
   }

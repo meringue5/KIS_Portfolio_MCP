@@ -1,4 +1,4 @@
-# KIS MCP Server Architecture
+# KIS Portfolio Service Architecture
 
 이 문서는 프로젝트의 코드 배치와 장기 구조 원칙을 정리한다.
 
@@ -9,8 +9,8 @@
 `scripts/`, 런타임 산출물은 장기적으로 `var/` 또는 운영 환경의 안전한 데이터
 디렉터리로 분리한다.
 
-현재 MCP Desktop 설정은 레포 루트의 `server.py`를 직접 실행하므로, 루트의
-`server.py`만 호환 진입점으로 유지한다. 실제 구현은 `src/kis_mcp_server/`
+현재 기본 MCP Desktop 설정은 `kis-portfolio-mcp` console script를 실행한다.
+루트 `server.py`는 수동 실행 호환용 thin shim으로 유지하며, 실제 구현은 `src/kis_portfolio/`
 아래에 둔다.
 
 ```text
@@ -25,9 +25,12 @@ KIS_MCP_Server/
 ├── .agent/
 │   └── skills/                # 에이전트 공통 운용 runbook
 ├── src/
-│   └── kis_mcp_server/
+│   └── kis_portfolio/
 │       ├── __init__.py
-│       ├── app.py             # MCP app, tool 등록, 현재 main 구현
+│       ├── adapters/mcp/      # 단일 public MCP adapter
+│       ├── services/          # account, market, profit service
+│       ├── clients/           # KIS API client helper
+│       ├── analytics/         # DB 기반 분석 함수
 │       └── db/                # DuckDB/MotherDuck 연결, 스키마, repository 함수
 ├── tests/                     # pytest 기반 테스트 위치
 ├── scripts/                   # 설치/점검/운영 스크립트
@@ -37,34 +40,34 @@ KIS_MCP_Server/
 
 ## 현재 단계
 
-이번 구조 정리는 1단계 마이그레이션이다.
+현재 구조는 `baseline/pre-service-refactor` 이후의 서비스 전환 단계다.
 
-- 기존 `server.py` 구현을 `src/kis_mcp_server/app.py`로 이동했다.
-- 기존 `db.py` 구현을 `src/kis_mcp_server/db/` 패키지로 분리했다.
-- 루트 `server.py`는 `kis_mcp_server.app.main()`을 호출한다.
-- 루트 `db.py` 호환 wrapper는 제거했다. 내부 코드는 `kis_mcp_server.db`를 직접 import한다.
+- public MCP는 `src/kis_portfolio/adapters/mcp/server.py` 하나다.
+- 기존 `app.py`는 새 MCP adapter를 re-export하는 compatibility shim이다.
+- 기존 `db.py` 구현은 `src/kis_portfolio/db/` 패키지로 분리되어 있다.
+- 루트 `server.py`는 `kis_portfolio.adapters.mcp.main()`을 호출한다.
+- 루트 `db.py` 호환 wrapper는 제거했다. 내부 코드는 `kis_portfolio.db`를 직접 import한다.
 - MotherDuck을 기본 운영 DB로 사용한다 (`KIS_DB_MODE=motherduck`).
 - 로컬 DuckDB는 `KIS_DB_MODE=local`일 때만 사용하며 운영 트랜잭션 중심이 아니다.
 - `KIS_DATA_DIR` 기본값은 프로젝트 루트 기준 `var`이다.
 - 상대경로로 지정한 `KIS_DATA_DIR`, `KIS_TOKEN_DIR`, `KIS_LOCAL_DB_PATH`는 현재 작업 디렉터리가 아니라 프로젝트 루트 기준으로 해석한다.
-- 주문 tool은 `KIS_ENABLE_ORDER_TOOLS=true`일 때만 실행한다.
-- 컨테이너 실행 베이스라인을 추가했지만, remote MCP 배포에는 별도 HTTP 어댑터가 필요하다.
+- 주문 tool은 disabled stub이며 실제 KIS 주문 API를 호출하지 않는다.
+- remote MCP는 `kis-portfolio-remote`가 제공한다.
 
 ## 장기 목표
 
-현재 `app.py`는 아직 많은 책임을 가진다. 이후 단계에서 다음 모듈로 나누는 것을 목표로 한다.
+MCP adapter는 tool 등록만 담당하고, 장기적으로 KIS 호출은 client/service로 계속 얇게 분리한다.
 
 ```text
-src/kis_mcp_server/
+src/kis_portfolio/
 ├── config.py
 ├── accounts.py
 ├── auth.py
-├── kis_client/
-│   ├── base.py
-│   ├── domestic.py
-│   ├── overseas.py
-│   ├── pension.py
-│   └── exchange.py
+├── clients/
+│   └── kis.py
+├── services/
+│   ├── account.py
+│   └── kis_api.py
 ├── db/
 │   ├── connection.py
 │   ├── schema.py
@@ -72,14 +75,10 @@ src/kis_mcp_server/
 ├── analytics/
 │   ├── bollinger.py
 │   └── portfolio.py
-├── tools/
-│   ├── account_tools.py
-│   ├── market_tools.py
-│   ├── order_tools.py
-│   ├── db_tools.py
-│   └── analytics_tools.py
-└── web/
-    └── app.py
+├── adapters/
+│   └── mcp/
+│       └── server.py
+└── remote.py
 ```
 
 이 구조의 핵심은 MCP를 유일한 본체로 두지 않는 것이다. KIS API client, DB repository,

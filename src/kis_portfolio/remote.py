@@ -9,7 +9,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from kis_mcp_server.app import mcp
+from kis_portfolio.adapters.mcp import mcp
 
 
 class SharedBearerAuthMiddleware:
@@ -79,7 +79,7 @@ def main() -> None:
 
     host = os.environ.get("KIS_REMOTE_HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", os.environ.get("KIS_REMOTE_PORT", "8000")))
-    uvicorn.run("kis_mcp_server.remote:create_app", host=host, port=port, factory=True)
+    uvicorn.run("kis_portfolio.remote:create_app", host=host, port=port, factory=True)
 
 
 if __name__ == "__main__":

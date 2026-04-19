@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from kis_mcp_server import auth
+from kis_portfolio import auth
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("KIS_DB_MODE", "local")
     monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path))
 
-    import kis_mcp_server.db as kisdb
+    import kis_portfolio.db as kisdb
 
     kisdb = importlib.reload(kisdb)
     try:
@@ -33,7 +33,7 @@ def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
 def test_relative_data_dir_resolves_from_project_root(monkeypatch):
     monkeypatch.setenv("KIS_DATA_DIR", "var")
 
-    import kis_mcp_server.config as config
+    import kis_portfolio.config as config
 
     assert config.get_data_dir() == config.PROJECT_ROOT / "var"
     assert config.get_token_dir() == config.PROJECT_ROOT / "var" / "tokens"
@@ -44,7 +44,7 @@ def test_motherduck_mode_requires_token(monkeypatch):
     monkeypatch.setenv("KIS_DB_MODE", "motherduck")
     monkeypatch.delenv("MOTHERDUCK_TOKEN", raising=False)
 
-    import kis_mcp_server.db as kisdb
+    import kis_portfolio.db as kisdb
 
     kisdb = importlib.reload(kisdb)
     with pytest.raises(RuntimeError, match="MOTHERDUCK_TOKEN"):
@@ -58,7 +58,7 @@ def test_root_server_shim_exposes_mcp():
     assert spec.loader is not None
     spec.loader.exec_module(server)
 
-    assert server.mcp.name == "KIS MCP Server"
+    assert server.mcp.name == "KIS Portfolio Service"
 
 
 def test_backup_script_requires_motherduck_token(monkeypatch):

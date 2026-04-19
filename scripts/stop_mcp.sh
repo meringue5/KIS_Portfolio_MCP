@@ -40,7 +40,7 @@ if sys.platform == "darwin":
         pid_text, _, command = line.partition(" ")
         if not pid_text.isdigit() or int(pid_text) == current:
             continue
-        if repo in command and ("server.py" in command or "kis-mcp-server" in command):
+        if repo in command and ("server.py" in command or "kis-portfolio" in command):
             print(pid_text)
 else:
     for name in os.listdir("/proc"):
@@ -51,7 +51,7 @@ else:
         except OSError:
             continue
         command = raw.replace(b"\0", b" ").decode(errors="ignore")
-        if repo in command and ("server.py" in command or "kis-mcp-server" in command):
+        if repo in command and ("server.py" in command or "kis-portfolio" in command):
             print(name)
 PY
 )"

@@ -7,15 +7,14 @@ import os
 
 import httpx
 
-from kis_mcp_server import db as kisdb
-from kis_mcp_server.accounts import extract_total_eval_amt, infer_account_type, is_irp_account
-from kis_mcp_server.auth import AUTH_TYPE, CONTENT_TYPE, get_access_token
+from kis_portfolio import db as kisdb
+from kis_portfolio.accounts import extract_total_eval_amt, infer_account_type, is_irp_account
+from kis_portfolio.auth import get_access_token
+from kis_portfolio.clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN
 
 
 logger = logging.getLogger(__name__)
 
-DOMAIN = "https://openapi.koreainvestment.com:9443"
-VIRTUAL_DOMAIN = "https://openapivts.koreainvestment.com:29443"
 BALANCE_PATH = "/uapi/domestic-stock/v1/trading/inquire-balance"
 PENSION_BALANCE_PATH = "/uapi/domestic-stock/v1/trading/pension/inquire-balance"
 
@@ -41,7 +40,10 @@ def get_balance_domain() -> str:
     return DOMAIN if is_real_account else VIRTUAL_DOMAIN
 
 
-async def fetch_balance_snapshot(save_snapshot: bool = True) -> dict:
+async def fetch_balance_snapshot(
+    save_snapshot: bool = True,
+    return_metadata: bool = False,
+) -> dict:
     """
     Fetch current domestic/pension balance for the active account environment.
 
@@ -104,8 +106,11 @@ async def fetch_balance_snapshot(save_snapshot: bool = True) -> dict:
         raise Exception(f"Failed to get balance: {response.text}")
 
     data = response.json()
+    saved_snapshot_id = None
     if save_snapshot:
-        save_balance_snapshot(data)
+        saved_snapshot_id = save_balance_snapshot(data)
+    if return_metadata:
+        return {"raw": data, "saved_snapshot_id": saved_snapshot_id}
     return data
 
 

@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from kis_mcp_server.account_registry import (
+from kis_portfolio.account_registry import (
     AccountRegistryError,
     load_account_registry,
     scoped_account_env,

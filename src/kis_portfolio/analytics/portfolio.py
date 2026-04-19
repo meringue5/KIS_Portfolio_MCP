@@ -2,7 +2,7 @@
 
 import duckdb
 
-from kis_mcp_server.db.utils import rows_to_dicts
+from kis_portfolio.db.utils import rows_to_dicts
 
 
 def get_latest_portfolio_summary(

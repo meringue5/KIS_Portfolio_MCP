@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────
-# KIS MCP Server — 신규 환경 셋업 스크립트
+# KIS Portfolio Service — 신규 환경 셋업 스크립트
 #
 # 사용법:
 #   1. .env 파일 준비 (Google Drive 등에서 복사)
@@ -22,7 +22,7 @@ CLAUDE_CONFIG_DIR="$HOME/Library/Application Support/Claude"
 CLAUDE_CONFIG="$CLAUDE_CONFIG_DIR/claude_desktop_config.json"
 
 echo "──────────────────────────────────────────"
-echo " KIS MCP Server 셋업"
+echo " KIS Portfolio Service 셋업"
 echo " 리포: $REPO_DIR"
 echo "──────────────────────────────────────────"
 
@@ -77,9 +77,6 @@ echo "✅ 의존성 설치 완료"
 echo ""
 echo "⚙️  claude_desktop_config.json 생성 중..."
 
-USERNAME=$(whoami)
-REPO_PARENT="$(dirname "$REPO_DIR")"
-
 # 기존 config 백업
 if [ -f "$CLAUDE_CONFIG" ]; then
   BACKUP="$CLAUDE_CONFIG.bak.$(date +%Y%m%d_%H%M%S)"
@@ -107,32 +104,9 @@ python3 - <<PYEOF
 import json, os
 
 env = {k: os.environ[k] for k in os.environ}
-username = os.environ.get('USER', os.popen('whoami').read().strip())
 repo_dir = "$REPO_DIR"
 uv_bin   = os.path.expanduser("~/.local/bin/uv")
 prefs    = json.loads(r'''$PREFS''')
-
-def srv(key_suffix, extra_env=None):
-    e = {
-        "KIS_APP_KEY":    env[f"KIS_APP_KEY_{key_suffix}"],
-        "KIS_APP_SECRET": env[f"KIS_APP_SECRET_{key_suffix}"],
-        "KIS_CANO":       env[f"KIS_CANO_{key_suffix}"],
-        "KIS_ACNT_PRDT_CD": env[f"KIS_ACNT_PRDT_CD_{key_suffix}"],
-        "KIS_ACCOUNT_LABEL": key_suffix.lower(),
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": env.get("KIS_ENABLE_ORDER_TOOLS", "false"),
-        "KIS_DB_MODE": env.get("KIS_DB_MODE", "motherduck"),
-        "MOTHERDUCK_DATABASE": env.get("MOTHERDUCK_DATABASE", "kis_portfolio"),
-        "KIS_DATA_DIR": env.get("KIS_DATA_DIR", "var"),
-        "MOTHERDUCK_TOKEN": env["MOTHERDUCK_TOKEN"],
-    }
-    if extra_env:
-        e.update(extra_env)
-    return {
-        "command": uv_bin,
-        "args": ["run", "--directory", repo_dir, "python", "server.py"],
-        "env": e,
-    }
 
 def orchestrator_srv():
     e = {
@@ -150,25 +124,13 @@ def orchestrator_srv():
         e[f"KIS_ACNT_PRDT_CD_{suffix}"] = env[f"KIS_ACNT_PRDT_CD_{suffix}"]
     return {
         "command": uv_bin,
-        "args": ["run", "--directory", repo_dir, "kis-mcp-orchestrator"],
+        "args": ["run", "--directory", repo_dir, "kis-portfolio-mcp"],
         "env": e,
     }
 
 config = {
     "mcpServers": {
-        "kis-api-search": {
-            "command": uv_bin,
-            "args": ["run", "--directory",
-                     os.path.join(os.path.dirname(repo_dir), "koreainvestment-mcp"),
-                     "--python", "3.13", "python", "server.py"],
-            "env": {}
-        },
         "kis-portfolio": orchestrator_srv(),
-        "kis-ria":       srv("RIA"),
-        "kis-isa":       srv("ISA"),
-        "kis-irp":       srv("IRP"),
-        "kis-pension":   srv("PENSION"),
-        "kis-brokerage": srv("BROKERAGE"),
     },
     "preferences": prefs,
 }

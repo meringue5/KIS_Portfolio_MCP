@@ -9,7 +9,7 @@ def test_remote_app_requires_auth_token(monkeypatch):
     monkeypatch.delenv("KIS_REMOTE_AUTH_TOKEN", raising=False)
     monkeypatch.delenv("KIS_REMOTE_AUTH_DISABLED", raising=False)
 
-    remote = importlib.import_module("kis_mcp_server.remote")
+    remote = importlib.import_module("kis_portfolio.remote")
 
     with pytest.raises(RuntimeError, match="KIS_REMOTE_AUTH_TOKEN"):
         remote.create_app()
@@ -18,7 +18,7 @@ def test_remote_app_requires_auth_token(monkeypatch):
 def test_remote_healthcheck_does_not_require_auth(monkeypatch):
     monkeypatch.setenv("KIS_REMOTE_AUTH_TOKEN", "secret")
 
-    remote = importlib.import_module("kis_mcp_server.remote")
+    remote = importlib.import_module("kis_portfolio.remote")
 
     with TestClient(remote.create_app()) as client:
         response = client.get("/healthz")
@@ -28,7 +28,7 @@ def test_remote_healthcheck_does_not_require_auth(monkeypatch):
 
 
 def test_remote_mcp_requires_bearer_token(monkeypatch):
-    remote = importlib.import_module("kis_mcp_server.remote")
+    remote = importlib.import_module("kis_portfolio.remote")
     wrapped = remote.SharedBearerAuthMiddleware(dummy_mcp_app, token="secret")
 
     client = TestClient(wrapped)

@@ -22,7 +22,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kis_mcp_server.config import (  # noqa: E402
+from kis_portfolio.config import (  # noqa: E402
     get_data_dir,
     get_motherduck_database,
     get_motherduck_token,

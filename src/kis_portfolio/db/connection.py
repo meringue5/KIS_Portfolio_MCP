@@ -4,13 +4,13 @@ import logging
 
 import duckdb
 
-from kis_mcp_server.config import (
+from kis_portfolio.config import (
     get_db_mode,
     get_local_db_path,
     get_motherduck_database,
     get_motherduck_token,
 )
-from kis_mcp_server.db.schema import init_schema
+from kis_portfolio.db.schema import init_schema
 
 logger = logging.getLogger(__name__)
 

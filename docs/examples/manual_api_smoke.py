@@ -8,17 +8,17 @@ import asyncio
 import json
 import os
 from datetime import datetime, timedelta
-from kis_mcp_server.app import (
-    inquery_stock_price,
-    inquery_balance,
-    order_stock,
-    inquery_order_list,
-    inquery_order_detail,
-    inquery_stock_info,
-    inquery_stock_history,
-    inquery_stock_ask,
-    order_overseas_stock,
-    inquery_overseas_stock_price
+from kis_portfolio.adapters.mcp.server import (
+    get_account_balance,
+    get_order_detail,
+    get_order_list,
+    get_overseas_stock_price,
+    get_stock_ask,
+    get_stock_history,
+    get_stock_info,
+    get_stock_price,
+    submit_overseas_stock_order,
+    submit_stock_order,
 )
 
 async def test_domestic_stock(symbol: str, name: str):
@@ -29,7 +29,8 @@ async def test_domestic_stock(symbol: str, name: str):
         name: Stock name (e.g. "Samsung Electronics")
     """
     try:
-        result = await inquery_stock_price(symbol=symbol)
+        result = await get_stock_price(symbol=symbol)
+        result = result["raw"]
         print(f"\n{name} ({symbol}):")
         print(f"Current price: {result['stck_prpr']}")
         print(f"Change: {result['prdy_vrss']} ({result['prdy_ctrt']}%)")
@@ -41,7 +42,7 @@ async def test_domestic_stock(symbol: str, name: str):
 async def test_balance():
     """Test balance inquiry"""
     try:
-        result = await inquery_balance()
+        result = await get_account_balance("brokerage")
         print("\nAccount Balance Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -51,17 +52,17 @@ async def test_order_stock():
     """Test stock order"""
     try:
         # 시장가 매수
-        result = await order_stock("005930", 1, 0, "buy")
+        result = await submit_stock_order("005930", 1, 0, "buy")
         print("\nMarket Price Buy Order Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
         # 지정가 매수
-        result = await order_stock("005930", 1, 55000, "buy")
+        result = await submit_stock_order("005930", 1, 55000, "buy")
         print("\nLimit Price Buy Order Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
         # 시장가 매도
-        result = await order_stock("005930", 1, 0, "sell")
+        result = await submit_stock_order("005930", 1, 0, "sell")
         print("\nMarket Price Sell Order Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -71,7 +72,7 @@ async def test_overseas_order():
     """Test overseas stock order"""
     try:
         # AAPL 지정가 매수
-        result = await order_overseas_stock(
+        result = await submit_overseas_stock_order(
             symbol="AAPL",
             quantity=1,
             price=150.00,
@@ -82,7 +83,7 @@ async def test_overseas_order():
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
         # AAPL 현재가 조회
-        result = await inquery_overseas_stock_price(
+        result = await get_overseas_stock_price(
             symbol="AAPL",
             market="NASD"
         )
@@ -96,7 +97,7 @@ async def test_order_list():
     try:
         # 오늘 날짜로 테스트
         today = datetime.now().strftime("%Y%m%d")
-        result = await inquery_order_list(today, today)
+        result = await get_order_list(today, today)
         print("\nOrder List Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -107,7 +108,7 @@ async def test_order_detail():
     try:
         # 오늘 날짜로 테스트
         today = datetime.now().strftime("%Y%m%d")
-        result = await inquery_order_detail("", today)  # 주문번호 없이 테스트
+        result = await get_order_detail("", today)  # 주문번호 없이 테스트
         print("\nOrder Detail Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -119,7 +120,7 @@ async def test_stock_info():
         # 삼성전자 1주일 데이터 테스트
         end_date = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=7)).strftime("%Y%m%d")
-        result = await inquery_stock_info("005930", start_date, end_date)
+        result = await get_stock_info("005930", start_date, end_date)
         print("\nStock Info Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -131,7 +132,7 @@ async def test_stock_history():
         # 삼성전자 1주일 데이터 테스트
         end_date = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=7)).strftime("%Y%m%d")
-        result = await inquery_stock_history("005930", start_date, end_date)
+        result = await get_stock_history("005930", start_date, end_date)
         print("\nStock History Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -141,7 +142,7 @@ async def test_stock_ask():
     """Test stock ask price inquiry"""
     try:
         # 삼성전자 호가 테스트
-        result = await inquery_stock_ask("005930")
+        result = await get_stock_ask("005930")
         print("\nStock Ask Response:")
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -149,7 +150,7 @@ async def test_stock_ask():
 
 async def main():
     """Run all tests"""
-    print("Starting KIS MCP Server tests...")
+    print("Starting KIS Portfolio Service tests...")
     
     # Domestic stock tests
     await test_domestic_stock("005930", "Samsung Electronics")

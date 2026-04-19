@@ -1,6 +1,6 @@
 import pytest
 
-from kis_mcp_server import kis_balance
+from kis_portfolio.services import account as kis_balance
 
 
 @pytest.fixture

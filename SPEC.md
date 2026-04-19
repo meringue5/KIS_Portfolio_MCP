@@ -16,19 +16,21 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 
 | 유즈케이스 | 관련 Tool |
 |-----------|----------|
-| 계좌별 국내주식 잔고 조회 | `inquery-balance` |
-| 계좌별 해외주식 잔고 조회 | `inquery-overseas-balance` |
-| 해외 예수금 + 적용환율 조회 | `inquery-overseas-deposit` |
-| 국내주식 현재가/호가 조회 | `inquery-stock-price`, `inquery-stock-ask` |
-| 해외주식 현재가 조회 | `inquery-overseas-stock-price` |
-| 국내주식 가격 이력 | `inquery-stock-history` |
-| 해외주식 가격 이력 | `inquery-overseas-stock-history` |
-| 환율 이력 조회 | `inquery-exchange-rate-history` |
-| 국내주식 기간별 매매손익 | `inquery-period-trade-profit` |
-| 해외주식 기간별 손익 | `inquery-overseas-period-profit` |
-| 주문 조회/상세 | `inquery-order-list`, `inquery-order-detail` |
-| 종목 기본정보 | `inquery-stock-info` |
-| KIS API 문서 검색 | `kis-api-search` 서버 |
+| 전체 계좌 구성 조회 | `get-configured-accounts` |
+| 전체 계좌 국내/연금 잔고 스냅샷 | `refresh-all-account-snapshots` |
+| 단일 계좌 국내주식 잔고 조회 | `get-account-balance` |
+| 단일 계좌 해외주식 잔고 조회 | `get-overseas-balance` |
+| 해외 예수금 + 적용환율 조회 | `get-overseas-deposit` |
+| 국내주식 현재가/호가 조회 | `get-stock-price`, `get-stock-ask` |
+| 해외주식 현재가 조회 | `get-overseas-stock-price` |
+| 국내주식 가격 이력 | `get-stock-history` |
+| 해외주식 가격 이력 | `get-overseas-stock-history` |
+| 환율 이력 조회 | `get-exchange-rate-history` |
+| 국내주식 기간별 매매손익 | `get-period-trade-profit` |
+| 해외주식 기간별 손익 | `get-overseas-period-profit` |
+| 주문 조회/상세 | `get-order-list`, `get-order-detail` |
+| 주문 stub | `submit-stock-order`, `submit-overseas-stock-order` |
+| 종목 기본정보 | `get-stock-info` |
 
 ### 예정
 
@@ -52,6 +54,8 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 - 토큰 파일을 `token_{CANO}.json`으로 분리하여 충돌 방지
 
 **대안 검토**: 단일 서버 + 계좌 파라미터 → 자연어 인식 정확도 저하 우려로 기각
+
+**상태**: `baseline/pre-service-refactor` 이후 폐기. 현재 기본 MCP 표면은 단일 `kis-portfolio` 서버다.
 
 ---
 
@@ -101,7 +105,7 @@ is_pension = acnt_prdt_cd == "29"
 ### ADR-005: 루트 문서/설계, `src/` 애플리케이션 코드 구조
 
 **결정**: 루트 디렉터리는 문서, 설정, 호환 진입점 중심으로 유지하고 실제 애플리케이션 코드는
-`src/kis_mcp_server/` 아래에 둔다.
+`src/kis_portfolio/` 아래에 둔다.
 
 **이유**:
 - MCP 서버, KIS API client, DB repository, 분석 로직, 향후 Web API를 분리할 기반이 필요
@@ -110,19 +114,20 @@ is_pension = acnt_prdt_cd == "29"
 - 루트에 런타임 산출물과 소스가 섞이는 문제를 줄이고 보안/배포 문서화를 명확히 함
 
 **현재 적용**:
-- 루트 `server.py`: `src/kis_mcp_server/app.py`의 `main()` 호출
-- DB 레이어: `src/kis_mcp_server/db/` 패키지
-- 루트 `db.py` 호환 wrapper는 제거. 내부/테스트 코드는 `kis_mcp_server.db`를 직접 import
+- 루트 `server.py`: `src/kis_portfolio/app.py`의 `main()` 호출
+- DB 레이어: `src/kis_portfolio/db/` 패키지
+- 루트 `db.py` 호환 wrapper는 제거. 내부/테스트 코드는 `kis_portfolio.db`를 직접 import
 - 기본 런타임 데이터 위치는 프로젝트 루트 기준 `var`
 - 토큰 파일은 `var/tokens/token_{CANO}.json`
 - 토큰 파일에는 `issued_at`, `expires_at`, KIS 응답 만료 메타데이터를 저장
 - 토큰 refresh는 파일락으로 계좌별 직렬화하고, 만료 10분 전부터 새 발급 대상으로 간주
 - local 모드 DuckDB는 `var/local/kis_portfolio.duckdb`
 
-**후속 과제**:
-- `app.py`를 `auth`, `kis_client`, `tools`, `analytics` 모듈로 분해
-- pytest 기반 테스트 추가
-- 웹 배포용 secret 관리 정책 확정
+**현재 구조 전환**:
+- 패키지명은 `kis_portfolio`
+- public MCP adapter는 `src/kis_portfolio/adapters/mcp/server.py`
+- `clients/`, `services/`, `adapters/` 구조를 도입
+- 루트 `server.py`는 새 MCP adapter shim
 
 ---
 
@@ -199,7 +204,7 @@ KIS_DATA_DIR=var
 ### ADR-009: 컨테이너와 bearer 인증 remote MCP 베이스라인
 
 **결정**: Dockerfile을 추가해 배포 가능한 실행 환경을 준비한다. 기본 엔트리포인트는 local stdio MCP로
-유지하고, 원격 클라이언트용 `kis-mcp-remote` 엔트리포인트는 `/mcp` Streamable HTTP endpoint를
+유지하고, 원격 클라이언트용 `kis-portfolio-remote` 엔트리포인트는 `/mcp` Streamable HTTP endpoint를
 제공한다. remote endpoint는 `KIS_REMOTE_AUTH_TOKEN` 기반 bearer 인증을 요구한다.
 
 **이유**:
@@ -216,7 +221,7 @@ KIS_DATA_DIR=var
 ### ADR-010: 계좌별 MCP와 포트폴리오 오케스트레이터 병행
 
 **결정**: 기존 계좌별 MCP 5개는 유지하고, 조회-only 단일 오케스트레이터 `kis-portfolio`를 추가한다.
-오케스트레이터 실행 명령은 `kis-mcp-orchestrator`이며, 계좌별 suffixed env를 `AccountRegistry`로 읽는다.
+오케스트레이터 실행 명령은 `kis-portfolio-mcp`이며, 계좌별 suffixed env를 `AccountRegistry`로 읽는다.
 
 **이유**:
 - Claude가 매번 5개 계좌 MCP를 직접 조합하지 않아도 전체 계좌 조회와 요약 분석을 수행할 수 있음
@@ -230,6 +235,8 @@ KIS_DATA_DIR=var
 - `get-account-balance`: 단일 계좌 잔고 조회 및 스냅샷 저장
 - `refresh-all-account-snapshots`: 전체 계좌 순차 조회 및 계좌별 성공/실패 반환
 - `get-latest-portfolio-summary`, `get-portfolio-daily-change`: 기존 DB-only 분석 tool 재노출
+
+**상태**: `baseline/pre-service-refactor` 이후 단일 MCP 전환으로 대체. 계좌별 MCP 5개는 기본 설정에서 제거한다.
 
 ---
 
@@ -245,10 +252,28 @@ KIS_DATA_DIR=var
 - MCP, HTTP, batch job은 같은 core service를 호출하는 adapter로 분리하는 편이 장기 유지보수에 적합함
 
 **현재 적용**:
-- 오케스트레이터 `kis-portfolio`를 장기 primary MCP로 삼고, 계좌별 MCP 5개는 병행 전환 기간 동안 유지
+- 오케스트레이터 `kis-portfolio`를 primary MCP로 삼고, 계좌별 MCP 5개는 기본 설정에서 제거
 - 신규 API 기능은 `docs/api-capability-map.md`의 capability map에 먼저 위치시킨 뒤 구현
 - 공식 KIS 예제는 endpoint/파라미터/종목 마스터 처리의 참조 구현으로 사용
 - README와 문서는 fork attribution을 남기되, 프로젝트 설명은 포트폴리오 서비스 중심으로 전환
+
+---
+
+### ADR-012: 단일 `kis-portfolio` MCP와 `kis_portfolio` 패키지 전환
+
+**결정**: Python package를 `kis_portfolio`로 rename하고, public MCP는 `kis-portfolio-mcp` 단일
+entrypoint로 제공한다. 기존 fork의 `inquery-*` tool alias와 계좌별 MCP 5개는 기본 노출하지 않는다.
+
+**이유**:
+- Claude가 여러 계좌별 MCP를 서로 다른 서비스로 오인하지 않게 single point of truth를 명확히 함
+- 프로젝트 정체성이 MCP wrapper에서 포트폴리오 서비스로 이동했으므로 import/package 이름도 일치시킴
+- 신규 기능은 clean `get-*` tool 표면으로 제공하고, legacy naming은 내부 구현 세부사항으로만 남김
+
+**현재 적용**:
+- `kis-portfolio-mcp`, `kis-portfolio-remote` CLI만 제공
+- `scripts/setup.sh`는 `kis-portfolio` 서버 하나만 Claude config에 생성
+- `submit-stock-order`, `submit-overseas-stock-order`는 disabled stub이며 실제 주문 API를 호출하지 않음
+- KIS raw 응답은 `raw`에 보존하고 MCP wrapper metadata를 덧붙임
 
 **저장소 전략**:
 - 당장은 기존 저장소와 git history를 유지한다.
@@ -281,7 +306,7 @@ KIS_DATA_DIR=var
 ## DuckDB 분석 플랜
 
 > 이 섹션은 Codex(또는 다른 AI 코딩 도구)에 구현을 위임하기 위한 상세 명세다.
-> 모든 쿼리는 `kis_mcp_server.db.get_connection()`으로 얻은 커넥션에서 실행한다.
+> 모든 쿼리는 `kis_portfolio.db.get_connection()`으로 얻은 커넥션에서 실행한다.
 > 결과는 DuckDB cursor 결과를 JSON 직렬화 가능한 `list[dict]`로 변환해 MCP tool의 응답에 포함한다.
 
 ---
@@ -505,4 +530,4 @@ ORDER BY snap_date DESC;
 3. **window 변수**: SQL 문자열 안의 `{window-1}` 같은 표현은 f-string 또는 `.format()`으로 치환 (SQL injection 위험 없는 정수값)
 4. **결과 직렬화**: DuckDB cursor의 `description`과 `fetchall()`로 `list[dict]`를 만들고, `date`/`datetime`은 ISO 문자열로 변환한다.
 5. **데이터 부족 처리**: 스냅샷이 window보다 적을 경우 `"데이터가 부족합니다 (현재 N일, 최소 {window}일 필요)"` 메시지 반환
-6. **DB 패키지 역할 경계**: 분석 쿼리는 analytics 모듈에서 실행. `kis_mcp_server.db`는 연결, 스키마 초기화, 저장(upsert/insert), 기본 조회 함수만 담당
+6. **DB 패키지 역할 경계**: 분석 쿼리는 analytics 모듈에서 실행. `kis_portfolio.db`는 연결, 스키마 초기화, 저장(upsert/insert), 기본 조회 함수만 담당

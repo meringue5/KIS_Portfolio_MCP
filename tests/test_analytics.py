@@ -1,13 +1,13 @@
 import duckdb
 
-from kis_mcp_server.analytics.bollinger import get_bollinger_bands
-from kis_mcp_server.analytics.portfolio import (
+from kis_portfolio.analytics.bollinger import get_bollinger_bands
+from kis_portfolio.analytics.portfolio import (
     get_latest_portfolio_summary,
     get_portfolio_anomalies,
     get_portfolio_daily_change,
     get_portfolio_trend,
 )
-from kis_mcp_server.db.schema import init_schema
+from kis_portfolio.db.schema import init_schema
 
 
 def make_connection():

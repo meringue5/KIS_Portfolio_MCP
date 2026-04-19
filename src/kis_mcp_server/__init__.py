@@ -1,2 +1,0 @@
-"""KIS MCP Server package."""
-
