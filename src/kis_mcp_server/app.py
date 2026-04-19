@@ -3,12 +3,13 @@ import logging
 import os
 import sys
 from dotenv import load_dotenv
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 
 import httpx
 from mcp.server.fastmcp.server import FastMCP
+from .accounts import extract_total_eval_amt, infer_account_type, is_irp_account
+from .auth import get_access_token, get_hashkey
 from . import db as kisdb
-from .config import get_token_dir
 
 # 로깅 설정: 반드시 stderr로 출력
 logging.basicConfig(
@@ -35,8 +36,6 @@ VIRTUAL_DOMAIN = "https://openapivts.koreainvestment.com:29443"  # 모의투자
 STOCK_PRICE_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"  # 현재가조회
 BALANCE_PATH = "/uapi/domestic-stock/v1/trading/inquire-balance"  # 잔고조회
 PENSION_BALANCE_PATH = "/uapi/domestic-stock/v1/trading/pension/inquire-balance"  # 퇴직연금잔고조회
-TOKEN_PATH = "/oauth2/tokenP"  # 토큰발급
-HASHKEY_PATH = "/uapi/hashkey"  # 해시키발급
 ORDER_PATH = "/uapi/domestic-stock/v1/trading/order-cash"  # 현금주문
 ORDER_LIST_PATH = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld"  # 일별주문체결조회
 ORDER_DETAIL_PATH = "/uapi/domestic-stock/v1/trading/inquire-ccnl"  # 주문체결내역조회
@@ -66,16 +65,6 @@ MARKET_CODES = {
     "HASE": "베트남 하노이",
     "VNSE": "베트남 호치민"
 }
-
-
-def _to_int(value):
-    """KIS numeric strings can include commas or arrive as empty strings."""
-    try:
-        if value in (None, ""):
-            return None
-        return int(float(str(value).replace(",", "")))
-    except Exception:
-        return None
 
 
 def _json_safe(value):
@@ -200,93 +189,6 @@ class TrIdManager:
         # 거래 API는 계좌 타입에 따라 다른 도메인 사용
         return DOMAIN if is_real_account else VIRTUAL_DOMAIN
 
-# Token storage
-TOKEN_DIR = get_token_dir()
-TOKEN_DIR.mkdir(parents=True, exist_ok=True)
-TOKEN_FILE = TOKEN_DIR / f"token_{os.environ.get('KIS_CANO', 'default')}.json"
-
-def load_token():
-    """Load token from file if it exists and is not expired"""
-    if TOKEN_FILE.exists():
-        try:
-            with open(TOKEN_FILE, 'r') as f:
-                token_data = json.load(f)
-                expires_at = datetime.fromisoformat(token_data['expires_at'])
-                if datetime.now() < expires_at:
-                    return token_data['token'], expires_at
-        except Exception as e:
-            print(f"Error loading token: {e}", file=sys.stderr)
-    return None, None
-
-def save_token(token: str, expires_at: datetime):
-    """Save token to file"""
-    try:
-        with open(TOKEN_FILE, 'w') as f:
-            json.dump({
-                'token': token,
-                'expires_at': expires_at.isoformat()
-            }, f)
-    except Exception as e:
-        print(f"Error saving token: {e}", file=sys.stderr)
-
-async def get_access_token(client: httpx.AsyncClient) -> str:
-    """
-    Get access token with file-based caching
-    Returns cached token if valid, otherwise requests new token
-    """
-    token, expires_at = load_token()
-    if token and expires_at and datetime.now() < expires_at:
-        return token
-    
-    token_response = await client.post(
-        f"{DOMAIN}{TOKEN_PATH}",
-        headers={"content-type": CONTENT_TYPE},
-        json={
-            "grant_type": "client_credentials",
-            "appkey": os.environ["KIS_APP_KEY"],
-            "appsecret": os.environ["KIS_APP_SECRET"]
-        }
-    )
-    
-    if token_response.status_code != 200:
-        raise Exception(f"Failed to get token: {token_response.text}")
-    
-    token_data = token_response.json()
-    token = token_data["access_token"]
-    
-    expires_at = datetime.now() + timedelta(hours=23)
-    save_token(token, expires_at)
-    
-    return token
-
-async def get_hashkey(client: httpx.AsyncClient, token: str, body: dict) -> str:
-    """
-    Get hash key for order request
-    
-    Args:
-        client: httpx client
-        token: Access token
-        body: Request body
-        
-    Returns:
-        str: Hash key
-    """
-    response = await client.post(
-        f"{TrIdManager.get_domain('buy')}{HASHKEY_PATH}",
-        headers={
-            "content-type": CONTENT_TYPE,
-            "authorization": f"{AUTH_TYPE} {token}",
-            "appkey": os.environ["KIS_APP_KEY"],
-            "appsecret": os.environ["KIS_APP_SECRET"],
-        },
-        json=body
-    )
-    
-    if response.status_code != 200:
-        raise Exception(f"Failed to get hash key: {response.text}")
-    
-    return response.json()["HASH"]
-
 @mcp.tool(
     name="inquery-stock-price",
     description="Get current stock price information from Korea Investment & Securities",
@@ -313,7 +215,7 @@ async def inquery_stock_price(symbol: str):
         - stck_prdy_clpr: Previous day's closing price
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         response = await client.get(
             f"{TrIdManager.get_domain('price')}{STOCK_PRICE_PATH}",
             headers={
@@ -345,10 +247,10 @@ async def inquery_balance():
     or "29" (IRP), otherwise uses standard balance API.
     """
     acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
-    is_pension = acnt_prdt_cd == "29"  # IRP만 pension API, 연금저축("22")은 표준 API
+    is_pension = is_irp_account(acnt_prdt_cd)  # IRP만 pension API, 연금저축("22")은 표준 API
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
 
         if is_pension:
             logger.info(f"Pension account detected (ACNT_PRDT_CD={acnt_prdt_cd}), using TTTC2208R")
@@ -407,23 +309,8 @@ async def inquery_balance():
         try:
             cano = os.environ.get("KIS_CANO", "unknown")
             acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
-            type_map = {"01": "brokerage", "22": "pension", "29": "irp"}
-            # CANO로 계좌 타입 추가 구분 (claude_desktop_config 기준)
-            cano_type = {
-                "44299692": "ria", "43786274": "isa",
-                "43416048": "brokerage", "43362670": "irp", "43286118": "pension",
-            }
-            acct_type = cano_type.get(cano, type_map.get(acnt_prdt_cd, "unknown"))
-            # output2에서 총평가금액 추출 시도
-            total = None
-            o2 = data.get("output2", {})
-            if isinstance(o2, dict):
-                total = _to_int(
-                    o2.get("tot_evlu_amt")
-                    or o2.get("scts_evlu_amt")
-                    or o2.get("tot_asst_amt")
-                    or o2.get("dnca_tota")
-                )
+            acct_type = infer_account_type(cano, acnt_prdt_cd)
+            total = extract_total_eval_amt(data)
             kisdb.insert_portfolio_snapshot(cano, acct_type, data, total)
         except Exception as e:
             logger.warning(f"DB snapshot save failed (non-critical): {e}")
@@ -453,7 +340,7 @@ async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
         raise ValueError('order_type must be either "buy" or "sell"')
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
@@ -466,7 +353,7 @@ async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
         }
         
         # Get hashkey
-        hashkey = await get_hashkey(client, token, request_data)
+        hashkey = await get_hashkey(client, TrIdManager.get_domain(order_type), token, request_data)
         
         response = await client.post(
             f"{TrIdManager.get_domain(order_type)}{ORDER_PATH}",
@@ -502,7 +389,7 @@ async def inquery_order_list(start_date: str, end_date: str):
         Dictionary containing order list information
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
@@ -555,7 +442,7 @@ async def inquery_order_detail(order_no: str, order_date: str):
         Dictionary containing order detail information
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
@@ -609,7 +496,7 @@ async def inquery_stock_info(symbol: str, start_date: str, end_date: str):
         Dictionary containing daily stock price information
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
@@ -655,7 +542,7 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
         Dictionary containing daily stock price history
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
@@ -722,7 +609,7 @@ async def inquery_stock_ask(symbol: str):
         Dictionary containing stock ask price information
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
@@ -776,7 +663,7 @@ async def order_overseas_stock(symbol: str, quantity: int, price: float, order_t
         raise ValueError(f"Unsupported market: {market}. Supported markets: {', '.join(MARKET_CODES.keys())}")
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         # Get market prefix for TR_ID
         market_prefix = {
@@ -845,7 +732,7 @@ async def inquery_overseas_stock_price(symbol: str, market: str):
         Dictionary containing stock price information
     """
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         
         response = await client.get(
             f"{TrIdManager.get_domain('buy')}{OVERSEAS_STOCK_PRICE_PATH}",
@@ -905,7 +792,7 @@ async def inquery_overseas_balance(exchange: str = "ALL"):
     results = {}
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
 
         for excg_cd, crcy_cd in targets:
             try:
@@ -964,7 +851,7 @@ async def inquery_overseas_deposit(
     acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         response = await client.get(
             f"{DOMAIN}{OVERSEAS_PRESENT_BALANCE_PATH}",
             headers={
@@ -1051,7 +938,7 @@ async def inquery_exchange_rate_history(
     OVERSEAS_CHARTPRICE_PATH = "/uapi/overseas-price/v1/quotations/inquire-daily-chartprice"
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         response = await client.get(
             f"{DOMAIN}{OVERSEAS_CHARTPRICE_PATH}",
             headers={
@@ -1115,7 +1002,7 @@ async def inquery_overseas_stock_history(
     OVERSEAS_DAILYPRICE_PATH = "/uapi/overseas-price/v1/quotations/dailyprice"
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         response = await client.get(
             f"{DOMAIN}{OVERSEAS_DAILYPRICE_PATH}",
             headers={
@@ -1179,7 +1066,7 @@ async def inquery_period_trade_profit(
     acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         response = await client.get(
             f"{DOMAIN}{PERIOD_TRADE_PROFIT_PATH}",
             headers={
@@ -1233,7 +1120,7 @@ async def inquery_overseas_period_profit(
     acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client)
+        token = await get_access_token(client, DOMAIN)
         response = await client.get(
             f"{DOMAIN}{OVERSEAS_PERIOD_PROFIT_PATH}",
             headers={
