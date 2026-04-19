@@ -5,6 +5,138 @@ import duckdb
 from kis_mcp_server.db.utils import rows_to_dicts
 
 
+def get_latest_portfolio_summary(
+    con: duckdb.DuckDBPyConnection,
+    account_id: str = "",
+    lookback_days: int = 30,
+) -> dict:
+    """Summarize the latest known portfolio value across accounts."""
+    lookback_days = max(1, min(int(lookback_days), 3650))
+
+    account_filter = "AND account_id = ?" if account_id else ""
+    params: list = [account_id] if account_id else []
+    rows = rows_to_dicts(con.execute(f"""
+        WITH ranked AS (
+            SELECT
+                account_id,
+                account_type,
+                snap_date,
+                snapshot_at,
+                total_eval_amt,
+                row_number() OVER (
+                    PARTITION BY account_id
+                    ORDER BY snapshot_at DESC
+                ) AS rn
+            FROM portfolio_daily_snapshots
+            WHERE total_eval_amt IS NOT NULL
+              AND snap_date >= current_date - INTERVAL '{lookback_days} days'
+              {account_filter}
+        )
+        SELECT account_id, account_type, snap_date, snapshot_at, total_eval_amt
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY account_type, account_id
+    """, params))
+
+    if not rows:
+        return {
+            "account_id": account_id or "ALL",
+            "lookback_days": lookback_days,
+            "account_count": 0,
+            "total_eval_amt": 0,
+            "by_account_type": [],
+            "accounts": [],
+            "message": "최근 포트폴리오 스냅샷이 없습니다.",
+        }
+
+    total_eval_amt = sum(row.get("total_eval_amt") or 0 for row in rows)
+    type_totals: dict[str, dict] = {}
+    for row in rows:
+        account_type = row.get("account_type") or "unknown"
+        bucket = type_totals.setdefault(
+            account_type,
+            {"account_type": account_type, "account_count": 0, "total_eval_amt": 0},
+        )
+        bucket["account_count"] += 1
+        bucket["total_eval_amt"] += row.get("total_eval_amt") or 0
+
+    return {
+        "account_id": account_id or "ALL",
+        "lookback_days": lookback_days,
+        "account_count": len(rows),
+        "total_eval_amt": total_eval_amt,
+        "latest_snapshot_at": max(row["snapshot_at"] for row in rows if row.get("snapshot_at")),
+        "by_account_type": list(type_totals.values()),
+        "accounts": rows,
+    }
+
+
+def get_portfolio_daily_change(
+    con: duckdb.DuckDBPyConnection,
+    account_id: str = "",
+    days: int = 14,
+) -> dict:
+    """Return daily portfolio value changes for one account or all accounts."""
+    days = max(2, min(int(days), 3650))
+    account_filter = "WHERE account_id = ?" if account_id else ""
+    params: list = [account_id, days] if account_id else [days]
+
+    rows = rows_to_dicts(con.execute(f"""
+        WITH daily AS (
+            SELECT
+                snap_date,
+                {'account_id,' if account_id else "'ALL' AS account_id,"}
+                sum(total_eval_amt) AS total_eval_amt,
+                count(DISTINCT account_id) AS account_count
+            FROM portfolio_daily_snapshots
+            {account_filter}
+            GROUP BY snap_date{', account_id' if account_id else ''}
+        ),
+        changes AS (
+            SELECT
+                account_id,
+                snap_date,
+                total_eval_amt,
+                lag(total_eval_amt) OVER (ORDER BY snap_date) AS prev_total_eval_amt,
+                account_count
+            FROM daily
+        )
+        SELECT
+            account_id,
+            snap_date,
+            total_eval_amt,
+            prev_total_eval_amt,
+            total_eval_amt - prev_total_eval_amt AS change_amt,
+            round(
+                (total_eval_amt - prev_total_eval_amt)
+                    / nullif(prev_total_eval_amt, 0) * 100,
+                2
+            ) AS change_pct,
+            account_count
+        FROM changes
+        ORDER BY snap_date DESC
+        LIMIT ?
+    """, params))
+
+    if not rows:
+        return {
+            "account_id": account_id or "ALL",
+            "days": days,
+            "count": 0,
+            "latest": None,
+            "data": [],
+            "message": "일별 포트폴리오 스냅샷이 없습니다.",
+        }
+
+    return {
+        "account_id": account_id or "ALL",
+        "days": days,
+        "count": len(rows),
+        "latest": rows[0],
+        "data": rows,
+    }
+
+
 def get_portfolio_anomalies(
     con: duckdb.DuckDBPyConnection,
     account_id: str,

@@ -8,6 +8,8 @@ from mcp.server.fastmcp.server import FastMCP
 from .accounts import extract_total_eval_amt, infer_account_type, is_irp_account
 from .analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
 from .analytics.portfolio import (
+    get_latest_portfolio_summary as analyze_latest_portfolio_summary,
+    get_portfolio_daily_change as analyze_portfolio_daily_change,
     get_portfolio_anomalies as analyze_portfolio_anomalies,
     get_portfolio_trend as analyze_portfolio_trend,
 )
@@ -72,6 +74,18 @@ MARKET_CODES = {
 
 def _current_account_id(account_id: str = "") -> str:
     return account_id or os.environ.get("KIS_CANO", "unknown")
+
+
+def _order_tools_enabled() -> bool:
+    return os.environ.get("KIS_ENABLE_ORDER_TOOLS", "").lower() == "true"
+
+
+def _disabled_order_response() -> dict:
+    return {
+        "status": "disabled",
+        "message": "주문 tool은 기본 비활성입니다. KIS_ENABLE_ORDER_TOOLS=true 설정 후 명시적으로 다시 시도하세요.",
+    }
+
 
 class TrIdManager:
     """Transaction ID manager for Korea Investment & Securities API"""
@@ -318,6 +332,9 @@ async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
     Returns:
         Dictionary containing order information
     """
+    if not _order_tools_enabled():
+        return _disabled_order_response()
+
     # Normalize order_type to lowercase
     order_type = order_type.lower()
     if order_type not in ["buy", "sell"]:
@@ -636,6 +653,9 @@ async def order_overseas_stock(symbol: str, quantity: int, price: float, order_t
     Returns:
         Dictionary containing order information
     """
+    if not _order_tools_enabled():
+        return _disabled_order_response()
+
     # Normalize order_type to lowercase
     order_type = order_type.lower()
     if order_type not in ["buy", "sell"]:
@@ -1237,6 +1257,44 @@ async def get_bollinger_bands(
     """
     con = kisdb.get_connection()
     return analyze_bollinger_bands(con, symbol, exchange, window, num_std, limit)
+
+
+@mcp.tool(
+    name="get-latest-portfolio-summary",
+    description="MotherDuck DB에 저장된 최신 계좌 스냅샷을 합산해 계좌/계좌유형별 포트폴리오 요약을 반환합니다.",
+)
+async def get_latest_portfolio_summary(
+    account_id: str = "",
+    lookback_days: int = 30,
+):
+    """
+    최신 포트폴리오 합산 요약 (DB only).
+
+    Args:
+        account_id: 계좌번호. 빈값이면 DB에 저장된 모든 계좌의 최신 스냅샷을 합산
+        lookback_days: 최근 스냅샷으로 인정할 기간
+    """
+    con = kisdb.get_connection()
+    return analyze_latest_portfolio_summary(con, account_id, lookback_days)
+
+
+@mcp.tool(
+    name="get-portfolio-daily-change",
+    description="MotherDuck DB의 일별 대표 스냅샷으로 전체 또는 단일 계좌 평가금액의 일별 변화를 계산합니다.",
+)
+async def get_portfolio_daily_change(
+    account_id: str = "",
+    days: int = 14,
+):
+    """
+    포트폴리오 일별 변화 조회 (DB only).
+
+    Args:
+        account_id: 계좌번호. 빈값이면 DB에 저장된 모든 계좌를 일자별 합산
+        days: 반환할 최근 일수
+    """
+    con = kisdb.get_connection()
+    return analyze_portfolio_daily_change(con, account_id, days)
 
 
 @mcp.tool(

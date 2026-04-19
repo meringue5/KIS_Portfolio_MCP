@@ -1,7 +1,12 @@
 import duckdb
 
 from kis_mcp_server.analytics.bollinger import get_bollinger_bands
-from kis_mcp_server.analytics.portfolio import get_portfolio_anomalies, get_portfolio_trend
+from kis_mcp_server.analytics.portfolio import (
+    get_latest_portfolio_summary,
+    get_portfolio_anomalies,
+    get_portfolio_daily_change,
+    get_portfolio_trend,
+)
 from kis_mcp_server.db.schema import init_schema
 
 
@@ -74,3 +79,31 @@ def test_get_portfolio_anomalies_returns_ranked_rows():
 
     assert result["count"] == 5
     assert result["data"][0]["account_id"] == "acct"
+
+
+def test_get_latest_portfolio_summary_groups_latest_account_rows():
+    con = make_connection()
+    seed_portfolio_snapshots(con, "acct-a", count=3)
+    seed_portfolio_snapshots(con, "acct-b", count=3)
+    con.execute("UPDATE portfolio_snapshots SET account_type='isa' WHERE account_id='acct-b'")
+
+    result = get_latest_portfolio_summary(con, lookback_days=3650)
+
+    assert result["account_id"] == "ALL"
+    assert result["account_count"] == 2
+    assert result["total_eval_amt"] == 2_060_000
+    assert {row["account_type"] for row in result["by_account_type"]} == {"brokerage", "isa"}
+
+
+def test_get_portfolio_daily_change_aggregates_all_accounts():
+    con = make_connection()
+    seed_portfolio_snapshots(con, "acct-a", count=3)
+    seed_portfolio_snapshots(con, "acct-b", count=3)
+
+    result = get_portfolio_daily_change(con, days=3)
+
+    assert result["account_id"] == "ALL"
+    assert result["count"] == 3
+    assert result["latest"]["total_eval_amt"] == 2_060_000
+    assert result["latest"]["prev_total_eval_amt"] == 2_040_000
+    assert result["latest"]["change_amt"] == 20_000

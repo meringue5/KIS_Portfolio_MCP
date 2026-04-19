@@ -173,6 +173,39 @@ KIS_DATA_DIR=var
 
 ---
 
+### ADR-008: Skill은 runbook, 반복 로직은 MCP tool로 승격
+
+**결정**: 에이전트 공통 운용 절차는 `.agent/skills/` 아래에 둔다. 단, 합산/변화 계산처럼
+결과가 결정적인 반복 로직은 skill 지침에만 의존하지 않고 MCP tool과 Python 함수로 구현한다.
+
+**이유**:
+- Claude, Codex, Gemini의 skill discovery 방식이 완전히 동일하다고 가정할 수 없음
+- MCP tool은 클라이언트가 달라도 같은 schema와 서버 로직을 재사용할 수 있음
+- 포트폴리오 합산, 일별 변화, 이상치 탐지는 재현성과 테스트가 중요함
+
+**현재 적용**:
+- 공통 skill: `.agent/skills/kis-portfolio-ops/SKILL.md`
+- 최신 합산 tool: `get-latest-portfolio-summary`
+- 일별 변화 tool: `get-portfolio-daily-change`
+- 주문 tool 기본 비활성: `KIS_ENABLE_ORDER_TOOLS=false`
+
+---
+
+### ADR-009: 컨테이너는 remote MCP 준비물이며, HTTP 어댑터는 별도 단계
+
+**결정**: Dockerfile을 추가해 배포 가능한 실행 환경을 준비한다. 다만 현재 기본 엔트리포인트는
+local stdio MCP이며, ChatGPT custom MCP 같은 원격 클라이언트용 Streamable HTTP 어댑터는 별도 후속
+작업으로 둔다.
+
+**이유**:
+- Fly.io, Render, Cloud Run 등은 컨테이너 배포와 runtime secret 관리가 자연스러움
+- KIS/MotherDuck secret은 이미지에 포함하지 않고 배포 플랫폼의 runtime env로 주입해야 함
+- local MCP 안정화와 remote MCP 인증/권한 설계를 분리해야 주문 기능 노출 위험을 줄일 수 있음
+
+상세 방향은 `docs/deployment.md` 참고.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

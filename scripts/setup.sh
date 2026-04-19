@@ -120,6 +120,7 @@ def srv(key_suffix, extra_env=None):
         "KIS_ACNT_PRDT_CD": env[f"KIS_ACNT_PRDT_CD_{key_suffix}"],
         "KIS_ACCOUNT_LABEL": key_suffix.lower(),
         "KIS_ACCOUNT_TYPE": "REAL",
+        "KIS_ENABLE_ORDER_TOOLS": env.get("KIS_ENABLE_ORDER_TOOLS", "false"),
         "KIS_DB_MODE": env.get("KIS_DB_MODE", "motherduck"),
         "MOTHERDUCK_DATABASE": env.get("MOTHERDUCK_DATABASE", "kis_portfolio"),
         "KIS_DATA_DIR": env.get("KIS_DATA_DIR", "var"),

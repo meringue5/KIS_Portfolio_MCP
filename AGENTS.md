@@ -55,6 +55,12 @@ uv run python server.py
 
 ## 핵심 설계 규칙
 
+### 공통 운용 스킬
+에이전트 공통 운용 절차는 `.agent/skills/` 아래에 둔다.
+native skill discovery를 지원하지 않는 환경에서도 관련 작업 전에는 해당 `SKILL.md`를 읽고 따른다.
+
+- `.agent/skills/kis-portfolio-ops/SKILL.md`: 포트폴리오 조회, 합산, 변화 분석 운용 절차
+
 ### 계좌별 토큰 파일 분리
 모든 인스턴스가 같은 디렉터리에서 실행되므로, OAuth 토큰을 계좌별로 분리:
 ```python
@@ -78,6 +84,11 @@ is_pension = acnt_prdt_cd == "29"  # IRP만 pension API, 22(연금저축)는 표
 API 키와 계좌정보는 `claude_desktop_config.json`의 `env` 블록에서 주입.
 `server.py`는 `os.environ`으로만 읽으므로, `.env` + `python-dotenv`로도 대체 가능 (클라우드 배포 시).
 계좌 구분용 `KIS_ACCOUNT_LABEL`은 `scripts/setup.sh`가 MCP 서버 인스턴스별로 생성한다.
+
+### 주문 tool 기본 비활성
+`order-stock`, `order-overseas-stock`은 기본적으로 실행하지 않는다.
+실제 주문을 허용하려면 운영자가 명시적으로 `KIS_ENABLE_ORDER_TOOLS=true`를 설정해야 한다.
+원격 MCP 배포에서는 조회-only 모드를 기본값으로 유지한다.
 
 ---
 
@@ -144,6 +155,8 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 
 **DB 전용 조회 툴 (API 호출 없음):**
 - `get-portfolio-history` — 계좌 잔고 스냅샷 이력
+- `get-latest-portfolio-summary` — 최신 스냅샷 기준 전체/단일 계좌 합산 요약
+- `get-portfolio-daily-change` — 일별 대표 스냅샷 기준 평가금액 변화
 - `get-price-from-db` — 캐시된 주가 이력
 - `get-exchange-rate-from-db` — 캐시된 환율 이력
 

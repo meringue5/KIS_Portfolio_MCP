@@ -20,7 +20,10 @@ KIS_MCP_Server/
 ├── ARCHITECTURE.md
 ├── AGENTS.md
 ├── pyproject.toml
+├── Dockerfile                 # 컨테이너 실행 베이스라인
 ├── server.py                  # 기존 MCP 설정 호환용 thin entrypoint
+├── .agent/
+│   └── skills/                # 에이전트 공통 운용 runbook
 ├── src/
 │   └── kis_mcp_server/
 │       ├── __init__.py
@@ -44,6 +47,8 @@ KIS_MCP_Server/
 - 로컬 DuckDB는 `KIS_DB_MODE=local`일 때만 사용하며 운영 트랜잭션 중심이 아니다.
 - `KIS_DATA_DIR` 기본값은 프로젝트 루트 기준 `var`이다.
 - 상대경로로 지정한 `KIS_DATA_DIR`, `KIS_TOKEN_DIR`, `KIS_LOCAL_DB_PATH`는 현재 작업 디렉터리가 아니라 프로젝트 루트 기준으로 해석한다.
+- 주문 tool은 `KIS_ENABLE_ORDER_TOOLS=true`일 때만 실행한다.
+- 컨테이너 실행 베이스라인을 추가했지만, remote MCP 배포에는 별도 HTTP 어댑터가 필요하다.
 
 ## 장기 목표
 

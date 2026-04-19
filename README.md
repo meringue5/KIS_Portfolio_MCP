@@ -170,6 +170,24 @@ This configuration can be used with MCP-compatible tools and IDEs to run the ser
 
 계좌별 환경변수 템플릿은 `.env.example`, MCP 설정 예시는 `docs/examples/claude_desktop_config.example.json`을 참고하세요.
 
+### Portfolio DB Tools
+
+MotherDuck/DuckDB에 저장된 스냅샷은 API 재호출 없이 조회할 수 있습니다:
+
+* **get-latest-portfolio-summary** - 최신 스냅샷 기준 전체/단일 계좌 합산 요약
+* **get-portfolio-daily-change** - 일별 대표 스냅샷 기준 평가금액 변화
+* **get-portfolio-history** - 계좌 잔고 스냅샷 이력
+* **get-portfolio-trend** - 일별 평가금액 이동평균과 추세
+* **get-portfolio-anomalies** - 일별 평가금액 변동 이상치 탐지
+
+주문 tool은 기본 비활성입니다. 실제 주문을 허용하려면 `KIS_ENABLE_ORDER_TOOLS=true`를 명시해야 합니다.
+
+### Deployment
+
+컨테이너 베이스라인은 `Dockerfile`에 있습니다. 현재 엔트리포인트는 local stdio MCP 서버이며,
+ChatGPT custom MCP용 원격 배포에는 Streamable HTTP 어댑터가 추가로 필요합니다.
+자세한 내용은 `docs/deployment.md`를 참고하세요.
+
 ### Trading Hours
 
 국내 주식:
