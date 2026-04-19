@@ -223,4 +223,4 @@ API 호출 시 발생할 수 있는 주요 에러:
 MIT License
 
 This project is a fork of `migusdn/KIS_MCP_Server`, which is also distributed under the MIT License.
-See `LICENSE` and `NOTICE.md`.
+See `LICENSE`.
