@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 
 import httpx
 from mcp.server.fastmcp.server import FastMCP
-from .accounts import extract_total_eval_amt, infer_account_type, is_irp_account
 from .analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
 from .analytics.portfolio import (
     get_latest_portfolio_summary as analyze_latest_portfolio_summary,
@@ -14,6 +13,7 @@ from .analytics.portfolio import (
     get_portfolio_trend as analyze_portfolio_trend,
 )
 from .auth import get_access_token, get_hashkey, get_token_status as inspect_token_status
+from .kis_balance import fetch_balance_snapshot
 from . import db as kisdb
 
 # 로깅 설정: 반드시 stderr로 출력
@@ -39,8 +39,6 @@ VIRTUAL_DOMAIN = "https://openapivts.koreainvestment.com:29443"  # 모의투자
 
 # API paths
 STOCK_PRICE_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"  # 현재가조회
-BALANCE_PATH = "/uapi/domestic-stock/v1/trading/inquire-balance"  # 잔고조회
-PENSION_BALANCE_PATH = "/uapi/domestic-stock/v1/trading/pension/inquire-balance"  # 퇴직연금잔고조회
 ORDER_PATH = "/uapi/domestic-stock/v1/trading/order-cash"  # 현금주문
 ORDER_LIST_PATH = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld"  # 일별주문체결조회
 ORDER_DETAIL_PATH = "/uapi/domestic-stock/v1/trading/inquire-ccnl"  # 주문체결내역조회
@@ -244,76 +242,7 @@ async def inquery_balance():
     Automatically routes to the pension API only when KIS_ACNT_PRDT_CD is "29"
     (IRP). Pension savings ("22") uses the standard balance API.
     """
-    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
-    is_pension = is_irp_account(acnt_prdt_cd)  # IRP만 pension API, 연금저축("22")은 표준 API
-
-    async with httpx.AsyncClient() as client:
-        token = await get_access_token(client, DOMAIN)
-
-        if is_pension:
-            logger.info(f"Pension account detected (ACNT_PRDT_CD={acnt_prdt_cd}), using TTTC2208R")
-            request_data = {
-                "CANO": os.environ["KIS_CANO"],
-                "ACNT_PRDT_CD": acnt_prdt_cd,
-                "ACCA_DVSN_CD": "00",   # 적립금구분코드 (00: 전체)
-                "INQR_DVSN": "00",       # 조회구분 (00: 전체)
-                "CTX_AREA_FK100": "",
-                "CTX_AREA_NK100": "",
-            }
-            response = await client.get(
-                f"{DOMAIN}{PENSION_BALANCE_PATH}",
-                headers={
-                    "content-type": CONTENT_TYPE,
-                    "authorization": f"{AUTH_TYPE} {token}",
-                    "appkey": os.environ["KIS_APP_KEY"],
-                    "appsecret": os.environ["KIS_APP_SECRET"],
-                    "tr_id": TrIdManager.get_tr_id("pension_balance"),
-                },
-                params=request_data,
-            )
-        else:
-            logger.info(f"Standard account (ACNT_PRDT_CD={acnt_prdt_cd}), using TTTC8434R")
-            request_data = {
-                "CANO": os.environ["KIS_CANO"],
-                "ACNT_PRDT_CD": acnt_prdt_cd,
-                "AFHR_FLPR_YN": "N",
-                "INQR_DVSN": "01",
-                "UNPR_DVSN": "01",
-                "FUND_STTL_ICLD_YN": "N",
-                "FNCG_AMT_AUTO_RDPT_YN": "N",
-                "PRCS_DVSN": "00",
-                "CTX_AREA_FK100": "",
-                "CTX_AREA_NK100": "",
-                "OFL_YN": "",
-            }
-            response = await client.get(
-                f"{TrIdManager.get_domain('balance')}{BALANCE_PATH}",
-                headers={
-                    "content-type": CONTENT_TYPE,
-                    "authorization": f"{AUTH_TYPE} {token}",
-                    "appkey": os.environ["KIS_APP_KEY"],
-                    "appsecret": os.environ["KIS_APP_SECRET"],
-                    "tr_id": TrIdManager.get_tr_id("balance"),
-                },
-                params=request_data,
-            )
-
-        if response.status_code != 200:
-            raise Exception(f"Failed to get balance: {response.text}")
-
-        data = response.json()
-
-        # ── DB: 잔고 스냅샷 자동 저장 ──
-        try:
-            cano = os.environ.get("KIS_CANO", "unknown")
-            acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
-            acct_type = infer_account_type(cano, acnt_prdt_cd)
-            total = extract_total_eval_amt(data)
-            kisdb.insert_portfolio_snapshot(cano, acct_type, data, total)
-        except Exception as e:
-            logger.warning(f"DB snapshot save failed (non-critical): {e}")
-
-        return data
+    return await fetch_balance_snapshot(save_snapshot=True)
 
 @mcp.tool(
     name="order-stock",

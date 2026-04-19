@@ -11,6 +11,38 @@
       ],
       "env": {}
     },
+    "kis-portfolio": {
+      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
+      "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "kis-mcp-orchestrator"],
+      "env": {
+        "KIS_ACCOUNT_TYPE": "REAL",
+        "KIS_ENABLE_ORDER_TOOLS": "false",
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_DATA_DIR": "var",
+        "MOTHERDUCK_TOKEN": "${MOTHERDUCK_TOKEN}",
+        "KIS_APP_KEY_RIA": "${KIS_APP_KEY_RIA}",
+        "KIS_APP_SECRET_RIA": "${KIS_APP_SECRET_RIA}",
+        "KIS_CANO_RIA": "${KIS_CANO_RIA}",
+        "KIS_ACNT_PRDT_CD_RIA": "${KIS_ACNT_PRDT_CD_RIA}",
+        "KIS_APP_KEY_ISA": "${KIS_APP_KEY_ISA}",
+        "KIS_APP_SECRET_ISA": "${KIS_APP_SECRET_ISA}",
+        "KIS_CANO_ISA": "${KIS_CANO_ISA}",
+        "KIS_ACNT_PRDT_CD_ISA": "${KIS_ACNT_PRDT_CD_ISA}",
+        "KIS_APP_KEY_BROKERAGE": "${KIS_APP_KEY_BROKERAGE}",
+        "KIS_APP_SECRET_BROKERAGE": "${KIS_APP_SECRET_BROKERAGE}",
+        "KIS_CANO_BROKERAGE": "${KIS_CANO_BROKERAGE}",
+        "KIS_ACNT_PRDT_CD_BROKERAGE": "${KIS_ACNT_PRDT_CD_BROKERAGE}",
+        "KIS_APP_KEY_IRP": "${KIS_APP_KEY_IRP}",
+        "KIS_APP_SECRET_IRP": "${KIS_APP_SECRET_IRP}",
+        "KIS_CANO_IRP": "${KIS_CANO_IRP}",
+        "KIS_ACNT_PRDT_CD_IRP": "${KIS_ACNT_PRDT_CD_IRP}",
+        "KIS_APP_KEY_PENSION": "${KIS_APP_KEY_PENSION}",
+        "KIS_APP_SECRET_PENSION": "${KIS_APP_SECRET_PENSION}",
+        "KIS_CANO_PENSION": "${KIS_CANO_PENSION}",
+        "KIS_ACNT_PRDT_CD_PENSION": "${KIS_ACNT_PRDT_CD_PENSION}"
+      }
+    },
     "kis-ria": {
       "command": "/Users/YOUR_USERNAME/.local/bin/uv",
       "args": ["run", "--directory", "/Users/YOUR_USERNAME/workspace/KIS_MCP_Server", "python", "server.py"],

@@ -45,7 +45,7 @@ bash scripts/stop_mcp.sh
 
 ## 계좌 구성 (claude_desktop_config.json)
 
-5개 계좌가 독립적인 MCP 서버 인스턴스로 실행됨:
+5개 계좌가 독립적인 MCP 서버 인스턴스로 실행되고, 전체 계좌 조회용 오케스트레이터가 별도로 실행됨:
 
 | 서버 이름       | ACNT_PRDT_CD | 계좌 종류     |
 |--------------|-------------|------------|
@@ -54,6 +54,7 @@ bash scripts/stop_mcp.sh
 | kis-brokerage| 01          | 일반 위탁    |
 | kis-irp      | 29          | IRP (퇴직연금)|
 | kis-pension  | 22          | 연금저축     |
+| kis-portfolio| 계좌별 suffixed env | 전체 계좌 오케스트레이터 |
 
 별도로 `kis-api-search` 서버(koreainvestment-mcp)가 API 문서 검색용으로 실행됨.
 
@@ -92,6 +93,11 @@ is_pension = acnt_prdt_cd == "29"  # IRP만 pension API, 22(연금저축)는 표
 API 키와 계좌정보는 `claude_desktop_config.json`의 `env` 블록에서 주입.
 `server.py`는 `os.environ`으로만 읽으므로, `.env` + `python-dotenv`로도 대체 가능 (클라우드 배포 시).
 계좌 구분용 `KIS_ACCOUNT_LABEL`은 `scripts/setup.sh`가 MCP 서버 인스턴스별로 생성한다.
+
+`kis-portfolio`는 `KIS_APP_KEY_{ACCOUNT}`, `KIS_APP_SECRET_{ACCOUNT}`, `KIS_CANO_{ACCOUNT}`,
+`KIS_ACNT_PRDT_CD_{ACCOUNT}` 형태의 계좌별 suffixed env 전체를 받는다.
+오케스트레이터는 내부적으로 짧은 scoped env context를 사용해 기존 인증/토큰/잔고 로직을 재사용하며,
+전체 계좌 refresh는 순차 실행한다. 주문 tool은 오케스트레이터에 노출하지 않는다.
 
 ### 주문 tool 기본 비활성
 `order-stock`, `order-overseas-stock`은 기본적으로 실행하지 않는다.
@@ -184,6 +190,20 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 - 분/일 단위 중복 제거는 저장 시점이 아니라 curated view/pipeline에서 처리
 - 현재 일별 대표값 view: `portfolio_daily_snapshots`
 - 상세 문서: `docs/data-pipeline.md`
+
+## 오케스트레이터 MCP
+
+실행 명령은 `kis-mcp-orchestrator`.
+
+노출 tool:
+- `get-configured-accounts`
+- `get-all-token-statuses`
+- `get-account-balance`
+- `refresh-all-account-snapshots`
+- `get-latest-portfolio-summary`
+- `get-portfolio-daily-change`
+
+토큰 원문과 secret은 응답에 포함하지 않는다. 계좌번호는 계좌 메타데이터에서는 항상 마스킹한다.
 
 ## 신규 환경 온보딩
 

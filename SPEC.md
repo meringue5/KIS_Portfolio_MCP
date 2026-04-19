@@ -210,6 +210,26 @@ KIS_DATA_DIR=var
 
 ---
 
+### ADR-010: 계좌별 MCP와 포트폴리오 오케스트레이터 병행
+
+**결정**: 기존 계좌별 MCP 5개는 유지하고, 조회-only 단일 오케스트레이터 `kis-portfolio`를 추가한다.
+오케스트레이터 실행 명령은 `kis-mcp-orchestrator`이며, 계좌별 suffixed env를 `AccountRegistry`로 읽는다.
+
+**이유**:
+- Claude가 매번 5개 계좌 MCP를 직접 조합하지 않아도 전체 계좌 조회와 요약 분석을 수행할 수 있음
+- 기존 계좌별 MCP를 유지하므로 전환 중 회귀 위험을 줄일 수 있음
+- `os.environ` 기반 레거시 인증/토큰 경계가 남아 있으므로 v1에서는 scoped env와 순차 실행이 안전함
+- 주문 tool을 오케스트레이터에 노출하지 않아 전체 계좌 자동화의 위험을 낮춤
+
+**현재 적용**:
+- `get-configured-accounts`: 계좌 목록 조회, 계좌번호 마스킹
+- `get-all-token-statuses`: 전체 계좌 토큰 캐시 상태 조회, 토큰 값 비노출
+- `get-account-balance`: 단일 계좌 잔고 조회 및 스냅샷 저장
+- `refresh-all-account-snapshots`: 전체 계좌 순차 조회 및 계좌별 성공/실패 반환
+- `get-latest-portfolio-summary`, `get-portfolio-daily-change`: 기존 DB-only 분석 tool 재노출
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

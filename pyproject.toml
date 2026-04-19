@@ -26,6 +26,7 @@ build-backend = "hatchling.build"
 [project.scripts]
 kis-mcp-server = "kis_mcp_server.app:main"
 kis-mcp-remote = "kis_mcp_server.remote:main"
+kis-mcp-orchestrator = "kis_mcp_server.orchestrator:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/kis_mcp_server"]

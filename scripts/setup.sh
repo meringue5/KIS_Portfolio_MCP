@@ -134,6 +134,26 @@ def srv(key_suffix, extra_env=None):
         "env": e,
     }
 
+def orchestrator_srv():
+    e = {
+        "KIS_ACCOUNT_TYPE": "REAL",
+        "KIS_ENABLE_ORDER_TOOLS": env.get("KIS_ENABLE_ORDER_TOOLS", "false"),
+        "KIS_DB_MODE": env.get("KIS_DB_MODE", "motherduck"),
+        "MOTHERDUCK_DATABASE": env.get("MOTHERDUCK_DATABASE", "kis_portfolio"),
+        "KIS_DATA_DIR": env.get("KIS_DATA_DIR", "var"),
+        "MOTHERDUCK_TOKEN": env["MOTHERDUCK_TOKEN"],
+    }
+    for suffix in ("RIA", "ISA", "BROKERAGE", "IRP", "PENSION"):
+        e[f"KIS_APP_KEY_{suffix}"] = env[f"KIS_APP_KEY_{suffix}"]
+        e[f"KIS_APP_SECRET_{suffix}"] = env[f"KIS_APP_SECRET_{suffix}"]
+        e[f"KIS_CANO_{suffix}"] = env[f"KIS_CANO_{suffix}"]
+        e[f"KIS_ACNT_PRDT_CD_{suffix}"] = env[f"KIS_ACNT_PRDT_CD_{suffix}"]
+    return {
+        "command": uv_bin,
+        "args": ["run", "--directory", repo_dir, "kis-mcp-orchestrator"],
+        "env": e,
+    }
+
 config = {
     "mcpServers": {
         "kis-api-search": {
@@ -143,6 +163,7 @@ config = {
                      "--python", "3.13", "python", "server.py"],
             "env": {}
         },
+        "kis-portfolio": orchestrator_srv(),
         "kis-ria":       srv("RIA"),
         "kis-isa":       srv("ISA"),
         "kis-irp":       srv("IRP"),
