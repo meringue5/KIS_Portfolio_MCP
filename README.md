@@ -1,227 +1,343 @@
 # KIS Portfolio Service
 
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
-한국투자증권(KIS) Open API를 기반으로 개인 포트폴리오 조회, 이력 저장, 분석, MCP/remote 접근을
-제공하는 서비스입니다.
+한국투자증권(KIS) Open API를 기반으로 만든 개인 포트폴리오 서비스입니다.
+여러 계좌의 국내/해외 자산을 한 번에 조회하고, MotherDuck/DuckDB에 스냅샷을 쌓아 이력과 비중 변화를 분석할 수 있습니다.
 
-이 저장소는 `migusdn/KIS_MCP_Server` fork에서 출발했지만, 현재 신규 설계의 기준은 한국투자 공식
-Open API 문서와 개인 포트폴리오 서비스 요구사항입니다. MCP는 핵심 서비스 위의 adapter 중 하나로
-다룹니다.
+이 프로젝트는 원래 `migusdn/KIS_MCP_Server` 포크에서 출발했지만, 현재는 단일 MCP 서버와 포트폴리오 분석 서비스 구조를 중심으로 재설계된 상태입니다.
 
-## ✨ 주요 기능
+한국투자증권과 무관한 비공식 오픈소스 프로젝트입니다.
 
-- 🇰🇷 **국내 주식 거래**
-  - 실시간 현재가 조회
-  - 주문 조회
-  - 잔고 조회
-  - 호가 정보 조회
-  - 주문 내역 조회
+## 한눈에 보기
 
-- 🌏 **해외 주식 거래**
-  - 미국, 일본, 중국, 홍콩, 베트남 등 주요 시장 지원
-  - 실시간 현재가 조회
-  - 해외 잔고/예수금 조회
+- 여러 KIS 계좌를 하나의 MCP 서버 `kis-portfolio`로 묶어서 조회
+- 국내 자산 + 해외 주식 + 해외 예수금까지 합친 canonical 총자산 계산
+- 국내 상장 해외 ETF/REIT를 `해외우회투자`로 분리 표시
+- MotherDuck/DuckDB에 스냅샷을 저장하고 총자산 이력/일간 변화/추세 분석
+- Claude Desktop에서 바로 사용할 수 있는 로컬 MCP 셋업 스크립트 제공
+- 원격 MCP 배포를 위한 HTTP 엔트리포인트와 컨테이너 베이스라인 포함
 
-- ⚡ **특징**
-  - 비동기 처리로 빠른 응답
-  - 실시간 시세 및 체결 정보
-  - 안정적인 에러 처리
-  - 확장 가능한 설계
+## 이런 분에게 맞습니다
 
-- 🧭 **포트폴리오 오케스트레이션**
-  - 5개 계좌 통합 조회
-  - MotherDuck/DuckDB 스냅샷 저장
-  - DB 기반 포트폴리오 요약/변화 분석
-  - local MCP와 remote MCP adapter 병행
+- 한국투자증권 계좌를 여러 개 운용하고 있고, 전체 자산을 한 번에 보고 싶은 분
+- 국내/해외/현금/해외우회투자 비중을 LLM 대화로 확인하고 싶은 분
+- MCP를 단순 조회 도구가 아니라 개인 투자 데이터 레이어로 키우고 싶은 분
+- 나중에 웹 서비스, 배치 분석, 원격 MCP까지 확장할 구조를 원하는 분
 
-## ⚠️ 주의사항
+## 현재 제공 기능
 
-이 프로젝트는 아직 개발 중인 미완성 프로젝트입니다. 실제 투자에 사용하기 전에 충분한 테스트를 거치시기 바랍니다.
+### 1. 계좌/포트폴리오
 
-* 본 프로젝트를 사용하여 발생하는 모든 손실과 책임은 전적으로 사용자에게 있습니다.
-* API 사용 시 한국투자증권의 이용약관을 준수해야 합니다.
-* 실제 계좌 사용 시 주의가 필요하며, 모의투자 계좌로 충분한 테스트를 권장합니다.
-* API 호출 제한과 관련된 제약사항을 반드시 확인하시기 바랍니다.
+- 등록된 계좌 목록 조회
+- 전체 계좌 국내/연금 스냅샷 갱신
+- 특정 계좌 잔고 조회
+- 전체 자산현황 요약
+  - 국내 자산
+  - 해외 주식 평가액
+  - 해외 예수금/현금성
+  - 총자산
+  - 계좌 기준 비중
+  - 경제적 노출 기준 비중
 
-## Requirements
+### 2. 시세/이력
 
-* Python >= 3.13
-* uv (Python packaging tool)
+- 국내 주식 현재가 / 호가 / 기본정보
+- 국내 주식 가격 이력
+- 해외 주식 현재가 / 가격 이력
+- 환율 이력
 
-## Installation
+### 3. 손익/분석
+
+- 국내 주식 기간별 손익
+- 해외 주식 기간별 손익
+- 총자산 이력
+- 총자산 일간 변화
+- 총자산 추세
+- 총자산 allocation history
+- 국내/연금 feeder 기준 포트폴리오 변화, 추세, 이상치
+
+### 4. 데이터 저장
+
+- `portfolio_snapshots`: 국내/연금 raw 스냅샷
+- `overseas_asset_snapshots`: 해외 자산 raw/aggregate 스냅샷
+- `asset_overview_snapshots`: canonical 총자산 스냅샷
+- `asset_holding_snapshots`: 총자산 스냅샷 기준 정규화 보유 row
+- `instrument_master`: KIS 종목마스터 적재 결과
+- `instrument_classification_overrides`: 로컬 수동 분류 override
+
+## 중요한 현재 상태
+
+이 프로젝트는 현재 **조회/분석 중심**입니다.
+
+- `submit-stock-order`
+- `submit-overseas-stock-order`
+
+두 주문 tool은 **disabled stub**이며, 실제 주문 API를 호출하지 않습니다.
+즉, 지금 단계에서는 실수로 주문이 나가는 구조가 아닙니다.
+
+## 예시 질문
+
+Claude Desktop 같은 MCP 클라이언트에서 아래처럼 물어볼 수 있습니다.
+
+- `내 전체 자산현황 보여줘`
+- `국내 자산 대비 해외 자산 비율 알려줘`
+- `해외우회투자까지 포함해서 자산 비중 정리해줘`
+- `최근 30일 총자산 변화 보여줘`
+- `ISA와 연금 계좌를 따로 비교해줘`
+
+## 설치
+
+### 준비물
+
+- Python 3.13+
+- [uv](https://astral.sh/uv)
+- 한국투자증권 Open API 앱 키 / 시크릿
+- 계좌번호 및 계좌상품코드
+- MotherDuck 토큰 권장
+
+## 빠른 시작
+
+```bash
+git clone <repo-url>
+cd KIS_MCP_Server
+cp .env.example .env
+```
+
+`.env`에 실제 값을 채운 뒤:
 
 ```bash
 uv sync
 bash scripts/setup.sh
 ```
 
-### MCP Server Configuration
+이 스크립트가 하는 일:
 
-`scripts/setup.sh`는 Claude Desktop 설정에 `kis-portfolio` 단일 MCP 서버를 등록합니다.
-계좌별 KIS key/secret/account는 `.env`의 suffixed 환경변수에서 읽습니다.
+- `.env` 필수값 검사
+- 의존성 설치
+- `var/` 런타임 디렉터리 생성
+- Claude Desktop용 `claude_desktop_config.json` 생성
+- `kis-portfolio` MCP 서버 등록
 
-```json
-{
-  "mcpServers": {
-    "kis-portfolio": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "--directory", "/path/to/KIS_MCP_Server", "kis-portfolio-mcp"],
-      "env": {
-        "KIS_APP_KEY_BROKERAGE": "...",
-        "KIS_APP_SECRET_BROKERAGE": "...",
-        "KIS_CANO_BROKERAGE": "...",
-        "KIS_ACNT_PRDT_CD_BROKERAGE": "01",
-        "MOTHERDUCK_TOKEN": "..."
-      }
-    }
-  }
-}
+마지막으로 Claude Desktop을 재시작하면 됩니다.
+
+## 환경변수
+
+기본 패턴은 아래와 같습니다.
+
+```env
+KIS_APP_KEY_RIA=
+KIS_APP_SECRET_RIA=
+KIS_CANO_RIA=
+KIS_ACNT_PRDT_CD_RIA=01
+
+KIS_APP_KEY_ISA=
+KIS_APP_SECRET_ISA=
+KIS_CANO_ISA=
+KIS_ACNT_PRDT_CD_ISA=01
+
+KIS_APP_KEY_IRP=
+KIS_APP_SECRET_IRP=
+KIS_CANO_IRP=
+KIS_ACNT_PRDT_CD_IRP=29
+
+KIS_APP_KEY_PENSION=
+KIS_APP_SECRET_PENSION=
+KIS_CANO_PENSION=
+KIS_ACNT_PRDT_CD_PENSION=22
+
+KIS_APP_KEY_BROKERAGE=
+KIS_APP_SECRET_BROKERAGE=
+KIS_CANO_BROKERAGE=
+KIS_ACNT_PRDT_CD_BROKERAGE=01
+
+KIS_DB_MODE=motherduck
+MOTHERDUCK_DATABASE=kis_portfolio
+MOTHERDUCK_TOKEN=
+KIS_DATA_DIR=var
+KIS_ACCOUNT_TYPE=REAL
+KIS_ENABLE_ORDER_TOOLS=false
 ```
 
-자세한 예시는 `docs/examples/claude_desktop_config.example.json`을 참고하세요.
+전체 예시는 [.env.example](./.env.example)를 참고하세요.
 
-## MCP Tools
+## 실행 방법
 
-`kis-portfolio`는 clean `get-*` tool 이름만 노출합니다. 기존 fork의 `inquery-*` tool alias는
-기본 MCP 표면에 등록하지 않습니다.
+### 로컬 MCP 서버
 
-### Portfolio / Account
+```bash
+uv run kis-portfolio-mcp
+```
 
-* **get-configured-accounts** - 등록 계좌 목록 조회
-* **get-all-token-statuses** - 전체 계좌 토큰 캐시 상태 조회
-* **get-account-balance** - 특정 계좌 라벨 잔고 조회 및 스냅샷 저장
-* **refresh-all-account-snapshots** - 국내/연금 feeder 스냅샷 저장
-* **get-total-asset-overview** - canonical 총자산 요약, 국내/해외/현금성/해외우회투자 비중, 차트 데이터, snapshot 저장
+또는 루트 shim:
 
-### Market / History
+```bash
+uv run python server.py
+```
 
-* **get-stock-price**, **get-stock-ask**, **get-stock-info**, **get-stock-history**
-* **get-overseas-stock-price**, **get-overseas-stock-history**
-* **get-exchange-rate-history**
+### 원격 MCP 서버
 
-### Overseas / Profit / Orders
+```bash
+uv run kis-portfolio-remote
+```
 
-* **get-overseas-balance**, **get-overseas-deposit**
-* **get-period-trade-profit**, **get-overseas-period-profit**
-* **get-order-list**, **get-order-detail**
-* **submit-stock-order**, **submit-overseas-stock-order** - disabled stub, 실제 주문 API 호출 없음
+원격 배포는 `/mcp` HTTP endpoint를 사용하며, 기본적으로 `KIS_REMOTE_AUTH_TOKEN` bearer 인증을 요구합니다. 자세한 내용은 [docs/deployment.md](./docs/deployment.md)를 참고하세요.
 
-## Resources
+## Claude Desktop 연결
 
-### Configuration
+이 저장소는 Claude Desktop 기준 자동 설정을 지원합니다.
 
-환경 변수를 통해 API 키와 계좌 정보를 설정합니다:
+```bash
+bash scripts/setup.sh
+```
 
-* `KIS_APP_KEY_{ACCOUNT}`: 한국투자증권 앱키
-* `KIS_APP_SECRET_{ACCOUNT}`: 한국투자증권 시크릿키
-* `KIS_ACCOUNT_TYPE`: 계좌 타입 ("REAL" 또는 "VIRTUAL")
-* `KIS_CANO_{ACCOUNT}`: 계좌번호
-* `KIS_ACNT_PRDT_CD_{ACCOUNT}`: 계좌상품코드 (예: 일반/ISA 01, IRP 29, 연금저축 22)
+예시 설정 파일은 [docs/examples/claude_desktop_config.example.json](./docs/examples/claude_desktop_config.example.json)에 있습니다.
 
-계좌별 환경변수 템플릿은 `.env.example`, MCP 설정 예시는 `docs/examples/claude_desktop_config.example.json`을 참고하세요.
+## 대표 MCP Tool
 
-### Portfolio DB Tools
+### 포트폴리오 / 계좌
 
-MotherDuck/DuckDB에 저장된 스냅샷은 API 재호출 없이 조회할 수 있습니다:
+- `get-configured-accounts`
+- `get-all-token-statuses`
+- `get-account-balance`
+- `refresh-all-account-snapshots`
+- `get-total-asset-overview`
 
-* **get-latest-portfolio-summary** - 최신 국내/연금 feeder 스냅샷 기준 합산 요약
-* **get-total-asset-overview** - canonical 총자산 요약, 해외예수금 포함 총액, 경제적 노출 분류, 차트 데이터
-* **get-total-asset-history**, **get-total-asset-daily-change**
-* **get-total-asset-trend**, **get-total-asset-allocation-history**
-* **get-portfolio-daily-change** - 국내/연금 feeder 스냅샷 기준 평가금액 변화
-* **get-portfolio-history** - 계좌 잔고 스냅샷 이력
-* **get-portfolio-trend** - 국내/연금 feeder 스냅샷 이동평균과 추세
-* **get-portfolio-anomalies** - 국내/연금 feeder 스냅샷 변동 이상치
+### 시세 / 이력
 
-주문 tool은 disabled stub입니다. 실제 주문 API를 호출하지 않습니다.
+- `get-stock-price`
+- `get-stock-ask`
+- `get-stock-info`
+- `get-stock-history`
+- `get-overseas-stock-price`
+- `get-overseas-stock-history`
+- `get-exchange-rate-history`
 
-### Portfolio Orchestrator MCP
+### 손익 / 분석
 
-`scripts/setup.sh`는 단일 오케스트레이터 `kis-portfolio`만 생성합니다.
-Claude가 계좌별 서버를 직접 조합하지 않아도 전체 계좌 조회와 요약 분석을 실행할 수 있게 합니다.
+- `get-period-trade-profit`
+- `get-overseas-period-profit`
+- `get-total-asset-history`
+- `get-total-asset-daily-change`
+- `get-total-asset-trend`
+- `get-total-asset-allocation-history`
+- `get-portfolio-history`
+- `get-portfolio-daily-change`
+- `get-portfolio-trend`
+- `get-portfolio-anomalies`
+- `get-bollinger-bands`
 
-* **get-configured-accounts** - 등록 계좌 목록 조회 (계좌번호 마스킹, secret 비노출)
-* **get-all-token-statuses** - 전체 계좌 토큰 캐시 상태 조회 (토큰 값 비노출)
-* **get-account-balance** - 특정 계좌 라벨 잔고 조회 및 스냅샷 저장
-* **refresh-all-account-snapshots** - 국내/연금 feeder 스냅샷 저장
-* **get-total-asset-overview** - canonical 총자산 요약과 분류/차트 데이터
-* **get-total-asset-history**, **get-total-asset-daily-change**
-* **get-total-asset-trend**, **get-total-asset-allocation-history**
+## 총자산 계산 방식
 
-국내 상장 해외투자 ETF/REIT는 `get-total-asset-overview`에서 `해외우회투자`로 별도 표시합니다.
-분류는 KIS 종목마스터 + 이름 heuristic + 로컬 override 계층으로 계산합니다.
-종목마스터 적재는 `uv run python scripts/sync_instrument_master.py`로 수행할 수 있습니다.
+이 프로젝트의 canonical 총자산은 `get-total-asset-overview`를 기준으로 계산합니다.
 
-### Architecture Direction
+- 국내/연금 계좌 스냅샷 합계
+- 해외 주식 평가액
+- 해외 예수금/현금성
 
-신규 기능은 fork 원본 MCP 구현보다 한국투자 공식 API 문서와 공식 예제 저장소를 우선 기준으로 삼습니다.
-기능 분류와 리팩토링 기준은 `docs/api-capability-map.md`를 참고하세요.
+그리고 같은 금액을 두 관점으로 나눠 보여줍니다.
 
-장기 구조는 core service와 adapter 분리입니다.
+1. 계좌/통화 기준
+   - 국내 자산
+   - 해외 자산
+   - 현금성
+
+2. 경제적 노출 기준
+   - `domestic_direct`
+   - `overseas_direct`
+   - `overseas_indirect`
+   - `cash`
+   - `unknown`
+
+국내 상장 미국/Nasdaq/글로벌 ETF처럼 실제 투자 노출이 해외인 상품은 `overseas_indirect`, 즉 `해외우회투자`로 표시합니다.
+
+## 종목 분류
+
+종목 분류는 다음 우선순위를 따릅니다.
+
+1. 로컬 override
+2. KIS 종목마스터
+3. 이름 heuristic
+4. `unknown`
+
+종목마스터 동기화:
+
+```bash
+uv run python scripts/sync_instrument_master.py
+```
+
+현재 구현은 실제 KRX master file에서 관찰된 그룹코드와 이름 규칙을 함께 사용합니다.
+
+## 저장소 구조
 
 ```text
-KIS API clients/services
-        ↓
-repositories / analytics / warehouse
-        ↓
-adapters: local MCP, remote MCP, batch jobs, future web API
+src/kis_portfolio/
+├── adapters/     # MCP / remote adapter
+├── analytics/    # DB 기반 분석 쿼리
+├── clients/      # KIS HTTP 연동
+├── db/           # DuckDB / MotherDuck schema + repository
+├── services/     # 계좌/총자산/종목분류 서비스
+└── remote.py     # remote MCP entrypoint
 ```
 
-### Deployment
+## 아키텍처 방향
 
-컨테이너 베이스라인은 `Dockerfile`에 있습니다. 현재 엔트리포인트는 local stdio MCP 서버이며,
-ChatGPT custom MCP용 원격 배포는 `kis-portfolio-remote`가 `/mcp` Streamable HTTP endpoint를 제공합니다.
-원격 endpoint는 `KIS_REMOTE_AUTH_TOKEN` 기반 bearer 인증을 요구합니다.
-자세한 내용은 `docs/deployment.md`를 참고하세요.
+이 프로젝트는 “MCP 툴 모음”보다 “포트폴리오 서비스”에 가깝게 설계되어 있습니다.
 
-### Local MCP Process Control
-
-Claude Desktop 재시작 후에도 KIS MCP 프로세스가 남아 있거나, Codex에서 리팩토링하기 전에 서버를 내리고 싶다면:
-
-```bash
-bash scripts/stop_mcp.sh
+```text
+KIS Open API
+    ↓
+clients / services
+    ↓
+DuckDB / MotherDuck / analytics
+    ↓
+adapters: local MCP, remote MCP, future web API
 ```
 
-먼저 대상 프로세스만 확인하려면:
+즉, MCP는 핵심 로직 위에 올라가는 인터페이스 중 하나입니다.
 
-```bash
-bash scripts/stop_mcp.sh --dry-run
+## 로컬 저장소와 MotherDuck
+
+기본 운영 모드는 MotherDuck입니다.
+
+```env
+KIS_DB_MODE=motherduck
 ```
 
-### Trading Hours
+로컬 DuckDB는 개발/백업/장애 대응용으로 사용할 수 있습니다.
 
-국내 주식:
-* 정규장: 09:00 ~ 15:30
-* 시간외 단일가: 15:40 ~ 16:00
+```env
+KIS_DB_MODE=local
+```
 
-해외 주식:
-* 미국(나스닥/뉴욕): 22:30 ~ 05:00 (한국시간)
-* 일본: 09:00 ~ 15:10
-* 중국: 10:30 ~ 16:00
-* 홍콩: 10:30 ~ 16:00
-* 베트남: 11:15 ~ 16:15
+상대경로 `KIS_DATA_DIR=var`는 프로젝트 루트 기준으로 해석됩니다.
 
-## Error Handling
+## 배포
 
-API 호출 시 발생할 수 있는 주요 에러:
+- 로컬 stdio MCP: 가능
+- Claude Desktop 연결: 가능
+- 원격 MCP HTTP 엔드포인트: 가능
+- Docker 베이스라인: 포함
 
-* 인증 오류: API 키 또는 시크릿키가 잘못된 경우
-* 잔고 부족: 주문 금액이 계좌 잔고보다 큰 경우
-* 시간 제한: 거래 시간이 아닌 경우
-* 주문 제한: 주문 수량이나 금액이 제한을 초과한 경우
+배포 세부 내용은 [docs/deployment.md](./docs/deployment.md)를 참고하세요.
 
-## About
+## 한계와 주의사항
 
-* 확장 가능한 설계
-* 비동기 처리로 빠른 응답
-* 실시간 시세 및 체결 정보
-* 안정적인 에러 처리
+- 투자 판단 책임은 사용자에게 있습니다.
+- 한국투자증권 Open API 호출 제한과 이용약관을 반드시 확인해야 합니다.
+- 아직 주문 실행 기능은 활성화하지 않았습니다.
+- 분석 로직은 계속 확장 중이며, 일부 상품 분류는 override 정책으로 보완될 수 있습니다.
+
+## 공개 상태에 대해
+
+이 저장소는 개인 실사용 기반으로 발전한 프로젝트입니다.
+그래서 “예제 코드”보다는 “실제 계좌 운영과 데이터 축적”에 맞춘 구조적 선택이 많이 들어가 있습니다.
+
+이 점이 비슷한 개인 투자/자산관리 자동화 프로젝트를 만드는 분들께는 오히려 참고가 될 수 있습니다.
 
 ## License
 
 MIT License
 
-This project started as a fork of `migusdn/KIS_MCP_Server`, which is also distributed under the MIT License.
-See `LICENSE`.
+이 프로젝트는 `migusdn/KIS_MCP_Server` 포크에서 출발했으며, 원본 역시 MIT License를 사용합니다.
