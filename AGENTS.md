@@ -35,6 +35,12 @@ cd /Users/lvcwoo/workspace/KIS_MCP_Server
 uv run python server.py
 ```
 
+Claude Desktop이 띄운 KIS MCP 프로세스를 내릴 때:
+
+```bash
+bash scripts/stop_mcp.sh
+```
+
 ---
 
 ## 계좌 구성 (claude_desktop_config.json)

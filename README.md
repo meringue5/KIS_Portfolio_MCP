@@ -189,6 +189,20 @@ ChatGPT custom MCP용 원격 배포는 `kis-mcp-remote`가 `/mcp` Streamable HTT
 원격 endpoint는 `KIS_REMOTE_AUTH_TOKEN` 기반 bearer 인증을 요구합니다.
 자세한 내용은 `docs/deployment.md`를 참고하세요.
 
+### Local MCP Process Control
+
+Claude Desktop 재시작 후에도 KIS MCP 프로세스가 남아 있거나, Codex에서 리팩토링하기 전에 서버를 내리고 싶다면:
+
+```bash
+bash scripts/stop_mcp.sh
+```
+
+먼저 대상 프로세스만 확인하려면:
+
+```bash
+bash scripts/stop_mcp.sh --dry-run
+```
+
 ### Trading Hours
 
 국내 주식:
