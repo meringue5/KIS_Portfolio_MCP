@@ -13,7 +13,7 @@ from .analytics.portfolio import (
     get_portfolio_anomalies as analyze_portfolio_anomalies,
     get_portfolio_trend as analyze_portfolio_trend,
 )
-from .auth import get_access_token, get_hashkey
+from .auth import get_access_token, get_hashkey, get_token_status as inspect_token_status
 from . import db as kisdb
 
 # 로깅 설정: 반드시 stderr로 출력
@@ -1181,6 +1181,20 @@ async def get_portfolio_history(
     cano = os.environ.get("KIS_CANO", "unknown")
     rows = kisdb.get_portfolio_snapshots(cano, start_date or None, end_date or None, limit)
     return {"account_id": cano, "count": len(rows), "snapshots": rows}
+
+
+@mcp.tool(
+    name="get-token-status",
+    description="현재 MCP 인스턴스의 KIS 접근토큰 캐시 상태를 조회합니다. 토큰 값은 반환하지 않습니다.",
+)
+async def get_token_status():
+    """
+    KIS 접근토큰 캐시 상태 조회.
+
+    Returns:
+        token 값 없이 발급/만료 메타데이터만 반환
+    """
+    return inspect_token_status()
 
 
 @mcp.tool(

@@ -112,6 +112,8 @@ is_pension = acnt_prdt_cd == "29"
 - 루트 `db.py` 호환 wrapper는 제거. 내부/테스트 코드는 `kis_mcp_server.db`를 직접 import
 - 기본 런타임 데이터 위치는 프로젝트 루트 기준 `var`
 - 토큰 파일은 `var/tokens/token_{CANO}.json`
+- 토큰 파일에는 `issued_at`, `expires_at`, KIS 응답 만료 메타데이터를 저장
+- 토큰 refresh는 파일락으로 계좌별 직렬화하고, 만료 10분 전부터 새 발급 대상으로 간주
 - local 모드 DuckDB는 `var/local/kis_portfolio.duckdb`
 
 **후속 과제**:
