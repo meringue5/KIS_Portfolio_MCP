@@ -181,6 +181,7 @@ def insert_trade_profit(account_id: str, market_type: str,
 
 def insert_order_history(
     account_id: str,
+    account_product_code: str,
     account_type: str,
     market_type: str,
     start_date: str,
@@ -195,12 +196,13 @@ def insert_order_history(
 
     row = con.execute("""
         INSERT INTO order_history (
-            account_id, account_type, market_type, start_date, end_date, data
+            account_id, account_product_code, account_type, market_type, start_date, end_date, data
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         RETURNING id
     """, [
         account_id,
+        account_product_code,
         account_type,
         market_type,
         parse_yyyymmdd(start_date),
@@ -208,6 +210,266 @@ def insert_order_history(
         json.dumps(data, ensure_ascii=False, default=str),
     ]).fetchone()
     return row[0]
+
+
+def get_latest_order_history_snapshot(
+    account_id: str,
+    account_product_code: str,
+    market_type: str,
+    start_date: str,
+    end_date: str,
+) -> dict | None:
+    """Return the most recently fetched raw order-history snapshot for one exact range."""
+    con = get_connection()
+
+    def parse_yyyymmdd(value: str) -> date:
+        return datetime.strptime(value, "%Y%m%d").date()
+
+    row = con.execute("""
+        SELECT id, account_id, account_product_code, account_type, market_type, start_date, end_date, fetched_at, data
+        FROM order_history
+        WHERE account_id=? AND market_type=? AND start_date=? AND end_date=?
+          AND (account_product_code=? OR account_product_code IS NULL)
+        ORDER BY
+            CASE WHEN account_product_code=? THEN 1 ELSE 0 END DESC,
+            fetched_at DESC,
+            id DESC
+        LIMIT 1
+    """, [
+        account_id,
+        market_type,
+        parse_yyyymmdd(start_date),
+        parse_yyyymmdd(end_date),
+        account_product_code,
+        account_product_code,
+    ]).fetchone()
+    if not row:
+        return None
+    cols = [
+        "id",
+        "account_id",
+        "account_product_code",
+        "account_type",
+        "market_type",
+        "start_date",
+        "end_date",
+        "fetched_at",
+        "data",
+    ]
+    return normalize_row(dict(zip(cols, row)))
+
+
+def upsert_domestic_orders(rows: list[dict]) -> int:
+    """Upsert canonical domestic orders keyed by KIS order identity."""
+    if not rows:
+        return 0
+
+    con = get_connection()
+    saved = 0
+
+    for row in rows:
+        order_date = row["order_date"]
+        if isinstance(order_date, str):
+            order_date = datetime.strptime(order_date, "%Y%m%d").date()
+
+        con.execute("""
+            INSERT INTO domestic_orders (
+                account_id,
+                account_product_code,
+                account_type,
+                order_date,
+                order_branch_no,
+                order_no,
+                original_order_no,
+                symbol,
+                symbol_name,
+                side_code,
+                side_name,
+                order_type_code,
+                order_type_name,
+                order_time,
+                order_qty,
+                total_order_qty,
+                order_price,
+                avg_price,
+                filled_qty,
+                filled_amount,
+                pending_qty,
+                cancel_confirm_qty,
+                rejected_qty,
+                is_cancelled,
+                condition_name,
+                exchange_id_code,
+                order_orgno,
+                last_source,
+                last_order_history_id,
+                raw_data
+            )
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?
+            )
+            ON CONFLICT (account_id, account_product_code, order_date, order_branch_no, order_no) DO UPDATE SET
+                account_type=excluded.account_type,
+                original_order_no=excluded.original_order_no,
+                symbol=excluded.symbol,
+                symbol_name=excluded.symbol_name,
+                side_code=excluded.side_code,
+                side_name=excluded.side_name,
+                order_type_code=excluded.order_type_code,
+                order_type_name=excluded.order_type_name,
+                order_time=excluded.order_time,
+                order_qty=excluded.order_qty,
+                total_order_qty=excluded.total_order_qty,
+                order_price=excluded.order_price,
+                avg_price=excluded.avg_price,
+                filled_qty=excluded.filled_qty,
+                filled_amount=excluded.filled_amount,
+                pending_qty=excluded.pending_qty,
+                cancel_confirm_qty=excluded.cancel_confirm_qty,
+                rejected_qty=excluded.rejected_qty,
+                is_cancelled=excluded.is_cancelled,
+                condition_name=excluded.condition_name,
+                exchange_id_code=excluded.exchange_id_code,
+                order_orgno=excluded.order_orgno,
+                last_seen_at=now(),
+                last_source=excluded.last_source,
+                last_order_history_id=excluded.last_order_history_id,
+                raw_data=excluded.raw_data
+        """, [
+            row["account_id"],
+            row["account_product_code"],
+            row["account_type"],
+            order_date,
+            row.get("order_branch_no", ""),
+            row["order_no"],
+            row.get("original_order_no"),
+            row.get("symbol"),
+            row.get("symbol_name"),
+            row.get("side_code"),
+            row.get("side_name"),
+            row.get("order_type_code"),
+            row.get("order_type_name"),
+            row.get("order_time"),
+            row.get("order_qty"),
+            row.get("total_order_qty"),
+            row.get("order_price"),
+            row.get("avg_price"),
+            row.get("filled_qty"),
+            row.get("filled_amount"),
+            row.get("pending_qty"),
+            row.get("cancel_confirm_qty"),
+            row.get("rejected_qty"),
+            row.get("is_cancelled"),
+            row.get("condition_name"),
+            row.get("exchange_id_code"),
+            row.get("order_orgno"),
+            row.get("last_source"),
+            row.get("last_order_history_id"),
+            json.dumps(row.get("raw_data"), ensure_ascii=False, default=str),
+        ])
+        saved += 1
+
+    return saved
+
+
+def get_domestic_orders(
+    account_id: str,
+    account_product_code: str,
+    start_date: str,
+    end_date: str,
+    *,
+    symbol: str = "",
+) -> list[dict]:
+    """Return canonical domestic orders for one account and date range."""
+    con = get_connection()
+    start = datetime.strptime(start_date, "%Y%m%d").date()
+    end = datetime.strptime(end_date, "%Y%m%d").date()
+
+    where = """
+        WHERE account_id=?
+          AND account_product_code=?
+          AND order_date BETWEEN ? AND ?
+    """
+    params: list[Any] = [account_id, account_product_code, start, end]
+
+    if symbol:
+        where += " AND upper(symbol)=?"
+        params.append(symbol.upper())
+
+    rows = con.execute(f"""
+        SELECT
+            account_id,
+            account_product_code,
+            account_type,
+            order_date,
+            order_branch_no,
+            order_no,
+            original_order_no,
+            symbol,
+            symbol_name,
+            side_code,
+            side_name,
+            order_type_code,
+            order_type_name,
+            order_time,
+            order_qty,
+            total_order_qty,
+            order_price,
+            avg_price,
+            filled_qty,
+            filled_amount,
+            pending_qty,
+            cancel_confirm_qty,
+            rejected_qty,
+            is_cancelled,
+            condition_name,
+            exchange_id_code,
+            order_orgno,
+            first_seen_at,
+            last_seen_at,
+            last_source,
+            last_order_history_id,
+            raw_data
+        FROM domestic_orders
+        {where}
+        ORDER BY order_date DESC, order_time DESC NULLS LAST, order_no DESC
+    """, params).fetchall()
+    cols = [
+        "account_id",
+        "account_product_code",
+        "account_type",
+        "order_date",
+        "order_branch_no",
+        "order_no",
+        "original_order_no",
+        "symbol",
+        "symbol_name",
+        "side_code",
+        "side_name",
+        "order_type_code",
+        "order_type_name",
+        "order_time",
+        "order_qty",
+        "total_order_qty",
+        "order_price",
+        "avg_price",
+        "filled_qty",
+        "filled_amount",
+        "pending_qty",
+        "cancel_confirm_qty",
+        "rejected_qty",
+        "is_cancelled",
+        "condition_name",
+        "exchange_id_code",
+        "order_orgno",
+        "first_seen_at",
+        "last_seen_at",
+        "last_source",
+        "last_order_history_id",
+        "raw_data",
+    ]
+    return [normalize_row(dict(zip(cols, row))) for row in rows]
 
 
 def upsert_market_calendar_rows(rows: list[dict]) -> int:

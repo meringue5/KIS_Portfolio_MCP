@@ -33,6 +33,7 @@ from kis_portfolio.auth import get_token_status as inspect_token_status
 from kis_portfolio.services import kis_api
 from kis_portfolio.services.account import fetch_balance_snapshot
 from kis_portfolio.services.overview import build_total_asset_overview
+from kis_portfolio.services.order_history import get_domestic_order_history
 
 
 logger = logging.getLogger("kis-portfolio-mcp")
@@ -76,6 +77,16 @@ MarketCode = Annotated[
 CurrencyCode = Annotated[
     str,
     Field(description="Currency code such as USD."),
+]
+OptionalDomesticSymbol = Annotated[
+    str,
+    Field(description="Optional domestic KRX symbol filter. Leave empty to include all symbols in the date range."),
+]
+OrderHistorySource = Annotated[
+    str,
+    Field(
+        description="Order-history backend strategy: auto prefers saved DB snapshots and falls back to KIS API, db reads only saved snapshots, kis_api forces a fresh KIS API fetch and saves it.",
+    ),
 ]
 
 
@@ -552,15 +563,27 @@ async def get_overseas_period_profit(
 
 @mcp.tool(
     name="get-order-list",
-    description="Use this when you need read-only domestic order history for a date range. 실제 주문 실행에는 사용할 수 없고, live trading은 지원하지 않습니다.",
-    annotations=READ_ONLY_TOOL,
+    description="Use this when you need domestic order history for a date range and want a DB-first canonical order store with optional KIS API refresh. 기본값은 저장된 snapshot 유무를 확인한 뒤 canonical DB를 우선 읽고, 없으면 KIS API를 조회해 raw snapshot과 canonical order row를 함께 저장합니다. 실제 주문 실행에는 사용할 수 없습니다.",
+    annotations=SAFE_LOCAL_WRITE_TOOL,
 )
 async def get_order_list(
     start_date: DateYmd,
     end_date: DateYmd,
+    symbol: OptionalDomesticSymbol = "",
+    source: OrderHistorySource = "auto",
     account_label: ConfiguredAccountLabel = DEFAULT_ACCOUNT_LABEL,
 ):
-    return await _call_for_account(account_label, kis_api.inquery_order_list, start_date, end_date)
+    account = get_account(_account_label(account_label))
+    with scoped_account_env(account):
+        result = await get_domestic_order_history(
+            start_date,
+            end_date,
+            symbol=symbol,
+            source=source,
+            save_history=True,
+        )
+    result["account"] = account.public_dict()
+    return result
 
 
 @mcp.tool(

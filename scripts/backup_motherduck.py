@@ -40,6 +40,7 @@ TABLES = (
     "market_calendar",
     "instrument_master",
     "instrument_classification_overrides",
+    "domestic_orders",
     "order_history",
     "trade_profit_history",
 )

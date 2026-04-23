@@ -345,6 +345,7 @@ async def inquery_order_list(
             account_type = infer_account_type(cano, acnt_prdt_cd)
             saved_order_history_id = kisdb.insert_order_history(
                 cano,
+                acnt_prdt_cd,
                 account_type,
                 "domestic",
                 start_date,

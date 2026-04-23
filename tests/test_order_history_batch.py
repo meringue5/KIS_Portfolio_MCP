@@ -44,13 +44,14 @@ async def test_inquery_order_list_uses_active_account_product_code_and_can_save(
 
     assert calls[0]["params"]["ACNT_PRDT_CD"] == "29"
     assert result["saved_order_history_id"] == "order-history-id"
-    assert saved["args"][:5] == ("44444444", "irp", "domestic", "20260423", "20260423")
+    assert saved["args"][:6] == ("44444444", "29", "irp", "domestic", "20260423", "20260423")
 
 
 def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(monkeypatch):
     apply_account_env(monkeypatch)
     monkeypatch.setenv("KIS_ACCOUNT_LABEL", "previous")
     calls = []
+    saved_rows = []
 
     async def fake_inquery_order_list(start_date, end_date, save_history=False, return_metadata=False):
         label = os.environ["KIS_ACCOUNT_LABEL"]
@@ -64,6 +65,11 @@ def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(mon
         return payload if return_metadata else payload["raw"]
 
     monkeypatch.setattr(order_history_service.kis_api, "inquery_order_list", fake_inquery_order_list)
+    monkeypatch.setattr(
+        order_history_service.kisdb,
+        "upsert_domestic_orders",
+        lambda rows: saved_rows.append(rows) or len(rows),
+    )
     monkeypatch.setattr(
         order_history_service,
         "evaluate_krx_collection_gate",
@@ -84,8 +90,11 @@ def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(mon
     assert result["error_count"] == 1
     assert result["accounts"][0]["order_count"] == 1
     assert result["accounts"][0]["history_status"] == "saved"
+    assert result["accounts"][0]["canonical_write_count"] == 1
     assert result["accounts"][3]["status"] == "error"
     assert os.environ["KIS_ACCOUNT_LABEL"] == "previous"
+    assert saved_rows[0][0]["account_product_code"] == "01"
+    assert saved_rows[3][0]["account_product_code"] == "22"
 
 
 def test_collect_domestic_order_history_skips_when_market_closed(monkeypatch):

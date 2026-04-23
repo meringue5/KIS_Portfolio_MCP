@@ -29,6 +29,9 @@ raw tables
   instrument_classification_overrides
   trade_profit_history
 
+canonical / curated tables
+  domestic_orders
+
 curated views / future tables
   portfolio_daily_snapshots
   asset_overview_daily_snapshots
@@ -52,6 +55,24 @@ analytics functions
 
 분석에서는 raw table을 직접 쓰지 않고 curated view를 먼저 사용한다.
 
+`order_history`도 같은 원칙을 따른다. 같은 계좌와 같은 기간을 같은 날 여러 번 조회하거나,
+오전 수동 조회 뒤 장마감 배치가 다시 적재하더라도 raw row는 보존한다. 이 테이블은 이제
+주문조회 coverage와 raw audit 목적의 snapshot 저장소로 본다.
+
+중복집계 방지를 위한 serving/analytics 기준 저장소는 `domestic_orders`다. 이 테이블은 append-only가 아니라
+KIS 주문 식별자 기준 upsert를 사용한다. 현재 국내주식 주문의 canonical key는 다음과 같다.
+
+- 계좌 식별: `(account_id, account_product_code)`
+- 주문 식별: `(order_date, order_branch_no, order_no)`
+
+즉 전체 primary key는 `(account_id, account_product_code, order_date, order_branch_no, order_no)`이다.
+여기서 `order_no`와 `order_branch_no`는 KIS `주식일별주문체결조회(inquire-daily-ccld)` 응답의
+`odno`, `ord_gno_brno`를 사용한다. `pdno`와 `ord_tmd`는 속성으로 저장하되 key에는 포함하지 않는다.
+
+`get-order-list`와 `collect-domestic-order-history` 배치는 모두 같은 canonical upsert 경로를 탄다.
+장중 수동 조회와 장마감 배치가 같은 주문을 다시 가져와도 기존 row를 최신 상태로 갱신하고, 통계는
+`domestic_orders`만 읽도록 한다.
+
 현재 제공하는 view:
 
 ```sql
@@ -67,7 +88,7 @@ asset_overview_daily_snapshots
 - `account_nav_daily`: 계좌별 일별 평가금액, 현금, 보유 평가금액, 환산 금액
 - `fx_daily`: 환율 데이터를 분석용 currency/date grain으로 표준화
 - `trade_profit_normalized`: 손익 JSON을 종목/기간 단위로 정규화
-- `domestic_order_fills_normalized`: 주문/체결 JSON을 주문번호/종목/체결 단위로 정규화
+- `domestic_order_fills_normalized`: 필요해지면 주문/체결 JSON을 체결 단위로 더 세분화
 - `market_session_calendar`: 시장별 거래일/휴장일/마감시간 계약
 
 이 작업들은 `scripts/`의 일회성/배치 스크립트나 향후 `pipelines/` 패키지로 분리할 수 있다.

@@ -179,6 +179,7 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
         CREATE TABLE IF NOT EXISTS order_history (
             id          VARCHAR NOT NULL DEFAULT gen_random_uuid(),
             account_id  VARCHAR NOT NULL,
+            account_product_code VARCHAR,
             account_type VARCHAR NOT NULL, -- 'ria','isa','irp','pension','brokerage'
             market_type VARCHAR NOT NULL,  -- 'domestic' | future 'overseas'
             start_date  DATE,
@@ -186,6 +187,44 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
             fetched_at  TIMESTAMP NOT NULL DEFAULT current_timestamp,
             data        JSON,
             PRIMARY KEY (id)
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS domestic_orders (
+            account_id  VARCHAR NOT NULL,  -- CANO
+            account_product_code VARCHAR NOT NULL, -- ACNT_PRDT_CD
+            account_type VARCHAR NOT NULL, -- 'ria','isa','irp','pension','brokerage'
+            order_date  DATE NOT NULL,
+            order_branch_no VARCHAR NOT NULL DEFAULT '',
+            order_no    VARCHAR NOT NULL,
+            original_order_no VARCHAR,
+            symbol      VARCHAR,
+            symbol_name VARCHAR,
+            side_code   VARCHAR,
+            side_name   VARCHAR,
+            order_type_code VARCHAR,
+            order_type_name VARCHAR,
+            order_time  VARCHAR,
+            order_qty   BIGINT,
+            total_order_qty BIGINT,
+            order_price BIGINT,
+            avg_price   BIGINT,
+            filled_qty  BIGINT,
+            filled_amount BIGINT,
+            pending_qty BIGINT,
+            cancel_confirm_qty BIGINT,
+            rejected_qty BIGINT,
+            is_cancelled BOOLEAN,
+            condition_name VARCHAR,
+            exchange_id_code VARCHAR,
+            order_orgno VARCHAR,
+            first_seen_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            last_seen_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            last_source VARCHAR,
+            last_order_history_id VARCHAR,
+            raw_data    JSON,
+            PRIMARY KEY (account_id, account_product_code, order_date, order_branch_no, order_no)
         )
     """)
 
@@ -340,6 +379,7 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     _ensure_column(con, "kis_api_access_tokens", "migrated_from_file", "BOOLEAN")
     _ensure_column(con, "kis_api_access_tokens", "created_at", "TIMESTAMP")
     _ensure_column(con, "kis_api_access_tokens", "updated_at", "TIMESTAMP")
+    _ensure_column(con, "order_history", "account_product_code", "VARCHAR")
 
     create_curated_views(con)
     logger.info("DB schema initialized")

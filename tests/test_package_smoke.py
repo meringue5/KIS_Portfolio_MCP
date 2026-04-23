@@ -24,6 +24,7 @@ def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
         "asset_holding_snapshots",
         "asset_overview_daily_snapshots",
         "asset_overview_snapshots",
+        "domestic_orders",
         "exchange_rate_history",
         "instrument_classification_overrides",
         "instrument_master",

@@ -65,6 +65,7 @@
 - `asset_overview_snapshots`: canonical 총자산 스냅샷
 - `asset_holding_snapshots`: 총자산 스냅샷 기준 정규화 보유 row
 - `order_history`: 국내 주문/체결 raw observation
+- `domestic_orders`: 국내 주문/체결 canonical upsert 저장소
 - `instrument_master`: KIS 종목마스터 적재 결과
 - `instrument_classification_overrides`: 로컬 수동 분류 override
 
@@ -192,7 +193,7 @@ uv run kis-portfolio-batch collect-domestic-order-history --date today
 uv run kis-portfolio-batch sync-market-calendar 2026 2027
 ```
 
-`collect-domestic-order-history`는 Asia/Seoul 기준 `today` 날짜를 풀어 전 계좌의 당일 국내 주문/체결 이력을 조회하고 `order_history`에 append-only로 저장합니다.
+`collect-domestic-order-history`는 Asia/Seoul 기준 `today` 날짜를 풀어 전 계좌의 당일 국내 주문/체결 이력을 조회하고, `order_history`에는 raw snapshot을 append-only로 저장하며 `domestic_orders`에는 KIS 주문 식별자 기준 canonical upsert를 수행합니다.
 배치 실행 전에는 `market_calendar`를 조회하며, 휴장일이면 자동 skip 하고, 당일 실행은 KRX 마감 `15:30` 이후 5분 grace window가 지난 뒤에만 수집합니다.
 `sync-market-calendar`는 KRX 거래 캘린더를 연도 단위로 생성해 `market_calendar`에 upsert 합니다.
 Cloud Scheduler/cron 기준 첫 스케줄 예시는 평일 `15:35` KST, cron 표현으로는 `35 15 * * 1-5` 입니다.

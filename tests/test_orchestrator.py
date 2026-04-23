@@ -48,6 +48,7 @@ def test_mcp_exposes_clean_tool_names_only():
 def test_mcp_tool_metadata_guides_chatgpt_discovery():
     stock_price = portfolio_mcp.mcp._tool_manager._tools["get-stock-price"]
     overview = portfolio_mcp.mcp._tool_manager._tools["get-total-asset-overview"]
+    order_list = portfolio_mcp.mcp._tool_manager._tools["get-order-list"]
     order_stub = portfolio_mcp.mcp._tool_manager._tools["submit-stock-order"]
 
     assert stock_price.description.startswith("Use this when")
@@ -61,6 +62,14 @@ def test_mcp_tool_metadata_guides_chatgpt_discovery():
     assert overview.annotations.openWorldHint is False
     assert overview.parameters["properties"]["top_n"]["minimum"] == 1
     assert overview.parameters["properties"]["top_n"]["maximum"] == 50
+
+    assert order_list.description.startswith("Use this when")
+    assert order_list.annotations.destructiveHint is False
+    assert order_list.annotations.openWorldHint is False
+    assert order_list.parameters["properties"]["symbol"]["description"] == (
+        "Optional domestic KRX symbol filter. Leave empty to include all symbols in the date range."
+    )
+    assert "backend strategy" in order_list.parameters["properties"]["source"]["description"]
 
     assert order_stub.description.startswith("Use this only when")
     assert "disabled stub" in order_stub.description
