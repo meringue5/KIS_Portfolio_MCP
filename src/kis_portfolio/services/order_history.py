@@ -7,6 +7,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from kis_portfolio.account_registry import load_account_registry, scoped_account_env
+from kis_portfolio.services.market_calendar import evaluate_krx_collection_gate
 from kis_portfolio.services import kis_api
 
 
@@ -28,9 +29,34 @@ def _order_count(raw: dict) -> int:
     return len(rows) if isinstance(rows, list) else 0
 
 
-async def collect_domestic_order_history(date_yyyymmdd: str) -> dict:
+async def collect_domestic_order_history(
+    date_yyyymmdd: str,
+    *,
+    now: datetime | None = None,
+    close_grace_minutes: int = 5,
+) -> dict:
     """Collect and store one-day domestic order history for every configured account."""
     trade_date = resolve_yyyymmdd(date_yyyymmdd)
+    gate = evaluate_krx_collection_gate(
+        trade_date,
+        now=now,
+        close_grace_minutes=close_grace_minutes,
+    )
+    if gate.status == "skipped":
+        return {
+            "source": "market_calendar",
+            "status": "skipped",
+            "market_type": "domestic",
+            "date": trade_date,
+            "count": 0,
+            "success_count": 0,
+            "error_count": 0,
+            "accounts": [],
+            "skipped_reason": gate.reason,
+            "market_calendar": gate.calendar,
+            "now_local": gate.now_local,
+        }
+
     results = []
 
     for account in load_account_registry():
@@ -61,10 +87,13 @@ async def collect_domestic_order_history(date_yyyymmdd: str) -> dict:
 
     return {
         "source": "kis_api",
+        "status": "ok",
         "market_type": "domestic",
         "date": trade_date,
         "count": len(results),
         "success_count": sum(1 for row in results if row["status"] == "ok"),
         "error_count": sum(1 for row in results if row["status"] == "error"),
         "accounts": results,
+        "market_calendar": gate.calendar,
+        "now_local": gate.now_local,
     }

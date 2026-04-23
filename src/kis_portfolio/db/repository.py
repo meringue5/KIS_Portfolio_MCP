@@ -210,6 +210,86 @@ def insert_order_history(
     return row[0]
 
 
+def upsert_market_calendar_rows(rows: list[dict]) -> int:
+    """Upsert market calendar rows keyed by market and trade_date."""
+    if not rows:
+        return 0
+
+    con = get_connection()
+    saved = 0
+    for row in rows:
+        trade_date = row["trade_date"]
+        if isinstance(trade_date, str):
+            trade_date = datetime.strptime(trade_date, "%Y%m%d").date()
+        con.execute("""
+            INSERT INTO market_calendar (
+                market, trade_date, is_open, open_time_local, close_time_local,
+                timezone, source, note, raw_data
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (market, trade_date) DO UPDATE SET
+                is_open=excluded.is_open,
+                open_time_local=excluded.open_time_local,
+                close_time_local=excluded.close_time_local,
+                timezone=excluded.timezone,
+                source=excluded.source,
+                note=excluded.note,
+                raw_data=excluded.raw_data,
+                updated_at=current_timestamp
+        """, [
+            row["market"],
+            trade_date,
+            row["is_open"],
+            row.get("open_time_local"),
+            row.get("close_time_local"),
+            row.get("timezone", "Asia/Seoul"),
+            row.get("source"),
+            row.get("note"),
+            json.dumps(row.get("raw_data"), ensure_ascii=False, default=str),
+        ])
+        saved += 1
+    return saved
+
+
+def get_market_calendar_entry(market: str, trade_date: str) -> dict | None:
+    """Return one market calendar row by market and date."""
+    con = get_connection()
+    parsed = datetime.strptime(trade_date, "%Y%m%d").date()
+    row = con.execute("""
+        SELECT market, trade_date, is_open, open_time_local, close_time_local,
+               timezone, source, note, raw_data, updated_at
+        FROM market_calendar
+        WHERE market=? AND trade_date=?
+    """, [market, parsed]).fetchone()
+    if not row:
+        return None
+    cols = [
+        "market",
+        "trade_date",
+        "is_open",
+        "open_time_local",
+        "close_time_local",
+        "timezone",
+        "source",
+        "note",
+        "raw_data",
+        "updated_at",
+    ]
+    return normalize_row(dict(zip(cols, row)))
+
+
+def count_market_calendar_rows(market: str, year: int) -> int:
+    """Count market calendar rows for one market/year."""
+    con = get_connection()
+    start = date(year, 1, 1)
+    end = date(year, 12, 31)
+    return con.execute("""
+        SELECT count(*)
+        FROM market_calendar
+        WHERE market=? AND trade_date BETWEEN ? AND ?
+    """, [market, start, end]).fetchone()[0]
+
+
 def insert_overseas_asset_snapshot(
     account_id: str,
     account_type: str,

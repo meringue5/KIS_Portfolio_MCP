@@ -207,10 +207,36 @@ Claude static client 기본 redirect URI:
 ```bash
 uv run python scripts/deploy_cloud_run.py auth
 uv run python scripts/deploy_cloud_run.py remote
+uv run python scripts/deploy_cloud_run.py batch
+uv run python scripts/deploy_cloud_run.py scheduler
 ```
 
 스크립트는 `.env`와 현재 셸 환경을 함께 읽고, 필요한 값이 비어 있으면 누락된 키를 바로 출력한다.
 `--dry-run`을 붙이면 실제 배포 없이 검증만 할 수 있다.
+
+현재 `batch` target은 첫 배치 유스케이스인 `collect-domestic-order-history --date today` 전용 Cloud Run Job을 배포한다.
+기본값은 다음과 같다.
+
+- Job name: `kis-portfolio-domestic-order-history`
+- Scheduler name: `kis-portfolio-domestic-order-history-1535`
+- Schedule: 평일 `15:35` KST (`35 15 * * 1-5`)
+- Time zone: `Asia/Seoul`
+- Cloud Run Job task timeout: `1800s`
+- Cloud Run Job max retries: `0`
+
+Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJECT/locations/REGION/jobs/JOB:run` endpoint를 OAuth로 호출한다. Google 공식 문서 예시도 같은 URI 패턴과 `--oauth-service-account-email` 구성을 사용한다. [Cloud Run jobs on a schedule](https://docs.cloud.google.com/run/docs/execute/jobs-on-schedule)
+
+`scheduler` target은 먼저 선택된 service account에 `roles/run.invoker`를 부여한 뒤 Cloud Scheduler job을 create/update 한다.
+권장 env:
+
+- `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`
+- `KIS_BATCH_JOB_NAME`
+- `KIS_BATCH_SCHEDULER_NAME`
+- `KIS_CLOUD_SCHEDULER_REGION`
+- `KIS_BATCH_ORDER_HISTORY_SCHEDULE`
+- `KIS_BATCH_ORDER_HISTORY_TIME_ZONE`
+
+`KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 `gcloud projects describe ... --format=value(projectNumber)` 결과를 사용해 기본 compute service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`)를 fallback으로 잡는다.
 
 ## GitHub Actions 자동 배포
 
@@ -218,11 +244,13 @@ uv run python scripts/deploy_cloud_run.py remote
 
 - trigger:
   - `push` to `master`
-  - `workflow_dispatch` with `all`, `auth`, `remote`
+  - `workflow_dispatch` with `all`, `auth`, `remote`, `batch`, `scheduler`
 - 순서:
   - `uv run pytest`
   - `auth` 서비스 배포
   - `remote` 서비스 배포
+  - `batch` Job 배포
+  - `scheduler` 배포
 - 배포 방식:
   - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인
   - workflow가 `KIS_DEPLOY_ENV` secret을 `.env`로 복원
@@ -240,6 +268,9 @@ uv run python scripts/deploy_cloud_run.py remote
   - `KIS_DEPLOY_REGION` (선택)
   - `KIS_AUTH_SERVICE_NAME` (선택)
   - `KIS_REMOTE_SERVICE_NAME` (선택)
+  - `KIS_BATCH_JOB_NAME` (선택)
+  - `KIS_BATCH_SCHEDULER_NAME` (선택)
+  - `KIS_CLOUD_SCHEDULER_REGION` (선택)
 
 `KIS_DEPLOY_ENV`는 배포용 `.env` 전체 내용을 멀티라인 그대로 넣는 방식을 전제로 한다. 로컬 `.env`와 동일하게 관리하되, 운영용 값만 담는 별도 파일에서 복사하는 편이 안전하다.
 
@@ -248,6 +279,7 @@ Google Cloud 권장 인증 방식:
 - GitHub Actions용 service account를 하나 만든다.
 - `roles/run.admin`을 부여한다.
 - Cloud Run runtime service account를 사용할 수 있도록 `Service Account User` 권한을 부여한다.
+- Cloud Scheduler가 사용할 invoker service account를 정했다면, GitHub Actions 배포 principal에 그 계정에 대한 `iam.serviceAccounts.actAs` 권한도 준다.
 - GitHub OIDC용 Workload Identity Provider를 만들고 repository 단위 attribute condition을 건다.
 - GitHub workflow에서는 `google-github-actions/auth` + `setup-gcloud` 조합을 사용한다.
 
@@ -256,6 +288,9 @@ Google Cloud 권장 인증 방식:
 - [google-github-actions/auth](https://github.com/google-github-actions/auth)
 - [google-github-actions/setup-gcloud](https://github.com/google-github-actions/setup-gcloud)
 - [google-github-actions/deploy-cloudrun](https://github.com/google-github-actions/deploy-cloudrun)
+- [Execute jobs on a schedule](https://docs.cloud.google.com/run/docs/execute/jobs-on-schedule)
+- [gcloud run jobs deploy](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/deploy)
+- [gcloud scheduler jobs create http](https://docs.cloud.google.com/sdk/gcloud/reference/scheduler/jobs/create/http)
 
 ## Remote MCP 후속 작업
 

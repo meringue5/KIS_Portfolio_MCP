@@ -8,6 +8,7 @@ import json
 
 from dotenv import load_dotenv
 
+from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 
 
@@ -24,6 +25,17 @@ def build_parser() -> argparse.ArgumentParser:
         default="today",
         help="Batch date in YYYYMMDD or 'today' resolved in Asia/Seoul. Default: today",
     )
+
+    market_calendar = subparsers.add_parser(
+        "sync-market-calendar",
+        help="Generate and upsert KRX market calendar rows for one or more years.",
+    )
+    market_calendar.add_argument(
+        "years",
+        nargs="+",
+        type=int,
+        help="Calendar years to generate, for example: 2026 2027",
+    )
     return parser
 
 
@@ -33,6 +45,12 @@ async def _run_collect_domestic_order_history(args: argparse.Namespace) -> int:
     return 0 if result["error_count"] == 0 else 1
 
 
+def _run_sync_market_calendar(args: argparse.Namespace) -> int:
+    result = sync_krx_market_calendar_years(args.years)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -40,6 +58,8 @@ def main() -> None:
 
     if args.command == "collect-domestic-order-history":
         raise SystemExit(asyncio.run(_run_collect_domestic_order_history(args)))
+    if args.command == "sync-market-calendar":
+        raise SystemExit(_run_sync_market_calendar(args))
 
     parser.print_help()
     raise SystemExit(2)

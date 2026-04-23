@@ -190,6 +190,22 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     """)
 
     con.execute("""
+        CREATE TABLE IF NOT EXISTS market_calendar (
+            market      VARCHAR NOT NULL,  -- 'krx'
+            trade_date  DATE NOT NULL,
+            is_open     BOOLEAN NOT NULL,
+            open_time_local VARCHAR,
+            close_time_local VARCHAR,
+            timezone    VARCHAR NOT NULL DEFAULT 'Asia/Seoul',
+            source      VARCHAR,
+            note        VARCHAR,
+            raw_data    JSON,
+            updated_at  TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            PRIMARY KEY (market, trade_date)
+        )
+    """)
+
+    con.execute("""
         CREATE TABLE IF NOT EXISTS kis_api_access_tokens (
             cache_key           VARCHAR NOT NULL,
             account_id          VARCHAR NOT NULL,

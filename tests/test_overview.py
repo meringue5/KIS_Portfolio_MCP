@@ -33,8 +33,9 @@ def test_summarize_overseas_deposit_extracts_total_asset_and_cash():
     result = summarize_overseas_deposit({
         "예수금_총계": {
             "총자산금액": "180,000",
+            "예수금액": "5,000",
+            "총예수금액": "30,000",
             "외화사용가능금액": "25,000",
-            "총예수금액": "5,000",
         },
         "통화별_잔고": [{
             "crcy_cd": "USD",
@@ -47,9 +48,55 @@ def test_summarize_overseas_deposit_extracts_total_asset_and_cash():
 
     assert result["total_asset_amt_krw"] == 180_000
     assert result["cash_from_fields_amt_krw"] == 30_000
+    assert result["total_cash_amt_krw"] == 30_000
     assert result["foreign_cash_amt_krw"] == 25_000
     assert result["krw_cash_amt_krw"] == 5_000
     assert result["cash_by_currency"][0]["cash_foreign"] == 20.5
+
+
+def test_build_total_asset_overview_does_not_double_count_overseas_cash_when_total_asset_missing():
+    accounts = [account("brokerage", "11111111", "일반 위탁")]
+    portfolio_summary = {
+        "latest_snapshot_at": "2026-04-19T20:00:00",
+        "accounts": [{
+            "account_id": "11111111",
+            "account_type": "brokerage",
+            "snap_date": "2026-04-19",
+            "snapshot_at": "2026-04-19T20:00:00",
+            "total_eval_amt": 100_000,
+        }],
+    }
+    overseas_balance = {
+        "NASD": {
+            "output1": [{
+                "ovrs_pdno": "AAPL",
+                "ovrs_item_name": "Apple",
+                "tr_crcy_cd": "USD",
+                "ovrs_stck_evlu_amt": "150",
+            }]
+        }
+    }
+    overseas_deposit = {
+        "적용환율": {"USD/KRW": "1000"},
+        "예수금_총계": {
+            "예수금액": "5,000",
+            "총예수금액": "30,000",
+            "외화사용가능금액": "25,000",
+        },
+    }
+
+    result = build_total_asset_overview(
+        portfolio_summary,
+        overseas_balance,
+        overseas_deposit,
+        accounts,
+        accounts[0],
+    )
+
+    assert result["totals"]["overseas_stock_eval_amt_krw"] == 150_000
+    assert result["totals"]["overseas_cash_amt_krw"] == 30_000
+    assert result["totals"]["overseas_total_asset_amt_krw"] == 180_000
+    assert result["totals"]["total_eval_amt_krw"] == 280_000
 
 
 def test_build_total_asset_overview_returns_chart_ready_allocations_without_raw_account_ids():
@@ -103,8 +150,9 @@ def test_build_total_asset_overview_returns_chart_ready_allocations_without_raw_
         "적용환율": {"USD/KRW": "1000"},
         "예수금_총계": {
             "총자산금액": "180000",
+            "예수금액": "5000",
+            "총예수금액": "30000",
             "외화사용가능금액": "25000",
-            "총예수금액": "5000",
         },
     }
 

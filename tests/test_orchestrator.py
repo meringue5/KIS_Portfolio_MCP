@@ -20,6 +20,16 @@ def apply_account_env(monkeypatch):
         monkeypatch.setenv(f"KIS_ACNT_PRDT_CD_{suffix}", prdt)
 
 
+def assert_overview_totals_are_consistent(result: dict) -> None:
+    totals = result["totals"]
+    assert totals["total_eval_amt_krw"] == (
+        totals["domestic_eval_amt_krw"] + totals["overseas_total_asset_amt_krw"]
+    )
+    assert totals["overseas_total_asset_amt_krw"] == (
+        totals["overseas_stock_eval_amt_krw"] + totals["overseas_cash_amt_krw"]
+    )
+
+
 def test_orchestrator_mcp_name():
     assert portfolio_mcp.mcp.name == "KIS Portfolio Service"
 
@@ -248,11 +258,14 @@ def test_get_total_asset_overview_precomputes_allocation(monkeypatch):
     assert result["totals"]["domestic_eval_amt_krw"] == 100_000
     assert result["totals"]["overseas_stock_eval_amt_krw"] == 100_000
     assert result["totals"]["overseas_cash_amt_krw"] == 20_000
+    assert_overview_totals_are_consistent(result)
+    assert result["overseas"]["total_asset_source"] == "overseas_deposit.예수금_총계.총자산금액"
     assert result["allocation"]["domestic_pct"] == 45.45
     assert result["chart_data"]["domestic_vs_overseas"][1]["pct"] == 54.55
     assert result["classification_summary"]["amounts"]["overseas_indirect"] == 100_000
     assert result["saved_snapshot_id"] == "overview-1"
     assert result["snapshot_status"] == "saved"
+    assert "raw" not in result
     assert result["used_tools"] == [
         "refresh-all-account-snapshots",
         "get-latest-portfolio-summary",
@@ -346,3 +359,222 @@ def test_get_total_asset_overview_saves_canonical_snapshots(monkeypatch, tmp_pat
     assert counts["overseas_asset_snapshots"] == 1
     assert counts["asset_overview_snapshots"] == 1
     assert counts["asset_holding_snapshots"] >= 2
+
+
+def test_get_total_asset_overview_include_raw_supports_debug_invariants(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    async def fake_refresh_all_account_snapshots():
+        return {
+            "count": 5,
+            "success_count": 5,
+            "error_count": 0,
+            "accounts": [{"snapshot_status": "saved"} for _ in range(5)],
+        }
+
+    def fake_summary(con, account_id="", lookback_days=30):
+        return {
+            "latest_snapshot_at": "2026-04-23T09:00:00",
+            "accounts": [
+                {
+                    "account_id": "33333333",
+                    "account_type": "brokerage",
+                    "snap_date": "2026-04-23",
+                    "snapshot_at": "2026-04-23T09:00:00",
+                    "total_eval_amt": 100_000,
+                }
+            ],
+        }
+
+    async def fake_overseas_balance(exchange="ALL"):
+        return {
+            "NASD": {
+                "output1": [{
+                    "ovrs_pdno": "AAPL",
+                    "ovrs_item_name": "Apple",
+                    "tr_crcy_cd": "USD",
+                    "ovrs_stck_evlu_amt": "150",
+                }]
+            }
+        }
+
+    async def fake_overseas_deposit(wcrc_frcr_dvsn_cd="01", natn_cd="000"):
+        return {
+            "적용환율": {"USD/KRW": "1000"},
+            "예수금_총계": {
+                "예수금액": "5000",
+                "총예수금액": "30000",
+                "외화사용가능금액": "25000",
+            },
+            "통화별_잔고": [{
+                "crcy_cd": "USD",
+                "frcr_dncl_amt_2": "20.5",
+                "frcr_drwg_psbl_amt_1": "20.5",
+                "frcr_evlu_amt2": "30000",
+                "frst_bltn_exrt": "1000",
+            }],
+        }
+
+    monkeypatch.setattr(portfolio_mcp, "refresh_all_account_snapshots", fake_refresh_all_account_snapshots)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_connection", lambda: object())
+    monkeypatch.setattr(portfolio_mcp, "analyze_latest_portfolio_summary", fake_summary)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_balance", fake_overseas_balance)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_deposit", fake_overseas_deposit)
+    monkeypatch.setattr(
+        portfolio_mcp.kisdb,
+        "get_portfolio_snapshots",
+        lambda *args, **kwargs: [{
+            "account_id": "33333333",
+            "account_type": "brokerage",
+            "balance_data": {
+                "output1": [
+                    {
+                        "pdno": "005930",
+                        "prdt_name": "삼성전자",
+                        "evlu_amt": "100000",
+                        "hldg_qty": "5",
+                    }
+                ]
+            },
+        }],
+    )
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_instrument_master_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_classification_override_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_overseas_asset_snapshot", lambda *args, **kwargs: "ovs-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_overview_snapshot", lambda *args, **kwargs: "overview-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_holding_snapshots", lambda *args, **kwargs: 3)
+
+    result = asyncio.run(portfolio_mcp.get_total_asset_overview(include_raw=True))
+
+    assert result["status"] == "ok"
+    assert_overview_totals_are_consistent(result)
+    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_cash_fields"
+    assert result["overseas"]["deposit"]["total_cash_amt_krw"] == 30_000
+    assert result["totals"]["overseas_cash_amt_krw"] == 30_000
+    assert result["raw"]["portfolio_summary"]["accounts"][0]["total_eval_amt"] == 100_000
+    assert result["raw"]["overseas_deposit"]["예수금_총계"]["총예수금액"] == "30000"
+    assert result["raw"]["overseas_balance"]["NASD"]["output1"][0]["ovrs_pdno"] == "AAPL"
+
+
+def test_get_total_asset_overview_excludes_raw_by_default(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    async def fake_refresh_all_account_snapshots():
+        return {
+            "count": 5,
+            "success_count": 5,
+            "error_count": 0,
+            "accounts": [{"snapshot_status": "saved"} for _ in range(5)],
+        }
+
+    def fake_summary(con, account_id="", lookback_days=30):
+        return {
+            "latest_snapshot_at": "2026-04-23T09:00:00",
+            "accounts": [{
+                "account_id": "33333333",
+                "account_type": "brokerage",
+                "snap_date": "2026-04-23",
+                "snapshot_at": "2026-04-23T09:00:00",
+                "total_eval_amt": 100_000,
+            }],
+        }
+
+    async def fake_overseas_balance(exchange="ALL"):
+        return {
+            "NASD": {
+                "output1": [{
+                    "ovrs_pdno": "AAPL",
+                    "ovrs_item_name": "Apple",
+                    "tr_crcy_cd": "USD",
+                    "ovrs_stck_evlu_amt": "150",
+                }]
+            }
+        }
+
+    async def fake_overseas_deposit(wcrc_frcr_dvsn_cd="01", natn_cd="000"):
+        return {
+            "적용환율": {"USD/KRW": "1000"},
+            "예수금_총계": {
+                "예수금액": "5000",
+                "총예수금액": "30000",
+                "외화사용가능금액": "25000",
+            },
+        }
+
+    monkeypatch.setattr(portfolio_mcp, "refresh_all_account_snapshots", fake_refresh_all_account_snapshots)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_connection", lambda: object())
+    monkeypatch.setattr(portfolio_mcp, "analyze_latest_portfolio_summary", fake_summary)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_balance", fake_overseas_balance)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_deposit", fake_overseas_deposit)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_portfolio_snapshots", lambda *args, **kwargs: [])
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_instrument_master_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_classification_override_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_overseas_asset_snapshot", lambda *args, **kwargs: "ovs-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_overview_snapshot", lambda *args, **kwargs: "overview-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_holding_snapshots", lambda *args, **kwargs: 1)
+
+    result = asyncio.run(portfolio_mcp.get_total_asset_overview())
+
+    assert result["status"] == "ok"
+    assert_overview_totals_are_consistent(result)
+    assert "raw" not in result
+
+
+def test_get_total_asset_overview_marks_partial_error_but_keeps_safe_totals(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    async def fake_refresh_all_account_snapshots():
+        return {
+            "count": 5,
+            "success_count": 5,
+            "error_count": 0,
+            "accounts": [{"snapshot_status": "saved"} for _ in range(5)],
+        }
+
+    def fake_summary(con, account_id="", lookback_days=30):
+        return {
+            "latest_snapshot_at": "2026-04-23T09:00:00",
+            "accounts": [{
+                "account_id": "33333333",
+                "account_type": "brokerage",
+                "snap_date": "2026-04-23",
+                "snapshot_at": "2026-04-23T09:00:00",
+                "total_eval_amt": 100_000,
+            }],
+        }
+
+    async def fake_overseas_balance(exchange="ALL"):
+        raise RuntimeError("balance unavailable")
+
+    async def fake_overseas_deposit(wcrc_frcr_dvsn_cd="01", natn_cd="000"):
+        return {
+            "적용환율": {"USD/KRW": "1000"},
+            "예수금_총계": {
+                "예수금액": "5000",
+                "총예수금액": "30000",
+                "외화사용가능금액": "25000",
+            },
+        }
+
+    monkeypatch.setattr(portfolio_mcp, "refresh_all_account_snapshots", fake_refresh_all_account_snapshots)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_connection", lambda: object())
+    monkeypatch.setattr(portfolio_mcp, "analyze_latest_portfolio_summary", fake_summary)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_balance", fake_overseas_balance)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_deposit", fake_overseas_deposit)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_portfolio_snapshots", lambda *args, **kwargs: [])
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_instrument_master_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_classification_override_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_overseas_asset_snapshot", lambda *args, **kwargs: "ovs-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_overview_snapshot", lambda *args, **kwargs: "overview-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_holding_snapshots", lambda *args, **kwargs: 1)
+
+    result = asyncio.run(portfolio_mcp.get_total_asset_overview())
+
+    assert result["status"] == "partial_error"
+    assert result["errors"] == [{"tool": "get-overseas-balance", "error": "balance unavailable"}]
+    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_cash_fields"
+    assert result["totals"]["overseas_stock_eval_amt_krw"] == 0
+    assert result["totals"]["overseas_cash_amt_krw"] == 30_000
+    assert result["totals"]["overseas_total_asset_amt_krw"] == 30_000
+    assert result["totals"]["total_eval_amt_krw"] == 130_000
+    assert_overview_totals_are_consistent(result)

@@ -28,6 +28,7 @@ def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
         "instrument_classification_overrides",
         "instrument_master",
         "kis_api_access_tokens",
+        "market_calendar",
         "order_history",
         "overseas_asset_snapshots",
         "portfolio_daily_snapshots",

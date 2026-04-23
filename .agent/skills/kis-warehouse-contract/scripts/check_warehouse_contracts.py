@@ -45,6 +45,7 @@ def main() -> int:
         "overseas_asset_snapshots",
         "asset_overview_snapshots",
         "asset_holding_snapshots",
+        "market_calendar",
         "instrument_master",
         "instrument_classification_overrides",
         "order_history",
@@ -89,10 +90,13 @@ def main() -> int:
     for function_name, table in [
         ("insert_overseas_asset_snapshot", "overseas_asset_snapshots"),
         ("insert_asset_overview_snapshot", "asset_overview_snapshots"),
+        ("upsert_market_calendar_rows", "market_calendar"),
     ]:
         block = function_block(repo, function_name)
         if f"INSERT INTO {table}" not in block:
             failures.append(f"{function_name} must append INSERT INTO {table}")
+    if "ON CONFLICT (market, trade_date) DO UPDATE" not in function_block(repo, "upsert_market_calendar_rows"):
+        failures.append("market_calendar should retain upsert semantics keyed by market/date")
 
     schema_lower = schema.lower()
     forbidden_secret_columns = ["access_token", "app_secret", "appsecret", "kis_app_secret"]

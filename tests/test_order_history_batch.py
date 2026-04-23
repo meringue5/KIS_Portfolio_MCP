@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from datetime import datetime
 
 import pytest
 
@@ -63,11 +64,22 @@ def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(mon
         return payload if return_metadata else payload["raw"]
 
     monkeypatch.setattr(order_history_service.kis_api, "inquery_order_list", fake_inquery_order_list)
+    monkeypatch.setattr(
+        order_history_service,
+        "evaluate_krx_collection_gate",
+        lambda *args, **kwargs: FakeGate("collect"),
+    )
 
-    result = asyncio.run(order_history_service.collect_domestic_order_history("20260423"))
+    result = asyncio.run(
+        order_history_service.collect_domestic_order_history(
+            "20260423",
+            now=datetime.fromisoformat("2026-04-23T15:35:30+09:00"),
+        )
+    )
 
     assert [label for label, *_ in calls] == ["ria", "isa", "brokerage", "irp", "pension"]
     assert result["date"] == "20260423"
+    assert result["status"] == "ok"
     assert result["success_count"] == 4
     assert result["error_count"] == 1
     assert result["accounts"][0]["order_count"] == 1
@@ -76,10 +88,27 @@ def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(mon
     assert os.environ["KIS_ACCOUNT_LABEL"] == "previous"
 
 
+def test_collect_domestic_order_history_skips_when_market_closed(monkeypatch):
+    apply_account_env(monkeypatch)
+    monkeypatch.setattr(
+        order_history_service,
+        "evaluate_krx_collection_gate",
+        lambda *args, **kwargs: FakeGate("skipped", reason="market_closed", is_open=False),
+    )
+
+    result = asyncio.run(order_history_service.collect_domestic_order_history("20260501"))
+
+    assert result["status"] == "skipped"
+    assert result["skipped_reason"] == "market_closed"
+    assert result["count"] == 0
+    assert result["accounts"] == []
+
+
 def test_batch_cli_prints_json_summary(monkeypatch, capsys):
     async def fake_collect(date_yyyymmdd: str):
         return {
             "source": "kis_api",
+            "status": "ok",
             "market_type": "domestic",
             "date": date_yyyymmdd,
             "count": 1,
@@ -101,8 +130,46 @@ def test_batch_cli_prints_json_summary(monkeypatch, capsys):
     assert payload["date"] == "20260423"
 
 
+def test_batch_cli_sync_market_calendar_prints_json(monkeypatch, capsys):
+    monkeypatch.setattr(
+        batch_cli,
+        "sync_krx_market_calendar_years",
+        lambda years: {"market": "krx", "years": years, "saved_rows": 365, "yearly": []},
+    )
+    monkeypatch.setattr(batch_cli, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        batch_cli.argparse.ArgumentParser,
+        "parse_args",
+        lambda self: type("Args", (), {"command": "sync-market-calendar", "years": [2026]})(),
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        batch_cli.main()
+
+    assert excinfo.value.code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["market"] == "krx"
+
+
 def argparse_namespace():
     return type("Args", (), {"command": "collect-domestic-order-history", "date": "today"})()
+
+
+class FakeGate:
+    def __init__(self, status: str, reason: str = "ready", is_open: bool = True):
+        self.status = status
+        self.reason = reason
+        self.calendar = {
+            "market": "krx",
+            "trade_date": "2026-04-23",
+            "is_open": is_open,
+            "open_time_local": "09:00" if is_open else None,
+            "close_time_local": "15:30" if is_open else None,
+            "timezone": "Asia/Seoul",
+            "note": None,
+        }
+        self.trade_date = "20260423"
+        self.now_local = "2026-04-23T15:35:30+09:00"
 
 
 async def fake_token(client, domain):

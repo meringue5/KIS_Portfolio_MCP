@@ -84,9 +84,14 @@ def summarize_overseas_deposit(overseas_deposit: dict) -> dict:
         total = {}
 
     foreign_cash_krw = parse_int(total.get("외화사용가능금액"))
-    krw_cash = parse_int(total.get("총예수금액") or total.get("예수금액"))
+    krw_cash = parse_int(total.get("예수금액"))
+    total_cash_krw = parse_int(total.get("총예수금액"))
     total_asset_krw = parse_int(total.get("총자산금액"))
-    cash_from_fields = sum(value or 0 for value in [foreign_cash_krw, krw_cash])
+    cash_from_fields = (
+        total_cash_krw
+        if total_cash_krw is not None
+        else sum(value or 0 for value in [foreign_cash_krw, krw_cash])
+    )
 
     by_currency = []
     for row in overseas_deposit.get("통화별_잔고") or []:
@@ -102,6 +107,7 @@ def summarize_overseas_deposit(overseas_deposit: dict) -> dict:
 
     return {
         "total_asset_amt_krw": total_asset_krw,
+        "total_cash_amt_krw": total_cash_krw,
         "cash_from_fields_amt_krw": cash_from_fields,
         "foreign_cash_amt_krw": foreign_cash_krw,
         "krw_cash_amt_krw": krw_cash,

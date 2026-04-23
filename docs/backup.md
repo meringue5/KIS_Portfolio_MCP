@@ -26,6 +26,7 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 ├── overseas_asset_snapshots.parquet
 ├── asset_overview_snapshots.parquet
 ├── asset_holding_snapshots.parquet
+├── market_calendar.parquet
 ├── instrument_master.parquet
 ├── instrument_classification_overrides.parquet
 ├── order_history.parquet

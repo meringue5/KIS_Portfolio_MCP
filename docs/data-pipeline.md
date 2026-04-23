@@ -23,6 +23,7 @@ raw tables
   overseas_asset_snapshots
   asset_overview_snapshots
   asset_holding_snapshots
+  market_calendar
   order_history
   instrument_master
   instrument_classification_overrides
@@ -67,6 +68,7 @@ asset_overview_daily_snapshots
 - `fx_daily`: 환율 데이터를 분석용 currency/date grain으로 표준화
 - `trade_profit_normalized`: 손익 JSON을 종목/기간 단위로 정규화
 - `domestic_order_fills_normalized`: 주문/체결 JSON을 주문번호/종목/체결 단위로 정규화
+- `market_session_calendar`: 시장별 거래일/휴장일/마감시간 계약
 
 이 작업들은 `scripts/`의 일회성/배치 스크립트나 향후 `pipelines/` 패키지로 분리할 수 있다.
 

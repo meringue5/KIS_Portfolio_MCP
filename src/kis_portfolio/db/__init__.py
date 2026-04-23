@@ -2,12 +2,14 @@
 
 from kis_portfolio.db.connection import close_connection, get_connection
 from kis_portfolio.db.repository import (
+    count_market_calendar_rows,
     get_asset_overview_snapshots,
     get_classification_override,
     get_classification_override_map,
     get_exchange_rate_history,
     get_instrument_master,
     get_instrument_master_map,
+    get_market_calendar_entry,
     get_portfolio_snapshots,
     get_price_history,
     has_price_history,
@@ -17,6 +19,7 @@ from kis_portfolio.db.repository import (
     insert_overseas_asset_snapshot,
     insert_portfolio_snapshot,
     insert_trade_profit,
+    upsert_market_calendar_rows,
     upsert_instrument_master,
     upsert_exchange_rate_history,
     upsert_price_history,
@@ -25,6 +28,7 @@ from kis_portfolio.db.schema import init_schema
 
 __all__ = [
     "close_connection",
+    "count_market_calendar_rows",
     "get_asset_overview_snapshots",
     "get_classification_override",
     "get_classification_override_map",
@@ -32,6 +36,7 @@ __all__ = [
     "get_exchange_rate_history",
     "get_instrument_master",
     "get_instrument_master_map",
+    "get_market_calendar_entry",
     "get_portfolio_snapshots",
     "get_price_history",
     "has_price_history",
@@ -42,6 +47,7 @@ __all__ = [
     "insert_overseas_asset_snapshot",
     "insert_portfolio_snapshot",
     "insert_trade_profit",
+    "upsert_market_calendar_rows",
     "upsert_instrument_master",
     "upsert_exchange_rate_history",
     "upsert_price_history",

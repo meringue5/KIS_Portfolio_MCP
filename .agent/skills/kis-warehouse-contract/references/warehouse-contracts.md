@@ -6,6 +6,7 @@
 - `overseas_asset_snapshots`: append-only overseas balance/deposit observations and derived aggregate fields.
 - `asset_overview_snapshots`: append-only canonical total-asset aggregates.
 - `asset_holding_snapshots`: normalized holdings and cash rows keyed by overview snapshot.
+- `market_calendar`: upserted market session calendar keyed by market/date.
 - `order_history`: append-only domestic/overseas order and execution observations.
 - `trade_profit_history`: append-only profit report observations.
 - `price_history`: cache by symbol/exchange/date; duplicate historical rows ignored unless an adjusted resync is explicit.

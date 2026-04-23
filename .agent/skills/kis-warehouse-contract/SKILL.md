@@ -38,6 +38,7 @@ Use this skill for DB schema, repository, analytics, backup, and pipeline change
 - `overseas_asset_snapshots` is append-only overseas raw/aggregate feeder storage.
 - `asset_overview_snapshots` is the canonical total-asset aggregate store.
 - `asset_holding_snapshots` is the normalized holding row store for canonical snapshots.
+- `market_calendar` is an upserted control/reference table for market open/close decisions.
 - `price_history` and `exchange_rate_history` are cache tables with insert-ignore/upsert behavior.
 - Curated views and analytics must not mutate raw tables.
 - `asset_overview_daily_snapshots` must remain derived from canonical snapshots, not ad hoc recomputation.

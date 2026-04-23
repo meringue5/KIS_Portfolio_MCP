@@ -180,6 +180,7 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 | `overseas_asset_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
 | `asset_overview_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
 | `asset_holding_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
+| `market_calendar` | upsert | `kis-portfolio-batch sync-market-calendar 2026 2027` 실행 시 |
 | `order_history` | append-only INSERT | `kis-portfolio-batch collect-domestic-order-history --date today` 실행 시 |
 | `instrument_master` | upsert | `scripts/sync_instrument_master.py` 실행 시 |
 | `instrument_classification_overrides` | upsert | 로컬 override 등록 시 |
@@ -222,6 +223,7 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 
 현재 배치 command:
 - `collect-domestic-order-history --date today`
+- `sync-market-calendar 2026 2027`
 
 노출 tool:
 - `get-configured-accounts`

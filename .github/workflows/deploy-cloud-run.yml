@@ -15,6 +15,8 @@ on:
           - all
           - auth
           - remote
+          - batch
+          - scheduler
 
 permissions:
   contents: read
@@ -33,6 +35,9 @@ jobs:
       KIS_DEPLOY_REGION: ${{ vars.KIS_DEPLOY_REGION }}
       KIS_AUTH_SERVICE_NAME: ${{ vars.KIS_AUTH_SERVICE_NAME }}
       KIS_REMOTE_SERVICE_NAME: ${{ vars.KIS_REMOTE_SERVICE_NAME }}
+      KIS_BATCH_JOB_NAME: ${{ vars.KIS_BATCH_JOB_NAME }}
+      KIS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_BATCH_SCHEDULER_NAME }}
+      KIS_CLOUD_SCHEDULER_REGION: ${{ vars.KIS_CLOUD_SCHEDULER_REGION }}
       KIS_DEPLOY_ENV: ${{ secrets.KIS_DEPLOY_ENV }}
     steps:
       - name: Check out repository
@@ -91,3 +96,21 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
             --service "${KIS_REMOTE_SERVICE_NAME:-kis-portfolio-remote}"
+
+      - name: Deploy domestic order history batch job
+        if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'batch'
+        run: |
+          uv run python scripts/deploy_cloud_run.py batch \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --job "${KIS_BATCH_JOB_NAME:-kis-portfolio-domestic-order-history}"
+
+      - name: Deploy domestic order history scheduler
+        if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'scheduler'
+        run: |
+          uv run python scripts/deploy_cloud_run.py scheduler \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --job "${KIS_BATCH_JOB_NAME:-kis-portfolio-domestic-order-history}" \
+            --scheduler "${KIS_BATCH_SCHEDULER_NAME:-kis-portfolio-domestic-order-history-1535}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"

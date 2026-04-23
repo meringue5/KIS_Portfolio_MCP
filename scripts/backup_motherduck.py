@@ -37,6 +37,7 @@ TABLES = (
     "overseas_asset_snapshots",
     "asset_overview_snapshots",
     "asset_holding_snapshots",
+    "market_calendar",
     "instrument_master",
     "instrument_classification_overrides",
     "order_history",
