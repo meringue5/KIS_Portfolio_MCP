@@ -176,6 +176,20 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     """)
 
     con.execute("""
+        CREATE TABLE IF NOT EXISTS order_history (
+            id          VARCHAR NOT NULL DEFAULT gen_random_uuid(),
+            account_id  VARCHAR NOT NULL,
+            account_type VARCHAR NOT NULL, -- 'ria','isa','irp','pension','brokerage'
+            market_type VARCHAR NOT NULL,  -- 'domestic' | future 'overseas'
+            start_date  DATE,
+            end_date    DATE,
+            fetched_at  TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            data        JSON,
+            PRIMARY KEY (id)
+        )
+    """)
+
+    con.execute("""
         CREATE TABLE IF NOT EXISTS kis_api_access_tokens (
             cache_key           VARCHAR NOT NULL,
             account_id          VARCHAR NOT NULL,

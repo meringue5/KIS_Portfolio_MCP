@@ -43,7 +43,12 @@ def main() -> int:
         fail("pyproject project.name must be kis-portfolio", failures)
 
     scripts = set(pyproject["project"].get("scripts", {}))
-    expected_scripts = {"kis-portfolio-mcp", "kis-portfolio-remote"}
+    expected_scripts = {
+        "kis-portfolio-auth",
+        "kis-portfolio-batch",
+        "kis-portfolio-mcp",
+        "kis-portfolio-remote",
+    }
     if scripts != expected_scripts:
         fail(f"console scripts must be {sorted(expected_scripts)}, got {sorted(scripts)}", failures)
 
@@ -55,6 +60,7 @@ def main() -> int:
         fail("legacy src/kis_mcp_server directory must not exist", failures)
 
     for required in [
+        "src/kis_portfolio/adapters/batch/cli.py",
         "src/kis_portfolio/adapters/mcp/server.py",
         "src/kis_portfolio/services",
         "src/kis_portfolio/clients",

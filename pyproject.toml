@@ -28,6 +28,7 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 kis-portfolio-auth = "kis_portfolio.adapters.auth:main"
+kis-portfolio-batch = "kis_portfolio.adapters.batch:main"
 kis-portfolio-remote = "kis_portfolio.remote:main"
 kis-portfolio-mcp = "kis_portfolio.adapters.mcp:main"
 

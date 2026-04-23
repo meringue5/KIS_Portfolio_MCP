@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -46,6 +47,7 @@ def main() -> int:
         "asset_holding_snapshots",
         "instrument_master",
         "instrument_classification_overrides",
+        "order_history",
         "trade_profit_history",
         "price_history",
         "exchange_rate_history",
@@ -74,6 +76,12 @@ def main() -> int:
     if "OR REPLACE" in trade_insert.upper() or "ON CONFLICT" in trade_insert.upper():
         failures.append("trade_profit_history insert must not replace/upsert raw observations")
 
+    order_insert = function_block(repo, "insert_order_history")
+    if "INSERT INTO order_history" not in order_insert:
+        failures.append("insert_order_history must append INSERT INTO order_history")
+    if "OR REPLACE" in order_insert.upper() or "ON CONFLICT" in order_insert.upper():
+        failures.append("order_history insert must not replace/upsert raw observations")
+
     if "INSERT OR IGNORE INTO price_history" not in repo:
         failures.append("price_history should retain INSERT OR IGNORE cache semantics")
     if "INSERT OR IGNORE INTO exchange_rate_history" not in repo:
@@ -89,7 +97,7 @@ def main() -> int:
     schema_lower = schema.lower()
     forbidden_secret_columns = ["access_token", "app_secret", "appsecret", "kis_app_secret"]
     for marker in forbidden_secret_columns:
-        if marker in schema_lower:
+        if re.search(rf"\b{re.escape(marker)}\b", schema_lower):
             failures.append(f"schema contains forbidden secret marker: {marker}")
 
     if failures:

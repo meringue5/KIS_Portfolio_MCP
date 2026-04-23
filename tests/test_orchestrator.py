@@ -35,6 +35,29 @@ def test_mcp_exposes_clean_tool_names_only():
     assert "order-stock" not in tool_names
 
 
+def test_mcp_tool_metadata_guides_chatgpt_discovery():
+    stock_price = portfolio_mcp.mcp._tool_manager._tools["get-stock-price"]
+    overview = portfolio_mcp.mcp._tool_manager._tools["get-total-asset-overview"]
+    order_stub = portfolio_mcp.mcp._tool_manager._tools["submit-stock-order"]
+
+    assert stock_price.description.startswith("Use this when")
+    assert stock_price.annotations.readOnlyHint is True
+    assert stock_price.parameters["properties"]["symbol"]["description"] == (
+        "Domestic KRX stock or ETF code, usually a 6-digit symbol."
+    )
+
+    assert overview.description.startswith("Use this when")
+    assert overview.annotations.destructiveHint is False
+    assert overview.annotations.openWorldHint is False
+    assert overview.parameters["properties"]["top_n"]["minimum"] == 1
+    assert overview.parameters["properties"]["top_n"]["maximum"] == 50
+
+    assert order_stub.description.startswith("Use this only when")
+    assert "disabled stub" in order_stub.description
+    assert order_stub.annotations.destructiveHint is False
+    assert order_stub.annotations.openWorldHint is False
+
+
 def test_get_configured_accounts_masks_account_numbers(monkeypatch):
     apply_account_env(monkeypatch)
 

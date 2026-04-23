@@ -34,14 +34,14 @@ Use this skill for DB schema, repository, analytics, backup, and pipeline change
 
 ## Rules
 
-- `portfolio_snapshots` and `trade_profit_history` are append-only raw observations.
+- `portfolio_snapshots`, `order_history`, and `trade_profit_history` are append-only raw observations.
 - `overseas_asset_snapshots` is append-only overseas raw/aggregate feeder storage.
 - `asset_overview_snapshots` is the canonical total-asset aggregate store.
 - `asset_holding_snapshots` is the normalized holding row store for canonical snapshots.
 - `price_history` and `exchange_rate_history` are cache tables with insert-ignore/upsert behavior.
 - Curated views and analytics must not mutate raw tables.
 - `asset_overview_daily_snapshots` must remain derived from canonical snapshots, not ad hoc recomputation.
-- Token values and app secrets must never enter MotherDuck tables.
+- Raw token values and app secrets must never enter MotherDuck tables. If token cache is stored in DB, it must use a dedicated encrypted cache table and never leak via analytics tables, logs, or MCP responses.
 - Parquet backup docs and backup script must stay aligned with core tables.
 
 ## References

@@ -4,6 +4,7 @@ import sys
 from dotenv import load_dotenv
 
 import httpx
+from ..accounts import infer_account_type
 from ..analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
 from ..analytics.portfolio import (
     get_latest_portfolio_summary as analyze_latest_portfolio_summary,
@@ -282,7 +283,12 @@ async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
         
         return response.json()
 
-async def inquery_order_list(start_date: str, end_date: str):
+async def inquery_order_list(
+    start_date: str,
+    end_date: str,
+    save_history: bool = False,
+    return_metadata: bool = False,
+):
     """
     Get daily order list from Korea Investment & Securities
     
@@ -293,13 +299,14 @@ async def inquery_order_list(start_date: str, end_date: str):
     Returns:
         Dictionary containing order list information
     """
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
             "CANO": os.environ["KIS_CANO"],  # 계좌번호
-            "ACNT_PRDT_CD": "01",  # 계좌상품코드
+            "ACNT_PRDT_CD": acnt_prdt_cd,  # 계좌상품코드
             "INQR_STRT_DT": start_date,  # 조회시작일자
             "INQR_END_DT": end_date,  # 조회종료일자
             "SLL_BUY_DVSN_CD": "00",  # 매도매수구분
@@ -328,8 +335,31 @@ async def inquery_order_list(start_date: str, end_date: str):
         
         if response.status_code != 200:
             raise Exception(f"Failed to get order list: {response.text}")
-        
-        return response.json()
+
+        data = response.json()
+
+    saved_order_history_id = None
+    if save_history:
+        try:
+            cano = _current_account_id()
+            account_type = infer_account_type(cano, acnt_prdt_cd)
+            saved_order_history_id = kisdb.insert_order_history(
+                cano,
+                account_type,
+                "domestic",
+                start_date,
+                end_date,
+                data,
+            )
+        except Exception as e:
+            logger.warning(f"DB order_history save failed (non-critical): {e}")
+
+    if return_metadata:
+        return {
+            "raw": data,
+            "saved_order_history_id": saved_order_history_id,
+        }
+    return data
 
 async def inquery_order_detail(order_no: str, order_date: str):
     """
@@ -342,13 +372,14 @@ async def inquery_order_detail(order_no: str, order_date: str):
     Returns:
         Dictionary containing order detail information
     """
+    acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
         
         # Prepare request data
         request_data = {
             "CANO": os.environ["KIS_CANO"],  # 계좌번호
-            "ACNT_PRDT_CD": "01",  # 계좌상품코드
+            "ACNT_PRDT_CD": acnt_prdt_cd,  # 계좌상품코드
             "INQR_DVSN": "00",  # 조회구분
             "PDNO": "",  # 종목코드
             "ORD_STRT_DT": order_date,  # 주문시작일자

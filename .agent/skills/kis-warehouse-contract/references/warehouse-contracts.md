@@ -6,6 +6,7 @@
 - `overseas_asset_snapshots`: append-only overseas balance/deposit observations and derived aggregate fields.
 - `asset_overview_snapshots`: append-only canonical total-asset aggregates.
 - `asset_holding_snapshots`: normalized holdings and cash rows keyed by overview snapshot.
+- `order_history`: append-only domestic/overseas order and execution observations.
 - `trade_profit_history`: append-only profit report observations.
 - `price_history`: cache by symbol/exchange/date; duplicate historical rows ignored unless an adjusted resync is explicit.
 - `exchange_rate_history`: cache by currency/date/period; duplicates ignored.
@@ -20,8 +21,9 @@
 
 ## Secret Policy
 
-- Access tokens remain in `var/tokens/`.
-- MotherDuck may receive token audit metadata in the future, but never raw token values or app secrets.
+- KIS access token cache may live in `kis_api_access_tokens` when the token value is encrypted at rest.
+- legacy `var/tokens/token_{CANO}.json` is migration-only input, not the steady-state source of truth.
+- MotherDuck/local DuckDB must never receive raw token values or app secrets.
 
 ## Backup Policy
 

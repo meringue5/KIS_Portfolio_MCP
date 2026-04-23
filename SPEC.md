@@ -120,9 +120,9 @@ is_pension = acnt_prdt_cd == "29"
 - DB 레이어: `src/kis_portfolio/db/` 패키지
 - 루트 `db.py` 호환 wrapper는 제거. 내부/테스트 코드는 `kis_portfolio.db`를 직접 import
 - 기본 런타임 데이터 위치는 프로젝트 루트 기준 `var`
-- 토큰 파일은 `var/tokens/token_{CANO}.json`
-- 토큰 파일에는 `issued_at`, `expires_at`, KIS 응답 만료 메타데이터를 저장
-- 토큰 refresh는 파일락으로 계좌별 직렬화하고, 만료 10분 전부터 새 발급 대상으로 간주
+- KIS API access token cache는 `kis_api_access_tokens` 테이블에 암호화 저장
+- legacy 토큰 파일 `var/tokens/token_{CANO}.json`은 1회 migration 입력값으로만 사용
+- 토큰 refresh는 프로세스 내 keyed async lock으로 직렬화하고, 만료 10분 전부터 새 발급 대상으로 간주
 - local 모드 DuckDB는 `var/local/kis_portfolio.duckdb`
 
 **현재 구조 전환**:
@@ -213,6 +213,7 @@ KIS_DATA_DIR=var
 **이유**:
 - Fly.io, Render, Cloud Run 등은 컨테이너 배포와 runtime secret 관리가 자연스러움
 - KIS/MotherDuck secret은 이미지에 포함하지 않고 배포 플랫폼의 runtime env로 주입해야 함
+- `KIS_TOKEN_ENCRYPTION_KEY`는 remote/local KIS 조회 런타임의 필수 secret이며, ordinary redeploy만으로는 connector 재연결이 필요하지 않음
 - local MCP 안정화와 remote MCP 인증/권한 설계를 분리해야 주문 기능 노출 위험을 줄일 수 있음
 - 개인용 초기 배포에는 공유 bearer token이 단순하고 검증하기 쉬움
 - 다중 사용자/조직 배포는 OAuth/OIDC로 승격해야 함
@@ -273,7 +274,7 @@ entrypoint로 제공한다. 기존 fork의 `inquery-*` tool alias와 계좌별 M
 - 신규 기능은 clean `get-*` tool 표면으로 제공하고, legacy naming은 내부 구현 세부사항으로만 남김
 
 **현재 적용**:
-- `kis-portfolio-mcp`, `kis-portfolio-remote` CLI만 제공
+- `kis-portfolio-mcp`, `kis-portfolio-remote`, `kis-portfolio-batch` CLI를 제공
 - `scripts/setup.sh`는 `kis-portfolio` 서버 하나만 Claude config에 생성
 - `submit-stock-order`, `submit-overseas-stock-order`는 disabled stub이며 실제 주문 API를 호출하지 않음
 - KIS raw 응답은 `raw`에 보존하고 MCP wrapper metadata를 덧붙임

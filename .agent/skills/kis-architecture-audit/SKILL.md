@@ -30,7 +30,7 @@ Use this skill before and after structural refactors, package renames, MCP expos
 ## Contract Focus
 
 - Package/import identity is `kis_portfolio`; runtime `kis_mcp_server` imports must not return.
-- Public CLI scripts are `kis-portfolio-mcp` and `kis-portfolio-remote`.
+- Public CLI scripts are `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, and `kis-portfolio-remote`.
 - Public MCP is the single `kis-portfolio` service.
 - Root `server.py` is a compatibility shim to `kis_portfolio.adapters.mcp`.
 - `scripts/setup.sh` creates only `kis-portfolio` in Claude config.

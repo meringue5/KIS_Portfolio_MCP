@@ -1,0 +1,93 @@
+name: Deploy Cloud Run
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - auth
+          - remote
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-cloud-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+      KIS_DEPLOY_REGION: ${{ vars.KIS_DEPLOY_REGION }}
+      KIS_AUTH_SERVICE_NAME: ${{ vars.KIS_AUTH_SERVICE_NAME }}
+      KIS_REMOTE_SERVICE_NAME: ${{ vars.KIS_REMOTE_SERVICE_NAME }}
+      KIS_DEPLOY_ENV: ${{ secrets.KIS_DEPLOY_ENV }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Validate workflow configuration
+        run: |
+          test -n "${GOOGLE_CLOUD_PROJECT}" || { echo "GOOGLE_CLOUD_PROJECT var is required."; exit 1; }
+          test -n "${KIS_DEPLOY_ENV}" || { echo "KIS_DEPLOY_ENV secret is required."; exit 1; }
+
+      - name: Write deployment env file
+        run: |
+          uv run python - <<'PY'
+          import os
+          from pathlib import Path
+
+          env_text = os.environ.get("KIS_DEPLOY_ENV", "")
+          if not env_text.strip():
+              raise SystemExit("KIS_DEPLOY_ENV secret is empty.")
+          Path(".env").write_text(env_text, encoding="utf-8")
+          PY
+
+      - name: Run test suite
+        run: uv run pytest
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+
+      - name: Deploy auth service
+        if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'auth'
+        run: |
+          uv run python scripts/deploy_cloud_run.py auth \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --service "${KIS_AUTH_SERVICE_NAME:-kis-portfolio-auth}"
+
+      - name: Deploy remote service
+        if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'remote'
+        run: |
+          uv run python scripts/deploy_cloud_run.py remote \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --service "${KIS_REMOTE_SERVICE_NAME:-kis-portfolio-remote}"

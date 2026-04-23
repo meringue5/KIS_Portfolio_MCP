@@ -179,6 +179,37 @@ def insert_trade_profit(account_id: str, market_type: str,
     return row[0]
 
 
+def insert_order_history(
+    account_id: str,
+    account_type: str,
+    market_type: str,
+    start_date: str,
+    end_date: str,
+    data: Any,
+) -> str:
+    """주문/체결 조회 결과 저장. 항상 INSERT."""
+    con = get_connection()
+
+    def parse_yyyymmdd(value: str) -> date:
+        return datetime.strptime(value, "%Y%m%d").date()
+
+    row = con.execute("""
+        INSERT INTO order_history (
+            account_id, account_type, market_type, start_date, end_date, data
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        RETURNING id
+    """, [
+        account_id,
+        account_type,
+        market_type,
+        parse_yyyymmdd(start_date),
+        parse_yyyymmdd(end_date),
+        json.dumps(data, ensure_ascii=False, default=str),
+    ]).fetchone()
+    return row[0]
+
+
 def insert_overseas_asset_snapshot(
     account_id: str,
     account_type: str,

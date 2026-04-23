@@ -28,11 +28,15 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 ├── asset_holding_snapshots.parquet
 ├── instrument_master.parquet
 ├── instrument_classification_overrides.parquet
+├── order_history.parquet
 ├── portfolio_snapshots.parquet
 ├── price_history.parquet
 ├── trade_profit_history.parquet
 └── manifest.json
 ```
+
+기본 백업은 analytics/raw/canonical 테이블만 대상으로 한다. OAuth 상태 테이블과 `kis_api_access_tokens`
+같은 민감한 인증/캐시 테이블은 기본 Parquet 백업 대상에 포함하지 않는다.
 
 최근 백업 N개만 남기려면:
 

@@ -39,6 +39,7 @@ TABLES = (
     "asset_holding_snapshots",
     "instrument_master",
     "instrument_classification_overrides",
+    "order_history",
     "trade_profit_history",
 )
 

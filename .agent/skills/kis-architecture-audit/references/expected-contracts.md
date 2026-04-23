@@ -4,12 +4,13 @@
 
 - Project package: `kis_portfolio`
 - Distribution name: `kis-portfolio`
-- Console scripts: `kis-portfolio-mcp`, `kis-portfolio-remote`
+- Console scripts: `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, `kis-portfolio-remote`
 - Public MCP name: `KIS Portfolio Service`
 
 ## Important Paths
 
 - MCP adapter: `src/kis_portfolio/adapters/mcp/server.py`
+- Batch adapter: `src/kis_portfolio/adapters/batch/cli.py`
 - Remote adapter: `src/kis_portfolio/remote.py`
 - Core services: `src/kis_portfolio/services/`
 - KIS client helpers: `src/kis_portfolio/clients/`
