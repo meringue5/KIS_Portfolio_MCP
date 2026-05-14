@@ -107,8 +107,10 @@ def summarize_overseas_deposit(overseas_deposit: dict) -> dict:
 
     return {
         "total_asset_amt_krw": total_asset_krw,
+        "reported_total_asset_amt_krw": total_asset_krw,
         "total_cash_amt_krw": total_cash_krw,
         "cash_from_fields_amt_krw": cash_from_fields,
+        "usable_cash_amt_krw": foreign_cash_krw,
         "foreign_cash_amt_krw": foreign_cash_krw,
         "krw_cash_amt_krw": krw_cash,
         "cash_by_currency": by_currency,
@@ -178,12 +180,12 @@ def summarize_overseas_holdings(
                 bucket["value_krw"] += value_foreign * fx_rate
 
     stock_krw = sum((row.get("value_krw") or 0) for row in holdings)
-    total_asset_krw = deposit.get("total_asset_amt_krw") or (
-        stock_krw + (deposit.get("cash_from_fields_amt_krw") or 0)
-    )
-    if not total_asset_krw:
-        total_asset_krw = stock_krw
-    cash_krw = max((total_asset_krw or 0) - stock_krw, 0)
+    cash_krw = deposit.get("usable_cash_amt_krw")
+    total_asset_source = "stock_eval_plus_deposit_foreign_cash"
+    if cash_krw is None:
+        cash_krw = deposit.get("cash_from_fields_amt_krw") or 0
+        total_asset_source = "stock_eval_plus_deposit_cash_fields"
+    total_asset_krw = stock_krw + cash_krw
 
     stock_eval_by_currency = []
     for row in totals_by_currency.values():
@@ -220,11 +222,7 @@ def summarize_overseas_holdings(
         "stock_eval_amt_krw": parse_int(stock_krw),
         "cash_amt_krw": parse_int(cash_krw),
         "total_asset_amt_krw": parse_int(total_asset_krw),
-        "total_asset_source": (
-            "overseas_deposit.예수금_총계.총자산금액"
-            if deposit.get("total_asset_amt_krw") is not None
-            else "stock_eval_plus_deposit_cash_fields"
-        ),
+        "total_asset_source": total_asset_source,
         "deposit": deposit,
         "stock_eval_by_currency": sorted(stock_eval_by_currency, key=lambda row: row["currency"]),
         "fx_rates": fx_rates,

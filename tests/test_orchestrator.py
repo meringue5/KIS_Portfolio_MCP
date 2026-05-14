@@ -268,7 +268,7 @@ def test_get_total_asset_overview_precomputes_allocation(monkeypatch):
     assert result["totals"]["overseas_stock_eval_amt_krw"] == 100_000
     assert result["totals"]["overseas_cash_amt_krw"] == 20_000
     assert_overview_totals_are_consistent(result)
-    assert result["overseas"]["total_asset_source"] == "overseas_deposit.예수금_총계.총자산금액"
+    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_foreign_cash"
     assert result["allocation"]["domestic_pct"] == 45.45
     assert result["chart_data"]["domestic_vs_overseas"][1]["pct"] == 54.55
     assert result["classification_summary"]["amounts"]["overseas_indirect"] == 100_000
@@ -457,9 +457,9 @@ def test_get_total_asset_overview_include_raw_supports_debug_invariants(monkeypa
 
     assert result["status"] == "ok"
     assert_overview_totals_are_consistent(result)
-    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_cash_fields"
+    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_foreign_cash"
     assert result["overseas"]["deposit"]["total_cash_amt_krw"] == 30_000
-    assert result["totals"]["overseas_cash_amt_krw"] == 30_000
+    assert result["totals"]["overseas_cash_amt_krw"] == 25_000
     assert result["raw"]["portfolio_summary"]["accounts"][0]["total_eval_amt"] == 100_000
     assert result["raw"]["overseas_deposit"]["예수금_총계"]["총예수금액"] == "30000"
     assert result["raw"]["overseas_balance"]["NASD"]["output1"][0]["ovrs_pdno"] == "AAPL"
@@ -581,9 +581,9 @@ def test_get_total_asset_overview_marks_partial_error_but_keeps_safe_totals(monk
 
     assert result["status"] == "partial_error"
     assert result["errors"] == [{"tool": "get-overseas-balance", "error": "balance unavailable"}]
-    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_cash_fields"
+    assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_foreign_cash"
     assert result["totals"]["overseas_stock_eval_amt_krw"] == 0
-    assert result["totals"]["overseas_cash_amt_krw"] == 30_000
-    assert result["totals"]["overseas_total_asset_amt_krw"] == 30_000
-    assert result["totals"]["total_eval_amt_krw"] == 130_000
+    assert result["totals"]["overseas_cash_amt_krw"] == 25_000
+    assert result["totals"]["overseas_total_asset_amt_krw"] == 25_000
+    assert result["totals"]["total_eval_amt_krw"] == 125_000
     assert_overview_totals_are_consistent(result)
