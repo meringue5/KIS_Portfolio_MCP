@@ -78,6 +78,7 @@ native skill discovery를 지원하지 않는 환경에서도 관련 작업 전�
 - `.agent/skills/kis-mcp-surface-audit/SKILL.md`: public MCP tool catalog와 응답 안전성 점검
 - `.agent/skills/kis-api-capability-implementation/SKILL.md`: KIS Open API 신규 기능 추가 절차
 - `.agent/skills/kis-warehouse-contract/SKILL.md`: MotherDuck/DuckDB schema, repository, backup 계약 점검
+- `.agent/skills/kis-release-ops/SKILL.md`: CI/CD, Secret Manager, GitHub Actions, Cloud Run 릴리즈 절차
 
 ### KIS access token DB cache
 KIS access token은 `kis_api_access_tokens` 테이블에 **암호화 저장**한다.

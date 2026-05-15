@@ -119,7 +119,7 @@ MotherDuck/local DuckDB의 `kis_api_access_tokens` 테이블에 암호화해 저
 - 서비스가 발급받은 KIS access token은 DB에 암호화 저장할 수 있고, MCP OAuth token은 DB에 digest로만 저장한다.
 - raw token과 app secret은 로그, analytics table, MCP 응답에 포함하지 않는다.
 - 전체 계좌번호는 운영 DB row와 백업에 포함될 수 있으므로 민감 데이터로 취급하고, 로그와 MCP 계좌 메타데이터에서는 마스킹한다.
-- GitHub `KIS_DEPLOY_ENV`는 운영용 `.env` 전체를 담는 고위험 배포 입력이다. 출력하거나 로그에 남기지 않는다.
+- 운영 Cloud Run secret source of truth는 GCP Secret Manager다. GitHub `KIS_DEPLOY_ENV`는 deprecated이며 새 workflow에서 사용하지 않는다.
 
 ## 추천 배포 경로
 
@@ -207,21 +207,29 @@ Claude static client 기본 redirect URI:
 - `https://claude.ai/api/mcp/auth_callback`
 - `https://claude.com/api/mcp/auth_callback`
 
-로컬 `.env` 기준으로 Cloud Run에 배포하려면:
+Cloud Run 배포 스크립트는 기본적으로 Secret Manager reference를 사용한다. 실제 운영 배포는 GitHub Actions의
+`production` environment approval을 통해 실행한다. 로컬에서는 먼저 dry-run으로 command shape만 확인한다.
 
 ```bash
-uv run python scripts/deploy_cloud_run.py auth
-uv run python scripts/deploy_cloud_run.py remote
-uv run python scripts/deploy_cloud_run.py batch
-uv run python scripts/deploy_cloud_run.py scheduler
-uv run python scripts/deploy_cloud_run.py overseas-batch
-uv run python scripts/deploy_cloud_run.py overseas-scheduler
-uv run python scripts/deploy_cloud_run.py token-warmup-batch
-uv run python scripts/deploy_cloud_run.py token-warmup-scheduler
+uv run python scripts/deploy_cloud_run.py remote --dry-run
 ```
 
-스크립트는 `.env`와 현재 셸 환경을 함께 읽고, 필요한 값이 비어 있으면 누락된 키를 바로 출력한다.
-`--dry-run`을 붙이면 실제 배포 없이 검증만 할 수 있다.
+스크립트는 `.env`와 현재 셸 환경을 함께 읽고, 필요한 비시크릿 값이 비어 있으면 누락된 키를 바로 출력한다.
+`--secret-mode secret-manager`가 기본값이며, secret env는 `--set-secrets ENV=secret-id:latest`로 배포한다.
+로컬 실제 배포는 기본 차단된다. `master` branch, clean worktree, `HEAD == origin/master` 조건을 만족해야 하며,
+비상시에는 `--allow-local-source --reason "<사유>"`를 명시해야 한다.
+
+Secret Manager secret id 규칙:
+
+- `KIS_APP_SECRET_RIA` → `kis-portfolio-kis-app-secret-ria`
+- `MOTHERDUCK_TOKEN` → `kis-portfolio-motherduck-token`
+
+Secret Manager 동기화는 dry-run을 먼저 확인한 뒤 적용한다.
+
+```bash
+uv run python scripts/sync_secret_manager.py --project grand-forge-279904
+uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --apply
+```
 
 현재 `batch` target은 `collect-domestic-order-history --date today` 전용 Cloud Run Job을 배포한다.
 `overseas-batch` target은 `collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS`
@@ -262,31 +270,30 @@ Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJ
 
 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 `gcloud projects describe ... --format=value(projectNumber)` 결과를 사용해 기본 compute service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`)를 fallback으로 잡는다.
 
-## GitHub Actions 수동 배포
+## GitHub Actions CI/CD
 
-이 저장소에는 [.github/workflows/deploy-cloud-run.yml](../.github/workflows/deploy-cloud-run.yml) 이 포함되어 있다.
+이 저장소에는 자동 검증용 [.github/workflows/ci.yml](../.github/workflows/ci.yml) 과 수동 승인 배포용
+[.github/workflows/deploy-cloud-run.yml](../.github/workflows/deploy-cloud-run.yml) 이 포함되어 있다.
 
-- trigger:
-  - `workflow_dispatch` with `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`
-- 순서:
-  - `uv run pytest`
-  - `auth` 서비스 배포
-  - `remote` 서비스 배포
-  - `batch` Job 배포
-  - `scheduler` 배포
-  - 해외 거래내역 batch Job / scheduler 배포
-  - 토큰 warm-up dry-run Job / scheduler 배포
-- `master`에 push만 해서는 배포되지 않는다.
-- 배포 방식:
-  - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인
-  - workflow가 `KIS_DEPLOY_ENV` secret을 `.env`로 복원
-  - 기존 `scripts/deploy_cloud_run.py`를 그대로 호출
+CI workflow:
+
+- PR 및 `master` push에서 실행한다.
+- `uv run pytest`, architecture audit, MCP surface audit, shell/json sanity, `git diff --check`를 실행한다.
+- 운영 secret을 읽지 않는다.
+
+Deploy workflow:
+
+- `workflow_dispatch`만 지원하며 target은 `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`다.
+- `production` GitHub Environment approval을 거친다.
+- `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
+- GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.
+- workflow는 `KIS_DEPLOY_ENV`를 복원하지 않고, Secret Manager reference와 비시크릿 vars로 `scripts/deploy_cloud_run.py`를 호출한다.
+- Cloud Run service/job에는 `git-sha`, `github-run-id`, `deploy-target`, `deploy-source` labels가 붙는다.
 
 권장 GitHub 설정:
 
 - GitHub Environment: `production`
 - Environment secrets:
-  - `KIS_DEPLOY_ENV`
   - `GCP_WORKLOAD_IDENTITY_PROVIDER`
   - `GCP_SERVICE_ACCOUNT`
 - Repository or Environment vars:
@@ -301,13 +308,21 @@ Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJ
   - `KIS_BATCH_JOB_NAME` (선택)
   - `KIS_BATCH_SCHEDULER_NAME` (선택)
   - `KIS_CLOUD_SCHEDULER_REGION` (선택)
+  - `KIS_AUTH_BASE_URL`
+  - `KIS_AUTH_ISSUER_URL`
+  - `KIS_RESOURCE_SERVER_URL`
+  - `KIS_AUTH_CLAUDE_CLIENT_ID`
+  - `KIS_OAUTH_GOOGLE_CLIENT_ID`
+  - `KIS_OAUTH_GITHUB_CLIENT_ID`
 
-`KIS_DEPLOY_ENV`는 배포용 `.env` 전체 내용을 멀티라인 그대로 넣는 방식을 전제로 한다. 로컬 `.env`와 동일하게 관리하되, 운영용 값만 담는 별도 파일에서 복사하는 편이 안전하다. 포함되는 값과 회전 원칙은 [Security and Secrets](./security-and-secrets.md)를 기준으로 한다.
+운영 secret은 GCP Secret Manager에 둔다. 런타임 서비스 계정에는 필요한 secret에 대한
+`roles/secretmanager.secretAccessor`를 부여한다.
 
 Google Cloud 권장 인증 방식:
 
 - GitHub Actions용 service account를 하나 만든다.
 - `roles/run.admin`을 부여한다.
+- Secret Manager reference를 확인할 수 있도록 필요한 secret metadata 접근 권한을 부여한다.
 - Cloud Run runtime service account를 사용할 수 있도록 `Service Account User` 권한을 부여한다.
 - Cloud Scheduler가 사용할 invoker service account를 정했다면, GitHub Actions 배포 principal에 그 계정에 대한 `iam.serviceAccounts.actAs` 권한도 준다.
 - GitHub OIDC용 Workload Identity Provider를 만들고 repository 단위 attribute condition을 건다.

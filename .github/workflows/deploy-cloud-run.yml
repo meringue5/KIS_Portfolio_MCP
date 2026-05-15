@@ -33,22 +33,54 @@ jobs:
     environment: production
     env:
       GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
-      KIS_DEPLOY_REGION: ${{ vars.KIS_DEPLOY_REGION }}
-      KIS_AUTH_SERVICE_NAME: ${{ vars.KIS_AUTH_SERVICE_NAME }}
-      KIS_REMOTE_SERVICE_NAME: ${{ vars.KIS_REMOTE_SERVICE_NAME }}
-      KIS_BATCH_JOB_NAME: ${{ vars.KIS_BATCH_JOB_NAME }}
-      KIS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_BATCH_SCHEDULER_NAME }}
-      KIS_OVERSEAS_BATCH_JOB_NAME: ${{ vars.KIS_OVERSEAS_BATCH_JOB_NAME }}
-      KIS_OVERSEAS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_OVERSEAS_BATCH_SCHEDULER_NAME }}
-      KIS_TOKEN_WARMUP_JOB_NAME: ${{ vars.KIS_TOKEN_WARMUP_JOB_NAME }}
-      KIS_TOKEN_WARMUP_SCHEDULER_NAME: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULER_NAME }}
-      KIS_CLOUD_SCHEDULER_REGION: ${{ vars.KIS_CLOUD_SCHEDULER_REGION }}
+      KIS_DEPLOY_REGION: ${{ vars.KIS_DEPLOY_REGION || 'asia-northeast3' }}
+      KIS_AUTH_SERVICE_NAME: ${{ vars.KIS_AUTH_SERVICE_NAME || 'kis-portfolio-auth' }}
+      KIS_REMOTE_SERVICE_NAME: ${{ vars.KIS_REMOTE_SERVICE_NAME || 'kis-portfolio-remote' }}
+      KIS_BATCH_JOB_NAME: ${{ vars.KIS_BATCH_JOB_NAME || 'kis-portfolio-domestic-order-history' }}
+      KIS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_BATCH_SCHEDULER_NAME || 'kis-portfolio-domestic-order-history-1535' }}
+      KIS_OVERSEAS_BATCH_JOB_NAME: ${{ vars.KIS_OVERSEAS_BATCH_JOB_NAME || 'kis-portfolio-overseas-transaction-history' }}
+      KIS_OVERSEAS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_OVERSEAS_BATCH_SCHEDULER_NAME || 'kis-portfolio-overseas-transaction-history-0735' }}
+      KIS_TOKEN_WARMUP_JOB_NAME: ${{ vars.KIS_TOKEN_WARMUP_JOB_NAME || 'kis-portfolio-token-warmup-dry-run' }}
+      KIS_TOKEN_WARMUP_SCHEDULER_NAME: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULER_NAME || 'kis-portfolio-token-warmup-0830' }}
+      KIS_CLOUD_SCHEDULER_REGION: ${{ vars.KIS_CLOUD_SCHEDULER_REGION || 'asia-northeast3' }}
       GOOGLE_CLOUD_PROJECT_NUMBER: ${{ vars.GOOGLE_CLOUD_PROJECT_NUMBER }}
       KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT: ${{ vars.KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT }}
-      KIS_DEPLOY_ENV: ${{ secrets.KIS_DEPLOY_ENV }}
+      KIS_DB_MODE: ${{ vars.KIS_DB_MODE || 'motherduck' }}
+      MOTHERDUCK_DATABASE: ${{ vars.MOTHERDUCK_DATABASE || 'kis_portfolio' }}
+      KIS_ACCOUNT_TYPE: ${{ vars.KIS_ACCOUNT_TYPE || 'REAL' }}
+      KIS_ENABLE_ORDER_TOOLS: ${{ vars.KIS_ENABLE_ORDER_TOOLS || 'false' }}
+      KIS_DATA_DIR: ${{ vars.KIS_DATA_DIR || 'var' }}
+      KIS_REMOTE_AUTH_MODE: ${{ vars.KIS_REMOTE_AUTH_MODE || 'oauth' }}
+      KIS_AUTH_BASE_URL: ${{ vars.KIS_AUTH_BASE_URL }}
+      KIS_AUTH_ISSUER_URL: ${{ vars.KIS_AUTH_ISSUER_URL }}
+      KIS_RESOURCE_SERVER_URL: ${{ vars.KIS_RESOURCE_SERVER_URL }}
+      KIS_AUTH_REQUIRED_SCOPES: ${{ vars.KIS_AUTH_REQUIRED_SCOPES || 'mcp:read' }}
+      KIS_AUTH_ALLOWED_SCOPES: ${{ vars.KIS_AUTH_ALLOWED_SCOPES || 'mcp:read offline_access' }}
+      KIS_AUTH_CLAUDE_CLIENT_ID: ${{ vars.KIS_AUTH_CLAUDE_CLIENT_ID }}
+      KIS_AUTH_CLAUDE_REDIRECT_URIS: ${{ vars.KIS_AUTH_CLAUDE_REDIRECT_URIS }}
+      KIS_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.KIS_OAUTH_GOOGLE_CLIENT_ID }}
+      KIS_OAUTH_GITHUB_CLIENT_ID: ${{ vars.KIS_OAUTH_GITHUB_CLIENT_ID }}
+      KIS_CLOUD_RUN_AUTH_MAX_INSTANCES: ${{ vars.KIS_CLOUD_RUN_AUTH_MAX_INSTANCES || '1' }}
+      KIS_CLOUD_RUN_REMOTE_CONCURRENCY: ${{ vars.KIS_CLOUD_RUN_REMOTE_CONCURRENCY || '20' }}
+      KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES: ${{ vars.KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES || '0' }}
+      KIS_CLOUD_RUN_REMOTE_MAX_INSTANCES: ${{ vars.KIS_CLOUD_RUN_REMOTE_MAX_INSTANCES || '1' }}
+      KIS_CLOUD_RUN_BATCH_SERVICE_ACCOUNT: ${{ vars.KIS_CLOUD_RUN_BATCH_SERVICE_ACCOUNT }}
+      KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT: ${{ vars.KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT || '1800s' }}
+      KIS_CLOUD_RUN_BATCH_MAX_RETRIES: ${{ vars.KIS_CLOUD_RUN_BATCH_MAX_RETRIES || '0' }}
+      KIS_BATCH_ORDER_HISTORY_SCHEDULE: ${{ vars.KIS_BATCH_ORDER_HISTORY_SCHEDULE || '35 15 * * 1-5' }}
+      KIS_BATCH_ORDER_HISTORY_TIME_ZONE: ${{ vars.KIS_BATCH_ORDER_HISTORY_TIME_ZONE || 'Asia/Seoul' }}
+      KIS_OVERSEAS_TRANSACTION_HISTORY_SCHEDULE: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_SCHEDULE || '35 7 * * 1-5' }}
+      KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE || 'Asia/Seoul' }}
+      KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL || 'brokerage' }}
+      KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE || 'NAS' }}
+      KIS_TOKEN_WARMUP_SCHEDULE: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULE || '30 8 * * 1-5' }}
+      KIS_TOKEN_WARMUP_TIME_ZONE: ${{ vars.KIS_TOKEN_WARMUP_TIME_ZONE || 'Asia/Seoul' }}
+      KIS_TOKEN_WARMUP_ACCOUNT_LABEL: ${{ vars.KIS_TOKEN_WARMUP_ACCOUNT_LABEL || 'all' }}
+      KIS_TOKEN_WARMUP_VALID_THROUGH: ${{ vars.KIS_TOKEN_WARMUP_VALID_THROUGH || '16:30' }}
+      KIS_DEPLOY_SECRET_MODE: secret-manager
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0
@@ -58,20 +90,19 @@ jobs:
 
       - name: Validate workflow configuration
         run: |
+          target="${{ github.event.inputs.target }}"
+          test "${GITHUB_REF}" = "refs/heads/master" || { echo "Production deploys must run from master."; exit 1; }
           test -n "${GOOGLE_CLOUD_PROJECT}" || { echo "GOOGLE_CLOUD_PROJECT var is required."; exit 1; }
-          test -n "${KIS_DEPLOY_ENV}" || { echo "KIS_DEPLOY_ENV secret is required."; exit 1; }
-
-      - name: Write deployment env file
-        run: |
-          uv run python - <<'PY'
-          import os
-          from pathlib import Path
-
-          env_text = os.environ.get("KIS_DEPLOY_ENV", "")
-          if not env_text.strip():
-              raise SystemExit("KIS_DEPLOY_ENV secret is empty.")
-          Path(".env").write_text(env_text, encoding="utf-8")
-          PY
+          if [ "${target}" = "all" ] || [ "${target}" = "auth" ]; then
+            test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
+            test -n "${KIS_AUTH_CLAUDE_CLIENT_ID}" || { echo "KIS_AUTH_CLAUDE_CLIENT_ID var is required."; exit 1; }
+            test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
+            test -n "${KIS_OAUTH_GITHUB_CLIENT_ID}" || { echo "KIS_OAUTH_GITHUB_CLIENT_ID var is required."; exit 1; }
+          fi
+          if [ "${target}" = "all" ] || [ "${target}" = "remote" ]; then
+            test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
+            test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
+          fi
 
       - name: Run test suite
         run: uv run pytest
@@ -93,67 +124,72 @@ jobs:
         run: |
           uv run python scripts/deploy_cloud_run.py auth \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --service "${KIS_AUTH_SERVICE_NAME:-kis-portfolio-auth}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_AUTH_SERVICE_NAME}" \
+            --secret-mode secret-manager
 
       - name: Deploy remote service
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'remote'
         run: |
           uv run python scripts/deploy_cloud_run.py remote \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --service "${KIS_REMOTE_SERVICE_NAME:-kis-portfolio-remote}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_REMOTE_SERVICE_NAME}" \
+            --secret-mode secret-manager
 
       - name: Deploy domestic order history batch job
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'batch'
         run: |
           uv run python scripts/deploy_cloud_run.py batch \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --job "${KIS_BATCH_JOB_NAME:-kis-portfolio-domestic-order-history}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_BATCH_JOB_NAME}" \
+            --secret-mode secret-manager
 
       - name: Deploy domestic order history scheduler
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'scheduler'
         run: |
           uv run python scripts/deploy_cloud_run.py scheduler \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --job "${KIS_BATCH_JOB_NAME:-kis-portfolio-domestic-order-history}" \
-            --scheduler "${KIS_BATCH_SCHEDULER_NAME:-kis-portfolio-domestic-order-history-1535}" \
-            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_BATCH_JOB_NAME}" \
+            --scheduler "${KIS_BATCH_SCHEDULER_NAME}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
 
       - name: Deploy overseas transaction history batch job
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'overseas-batch'
         run: |
           uv run python scripts/deploy_cloud_run.py overseas-batch \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --job "${KIS_OVERSEAS_BATCH_JOB_NAME:-kis-portfolio-overseas-transaction-history}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_OVERSEAS_BATCH_JOB_NAME}" \
+            --secret-mode secret-manager
 
       - name: Deploy overseas transaction history scheduler
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'overseas-scheduler'
         run: |
           uv run python scripts/deploy_cloud_run.py overseas-scheduler \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --job "${KIS_OVERSEAS_BATCH_JOB_NAME:-kis-portfolio-overseas-transaction-history}" \
-            --scheduler "${KIS_OVERSEAS_BATCH_SCHEDULER_NAME:-kis-portfolio-overseas-transaction-history-0735}" \
-            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_OVERSEAS_BATCH_JOB_NAME}" \
+            --scheduler "${KIS_OVERSEAS_BATCH_SCHEDULER_NAME}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
 
       - name: Deploy token warm-up dry-run batch job
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'token-warmup-batch'
         run: |
           uv run python scripts/deploy_cloud_run.py token-warmup-batch \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --job "${KIS_TOKEN_WARMUP_JOB_NAME:-kis-portfolio-token-warmup-dry-run}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_TOKEN_WARMUP_JOB_NAME}" \
+            --secret-mode secret-manager
 
       - name: Deploy token warm-up dry-run scheduler
         if: github.event.inputs.target == 'all' || github.event.inputs.target == 'token-warmup-scheduler'
         run: |
           uv run python scripts/deploy_cloud_run.py token-warmup-scheduler \
             --project "${GOOGLE_CLOUD_PROJECT}" \
-            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
-            --job "${KIS_TOKEN_WARMUP_JOB_NAME:-kis-portfolio-token-warmup-dry-run}" \
-            --scheduler "${KIS_TOKEN_WARMUP_SCHEDULER_NAME:-kis-portfolio-token-warmup-0830}" \
-            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_TOKEN_WARMUP_JOB_NAME}" \
+            --scheduler "${KIS_TOKEN_WARMUP_SCHEDULER_NAME}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"

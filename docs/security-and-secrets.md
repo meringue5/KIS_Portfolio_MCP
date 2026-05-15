@@ -16,13 +16,14 @@
 - 운영 DB는 MotherDuck이다. `KIS_DB_MODE=motherduck`에서 `MOTHERDUCK_TOKEN`이 없으면 실패해야 하며,
   조용히 local DuckDB로 fallback하지 않는다.
 - 로컬 개발의 source of truth는 `.env`이고, `.env`는 커밋하지 않는다.
-- 현재 CI/CD의 배포 source는 GitHub Environment secret `KIS_DEPLOY_ENV`다. 이 값은 운영용 `.env` 전체를
-  담는 편의적 배포 입력이며, 장기적으로는 개별 secret 또는 Secret Manager로 쪼갤 수 있다.
+- 현재 CI/CD의 운영 secret source of truth는 GCP Secret Manager다. GitHub Actions에는 Workload Identity
+  Federation credential과 비시크릿 vars만 둔다.
+- GitHub Environment secret `KIS_DEPLOY_ENV`는 deprecated migration artifact다. 새 workflow에서는 사용하지 않는다.
 
 ## Trust Boundaries
 
 - Local developer machine: `.env`, local DuckDB, legacy `var/tokens/token_{CANO}.json` migration input을 가진다.
-- GitHub Actions: `KIS_DEPLOY_ENV`를 `.env`로 복원하고 Cloud Run 배포 스크립트를 실행한다.
+- GitHub Actions: WIF로 Google Cloud에 인증하고, 비시크릿 vars와 Secret Manager reference로 Cloud Run 배포 스크립트를 실행한다.
 - Cloud Run auth service: MCP OAuth authorization server다. owner login, consent, token issuance를 담당한다.
 - Cloud Run remote service: MCP resource server다. OAuth bearer token을 검증하고 KIS 조회 tool을 실행한다.
 - Cloud Run batch job: 예약 수집 job이다. KIS/MotherDuck runtime env를 사용하지만 MCP OAuth client token은 쓰지 않는다.
@@ -34,27 +35,27 @@
 
 | Name or pattern | Source of truth | Runtime consumer | DB storage | Stored form | Rotation notes |
 | --- | --- | --- | --- | --- | --- |
-| `KIS_APP_KEY_{ACCOUNT}` | KIS developer console, local `.env`, GitHub `KIS_DEPLOY_ENV` | local MCP, remote, batch | No | env only | Update `.env`/`KIS_DEPLOY_ENV`, redeploy. Cache key includes app key, so new keys create new KIS token cache rows. |
-| `KIS_APP_SECRET_{ACCOUNT}` | KIS developer console, local `.env`, GitHub `KIS_DEPLOY_ENV` | local MCP, remote, batch | No | env only | Update `.env`/`KIS_DEPLOY_ENV`, redeploy. Clear stale KIS token cache if the old secret is revoked before token expiry. |
-| `KIS_CANO_{ACCOUNT}` | User account records, local `.env`, GitHub `KIS_DEPLOY_ENV` | local MCP, remote, batch | Yes, in portfolio/order rows | Account id in operational data | Treat as sensitive. MCP account metadata must mask it, but DB snapshots and backups may contain full account ids. |
-| `KIS_ACNT_PRDT_CD_{ACCOUNT}` | User account records, local `.env`, GitHub `KIS_DEPLOY_ENV` | local MCP, remote, batch | Yes, in order/canonical rows where needed | Product code | Needed for IRP/pension API routing and order identity. |
-| `MOTHERDUCK_TOKEN` | MotherDuck console, local `.env`, GitHub `KIS_DEPLOY_ENV` | local MCP, auth, remote, batch, backup | No | env only | Rotate in MotherDuck, update `.env`/`KIS_DEPLOY_ENV`, redeploy all services/jobs. |
+| `KIS_APP_KEY_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy. Cache key includes app key, so new keys create new KIS token cache rows. |
+| `KIS_APP_SECRET_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy. Clear stale KIS token cache if the old secret is revoked before token expiry. |
+| `KIS_CANO_{ACCOUNT}` | User account records, local `.env`, GCP Secret Manager | local MCP, remote, batch | Yes, in portfolio/order rows | Account id in operational data | Treat as sensitive. MCP account metadata must mask it, but DB snapshots and backups may contain full account ids. |
+| `KIS_ACNT_PRDT_CD_{ACCOUNT}` | User account records, local `.env`, GitHub vars/Cloud Run env | local MCP, remote, batch | Yes, in order/canonical rows where needed | Product code | Needed for IRP/pension API routing and order identity. |
+| `MOTHERDUCK_TOKEN` | MotherDuck console, local `.env`, GCP Secret Manager | local MCP, auth, remote, batch, backup | No | env/secret manager only | Rotate in MotherDuck, sync Secret Manager, redeploy all services/jobs. |
 | `MOTHERDUCK_DATABASE` | Config | local MCP, auth, remote, batch, backup | No | env only | Not secret, but must match across auth and remote. |
-| `KIS_TOKEN_ENCRYPTION_KEY` | Generated Fernet key, local `.env`, GitHub `KIS_DEPLOY_ENV` | local MCP, remote, batch | No | env only | Protect carefully. Rotation requires re-encrypting or deleting `kis_api_access_tokens`; otherwise cached KIS tokens become unreadable. |
+| `KIS_TOKEN_ENCRYPTION_KEY` | Generated Fernet key, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Protect carefully. Rotation requires re-encrypting or deleting `kis_api_access_tokens`; otherwise cached KIS tokens become unreadable. |
 | KIS API access token | KIS token endpoint response | local MCP, remote, batch | Yes | encrypted `token_ciphertext` in `kis_api_access_tokens` | Automatically refreshed when expired or near expiry. Never log or return raw token. |
-| `KIS_AUTH_TOKEN_PEPPER` | Generated secret, local `.env`, GitHub `KIS_DEPLOY_ENV` | auth and remote | No | env only | Must be identical on auth and remote. Rotation invalidates existing OAuth token digests unless users reconnect. |
+| `KIS_AUTH_TOKEN_PEPPER` | Generated secret, local `.env`, GCP Secret Manager | auth and remote | No | env/secret manager only | Must be identical on auth and remote. Rotation invalidates existing OAuth token digests unless users reconnect. |
 | MCP OAuth access token | auth server generated value | Claude/ChatGPT bearer requests | Yes | digest only in `oauth_tokens` | Short-lived. Raw value is not recoverable from DB. |
 | MCP OAuth refresh token | auth server generated value | Claude/ChatGPT token refresh | Yes | digest only in `oauth_tokens` | Rotated on refresh. Pepper rotation or expiry requires connector reauthorization. |
 | OAuth authorization code | auth server generated value | OAuth code exchange | Yes | digest only in `oauth_authorization_codes` | One-time use and short-lived. |
 | OAuth dynamic client secret | auth server generated value | ChatGPT dynamic client token endpoint | Yes | hash in `oauth_clients` | Raw value is returned once to client and not recoverable from DB. |
-| `KIS_AUTH_CLAUDE_CLIENT_ID` | Local `.env`, GitHub `KIS_DEPLOY_ENV` | auth server, Claude static client | Yes | `client_id` in `oauth_clients` | Not secret by itself. Keep stable unless recreating the Claude app/client. |
-| `KIS_AUTH_CLAUDE_CLIENT_SECRET` | Local `.env`, GitHub `KIS_DEPLOY_ENV` | auth server, Claude static client | Yes | hash in `oauth_clients` | Update env and redeploy auth. Existing client configuration must use the new secret. |
-| `KIS_AUTH_SESSION_SECRET` | Generated secret, local `.env`, GitHub `KIS_DEPLOY_ENV` | auth server browser session | No | env only | Rotation invalidates pending browser login sessions, not already issued OAuth tokens. |
-| `KIS_AUTH_OWNER_EMAILS` | Local `.env`, GitHub `KIS_DEPLOY_ENV` | auth server allowlist | Yes | auth user rows may store email/profile | Treat as personal data. Controls who may authorize MCP access. |
-| `KIS_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google Cloud OAuth app | auth server | No | env only | Rotate in Google Cloud, update `.env`/`KIS_DEPLOY_ENV`, redeploy auth. |
-| `KIS_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth app | auth server | No | env only | Rotate in GitHub, update `.env`/`KIS_DEPLOY_ENV`, redeploy auth. |
-| `KIS_REMOTE_AUTH_TOKEN` | Generated secret | remote bearer fallback only | No | env only | Bearer mode is for experiments. Rotate token and update clients together. |
-| `KIS_DEPLOY_ENV` | GitHub Environment secret | GitHub Actions deployment | No | GitHub secret | High-value bundle containing operational env. Do not echo it in logs. Prefer Environment protection rules. |
+| `KIS_AUTH_CLAUDE_CLIENT_ID` | Local `.env`, GitHub vars/Cloud Run env | auth server, Claude static client | Yes | `client_id` in `oauth_clients` | Not secret by itself. Keep stable unless recreating the Claude app/client. |
+| `KIS_AUTH_CLAUDE_CLIENT_SECRET` | Local `.env`, GCP Secret Manager | auth server, Claude static client | Yes | hash in `oauth_clients` | Sync Secret Manager and redeploy auth. Existing client configuration must use the new secret. |
+| `KIS_AUTH_SESSION_SECRET` | Generated secret, local `.env`, GCP Secret Manager | auth server browser session | No | env/secret manager only | Rotation invalidates pending browser login sessions, not already issued OAuth tokens. |
+| `KIS_AUTH_OWNER_EMAILS` | Local `.env`, GCP Secret Manager | auth server allowlist | Yes | auth user rows may store email/profile | Treat as personal data. Controls who may authorize MCP access. |
+| `KIS_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google Cloud OAuth app | auth server | No | ID in env, secret in Secret Manager | Rotate in Google Cloud, sync Secret Manager for the secret, redeploy auth. |
+| `KIS_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth app | auth server | No | ID in env, secret in Secret Manager | Rotate in GitHub, sync Secret Manager for the secret, redeploy auth. |
+| `KIS_REMOTE_AUTH_TOKEN` | Generated secret, GCP Secret Manager | remote bearer fallback only | No | env/secret manager only | Bearer mode is for experiments. Rotate token and update clients together. |
+| `KIS_DEPLOY_ENV` | Deprecated GitHub Environment secret | None in current workflow | No | Deprecated GitHub secret | Do not add back to workflow. Remove after Secret Manager deployment is verified. |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | GitHub Environment secret | GitHub Actions auth | No | GitHub secret | Deployment control plane credential/config. Keep scoped to this repository/environment. |
 | `GCP_SERVICE_ACCOUNT` | GitHub Environment secret or var | GitHub Actions auth | No | GitHub secret/var | Not a password, but grants deployment authority through WIF. Keep least-privilege IAM. |
 
@@ -109,9 +110,10 @@ backups only in private locations with access controls.
 
 1. Rotate the upstream secret in its provider console when applicable.
 2. Update local `.env` for manual/local usage.
-3. Update GitHub `KIS_DEPLOY_ENV` for Cloud Run deployments.
-4. Redeploy affected targets with `scripts/deploy_cloud_run.py`.
-5. Verify `/health`, OAuth discovery, token exchange or refresh, and a read-only MCP tool call.
+3. Run `uv run python scripts/sync_secret_manager.py --project grand-forge-279904` and review the dry-run mapping.
+4. Run `uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --apply`.
+5. Redeploy affected targets through the GitHub Actions production deployment workflow.
+6. Verify `/health`, OAuth discovery, token exchange or refresh, and a read-only MCP tool call.
 
 Special cases:
 
@@ -126,10 +128,10 @@ Special cases:
 If a long-lived provider secret leaks:
 
 1. Revoke or rotate it at the provider first.
-2. Update `.env` and `KIS_DEPLOY_ENV`.
-3. Redeploy every target that consumes it.
+2. Update `.env` and sync GCP Secret Manager.
+3. Redeploy every target that consumes it through GitHub Actions.
 4. Clear or invalidate derived token rows when needed.
-5. Check GitHub Actions logs, Cloud Run logs, local shell history, and backups for accidental exposure.
+5. Check Secret Manager audit logs, GitHub Actions logs, Cloud Run logs, local shell history, and backups for accidental exposure.
 
 If a DB-stored derived token leaks:
 

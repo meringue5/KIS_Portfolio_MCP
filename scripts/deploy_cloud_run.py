@@ -1,4 +1,4 @@
-"""Deploy KIS Cloud Run services, jobs, and scheduler triggers from local source."""
+"""Deploy KIS Cloud Run services, jobs, and scheduler triggers from release source."""
 
 from __future__ import annotations
 
@@ -40,6 +40,31 @@ DEFAULT_TOKEN_WARMUP_SCHEDULE = "30 8 * * 1-5"
 DEFAULT_TOKEN_WARMUP_TIME_ZONE = "Asia/Seoul"
 DEFAULT_TOKEN_WARMUP_ACCOUNT_LABEL = "all"
 DEFAULT_TOKEN_WARMUP_VALID_THROUGH = "16:30"
+DEFAULT_DEPLOY_SECRET_MODE = "secret-manager"
+PRODUCTION_BRANCH = "master"
+DEFAULT_ACCOUNT_PRODUCT_CODES = {
+    "RIA": "01",
+    "ISA": "01",
+    "BROKERAGE": "01",
+    "IRP": "29",
+    "PENSION": "22",
+}
+SECRET_ENV_EXACT_KEYS = {
+    "MOTHERDUCK_TOKEN",
+    "KIS_TOKEN_ENCRYPTION_KEY",
+    "KIS_REMOTE_AUTH_TOKEN",
+    "KIS_AUTH_OWNER_EMAILS",
+    "KIS_AUTH_SESSION_SECRET",
+    "KIS_AUTH_TOKEN_PEPPER",
+    "KIS_AUTH_CLAUDE_CLIENT_SECRET",
+    "KIS_OAUTH_GOOGLE_CLIENT_SECRET",
+    "KIS_OAUTH_GITHUB_CLIENT_SECRET",
+}
+SECRET_ENV_PREFIXES = (
+    "KIS_APP_KEY_",
+    "KIS_APP_SECRET_",
+    "KIS_CANO_",
+)
 
 
 def _load_env() -> dict[str, str]:
@@ -118,6 +143,31 @@ def _effective_remote_auth_mode(env: dict[str, str]) -> str:
     return env.get("KIS_REMOTE_AUTH_MODE", DEFAULT_CHATGPT_REMOTE_AUTH_MODE).strip().lower()
 
 
+def _deploy_account_labels(env: dict[str, str]) -> tuple[str, ...]:
+    raw = env.get("KIS_DEPLOY_ACCOUNT_LABELS", "").strip()
+    if not raw:
+        raw = env.get("KIS_ACCOUNT_LABELS", "").strip()
+    if not raw:
+        return tuple(DEFAULT_ACCOUNT_PRODUCT_CODES)
+    labels = tuple(label.strip().upper() for label in raw.split(",") if label.strip())
+    return labels or tuple(DEFAULT_ACCOUNT_PRODUCT_CODES)
+
+
+def _build_account_env(env: dict[str, str]) -> dict[str, str]:
+    payload = _collect_prefixed(
+        env,
+        ("KIS_APP_KEY_", "KIS_APP_SECRET_", "KIS_CANO_", "KIS_ACNT_PRDT_CD_"),
+    )
+    for label in _deploy_account_labels(env):
+        product_key = f"KIS_ACNT_PRDT_CD_{label}"
+        default_product_code = DEFAULT_ACCOUNT_PRODUCT_CODES.get(label)
+        if env.get(product_key, "") != "":
+            payload[product_key] = env[product_key]
+        elif default_product_code:
+            payload[product_key] = default_product_code
+    return payload
+
+
 def _build_auth_env(env: dict[str, str]) -> dict[str, str]:
     keys = {
         "KIS_DB_MODE",
@@ -159,7 +209,7 @@ def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload["KIS_REMOTE_AUTH_MODE"] = _effective_remote_auth_mode(env)
-    payload.update(_collect_prefixed(env, ("KIS_APP_KEY_", "KIS_APP_SECRET_", "KIS_CANO_", "KIS_ACNT_PRDT_CD_")))
+    payload.update(_build_account_env(env))
     return payload
 
 
@@ -173,7 +223,7 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_TOKEN_ENCRYPTION_KEY",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
-    payload.update(_collect_prefixed(env, ("KIS_APP_KEY_", "KIS_APP_SECRET_", "KIS_CANO_", "KIS_ACNT_PRDT_CD_")))
+    payload.update(_build_account_env(env))
     return payload
 
 
@@ -238,8 +288,175 @@ def _build_token_warmup_command_args(env: dict[str, str]) -> str:
     )
 
 
-def _validate_required(env: dict[str, str], required: list[str]) -> list[str]:
+def _is_secret_env_key(key: str) -> bool:
+    return key in SECRET_ENV_EXACT_KEYS or any(key.startswith(prefix) for prefix in SECRET_ENV_PREFIXES)
+
+
+def _secret_id_for_env_key(key: str) -> str:
+    return f"kis-portfolio-{key.lower().replace('_', '-')}"
+
+
+def _account_secret_keys(env: dict[str, str]) -> set[str]:
+    return {
+        f"{prefix}{label}"
+        for label in _deploy_account_labels(env)
+        for prefix in SECRET_ENV_PREFIXES
+    }
+
+
+def _validate_required(
+    env: dict[str, str],
+    required: list[str],
+    *,
+    secret_mode: str = "env-file",
+) -> list[str]:
+    if secret_mode == "secret-manager":
+        return [key for key in required if env.get(key, "") == "" and not _is_secret_env_key(key)]
     return [key for key in required if env.get(key, "") == ""]
+
+
+def _target_secret_keys(
+    *,
+    env: dict[str, str],
+    payload: dict[str, str],
+    required: list[str],
+    include_account_secrets: bool,
+) -> set[str]:
+    secret_keys = {key for key in payload if _is_secret_env_key(key)}
+    secret_keys.update(key for key in required if _is_secret_env_key(key))
+    if include_account_secrets:
+        secret_keys.update(_account_secret_keys(env))
+    return secret_keys
+
+
+def _split_runtime_env(
+    *,
+    env: dict[str, str],
+    payload: dict[str, str],
+    required: list[str],
+    secret_mode: str,
+    include_account_secrets: bool,
+) -> tuple[dict[str, str], dict[str, str]]:
+    if secret_mode != "secret-manager":
+        return payload, {}
+
+    plain_env = {key: value for key, value in payload.items() if not _is_secret_env_key(key)}
+    secret_refs = {
+        key: _secret_id_for_env_key(key)
+        for key in sorted(
+            _target_secret_keys(
+                env=env,
+                payload=payload,
+                required=required,
+                include_account_secrets=include_account_secrets,
+            )
+        )
+    }
+    return plain_env, secret_refs
+
+
+def _build_secret_flags(secret_refs: dict[str, str]) -> list[str]:
+    if not secret_refs:
+        return []
+    assignments = ",".join(
+        f"{key}={secret_id}:latest"
+        for key, secret_id in sorted(secret_refs.items())
+    )
+    return ["--set-secrets", assignments]
+
+
+def _run_git(command: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *command],
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+    )
+
+
+def _git_stdout(command: list[str]) -> str | None:
+    completed = _run_git(command)
+    if completed.returncode != 0:
+        return None
+    return completed.stdout.strip()
+
+
+def _is_github_actions() -> bool:
+    return os.environ.get("GITHUB_ACTIONS", "").lower() == "true"
+
+
+def _deploy_source_errors(args: argparse.Namespace) -> list[str]:
+    if args.dry_run:
+        return []
+
+    if _is_github_actions():
+        github_ref = os.environ.get("GITHUB_REF", "")
+        if github_ref != f"refs/heads/{PRODUCTION_BRANCH}":
+            return [
+                f"GitHub Actions deploys must run from refs/heads/{PRODUCTION_BRANCH}, "
+                f"got {github_ref or '<unset>'}."
+            ]
+        return []
+
+    if args.allow_local_source:
+        if not args.reason or not args.reason.strip():
+            return ["--allow-local-source requires --reason with a non-empty emergency reason."]
+        return []
+
+    errors: list[str] = []
+    branch = _git_stdout(["branch", "--show-current"])
+    status = _git_stdout(["status", "--porcelain=v1"])
+    head = _git_stdout(["rev-parse", "HEAD"])
+    origin = _git_stdout(["rev-parse", f"origin/{PRODUCTION_BRANCH}"])
+
+    if branch != PRODUCTION_BRANCH:
+        errors.append(f"local deploy requires branch {PRODUCTION_BRANCH}, got {branch or '<unknown>'}.")
+    if status:
+        errors.append("local deploy requires a clean worktree.")
+    if not origin:
+        errors.append(f"local deploy requires origin/{PRODUCTION_BRANCH}; run git fetch first.")
+    elif head != origin:
+        errors.append(f"local deploy requires HEAD to match origin/{PRODUCTION_BRANCH}.")
+    return errors
+
+
+def _enforce_deploy_source(args: argparse.Namespace) -> int:
+    errors = _deploy_source_errors(args)
+    if not errors:
+        return 0
+    print("Refusing Cloud Run deploy from an unapproved source:")
+    for error in errors:
+        print(f"- {error}")
+    print("Use GitHub Actions production deployment, or pass --allow-local-source --reason for an emergency local deploy.")
+    return 1
+
+
+def _sanitize_label_value(value: str) -> str:
+    sanitized = "".join(ch.lower() if ch.isalnum() else "-" for ch in value.strip())
+    sanitized = sanitized.strip("-")
+    return sanitized[:63] or "unknown"
+
+
+def _build_deploy_labels(target: str) -> dict[str, str]:
+    source = "github-actions" if _is_github_actions() else "local"
+    git_sha = os.environ.get("GITHUB_SHA", "").strip() or (_git_stdout(["rev-parse", "HEAD"]) or "")
+    labels = {
+        "deploy-source": source,
+        "deploy-target": target,
+    }
+    if git_sha:
+        labels["git-sha"] = git_sha[:40]
+    github_run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
+    if github_run_id:
+        labels["github-run-id"] = github_run_id
+    return {key: _sanitize_label_value(value) for key, value in labels.items()}
+
+
+def _build_label_flags(target: str) -> list[str]:
+    labels = _build_deploy_labels(target)
+    if not labels:
+        return []
+    return ["--labels", ",".join(f"{key}={value}" for key, value in sorted(labels.items()))]
 
 
 def _write_env_yaml(payload: dict[str, str]) -> str:
@@ -425,6 +642,7 @@ def _deploy_service_or_job(
     args: argparse.Namespace,
     project: str | None,
     payload: dict[str, str],
+    secret_refs: dict[str, str],
     runtime_flags: list[str],
     target_name: str,
     command_args: str,
@@ -469,6 +687,8 @@ def _deploy_service_or_job(
                 command_args,
             ]
         command.extend(runtime_flags)
+        command.extend(_build_secret_flags(secret_refs))
+        command.extend(_build_label_flags(args.target))
         if project:
             command.extend(["--project", project])
         return _run(command, dry_run=args.dry_run)
@@ -559,23 +779,43 @@ def main() -> int:
     parser.add_argument("--scheduler-region")
     parser.add_argument("--schedule")
     parser.add_argument("--time-zone")
+    parser.add_argument(
+        "--secret-mode",
+        choices=("secret-manager", "env-file"),
+        default=os.environ.get("KIS_DEPLOY_SECRET_MODE", DEFAULT_DEPLOY_SECRET_MODE),
+    )
+    parser.add_argument("--allow-local-source", action="store_true")
+    parser.add_argument("--reason")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     env = _load_env()
     project = args.project or env.get("GOOGLE_CLOUD_PROJECT") or env.get("GCLOUD_PROJECT")
 
+    source_status = _enforce_deploy_source(args)
+    if source_status != 0:
+        return source_status
+
     if args.target == "auth":
-        missing = _validate_required(env, _required_keys_for_auth(env))
+        required = _required_keys_for_auth(env)
+        missing = _validate_required(env, required, secret_mode=args.secret_mode)
         if missing:
             print("Missing required environment variables:")
             for key in missing:
                 print(f"- {key}")
             return 1
+        payload, secret_refs = _split_runtime_env(
+            env=env,
+            payload=_build_auth_env(env),
+            required=required,
+            secret_mode=args.secret_mode,
+            include_account_secrets=False,
+        )
         return _deploy_service_or_job(
             args=args,
             project=project,
-            payload=_build_auth_env(env),
+            payload=payload,
+            secret_refs=secret_refs,
             runtime_flags=_build_auth_runtime_flags(env),
             target_name=args.service or DEFAULT_AUTH_SERVICE,
             command_args="run,kis-portfolio-auth",
@@ -583,16 +823,25 @@ def main() -> int:
         )
 
     if args.target == "remote":
-        missing = _validate_required(env, _required_keys_for_remote(env))
+        required = _required_keys_for_remote(env)
+        missing = _validate_required(env, required, secret_mode=args.secret_mode)
         if missing:
             print("Missing required environment variables:")
             for key in missing:
                 print(f"- {key}")
             return 1
+        payload, secret_refs = _split_runtime_env(
+            env=env,
+            payload=_build_remote_env(env),
+            required=required,
+            secret_mode=args.secret_mode,
+            include_account_secrets=True,
+        )
         return _deploy_service_or_job(
             args=args,
             project=project,
-            payload=_build_remote_env(env),
+            payload=payload,
+            secret_refs=secret_refs,
             runtime_flags=_build_remote_runtime_flags(env),
             target_name=args.service or DEFAULT_REMOTE_SERVICE,
             command_args="run,kis-portfolio-remote",
@@ -600,16 +849,25 @@ def main() -> int:
         )
 
     if args.target == "batch":
-        missing = _validate_required(env, _required_keys_for_batch(env))
+        required = _required_keys_for_batch(env)
+        missing = _validate_required(env, required, secret_mode=args.secret_mode)
         if missing:
             print("Missing required environment variables:")
             for key in missing:
                 print(f"- {key}")
             return 1
+        payload, secret_refs = _split_runtime_env(
+            env=env,
+            payload=_build_batch_env(env),
+            required=required,
+            secret_mode=args.secret_mode,
+            include_account_secrets=True,
+        )
         return _deploy_service_or_job(
             args=args,
             project=project,
-            payload=_build_batch_env(env),
+            payload=payload,
+            secret_refs=secret_refs,
             runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_BATCH_JOB_NAME") or DEFAULT_BATCH_JOB,
             command_args="run,kis-portfolio-batch,collect-domestic-order-history,--date,today",
@@ -617,16 +875,25 @@ def main() -> int:
         )
 
     if args.target == "overseas-batch":
-        missing = _validate_required(env, _required_keys_for_batch(env))
+        required = _required_keys_for_batch(env)
+        missing = _validate_required(env, required, secret_mode=args.secret_mode)
         if missing:
             print("Missing required environment variables:")
             for key in missing:
                 print(f"- {key}")
             return 1
+        payload, secret_refs = _split_runtime_env(
+            env=env,
+            payload=_build_batch_env(env),
+            required=required,
+            secret_mode=args.secret_mode,
+            include_account_secrets=True,
+        )
         return _deploy_service_or_job(
             args=args,
             project=project,
-            payload=_build_batch_env(env),
+            payload=payload,
+            secret_refs=secret_refs,
             runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_OVERSEAS_BATCH_JOB_NAME") or DEFAULT_OVERSEAS_BATCH_JOB,
             command_args=_build_overseas_batch_command_args(env),
@@ -634,16 +901,25 @@ def main() -> int:
         )
 
     if args.target == "token-warmup-batch":
-        missing = _validate_required(env, _required_keys_for_batch(env))
+        required = _required_keys_for_batch(env)
+        missing = _validate_required(env, required, secret_mode=args.secret_mode)
         if missing:
             print("Missing required environment variables:")
             for key in missing:
                 print(f"- {key}")
             return 1
+        payload, secret_refs = _split_runtime_env(
+            env=env,
+            payload=_build_batch_env(env),
+            required=required,
+            secret_mode=args.secret_mode,
+            include_account_secrets=True,
+        )
         return _deploy_service_or_job(
             args=args,
             project=project,
-            payload=_build_batch_env(env),
+            payload=payload,
+            secret_refs=secret_refs,
             runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_TOKEN_WARMUP_JOB_NAME") or DEFAULT_TOKEN_WARMUP_JOB,
             command_args=_build_token_warmup_command_args(env),

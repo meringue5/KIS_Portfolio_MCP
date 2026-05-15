@@ -1,3 +1,4 @@
+import argparse
 import importlib.util
 from pathlib import Path
 
@@ -27,6 +28,75 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     assert deploy_cloud_run._effective_remote_auth_mode(env) == "oauth"
     assert "KIS_REMOTE_AUTH_TOKEN" not in required
     assert payload["KIS_REMOTE_AUTH_MODE"] == "oauth"
+
+
+def test_secret_manager_uses_deterministic_secret_ids():
+    assert (
+        deploy_cloud_run._secret_id_for_env_key("KIS_APP_SECRET_RIA")
+        == "kis-portfolio-kis-app-secret-ria"
+    )
+
+
+def test_secret_manager_validation_allows_secret_values_to_live_in_gcp():
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_AUTH_ISSUER_URL": "https://auth.example.com",
+        "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
+        "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+    }
+
+    required = deploy_cloud_run._required_keys_for_remote(env)
+    missing = deploy_cloud_run._validate_required(
+        env,
+        required,
+        secret_mode="secret-manager",
+    )
+
+    assert missing == []
+
+
+def test_secret_manager_split_removes_secret_values_and_adds_account_refs():
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "MOTHERDUCK_TOKEN": "md-token",
+        "KIS_TOKEN_ENCRYPTION_KEY": "enc-key",
+        "KIS_AUTH_ISSUER_URL": "https://auth.example.com",
+        "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
+        "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+        "KIS_AUTH_TOKEN_PEPPER": "pepper",
+        "KIS_APP_KEY_RIA": "app-key",
+        "KIS_APP_SECRET_RIA": "app-secret",
+        "KIS_CANO_RIA": "12345678",
+    }
+
+    required = deploy_cloud_run._required_keys_for_remote(env)
+    plain_env, secret_refs = deploy_cloud_run._split_runtime_env(
+        env=env,
+        payload=deploy_cloud_run._build_remote_env(env),
+        required=required,
+        secret_mode="secret-manager",
+        include_account_secrets=True,
+    )
+
+    assert "MOTHERDUCK_TOKEN" not in plain_env
+    assert "KIS_TOKEN_ENCRYPTION_KEY" not in plain_env
+    assert "KIS_APP_SECRET_RIA" not in plain_env
+    assert plain_env["KIS_ACNT_PRDT_CD_IRP"] == "29"
+    assert secret_refs["MOTHERDUCK_TOKEN"] == "kis-portfolio-motherduck-token"
+    assert secret_refs["KIS_TOKEN_ENCRYPTION_KEY"] == "kis-portfolio-kis-token-encryption-key"
+    assert secret_refs["KIS_APP_KEY_RIA"] == "kis-portfolio-kis-app-key-ria"
+    assert secret_refs["KIS_APP_SECRET_PENSION"] == "kis-portfolio-kis-app-secret-pension"
+
+
+def test_secret_flags_do_not_include_secret_values():
+    flags = deploy_cloud_run._build_secret_flags({
+        "KIS_APP_SECRET_RIA": "kis-portfolio-kis-app-secret-ria",
+    })
+
+    assert flags == ["--set-secrets", "KIS_APP_SECRET_RIA=kis-portfolio-kis-app-secret-ria:latest"]
+    assert "super-secret-value" not in " ".join(flags)
 
 
 def test_auth_deploy_defaults_to_single_instance():
@@ -221,3 +291,89 @@ def test_scheduler_update_command_uses_update_headers_flag():
     assert command[:5] == ["gcloud", "scheduler", "jobs", "update", "http"]
     assert "--update-headers" in command
     assert "--headers" not in command
+
+
+def test_local_deploy_guard_allows_clean_synced_master(monkeypatch):
+    args = argparse.Namespace(dry_run=False, allow_local_source=False, reason=None)
+
+    def fake_git_stdout(command):
+        responses = {
+            ("branch", "--show-current"): "master",
+            ("status", "--porcelain=v1"): "",
+            ("rev-parse", "HEAD"): "abc123",
+            ("rev-parse", "origin/master"): "abc123",
+        }
+        return responses[tuple(command)]
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(deploy_cloud_run, "_git_stdout", fake_git_stdout)
+
+    assert deploy_cloud_run._deploy_source_errors(args) == []
+
+
+def test_local_deploy_guard_blocks_dirty_worktree(monkeypatch):
+    args = argparse.Namespace(dry_run=False, allow_local_source=False, reason=None)
+
+    def fake_git_stdout(command):
+        responses = {
+            ("branch", "--show-current"): "master",
+            ("status", "--porcelain=v1"): " M scripts/deploy_cloud_run.py",
+            ("rev-parse", "HEAD"): "abc123",
+            ("rev-parse", "origin/master"): "abc123",
+        }
+        return responses[tuple(command)]
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(deploy_cloud_run, "_git_stdout", fake_git_stdout)
+
+    errors = deploy_cloud_run._deploy_source_errors(args)
+
+    assert "local deploy requires a clean worktree." in errors
+
+
+def test_local_deploy_guard_requires_reason_for_emergency_override(monkeypatch):
+    args = argparse.Namespace(dry_run=False, allow_local_source=True, reason="")
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+
+    assert deploy_cloud_run._deploy_source_errors(args) == [
+        "--allow-local-source requires --reason with a non-empty emergency reason."
+    ]
+
+
+def test_github_actions_deploy_guard_blocks_non_master(monkeypatch):
+    args = argparse.Namespace(dry_run=False, allow_local_source=False, reason=None)
+
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/feature")
+
+    errors = deploy_cloud_run._deploy_source_errors(args)
+
+    assert errors == ["GitHub Actions deploys must run from refs/heads/master, got refs/heads/feature."]
+
+
+def test_deploy_labels_include_source_target_and_sha(monkeypatch):
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+    monkeypatch.setenv("GITHUB_RUN_ID", "123456")
+
+    flags = deploy_cloud_run._build_label_flags("remote")
+
+    assert flags == [
+        "--labels",
+        "deploy-source=github-actions,deploy-target=remote,git-sha=abcdef1234567890,github-run-id=123456",
+    ]
+
+
+def test_deploy_workflow_uses_secret_manager_not_bundled_env():
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github"
+        / "workflows"
+        / "deploy-cloud-run.yml"
+    ).read_text()
+
+    assert "KIS_DEPLOY_ENV" not in workflow
+    assert "environment: production" in workflow
+    assert 'test "${GITHUB_REF}" = "refs/heads/master"' in workflow
+    assert "KIS_DEPLOY_SECRET_MODE: secret-manager" in workflow
