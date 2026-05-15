@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import httpx
 import pytest
 from cryptography.fernet import Fernet
 
@@ -26,6 +28,7 @@ def anyio_backend():
 @pytest.fixture
 def local_token_cache_env(tmp_path, monkeypatch):
     close_connection()
+    auth.clear_process_token_cache()
     monkeypatch.setenv("KIS_DB_MODE", "local")
     monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("KIS_ACCOUNT_TYPE", "REAL")
@@ -34,6 +37,7 @@ def local_token_cache_env(tmp_path, monkeypatch):
     monkeypatch.setenv("KIS_APP_SECRET", "app-secret-1")
     monkeypatch.setenv("KIS_TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode("utf-8"))
     yield tmp_path
+    auth.clear_process_token_cache()
     close_connection()
 
 
@@ -202,6 +206,155 @@ async def test_get_access_token_requests_and_saves_new_token(local_token_cache_e
     assert row is not None
     assert row["token_type"] == "Bearer"
     assert row["response_expiry_raw"] == future_expiry
+
+
+@pytest.mark.anyio
+async def test_get_access_token_logs_refresh_without_secrets(local_token_cache_env, caplog):
+    future_expiry = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "access_token": "very-sensitive-token",
+                "token_type": "Bearer",
+                "expires_in": 86400,
+                "access_token_token_expired": future_expiry,
+            }
+
+    class Client:
+        async def post(self, *args, **kwargs):
+            return Response()
+
+    caplog.set_level(logging.INFO)
+
+    token = await auth.get_access_token(Client(), "https://example.com")
+
+    assert token == "very-sensitive-token"
+    assert "kis_token_request_start" in caplog.text
+    assert "kis_token_db_upsert_success" in caplog.text
+    assert "very-sensitive-token" not in caplog.text
+    assert "app-secret-1" not in caplog.text
+    assert "12345678" not in caplog.text
+
+
+@pytest.mark.anyio
+async def test_get_access_token_uses_process_memory_when_db_upsert_fails(
+    local_token_cache_env,
+    monkeypatch,
+):
+    future_expiry = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "access_token": "memory-token",
+                "token_type": "Bearer",
+                "expires_in": 86400,
+                "access_token_token_expired": future_expiry,
+            }
+
+    class Client:
+        def __init__(self):
+            self.calls = 0
+
+        async def post(self, *args, **kwargs):
+            self.calls += 1
+            return Response()
+
+    def fail_upsert(*args, **kwargs):
+        raise RuntimeError("db unavailable")
+
+    monkeypatch.setattr(auth, "upsert_kis_api_access_token", fail_upsert)
+
+    client = Client()
+    assert await auth.get_access_token(client, "https://example.com") == "memory-token"
+    assert client.calls == 1
+
+    status = auth.get_token_status()
+    assert status["storage"] == "process_memory"
+    assert status["persisted"] is False
+    assert status["needs_refresh"] is False
+
+    class NoNetworkClient:
+        async def post(self, *args, **kwargs):
+            raise AssertionError("process memory token should avoid a second token request")
+
+    assert await auth.get_access_token(NoNetworkClient(), "https://example.com") == "memory-token"
+
+
+@pytest.mark.anyio
+async def test_get_access_token_retries_429_or_5xx_once(local_token_cache_env, monkeypatch):
+    class Response:
+        def __init__(self, status_code, token=None):
+            self.status_code = status_code
+            self.token = token
+
+        def json(self):
+            if self.status_code == 200:
+                return {"access_token": self.token, "token_type": "Bearer", "expires_in": 86400}
+            return {"rt_cd": "1", "msg_cd": "EGW00001", "msg1": "temporary"}
+
+    class Client:
+        def __init__(self):
+            self.responses = [Response(500), Response(200, "retried-token")]
+            self.calls = 0
+
+        async def post(self, *args, **kwargs):
+            self.calls += 1
+            return self.responses.pop(0)
+
+    async def fake_sleep(seconds):
+        return None
+
+    monkeypatch.setattr(auth.asyncio, "sleep", fake_sleep)
+    client = Client()
+
+    assert await auth.get_access_token(client, "https://example.com") == "retried-token"
+    assert client.calls == 2
+
+
+@pytest.mark.anyio
+async def test_get_access_token_does_not_retry_4xx(local_token_cache_env):
+    class Response:
+        status_code = 400
+
+        def json(self):
+            return {"rt_cd": "1", "msg_cd": "BAD", "msg1": "bad request"}
+
+    class Client:
+        def __init__(self):
+            self.calls = 0
+
+        async def post(self, *args, **kwargs):
+            self.calls += 1
+            return Response()
+
+    client = Client()
+
+    with pytest.raises(RuntimeError):
+        await auth.get_access_token(client, "https://example.com")
+    assert client.calls == 1
+
+
+@pytest.mark.anyio
+async def test_get_access_token_does_not_retry_read_timeout(local_token_cache_env):
+    class Client:
+        def __init__(self):
+            self.calls = 0
+
+        async def post(self, *args, **kwargs):
+            self.calls += 1
+            raise httpx.ReadTimeout("timeout")
+
+    client = Client()
+
+    with pytest.raises(httpx.ReadTimeout):
+        await auth.get_access_token(client, "https://example.com")
+    assert client.calls == 1
 
 
 @pytest.mark.anyio

@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,8 @@ import httpx
 
 from .config import get_token_dir
 from .db.kis_token_repository import get_kis_api_access_token, upsert_kis_api_access_token
+from .observability import current_or_new_operation_id, log_event
+from .security.redaction import mask_account_id
 from .security.token_encryption import (
     TokenDecryptionError,
     TokenEncryptionConfigError,
@@ -31,6 +35,8 @@ HASHKEY_PATH = "/uapi/hashkey"
 TOKEN_REFRESH_SAFETY = timedelta(minutes=10)
 DEFAULT_TOKEN_LIFETIME = timedelta(hours=23, minutes=50)
 _TOKEN_REFRESH_LOCKS: dict[str, asyncio.Lock] = {}
+_PROCESS_TOKEN_CACHE: dict[str, dict[str, Any]] = {}
+logger = logging.getLogger("kis-portfolio-auth")
 
 
 def get_token_file(cano: str | None = None) -> Path:
@@ -64,12 +70,16 @@ def _get_cache_context() -> dict[str, str]:
     account_type = _require_env("KIS_ACCOUNT_TYPE").upper()
     cano = _require_env("KIS_CANO")
     app_key = _require_env("KIS_APP_KEY")
+    app_key_fingerprint = hashlib.sha256(app_key.encode("utf-8")).hexdigest()
     return {
         "account_type": account_type,
         "account_id": cano,
+        "masked_cano": mask_account_id(cano),
+        "account_label": os.environ.get("KIS_ACCOUNT_LABEL", ""),
         "app_key": app_key,
         "cache_key": hashlib.sha256(f"{account_type}:{cano}:{app_key}".encode("utf-8")).hexdigest(),
-        "app_key_fingerprint": hashlib.sha256(app_key.encode("utf-8")).hexdigest(),
+        "app_key_fingerprint": app_key_fingerprint,
+        "app_key_fingerprint_prefix": app_key_fingerprint[:12],
     }
 
 
@@ -80,6 +90,61 @@ def _coerce_expires_in(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _refresh_after(expires_at: datetime) -> datetime:
+    return expires_at - TOKEN_REFRESH_SAFETY
+
+
+def _common_log_fields(cache_context: dict[str, str], operation_id: str) -> dict[str, Any]:
+    return {
+        "operation_id": operation_id,
+        "account_label": cache_context.get("account_label") or None,
+        "masked_cano": cache_context["masked_cano"],
+        "account_type": cache_context["account_type"],
+        "app_key_fingerprint_prefix": cache_context["app_key_fingerprint_prefix"],
+    }
+
+
+def _store_process_memory_token(
+    *,
+    cache_context: dict[str, str],
+    token: str,
+    issued_at: datetime,
+    expires_at: datetime,
+    token_type: str | None,
+    expires_in: int | None,
+    response_expiry_raw: str | None,
+    persisted: bool,
+) -> None:
+    _PROCESS_TOKEN_CACHE[cache_context["cache_key"]] = {
+        "token": token,
+        "issued_at": issued_at,
+        "expires_at": expires_at,
+        "token_type": token_type or AUTH_TYPE,
+        "expires_in": expires_in,
+        "response_expiry_raw": response_expiry_raw,
+        "updated_at": datetime.now(),
+        "persisted": persisted,
+    }
+
+
+def _read_valid_token_from_process_memory(cache_context: dict[str, str]) -> tuple[str | None, dict[str, Any] | None]:
+    record = _PROCESS_TOKEN_CACHE.get(cache_context["cache_key"])
+    if record is None:
+        return None, None
+    expires_at = record.get("expires_at")
+    if not isinstance(expires_at, datetime) or not is_token_valid(expires_at):
+        return None, record
+    token = record.get("token")
+    if not isinstance(token, str) or not token:
+        return None, record
+    return token, record
+
+
+def clear_process_token_cache() -> None:
+    """Clear process-local KIS token cache; intended for tests and controlled diagnostics."""
+    _PROCESS_TOKEN_CACHE.clear()
 
 
 def _persist_token_record(
@@ -130,6 +195,107 @@ def _read_valid_token_from_db(cache_context: dict[str, str]) -> tuple[str | None
     return decrypt_token(ciphertext), record
 
 
+def _extract_kis_response_fields(response: httpx.Response) -> dict[str, Any]:
+    fields: dict[str, Any] = {"http_status": response.status_code}
+    try:
+        payload = response.json()
+    except Exception:
+        return fields
+    if isinstance(payload, dict):
+        fields["kis_msg_cd"] = payload.get("msg_cd")
+        fields["kis_msg1"] = payload.get("msg1")
+        fields["rt_cd"] = payload.get("rt_cd")
+    return fields
+
+
+async def _request_new_token_with_retry(
+    client: httpx.AsyncClient,
+    domain: str,
+    cache_context: dict[str, str],
+    operation_id: str,
+) -> httpx.Response:
+    for attempt in range(2):
+        started = time.perf_counter()
+        log_event(
+            logger,
+            "kis_token_request_start",
+            **_common_log_fields(cache_context, operation_id),
+            attempt=attempt + 1,
+        )
+        try:
+            response = await client.post(
+                f"{domain}{TOKEN_PATH}",
+                headers={"content-type": CONTENT_TYPE},
+                json={
+                    "grant_type": "client_credentials",
+                    "appkey": os.environ["KIS_APP_KEY"],
+                    "appsecret": os.environ["KIS_APP_SECRET"],
+                },
+            )
+        except httpx.ReadTimeout as exc:
+            log_event(
+                logger,
+                "kis_token_request_failed",
+                level=logging.WARNING,
+                **_common_log_fields(cache_context, operation_id),
+                attempt=attempt + 1,
+                elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+                error_type=type(exc).__name__,
+                retried=False,
+            )
+            raise
+        except httpx.HTTPError as exc:
+            log_event(
+                logger,
+                "kis_token_request_failed",
+                level=logging.WARNING,
+                **_common_log_fields(cache_context, operation_id),
+                attempt=attempt + 1,
+                elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+                error_type=type(exc).__name__,
+                retried=False,
+            )
+            raise
+
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
+        if response.status_code == 200:
+            log_event(
+                logger,
+                "kis_token_request_success",
+                **_common_log_fields(cache_context, operation_id),
+                attempt=attempt + 1,
+                elapsed_ms=elapsed_ms,
+                **_extract_kis_response_fields(response),
+            )
+            return response
+
+        should_retry = response.status_code == 429 or 500 <= response.status_code < 600
+        will_retry = should_retry and attempt == 0
+        log_event(
+            logger,
+            "kis_token_request_failed",
+            level=logging.WARNING,
+            **_common_log_fields(cache_context, operation_id),
+            attempt=attempt + 1,
+            elapsed_ms=elapsed_ms,
+            retried=will_retry,
+            **_extract_kis_response_fields(response),
+        )
+        if will_retry:
+            await asyncio.sleep(1)
+            continue
+
+        fields = _extract_kis_response_fields(response)
+        raise RuntimeError(
+            "Failed to get KIS token: "
+            f"http_status={response.status_code} "
+            f"msg_cd={fields.get('kis_msg_cd')} "
+            f"msg1={fields.get('kis_msg1')}"
+        )
+
+    raise RuntimeError("Failed to get KIS token after retry.")
+
+
 def _migrate_legacy_token_if_available(
     cache_context: dict[str, str],
     token_file: Path | None,
@@ -158,6 +324,7 @@ def _migrate_legacy_token_if_available(
 
 def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
     """Return token cache metadata without exposing the token value."""
+    cache_context: dict[str, str] | None = None
     try:
         cache_context = _get_cache_context()
         record = _read_db_token_record(cache_context)
@@ -165,14 +332,80 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
         return {
             "exists": False,
             "status": "misconfigured",
+            "storage": None,
+            "updated_at": None,
+            "refresh_after": None,
+            "needs_refresh": True,
             "error": str(e),
         }
     except Exception as e:
+        if cache_context is not None:
+            memory_token, memory_record = _read_valid_token_from_process_memory(cache_context)
+            if memory_record is not None:
+                expires_at = memory_record["expires_at"]
+                now = datetime.now()
+                return {
+                    "exists": bool(memory_token),
+                    "status": "valid" if memory_token else "expired",
+                    "storage": "process_memory",
+                    "persisted": False,
+                    "has_token": bool(memory_token),
+                    "issued_at": memory_record.get("issued_at").isoformat()
+                    if memory_record.get("issued_at")
+                    else None,
+                    "expires_at": expires_at.isoformat(),
+                    "refresh_after": _refresh_after(expires_at).isoformat(),
+                    "updated_at": memory_record.get("updated_at").isoformat()
+                    if memory_record.get("updated_at")
+                    else None,
+                    "minutes_until_expiry": round((expires_at - now).total_seconds() / 60, 1),
+                    "needs_refresh": not bool(memory_token),
+                    "db_status": "unreadable",
+                    "db_error": str(e),
+                }
         return {
             "exists": True,
             "status": "unreadable",
+            "storage": "db",
+            "updated_at": None,
+            "refresh_after": None,
+            "needs_refresh": True,
             "error": str(e),
         }
+
+    memory_token, memory_record = _read_valid_token_from_process_memory(cache_context)
+    if memory_token and (
+        record is None
+        or not isinstance(record.get("expires_at"), datetime)
+        or memory_record["expires_at"] > record["expires_at"]
+        or not is_token_valid(record["expires_at"])
+    ):
+        expires_at = memory_record["expires_at"]
+        now = datetime.now()
+        result = {
+            "exists": True,
+            "status": "valid",
+            "storage": "process_memory",
+            "persisted": bool(memory_record.get("persisted")),
+            "has_token": True,
+            "issued_at": memory_record.get("issued_at").isoformat()
+            if memory_record.get("issued_at")
+            else None,
+            "expires_at": expires_at.isoformat(),
+            "refresh_after": _refresh_after(expires_at).isoformat(),
+            "updated_at": memory_record.get("updated_at").isoformat()
+            if memory_record.get("updated_at")
+            else None,
+            "minutes_until_expiry": round((expires_at - now).total_seconds() / 60, 1),
+            "needs_refresh": False,
+        }
+        if memory_record.get("token_type"):
+            result["token_type"] = memory_record["token_type"]
+        if memory_record.get("expires_in") is not None:
+            result["expires_in"] = memory_record["expires_in"]
+        if memory_record.get("response_expiry_raw"):
+            result["access_token_token_expired"] = memory_record["response_expiry_raw"]
+        return result
 
     if record is None:
         path = token_file or get_token_file()
@@ -180,6 +413,10 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
             return {
                 "exists": False,
                 "status": "missing",
+                "storage": "none",
+                "updated_at": None,
+                "refresh_after": None,
+                "needs_refresh": True,
             }
         try:
             token_data = json.loads(path.read_text())
@@ -189,6 +426,9 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
                 "exists": True,
                 "status": "unreadable",
                 "storage": "legacy_file",
+                "updated_at": None,
+                "refresh_after": None,
+                "needs_refresh": True,
                 "error": str(e),
             }
         now = datetime.now()
@@ -205,7 +445,10 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
             "has_token": bool(token_data.get("token")),
             "issued_at": token_data.get("issued_at"),
             "expires_at": expires_at.isoformat(),
+            "refresh_after": _refresh_after(expires_at).isoformat(),
+            "updated_at": None,
             "minutes_until_expiry": round((expires_at - now).total_seconds() / 60, 1),
+            "needs_refresh": status != "valid",
         }
         for key in ("token_type", "expires_in", "access_token_token_expired"):
             if key in token_data:
@@ -225,10 +468,14 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
         "exists": True,
         "status": status,
         "storage": "db",
+        "persisted": True,
         "has_token": bool(record.get("token_ciphertext")),
         "issued_at": record["issued_at"].isoformat() if record.get("issued_at") else None,
         "expires_at": expires_at.isoformat(),
+        "refresh_after": _refresh_after(expires_at).isoformat(),
+        "updated_at": record["updated_at"].isoformat() if record.get("updated_at") else None,
         "minutes_until_expiry": round((expires_at - now).total_seconds() / 60, 1),
+        "needs_refresh": status != "valid",
     }
     if record.get("token_type"):
         result["token_type"] = record["token_type"]
@@ -314,57 +561,192 @@ async def get_access_token(
     client: httpx.AsyncClient,
     domain: str,
     token_file: Path | None = None,
+    *,
+    force_refresh: bool = False,
 ) -> str:
     """Get access token from the encrypted DB cache or request a new one."""
     cache_context = _get_cache_context()
+    operation_id = current_or_new_operation_id("auth")
     ensure_token_encryption_ready()
-    try:
-        token, _record = _read_valid_token_from_db(cache_context)
-    except (TokenDecryptionError, TokenEncryptionConfigError):
-        raise
-    if token:
-        return token
-
-    async with _get_refresh_lock(cache_context["cache_key"]):
+    if not force_refresh:
         try:
             token, record = _read_valid_token_from_db(cache_context)
         except (TokenDecryptionError, TokenEncryptionConfigError):
             raise
-        if token:
-            return token
+        except Exception as exc:
+            log_event(
+                logger,
+                "kis_token_cache_lookup",
+                level=logging.WARNING,
+                **_common_log_fields(cache_context, operation_id),
+                storage="db",
+                status="unreadable",
+                error_type=type(exc).__name__,
+            )
+            token, memory_record = _read_valid_token_from_process_memory(cache_context)
+            if token:
+                log_event(
+                    logger,
+                    "kis_token_cache_lookup",
+                    **_common_log_fields(cache_context, operation_id),
+                    storage="process_memory",
+                    status="hit",
+                    expires_at=memory_record["expires_at"],
+                    refresh_after=_refresh_after(memory_record["expires_at"]),
+                )
+                return token
+        else:
+            log_event(
+                logger,
+                "kis_token_cache_lookup",
+                **_common_log_fields(cache_context, operation_id),
+                storage="db",
+                status="hit" if token else "miss",
+                expires_at=record.get("expires_at") if record else None,
+                refresh_after=_refresh_after(record["expires_at"]) if record else None,
+            )
+            if token:
+                return token
 
-        if record is None:
+            memory_token, memory_record = _read_valid_token_from_process_memory(cache_context)
+            if memory_token:
+                log_event(
+                    logger,
+                    "kis_token_cache_lookup",
+                    **_common_log_fields(cache_context, operation_id),
+                    storage="process_memory",
+                    status="hit",
+                    expires_at=memory_record["expires_at"],
+                    refresh_after=_refresh_after(memory_record["expires_at"]),
+                )
+                return memory_token
+
+    async with _get_refresh_lock(cache_context["cache_key"]):
+        record = None
+        db_lookup_failed = False
+        if not force_refresh:
+            try:
+                token, record = _read_valid_token_from_db(cache_context)
+            except (TokenDecryptionError, TokenEncryptionConfigError):
+                raise
+            except Exception as exc:
+                db_lookup_failed = True
+                log_event(
+                    logger,
+                    "kis_token_cache_lookup",
+                    level=logging.WARNING,
+                    **_common_log_fields(cache_context, operation_id),
+                    storage="db",
+                    status="unreadable",
+                    error_type=type(exc).__name__,
+                )
+            else:
+                if token:
+                    log_event(
+                        logger,
+                        "kis_token_cache_lookup",
+                        **_common_log_fields(cache_context, operation_id),
+                        storage="db",
+                        status="hit_after_lock",
+                        expires_at=record.get("expires_at") if record else None,
+                        refresh_after=_refresh_after(record["expires_at"]) if record else None,
+                    )
+                    return token
+
+            memory_token, memory_record = _read_valid_token_from_process_memory(cache_context)
+            if memory_token:
+                log_event(
+                    logger,
+                    "kis_token_cache_lookup",
+                    **_common_log_fields(cache_context, operation_id),
+                    storage="process_memory",
+                    status="hit_after_lock",
+                    expires_at=memory_record["expires_at"],
+                    refresh_after=_refresh_after(memory_record["expires_at"]),
+                )
+                return memory_token
+
+        if record is None and not db_lookup_failed and not force_refresh:
             token, expires_at = _migrate_legacy_token_if_available(cache_context, token_file)
             if token and expires_at:
                 return token
 
-        token_response = await client.post(
-            f"{domain}{TOKEN_PATH}",
-            headers={"content-type": CONTENT_TYPE},
-            json={
-                "grant_type": "client_credentials",
-                "appkey": os.environ["KIS_APP_KEY"],
-                "appsecret": os.environ["KIS_APP_SECRET"],
-            },
+        token_response = await _request_new_token_with_retry(
+            client,
+            domain,
+            cache_context,
+            operation_id,
         )
-
-        if token_response.status_code != 200:
-            raise Exception(f"Failed to get token: {token_response.text}")
 
         issued_at = datetime.now()
         token_data = token_response.json()
         token = token_data["access_token"]
         expires_at = parse_kis_expiry(token_data, issued_at)
-        _persist_token_record(
+        token_type = token_data.get("token_type")
+        expires_in = _coerce_expires_in(token_data.get("expires_in"))
+        response_expiry_raw = token_data.get("access_token_token_expired")
+        _store_process_memory_token(
             cache_context=cache_context,
             token=token,
             issued_at=issued_at,
             expires_at=expires_at,
-            token_type=token_data.get("token_type"),
-            expires_in=_coerce_expires_in(token_data.get("expires_in")),
-            response_expiry_raw=token_data.get("access_token_token_expired"),
-            migrated_from_file=False,
+            token_type=token_type,
+            expires_in=expires_in,
+            response_expiry_raw=response_expiry_raw,
+            persisted=False,
         )
+        try:
+            _persist_token_record(
+                cache_context=cache_context,
+                token=token,
+                issued_at=issued_at,
+                expires_at=expires_at,
+                token_type=token_type,
+                expires_in=expires_in,
+                response_expiry_raw=response_expiry_raw,
+                migrated_from_file=False,
+            )
+        except Exception as exc:
+            log_event(
+                logger,
+                "kis_token_db_upsert_failed",
+                level=logging.WARNING,
+                **_common_log_fields(cache_context, operation_id),
+                storage="process_memory",
+                persisted=False,
+                expires_at=expires_at,
+                refresh_after=_refresh_after(expires_at),
+                error_type=type(exc).__name__,
+            )
+            log_event(
+                logger,
+                "kis_token_refresh_complete",
+                **_common_log_fields(cache_context, operation_id),
+                storage="process_memory",
+                persisted=False,
+                expires_at=expires_at,
+                refresh_after=_refresh_after(expires_at),
+            )
+        else:
+            _PROCESS_TOKEN_CACHE[cache_context["cache_key"]]["persisted"] = True
+            log_event(
+                logger,
+                "kis_token_db_upsert_success",
+                **_common_log_fields(cache_context, operation_id),
+                storage="db",
+                persisted=True,
+                expires_at=expires_at,
+                refresh_after=_refresh_after(expires_at),
+            )
+            log_event(
+                logger,
+                "kis_token_refresh_complete",
+                **_common_log_fields(cache_context, operation_id),
+                storage="db",
+                persisted=True,
+                expires_at=expires_at,
+                refresh_after=_refresh_after(expires_at),
+            )
 
     return token
 
