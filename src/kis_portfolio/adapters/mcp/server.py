@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Annotated
 
 from dotenv import load_dotenv
@@ -30,10 +31,20 @@ from kis_portfolio.analytics.portfolio import (
     get_portfolio_trend as analyze_portfolio_trend,
 )
 from kis_portfolio.auth import get_token_status as inspect_token_status
+from kis_portfolio.observability import (
+    current_or_new_operation_id,
+    log_event,
+    operation_context,
+)
 from kis_portfolio.services import kis_api
 from kis_portfolio.services.account import fetch_balance_snapshot
 from kis_portfolio.services.overview import build_total_asset_overview
 from kis_portfolio.services.order_history import get_domestic_order_history
+from kis_portfolio.services.overseas_history import (
+    get_overseas_order_history as get_overseas_order_history_service,
+    get_overseas_settlement_balance as get_overseas_settlement_balance_service,
+    get_overseas_transaction_history as get_overseas_transaction_history_service,
+)
 
 
 logger = logging.getLogger("kis-portfolio-mcp")
@@ -82,6 +93,10 @@ OptionalDomesticSymbol = Annotated[
     str,
     Field(description="Optional domestic KRX symbol filter. Leave empty to include all symbols in the date range."),
 ]
+OptionalOverseasSymbol = Annotated[
+    str,
+    Field(description="Optional overseas ticker/symbol filter. Leave empty to include all symbols in the date range."),
+]
 OrderHistorySource = Annotated[
     str,
     Field(
@@ -126,6 +141,19 @@ def _wrap_raw(raw: dict, account=None, source: str = "kis_api", **metadata) -> d
         payload["account"] = account.public_dict()
     payload.update({k: v for k, v in metadata.items() if v is not None})
     return payload
+
+
+def _diagnostics(operation_id: str) -> dict:
+    return {"operation_id": operation_id}
+
+
+def _safe_error_message(error: Exception, accounts=None) -> str:
+    message = str(error)
+    for account in accounts or []:
+        for value in (account.cano, account.app_key, account.app_secret):
+            if value:
+                message = message.replace(value, "[redacted]")
+    return message
 
 
 async def _call_for_account(account_label: str, func, *args, source: str = "kis_api", **kwargs) -> dict:
@@ -180,17 +208,57 @@ async def get_all_token_statuses():
     annotations=SAFE_LOCAL_WRITE_TOOL,
 )
 async def get_account_balance(account_label: ConfiguredAccountLabel):
+    operation_id = current_or_new_operation_id("mcp")
+    started = time.perf_counter()
+    with operation_context(operation_id):
+        log_event(
+            logger,
+            "mcp_tool_start",
+            operation_id=operation_id,
+            tool="get-account-balance",
+            account_label=_account_label(account_label),
+        )
+        try:
+            result = await _get_account_balance_impl(account_label, operation_id)
+        except Exception as error:
+            log_event(
+                logger,
+                "mcp_tool_failed",
+                level=logging.WARNING,
+                operation_id=operation_id,
+                tool="get-account-balance",
+                account_label=_account_label(account_label),
+                elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+                error_type=type(error).__name__,
+            )
+            raise
+        log_event(
+            logger,
+            "mcp_tool_complete",
+            operation_id=operation_id,
+            tool="get-account-balance",
+            account_label=_account_label(account_label),
+            elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+            status=result.get("status"),
+            snapshot_status=result.get("snapshot_status"),
+        )
+        return result
+
+
+async def _get_account_balance_impl(account_label: ConfiguredAccountLabel, operation_id: str):
     account = get_account(account_label)
     with scoped_account_env(account):
         result = await fetch_balance_snapshot(save_snapshot=True, return_metadata=True)
     saved_snapshot_id = result.get("saved_snapshot_id")
-    return _wrap_raw(
+    payload = _wrap_raw(
         result["raw"],
         account=account,
         source="kis_api",
         saved_snapshot_id=saved_snapshot_id,
         snapshot_status="saved" if saved_snapshot_id else "not_saved",
     )
+    payload["diagnostics"] = _diagnostics(operation_id)
+    return payload
 
 
 @mcp.tool(
@@ -199,28 +267,79 @@ async def get_account_balance(account_label: ConfiguredAccountLabel):
     annotations=SAFE_LOCAL_WRITE_TOOL,
 )
 async def refresh_all_account_snapshots():
+    operation_id = current_or_new_operation_id("mcp")
+    started = time.perf_counter()
+    with operation_context(operation_id):
+        log_event(
+            logger,
+            "mcp_tool_start",
+            operation_id=operation_id,
+            tool="refresh-all-account-snapshots",
+        )
+        result = await _refresh_all_account_snapshots_impl(operation_id)
+        log_event(
+            logger,
+            "mcp_tool_complete",
+            operation_id=operation_id,
+            tool="refresh-all-account-snapshots",
+            elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+            success_count=result.get("success_count"),
+            error_count=result.get("error_count"),
+        )
+        return result
+
+
+async def _refresh_all_account_snapshots_impl(operation_id: str):
     results = []
-    for account in load_account_registry():
+    accounts = load_account_registry()
+    for account in accounts:
+        account_started = time.perf_counter()
+        log_event(
+            logger,
+            "account_refresh_start",
+            operation_id=operation_id,
+            account_label=account.label,
+            masked_cano=account.masked_cano,
+        )
         try:
             with scoped_account_env(account):
                 result = await fetch_balance_snapshot(save_snapshot=True, return_metadata=True)
             saved_snapshot_id = result.get("saved_snapshot_id")
-            results.append(
-                _wrap_raw(
-                    result["raw"],
-                    account=account,
-                    source="kis_api",
-                    saved_snapshot_id=saved_snapshot_id,
-                    snapshot_status="saved" if saved_snapshot_id else "not_saved",
-                )
+            row = _wrap_raw(
+                result["raw"],
+                account=account,
+                source="kis_api",
+                saved_snapshot_id=saved_snapshot_id,
+                snapshot_status="saved" if saved_snapshot_id else "not_saved",
+            )
+            results.append(row)
+            log_event(
+                logger,
+                "account_refresh_complete",
+                operation_id=operation_id,
+                account_label=account.label,
+                masked_cano=account.masked_cano,
+                elapsed_ms=round((time.perf_counter() - account_started) * 1000, 1),
+                snapshot_status=row.get("snapshot_status"),
             )
         except Exception as e:
-            logger.warning("Account refresh failed for %s: %s", account.label, e)
+            safe_error = _safe_error_message(e, [account])
+            log_event(
+                logger,
+                "account_refresh_failed",
+                level=logging.WARNING,
+                operation_id=operation_id,
+                account_label=account.label,
+                masked_cano=account.masked_cano,
+                elapsed_ms=round((time.perf_counter() - account_started) * 1000, 1),
+                error_type=type(e).__name__,
+                error=safe_error,
+            )
             results.append({
                 "source": "kis_api",
                 "status": "error",
                 "account": account.public_dict(),
-                "error": str(e),
+                "error": safe_error,
             })
     return {
         "source": "kis_api",
@@ -228,6 +347,7 @@ async def refresh_all_account_snapshots():
         "success_count": sum(1 for row in results if row["status"] == "ok"),
         "error_count": sum(1 for row in results if row["status"] == "error"),
         "accounts": results,
+        "diagnostics": _diagnostics(operation_id),
     }
 
 
@@ -255,6 +375,62 @@ async def get_total_asset_overview(
         Field(description="When true, include raw feeder payloads in the overview response for debugging."),
     ] = False,
 ):
+    operation_id = current_or_new_operation_id("mcp")
+    started = time.perf_counter()
+    with operation_context(operation_id):
+        log_event(
+            logger,
+            "mcp_tool_start",
+            operation_id=operation_id,
+            tool="get-total-asset-overview",
+            refresh=refresh,
+            save_snapshot=save_snapshot,
+            overseas_account_label=_account_label(overseas_account_label),
+            include_raw=include_raw,
+        )
+        try:
+            result = await _get_total_asset_overview_impl(
+                refresh=refresh,
+                save_snapshot=save_snapshot,
+                overseas_account_label=overseas_account_label,
+                top_n=top_n,
+                include_raw=include_raw,
+                operation_id=operation_id,
+            )
+        except Exception as error:
+            log_event(
+                logger,
+                "mcp_tool_failed",
+                level=logging.WARNING,
+                operation_id=operation_id,
+                tool="get-total-asset-overview",
+                elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+                error_type=type(error).__name__,
+            )
+            raise
+        result["diagnostics"] = _diagnostics(operation_id)
+        log_event(
+            logger,
+            "mcp_tool_complete",
+            operation_id=operation_id,
+            tool="get-total-asset-overview",
+            elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
+            status=result.get("status"),
+            refresh_error_count=result.get("refresh", {}).get("error_count"),
+            snapshot_status=result.get("snapshot_status"),
+        )
+        return result
+
+
+async def _get_total_asset_overview_impl(
+    *,
+    refresh: bool,
+    save_snapshot: bool,
+    overseas_account_label: str,
+    top_n: int,
+    include_raw: bool,
+    operation_id: str,
+):
     accounts = load_account_registry()
     refresh_status = {"requested": refresh}
     if refresh:
@@ -274,15 +450,27 @@ async def get_total_asset_overview(
                 ),
             },
         })
+        refresh_errors = [
+            {
+                "account": row.get("account"),
+                "error": row.get("error"),
+            }
+            for row in refresh_result.get("accounts", [])
+            if row.get("status") == "error"
+        ]
+        if refresh_errors:
+            refresh_status["errors"] = refresh_errors
 
     con = kisdb.get_connection()
     portfolio_summary = analyze_latest_portfolio_summary(con, "", 30)
     overseas_account = get_account(_account_label(overseas_account_label), accounts)
     domestic_snapshot_rows = []
     domestic_symbols: list[str] = []
+    missing_snapshot_accounts = []
     for account in accounts:
         rows = kisdb.get_portfolio_snapshots(account.cano, limit=1)
         if not rows:
+            missing_snapshot_accounts.append(account.public_dict())
             continue
         row = rows[0]
         row["account"] = account.public_dict()
@@ -301,13 +489,35 @@ async def get_total_asset_overview(
         try:
             overseas_balance = await kis_api.inquery_overseas_balance("ALL")
         except Exception as e:
-            logger.warning("Overseas balance fetch failed for overview: %s", e)
-            errors.append({"tool": "get-overseas-balance", "error": str(e)})
+            safe_error = _safe_error_message(e, [overseas_account])
+            log_event(
+                logger,
+                "overview_feeder_failed",
+                level=logging.WARNING,
+                operation_id=operation_id,
+                tool="get-overseas-balance",
+                account_label=overseas_account.label,
+                masked_cano=overseas_account.masked_cano,
+                error_type=type(e).__name__,
+                error=safe_error,
+            )
+            errors.append({"tool": "get-overseas-balance", "error": safe_error})
         try:
             overseas_deposit = await kis_api.inquery_overseas_deposit("01", "000")
         except Exception as e:
-            logger.warning("Overseas deposit fetch failed for overview: %s", e)
-            errors.append({"tool": "get-overseas-deposit", "error": str(e)})
+            safe_error = _safe_error_message(e, [overseas_account])
+            log_event(
+                logger,
+                "overview_feeder_failed",
+                level=logging.WARNING,
+                operation_id=operation_id,
+                tool="get-overseas-deposit",
+                account_label=overseas_account.label,
+                masked_cano=overseas_account.masked_cano,
+                error_type=type(e).__name__,
+                error=safe_error,
+            )
+            errors.append({"tool": "get-overseas-deposit", "error": safe_error})
 
     overview = build_total_asset_overview(
         portfolio_summary=portfolio_summary,
@@ -323,9 +533,11 @@ async def get_total_asset_overview(
     )
     normalized_holdings = overview.pop("_normalized_holdings", [])
     overview["refresh"] = refresh_status
-    overview["status"] = "partial_error" if errors else "ok"
+    overview["status"] = "partial_error" if errors or refresh_status.get("error_count", 0) else "ok"
     if errors:
         overview["errors"] = errors
+    if missing_snapshot_accounts:
+        overview["missing_snapshot_accounts"] = missing_snapshot_accounts
     if save_snapshot:
         overseas_snapshot_id = kisdb.insert_overseas_asset_snapshot(
             overseas_account.cano,
@@ -559,6 +771,110 @@ async def get_overseas_period_profit(
         exchange,
         currency,
     )
+
+
+@mcp.tool(
+    name="get-overseas-transaction-history",
+    description="Use this when you need overseas daily transaction ledger rows for a date range with DB-first caching. 해외주식 일별거래내역 API를 조회해 raw snapshot과 canonical transaction row를 저장하며, 실제 주문 실행에는 사용할 수 없습니다.",
+    annotations=SAFE_LOCAL_WRITE_TOOL,
+)
+async def get_overseas_transaction_history(
+    start_date: DateYmd,
+    end_date: DateYmd,
+    symbol: OptionalOverseasSymbol = "",
+    exchange: Annotated[
+        str,
+        Field(description="Overseas exchange code for the daily transaction API. The official example uses NAS for US/Nasdaq-style queries."),
+    ] = "NAS",
+    side: Annotated[
+        str,
+        Field(description="KIS side filter: 00 all, 01 sell, 02 buy."),
+    ] = "00",
+    source: OrderHistorySource = "auto",
+    account_label: ConfiguredAccountLabel = DEFAULT_ACCOUNT_LABEL,
+):
+    account = get_account(_account_label(account_label))
+    with scoped_account_env(account):
+        result = await get_overseas_transaction_history_service(
+            start_date,
+            end_date,
+            symbol=symbol,
+            exchange=exchange,
+            side=side,
+            source=source,
+            save_history=True,
+        )
+    result["account"] = account.public_dict()
+    return result
+
+
+@mcp.tool(
+    name="get-overseas-order-history",
+    description="Use this when you need overseas stock order/execution history for a date range with DB-first caching. 해외주식 주문체결내역 API를 조회해 raw snapshot과 canonical order row를 저장하며, 실제 주문 실행에는 사용할 수 없습니다.",
+    annotations=SAFE_LOCAL_WRITE_TOOL,
+)
+async def get_overseas_order_history(
+    start_date: DateYmd,
+    end_date: DateYmd,
+    symbol: OptionalOverseasSymbol = "",
+    exchange: Annotated[
+        str,
+        Field(description="Overseas exchange filter. Use % for all supported exchanges, or NASD/NYSE/AMEX/SEHK/SHAA/SZAA/TKSE/HASE/VNSE."),
+    ] = "%",
+    side: Annotated[
+        str,
+        Field(description="KIS side filter: 00 all, 01 sell, 02 buy."),
+    ] = "00",
+    fill_status: Annotated[
+        str,
+        Field(description="KIS fill status filter: 00 all, 01 filled, 02 unfilled."),
+    ] = "00",
+    source: OrderHistorySource = "auto",
+    account_label: ConfiguredAccountLabel = DEFAULT_ACCOUNT_LABEL,
+):
+    account = get_account(_account_label(account_label))
+    with scoped_account_env(account):
+        result = await get_overseas_order_history_service(
+            start_date,
+            end_date,
+            symbol=symbol,
+            exchange=exchange,
+            side=side,
+            fill_status=fill_status,
+            source=source,
+            save_history=True,
+        )
+    result["account"] = account.public_dict()
+    return result
+
+
+@mcp.tool(
+    name="get-overseas-settlement-balance",
+    description="Use this when you need overseas settlement-basis balance for one base date and want the raw snapshot saved. 해외주식 결제기준잔고 조회용이며 주문 실행에는 사용할 수 없습니다.",
+    annotations=SAFE_LOCAL_WRITE_TOOL,
+)
+async def get_overseas_settlement_balance(
+    base_date: DateYmd,
+    wcrc_frcr_dvsn_cd: Annotated[
+        str,
+        Field(description="Currency evaluation mode: 01 KRW basis, 02 foreign-currency basis."),
+    ] = "01",
+    inqr_dvsn_cd: Annotated[
+        str,
+        Field(description="Balance query mode: 00 all, 01 regular, 02 mini-stock."),
+    ] = "00",
+    account_label: ConfiguredAccountLabel = DEFAULT_ACCOUNT_LABEL,
+):
+    account = get_account(_account_label(account_label))
+    with scoped_account_env(account):
+        result = await get_overseas_settlement_balance_service(
+            base_date,
+            wcrc_frcr_dvsn_cd=wcrc_frcr_dvsn_cd,
+            inqr_dvsn_cd=inqr_dvsn_cd,
+            save_snapshot=True,
+        )
+    result["account"] = account.public_dict()
+    return result
 
 
 @mcp.tool(

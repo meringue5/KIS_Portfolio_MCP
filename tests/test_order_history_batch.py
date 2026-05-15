@@ -160,6 +160,45 @@ def test_batch_cli_sync_market_calendar_prints_json(monkeypatch, capsys):
     assert payload["market"] == "krx"
 
 
+def test_batch_cli_warm_token_cache_prints_json(monkeypatch, capsys):
+    async def fake_warm_token_cache(account_label: str, valid_through: str, dry_run: bool):
+        return {
+            "source": "token_cache",
+            "operation": "warm-token-cache",
+            "status": "ok",
+            "account_label": account_label,
+            "valid_through": valid_through,
+            "dry_run": dry_run,
+            "error_count": 0,
+            "accounts": [],
+        }
+
+    monkeypatch.setattr(batch_cli, "warm_token_cache", fake_warm_token_cache)
+    monkeypatch.setattr(batch_cli, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        batch_cli.argparse.ArgumentParser,
+        "parse_args",
+        lambda self: type(
+            "Args",
+            (),
+            {
+                "command": "warm-token-cache",
+                "account_label": "all",
+                "valid_through": "16:30",
+                "dry_run": True,
+            },
+        )(),
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        batch_cli.main()
+
+    assert excinfo.value.code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["operation"] == "warm-token-cache"
+    assert payload["dry_run"] is True
+
+
 def argparse_namespace():
     return type("Args", (), {"command": "collect-domestic-order-history", "date": "today"})()
 

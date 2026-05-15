@@ -139,6 +139,7 @@ def test_refresh_all_account_snapshots_runs_sequentially_and_reports_account_err
     assert result["count"] == 5
     assert result["success_count"] == 4
     assert result["error_count"] == 1
+    assert result["diagnostics"]["operation_id"].startswith("mcp_")
     assert result["accounts"][0]["snapshot_status"] == "saved"
     assert result["accounts"][3]["account"]["label"] == "irp"
     assert result["accounts"][3]["status"] == "error"
@@ -168,6 +169,7 @@ def test_get_account_balance_uses_requested_account(monkeypatch):
     assert result["raw"] == {"label": "isa", "cano": "22222222", "saved": True}
     assert result["saved_snapshot_id"] == "snapshot-isa"
     assert result["snapshot_status"] == "saved"
+    assert result["diagnostics"]["operation_id"].startswith("mcp_")
 
 
 def test_get_account_balance_reports_snapshot_not_saved(monkeypatch):
@@ -262,6 +264,7 @@ def test_get_total_asset_overview_precomputes_allocation(monkeypatch):
     result = asyncio.run(portfolio_mcp.get_total_asset_overview())
 
     assert result["status"] == "ok"
+    assert result["diagnostics"]["operation_id"].startswith("mcp_")
     assert result["refresh"]["success_count"] == 5
     assert result["refresh"]["snapshot_status_counts"] == {"saved": 5, "not_saved": 0}
     assert result["totals"]["domestic_eval_amt_krw"] == 100_000
@@ -587,3 +590,74 @@ def test_get_total_asset_overview_marks_partial_error_but_keeps_safe_totals(monk
     assert result["totals"]["overseas_total_asset_amt_krw"] == 25_000
     assert result["totals"]["total_eval_amt_krw"] == 125_000
     assert_overview_totals_are_consistent(result)
+
+
+def test_get_total_asset_overview_marks_refresh_partial_error(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    async def fake_refresh_all_account_snapshots():
+        return {
+            "count": 5,
+            "success_count": 4,
+            "error_count": 1,
+            "accounts": [
+                {"status": "ok", "snapshot_status": "saved"},
+                {"status": "error", "account": {"label": "isa"}, "error": "token refresh failed"},
+                {"status": "ok", "snapshot_status": "saved"},
+                {"status": "ok", "snapshot_status": "saved"},
+                {"status": "ok", "snapshot_status": "saved"},
+            ],
+        }
+
+    def fake_summary(con, account_id="", lookback_days=30):
+        return {
+            "latest_snapshot_at": "2026-04-23T09:00:00",
+            "accounts": [{
+                "account_id": "33333333",
+                "account_type": "brokerage",
+                "snap_date": "2026-04-23",
+                "snapshot_at": "2026-04-23T09:00:00",
+                "total_eval_amt": 100_000,
+            }],
+        }
+
+    async def fake_overseas_balance(exchange="ALL"):
+        return {}
+
+    async def fake_overseas_deposit(wcrc_frcr_dvsn_cd="01", natn_cd="000"):
+        return {"적용환율": {"USD/KRW": "1000"}, "예수금_총계": {"외화사용가능금액": "0"}}
+
+    def fake_snapshots(account_id, limit=1):
+        if account_id == "22222222":
+            return []
+        return [{
+            "account_id": account_id,
+            "account_type": "brokerage",
+            "balance_data": {"output1": []},
+        }]
+
+    monkeypatch.setattr(portfolio_mcp, "refresh_all_account_snapshots", fake_refresh_all_account_snapshots)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_connection", lambda: object())
+    monkeypatch.setattr(portfolio_mcp, "analyze_latest_portfolio_summary", fake_summary)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_balance", fake_overseas_balance)
+    monkeypatch.setattr(portfolio_mcp.kis_api, "inquery_overseas_deposit", fake_overseas_deposit)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_portfolio_snapshots", fake_snapshots)
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_instrument_master_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "get_classification_override_map", lambda symbols: {})
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_overseas_asset_snapshot", lambda *args, **kwargs: "ovs-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_overview_snapshot", lambda *args, **kwargs: "overview-1")
+    monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_holding_snapshots", lambda *args, **kwargs: 1)
+
+    result = asyncio.run(portfolio_mcp.get_total_asset_overview())
+
+    assert result["status"] == "partial_error"
+    assert result["refresh"]["error_count"] == 1
+    assert result["refresh"]["errors"] == [{"account": {"label": "isa"}, "error": "token refresh failed"}]
+    assert result["missing_snapshot_accounts"] == [{
+        "label": "isa",
+        "display_name": "ISA",
+        "account_type": "REAL",
+        "acnt_prdt_cd": "01",
+        "masked_cano": "22****22",
+    }]
+    assert result["diagnostics"]["operation_id"].startswith("mcp_")
