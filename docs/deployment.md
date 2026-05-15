@@ -37,8 +37,9 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
   `/.well-known/openid-configuration` alias도 제공한다. 일부 클라이언트가 OIDC discovery를 먼저 probe한 뒤 OAuth metadata로 fallback하기 때문이다.
 - Cloud Run auth는 기본적으로 `max-instances=1`로 배포한다.
   현재 운영 가정이 단일 소유자 interactive auth flow이기 때문에 기본값을 보수적으로 둔다.
-- Cloud Run remote는 기본적으로 `max-instances=1`, `concurrency=20`으로 배포한다.
+- Cloud Run remote는 기본적으로 `min-instances=0`, `max-instances=1`, `concurrency=20`으로 배포한다.
   Streamable HTTP 세션은 프로세스 메모리에 있고, 같은 세션에서 long-running GET과 POST가 동시에 들어오기 때문이다.
+  cold start를 줄여야 할 때만 `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES=1`로 올린다.
 
 `scripts/deploy_cloud_run.py remote`는 `KIS_REMOTE_AUTH_MODE`가 비어 있으면 ChatGPT 친화 기본값으로 `oauth`를 사용한다.
 
@@ -213,17 +214,30 @@ uv run python scripts/deploy_cloud_run.py auth
 uv run python scripts/deploy_cloud_run.py remote
 uv run python scripts/deploy_cloud_run.py batch
 uv run python scripts/deploy_cloud_run.py scheduler
+uv run python scripts/deploy_cloud_run.py overseas-batch
+uv run python scripts/deploy_cloud_run.py overseas-scheduler
+uv run python scripts/deploy_cloud_run.py token-warmup-batch
+uv run python scripts/deploy_cloud_run.py token-warmup-scheduler
 ```
 
 스크립트는 `.env`와 현재 셸 환경을 함께 읽고, 필요한 값이 비어 있으면 누락된 키를 바로 출력한다.
 `--dry-run`을 붙이면 실제 배포 없이 검증만 할 수 있다.
 
-현재 `batch` target은 첫 배치 유스케이스인 `collect-domestic-order-history --date today` 전용 Cloud Run Job을 배포한다.
-기본값은 다음과 같다.
+현재 `batch` target은 `collect-domestic-order-history --date today` 전용 Cloud Run Job을 배포한다.
+`overseas-batch` target은 `collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS`
+전용 Cloud Run Job을 배포한다. 기본값은 다음과 같다.
+`token-warmup-batch` target은 `warm-token-cache --account-label all --valid-through 16:30 --dry-run`
+전용 Cloud Run Job을 배포한다. 초기 rollout은 dry-run만 수행하므로 KIS 토큰 발급을 유발하지 않는다.
 
 - Job name: `kis-portfolio-domestic-order-history`
 - Scheduler name: `kis-portfolio-domestic-order-history-1535`
 - Schedule: 평일 `15:35` KST (`35 15 * * 1-5`)
+- Overseas Job name: `kis-portfolio-overseas-transaction-history`
+- Overseas Scheduler name: `kis-portfolio-overseas-transaction-history-0735`
+- Overseas Schedule: 평일 `07:35` KST (`35 7 * * 1-5`)
+- Token warm-up Job name: `kis-portfolio-token-warmup-dry-run`
+- Token warm-up Scheduler name: `kis-portfolio-token-warmup-0830`
+- Token warm-up Schedule: 평일 `08:30` KST (`30 8 * * 1-5`)
 - Time zone: `Asia/Seoul`
 - Cloud Run Job task timeout: `1800s`
 - Cloud Run Job max retries: `0`
@@ -236,9 +250,15 @@ Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJ
 - `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`
 - `KIS_BATCH_JOB_NAME`
 - `KIS_BATCH_SCHEDULER_NAME`
+- `KIS_OVERSEAS_BATCH_JOB_NAME`
+- `KIS_OVERSEAS_BATCH_SCHEDULER_NAME`
 - `KIS_CLOUD_SCHEDULER_REGION`
 - `KIS_BATCH_ORDER_HISTORY_SCHEDULE`
 - `KIS_BATCH_ORDER_HISTORY_TIME_ZONE`
+- `KIS_OVERSEAS_TRANSACTION_HISTORY_SCHEDULE`
+- `KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE`
+- `KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL`
+- `KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE`
 
 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 `gcloud projects describe ... --format=value(projectNumber)` 결과를 사용해 기본 compute service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`)를 fallback으로 잡는다.
 
@@ -247,13 +267,15 @@ Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJ
 이 저장소에는 [.github/workflows/deploy-cloud-run.yml](../.github/workflows/deploy-cloud-run.yml) 이 포함되어 있다.
 
 - trigger:
-  - `workflow_dispatch` with `all`, `auth`, `remote`, `batch`, `scheduler`
+  - `workflow_dispatch` with `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`
 - 순서:
   - `uv run pytest`
   - `auth` 서비스 배포
   - `remote` 서비스 배포
   - `batch` Job 배포
   - `scheduler` 배포
+  - 해외 거래내역 batch Job / scheduler 배포
+  - 토큰 warm-up dry-run Job / scheduler 배포
 - `master`에 push만 해서는 배포되지 않는다.
 - 배포 방식:
   - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인
@@ -274,6 +296,7 @@ Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJ
   - `KIS_REMOTE_SERVICE_NAME` (선택)
   - `KIS_CLOUD_RUN_AUTH_MAX_INSTANCES` (선택, 기본값 `1`)
   - `KIS_CLOUD_RUN_REMOTE_CONCURRENCY` (선택, 기본값 `20`)
+  - `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES` (선택, 기본값 `0`)
   - `KIS_CLOUD_RUN_REMOTE_MAX_INSTANCES` (선택, 기본값 `1`)
   - `KIS_BATCH_JOB_NAME` (선택)
   - `KIS_BATCH_SCHEDULER_NAME` (선택)

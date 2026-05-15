@@ -86,12 +86,77 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
     assert "KIS_REMOTE_AUTH_MODE" not in payload
 
 
+def test_batch_runtime_flags_apply_to_domestic_and_overseas_jobs():
+    env = {
+        "KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT": "2400s",
+        "KIS_CLOUD_RUN_BATCH_MAX_RETRIES": "1",
+        "KIS_CLOUD_RUN_BATCH_SERVICE_ACCOUNT": "batch@example.iam.gserviceaccount.com",
+    }
+
+    runtime_flags = deploy_cloud_run._build_batch_runtime_flags(env)
+
+    assert runtime_flags == [
+        "--task-timeout",
+        "2400s",
+        "--max-retries",
+        "1",
+        "--service-account",
+        "batch@example.iam.gserviceaccount.com",
+    ]
+
+
+def test_overseas_batch_command_uses_default_account_and_exchange():
+    command_args = deploy_cloud_run._build_overseas_batch_command_args({})
+
+    assert command_args == (
+        "run,kis-portfolio-batch,collect-overseas-transaction-history,"
+        "--date,today,--account-label,brokerage,--exchange,NAS"
+    )
+
+
+def test_overseas_batch_command_allows_account_and_exchange_override():
+    command_args = deploy_cloud_run._build_overseas_batch_command_args({
+        "KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL": "ria",
+        "KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE": "NYSE",
+    })
+
+    assert "--account-label,ria" in command_args
+    assert "--exchange,NYSE" in command_args
+
+
+def test_token_warmup_batch_command_is_dry_run_only():
+    command_args = deploy_cloud_run._build_token_warmup_command_args({})
+
+    assert command_args == (
+        "run,kis-portfolio-batch,warm-token-cache,"
+        "--account-label,all,--valid-through,16:30,--dry-run"
+    )
+
+
 def test_remote_runtime_flags_keep_existing_safe_defaults():
     env = {}
 
     runtime_flags = deploy_cloud_run._build_remote_runtime_flags(env)
 
-    assert runtime_flags == ["--concurrency", "20", "--max-instances", "1"]
+    assert runtime_flags == [
+        "--concurrency",
+        "20",
+        "--min-instances",
+        "0",
+        "--max-instances",
+        "1",
+    ]
+
+
+def test_remote_runtime_flags_support_min_instance_override():
+    env = {
+        "KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES": "1",
+    }
+
+    runtime_flags = deploy_cloud_run._build_remote_runtime_flags(env)
+
+    assert "--min-instances" in runtime_flags
+    assert runtime_flags[runtime_flags.index("--min-instances") + 1] == "1"
 
 
 def test_scheduler_service_account_defaults_to_project_compute_account():

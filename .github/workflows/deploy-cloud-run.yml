@@ -14,6 +14,10 @@ on:
           - remote
           - batch
           - scheduler
+          - overseas-batch
+          - overseas-scheduler
+          - token-warmup-batch
+          - token-warmup-scheduler
 
 permissions:
   contents: read
@@ -34,6 +38,10 @@ jobs:
       KIS_REMOTE_SERVICE_NAME: ${{ vars.KIS_REMOTE_SERVICE_NAME }}
       KIS_BATCH_JOB_NAME: ${{ vars.KIS_BATCH_JOB_NAME }}
       KIS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_BATCH_SCHEDULER_NAME }}
+      KIS_OVERSEAS_BATCH_JOB_NAME: ${{ vars.KIS_OVERSEAS_BATCH_JOB_NAME }}
+      KIS_OVERSEAS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_OVERSEAS_BATCH_SCHEDULER_NAME }}
+      KIS_TOKEN_WARMUP_JOB_NAME: ${{ vars.KIS_TOKEN_WARMUP_JOB_NAME }}
+      KIS_TOKEN_WARMUP_SCHEDULER_NAME: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULER_NAME }}
       KIS_CLOUD_SCHEDULER_REGION: ${{ vars.KIS_CLOUD_SCHEDULER_REGION }}
       GOOGLE_CLOUD_PROJECT_NUMBER: ${{ vars.GOOGLE_CLOUD_PROJECT_NUMBER }}
       KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT: ${{ vars.KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT }}
@@ -112,4 +120,40 @@ jobs:
             --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
             --job "${KIS_BATCH_JOB_NAME:-kis-portfolio-domestic-order-history}" \
             --scheduler "${KIS_BATCH_SCHEDULER_NAME:-kis-portfolio-domestic-order-history-1535}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"
+
+      - name: Deploy overseas transaction history batch job
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'overseas-batch'
+        run: |
+          uv run python scripts/deploy_cloud_run.py overseas-batch \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --job "${KIS_OVERSEAS_BATCH_JOB_NAME:-kis-portfolio-overseas-transaction-history}"
+
+      - name: Deploy overseas transaction history scheduler
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'overseas-scheduler'
+        run: |
+          uv run python scripts/deploy_cloud_run.py overseas-scheduler \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --job "${KIS_OVERSEAS_BATCH_JOB_NAME:-kis-portfolio-overseas-transaction-history}" \
+            --scheduler "${KIS_OVERSEAS_BATCH_SCHEDULER_NAME:-kis-portfolio-overseas-transaction-history-0735}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"
+
+      - name: Deploy token warm-up dry-run batch job
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'token-warmup-batch'
+        run: |
+          uv run python scripts/deploy_cloud_run.py token-warmup-batch \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --job "${KIS_TOKEN_WARMUP_JOB_NAME:-kis-portfolio-token-warmup-dry-run}"
+
+      - name: Deploy token warm-up dry-run scheduler
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'token-warmup-scheduler'
+        run: |
+          uv run python scripts/deploy_cloud_run.py token-warmup-scheduler \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION:-asia-northeast3}" \
+            --job "${KIS_TOKEN_WARMUP_JOB_NAME:-kis-portfolio-token-warmup-dry-run}" \
+            --scheduler "${KIS_TOKEN_WARMUP_SCHEDULER_NAME:-kis-portfolio-token-warmup-0830}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION:-${KIS_DEPLOY_REGION:-asia-northeast3}}"

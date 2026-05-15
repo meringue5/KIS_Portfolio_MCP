@@ -189,6 +189,11 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 | `asset_holding_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
 | `market_calendar` | upsert | `kis-portfolio-batch sync-market-calendar 2026 2027` 실행 시 |
 | `order_history` | append-only INSERT | `kis-portfolio-batch collect-domestic-order-history --date today` 실행 시 |
+| `overseas_order_history` | append-only INSERT | `get-overseas-order-history` 호출 시 |
+| `overseas_orders` | upsert | `get-overseas-order-history` 호출 시 |
+| `overseas_transaction_history` | append-only INSERT | `get-overseas-transaction-history`, `kis-portfolio-batch collect-overseas-transaction-history --date today` 실행 시 |
+| `overseas_transactions` | upsert | `get-overseas-transaction-history`, `kis-portfolio-batch collect-overseas-transaction-history --date today` 실행 시 |
+| `overseas_settlement_balance_snapshots` | append-only INSERT | `get-overseas-settlement-balance` 호출 시 |
 | `instrument_master` | upsert | `scripts/sync_instrument_master.py` 실행 시 |
 | `instrument_classification_overrides` | upsert | 로컬 override 등록 시 |
 | `trade_profit_history` | append-only INSERT | `get-period-trade-profit`, `get-overseas-period-profit` 호출 시 |
@@ -230,7 +235,12 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 
 현재 배치 command:
 - `collect-domestic-order-history --date today`
+- `collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS`
 - `sync-market-calendar 2026 2027`
+
+Cloud Run 배포 target:
+- `batch` / `scheduler`: 국내 주문체결 이력 Job + 평일 15:35 KST 스케줄
+- `overseas-batch` / `overseas-scheduler`: 해외 일별거래내역 Job + 평일 07:35 KST 스케줄
 
 노출 tool:
 - `get-configured-accounts`
@@ -241,6 +251,7 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 - `get-overseas-stock-price`, `get-overseas-stock-history`
 - `get-overseas-balance`, `get-overseas-deposit`
 - `get-period-trade-profit`, `get-overseas-period-profit`
+- `get-overseas-transaction-history`, `get-overseas-order-history`, `get-overseas-settlement-balance`
 - `get-order-list`, `get-order-detail`
 - `submit-stock-order`, `submit-overseas-stock-order` (disabled stub)
 - `get-latest-portfolio-summary`

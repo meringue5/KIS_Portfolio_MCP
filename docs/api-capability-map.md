@@ -18,8 +18,8 @@ core service 함수와 저장 정책을 설계한다.
 |-------|-------|----------------|-----------|
 | Auth | 접근토큰, 토큰 폐기, Hashkey, websocket key | 토큰 발급/캐시/상태 조회 구현 | token audit event 추가 |
 | Account | 국내 잔고, 퇴직연금 잔고, 예수금, 매수가능, 기간 손익 | 일부 구현, 오케스트레이터 v1 구현 | 포트폴리오 서비스의 우선순위 1 |
-| Overseas Account | 해외 잔고, 해외 예수금, 해외 기간 손익 | legacy MCP tool 구현 | 서비스 계층으로 분리 |
-| Order | 국내/해외 주문, 정정취소, 주문조회 | 조회 일부 구현, 주문은 safety gate | 기본 비활성, 별도 confirmation/audit 전까지 확장 금지 |
+| Overseas Account | 해외 잔고, 해외 예수금, 해외 결제기준잔고, 해외 기간 손익 | MCP tool + service 일부 구현 | 결제/현금/권리/배당 원장 확장 |
+| Order | 국내/해외 주문, 정정취소, 주문조회 | 국내/해외 조회 일부 구현, 주문은 safety gate | 기본 비활성, 별도 confirmation/audit 전까지 확장 금지 |
 | Market Data | 국내/해외 현재가, 호가, 일/분봉 | 일부 구현 및 가격 이력 저장 | 가격 서비스와 DB cache 분리 |
 | Master Data | 국내/해외 종목코드, 업종, 테마, 회원사, 상품 메타데이터 | 국내 master ingestion v1 구현 | 공식 `stocks_info` 예제를 ingestion 기준으로 사용 |
 | Analytics | 최신 합산, 일별 변화, 추세, 이상치, 볼린저 밴드 | 일부 구현 | canonical 총자산과 feeder 분석을 분리 유지 |
@@ -33,6 +33,7 @@ core service 함수와 저장 정책을 설계한다.
    - `refresh-all-account-snapshots`
    - 투자계좌자산현황조회 후보 검토
    - 기간별손익/매매손익 API의 국내/해외 응답 정규화
+   - 해외 일별거래내역/주문체결내역 canonical row를 현금흐름 분석으로 연결
 
 2. Auth
    - token audit event schema

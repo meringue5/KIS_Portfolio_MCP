@@ -25,12 +25,17 @@ raw tables
   asset_holding_snapshots
   market_calendar
   order_history
+  overseas_order_history
+  overseas_transaction_history
+  overseas_settlement_balance_snapshots
   instrument_master
   instrument_classification_overrides
   trade_profit_history
 
 canonical / curated tables
   domestic_orders
+  overseas_orders
+  overseas_transactions
 
 curated views / future tables
   portfolio_daily_snapshots
@@ -72,6 +77,14 @@ KIS 주문 식별자 기준 upsert를 사용한다. 현재 국내주식 주문�
 `get-order-list`와 `collect-domestic-order-history` 배치는 모두 같은 canonical upsert 경로를 탄다.
 장중 수동 조회와 장마감 배치가 같은 주문을 다시 가져와도 기존 row를 최신 상태로 갱신하고, 통계는
 `domestic_orders`만 읽도록 한다.
+
+해외주식은 같은 원칙을 따르되 조회 성격별 raw 저장소를 분리한다.
+
+- `overseas_order_history`: 해외주식 주문체결내역 raw snapshot
+- `overseas_orders`: 주문번호/주문일/거래소 기준 canonical upsert
+- `overseas_transaction_history`: 해외주식 일별거래내역 raw snapshot
+- `overseas_transactions`: raw row hash 기준 canonical upsert
+- `overseas_settlement_balance_snapshots`: 해외주식 결제기준잔고 raw snapshot
 
 현재 제공하는 view:
 

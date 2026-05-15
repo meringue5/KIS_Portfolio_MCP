@@ -53,6 +53,8 @@
 
 - 국내 주식 기간별 손익
 - 해외 주식 기간별 손익
+- 해외 주식 일별거래내역 / 주문체결내역
+- 해외 주식 결제기준잔고
 - 총자산 이력
 - 총자산 일간 변화
 - 총자산 추세
@@ -67,6 +69,11 @@
 - `asset_holding_snapshots`: 총자산 스냅샷 기준 정규화 보유 row
 - `order_history`: 국내 주문/체결 raw observation
 - `domestic_orders`: 국내 주문/체결 canonical upsert 저장소
+- `overseas_order_history`: 해외 주문/체결 raw observation
+- `overseas_orders`: 해외 주문/체결 canonical upsert 저장소
+- `overseas_transaction_history`: 해외 일별거래내역 raw observation
+- `overseas_transactions`: 해외 일별거래내역 canonical upsert 저장소
+- `overseas_settlement_balance_snapshots`: 해외 결제기준잔고 raw 스냅샷
 - `instrument_master`: KIS 종목마스터 적재 결과
 - `instrument_classification_overrides`: 로컬 수동 분류 override
 
@@ -192,12 +199,16 @@ uv run kis-portfolio-remote
 
 ```bash
 uv run kis-portfolio-batch collect-domestic-order-history --date today
+uv run kis-portfolio-batch collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS
+uv run kis-portfolio-batch warm-token-cache --account-label all --valid-through 16:30 --dry-run
 uv run kis-portfolio-batch sync-market-calendar 2026 2027
 ```
 
 `collect-domestic-order-history`는 Asia/Seoul 기준 `today` 날짜를 풀어 전 계좌의 당일 국내 주문/체결 이력을 조회하고, `order_history`에는 raw snapshot을 append-only로 저장하며 `domestic_orders`에는 KIS 주문 식별자 기준 canonical upsert를 수행합니다.
 배치 실행 전에는 `market_calendar`를 조회하며, 휴장일이면 자동 skip 하고, 당일 실행은 KRX 마감 `15:30` 이후 5분 grace window가 지난 뒤에만 수집합니다.
 `sync-market-calendar`는 KRX 거래 캘린더를 연도 단위로 생성해 `market_calendar`에 upsert 합니다.
+`collect-overseas-transaction-history`는 지정 계좌/거래소의 해외주식 일별거래내역을 수집해 raw snapshot과 canonical transaction row를 함께 저장합니다.
+`warm-token-cache`는 지정 시각까지 안전하게 유효하지 않은 KIS access token을 계좌별로 점검합니다. 초기 운영은 `--dry-run`으로만 예약해 실제 토큰 발급 없이 장중 만료 위험을 관측합니다.
 Cloud Scheduler/cron 기준 첫 스케줄 예시는 평일 `15:35` KST, cron 표현으로는 `35 15 * * 1-5` 입니다.
 
 ### ChatGPT 앱 메타데이터 권장값
@@ -241,9 +252,12 @@ ChatGPT에서 custom app으로 연결할 때는 아래처럼 app-level metadata�
 - `KIS_REMOTE_SERVICE_NAME` 기본값 `kis-portfolio-remote`
 - `KIS_CLOUD_RUN_AUTH_MAX_INSTANCES` 기본값 `1`
 - `KIS_CLOUD_RUN_REMOTE_CONCURRENCY` 기본값 `20`
+- `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES` 기본값 `0`
 - `KIS_CLOUD_RUN_REMOTE_MAX_INSTANCES` 기본값 `1`
 - `KIS_BATCH_JOB_NAME` 기본값 `kis-portfolio-domestic-order-history`
 - `KIS_BATCH_SCHEDULER_NAME` 기본값 `kis-portfolio-domestic-order-history-1535`
+- `KIS_OVERSEAS_BATCH_JOB_NAME` 기본값 `kis-portfolio-overseas-transaction-history`
+- `KIS_OVERSEAS_BATCH_SCHEDULER_NAME` 기본값 `kis-portfolio-overseas-transaction-history-0735`
 - `KIS_CLOUD_SCHEDULER_REGION` 기본값 `asia-northeast3`
 
 Scheduler는 Cloud Run Job의 `jobs:run` Google API endpoint를 OAuth로 호출합니다. `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 명시하면 그 계정을 쓰고, 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 gcloud 조회 결과를 바탕으로 기본 compute service account를 fallback으로 사용합니다. 이 계정에는 Cloud Run Job에 대한 `roles/run.invoker`가 필요합니다.
@@ -279,6 +293,9 @@ bash scripts/setup.sh
 - `get-overseas-stock-price`
 - `get-overseas-stock-history`
 - `get-exchange-rate-history`
+- `get-overseas-transaction-history`
+- `get-overseas-order-history`
+- `get-overseas-settlement-balance`
 
 ### 손익 / 분석
 

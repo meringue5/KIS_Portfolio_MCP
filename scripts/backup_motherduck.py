@@ -42,6 +42,11 @@ TABLES = (
     "instrument_classification_overrides",
     "domestic_orders",
     "order_history",
+    "overseas_order_history",
+    "overseas_orders",
+    "overseas_transaction_history",
+    "overseas_transactions",
+    "overseas_settlement_balance_snapshots",
     "trade_profit_history",
 )
 

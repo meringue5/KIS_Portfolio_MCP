@@ -19,14 +19,27 @@ DEFAULT_REMOTE_SERVICE = "kis-portfolio-remote"
 DEFAULT_AUTH_SERVICE = "kis-portfolio-auth"
 DEFAULT_BATCH_JOB = "kis-portfolio-domestic-order-history"
 DEFAULT_BATCH_SCHEDULER = "kis-portfolio-domestic-order-history-1535"
+DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
+DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
+DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
+DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
 DEFAULT_AUTH_MAX_INSTANCES = "1"
 DEFAULT_REMOTE_CONCURRENCY = "20"
+DEFAULT_REMOTE_MIN_INSTANCES = "0"
 DEFAULT_REMOTE_MAX_INSTANCES = "1"
 DEFAULT_CHATGPT_REMOTE_AUTH_MODE = "oauth"
 DEFAULT_BATCH_TASK_TIMEOUT = "1800s"
 DEFAULT_BATCH_MAX_RETRIES = "0"
 DEFAULT_BATCH_SCHEDULE = "35 15 * * 1-5"
 DEFAULT_BATCH_TIME_ZONE = "Asia/Seoul"
+DEFAULT_OVERSEAS_BATCH_SCHEDULE = "35 7 * * 1-5"
+DEFAULT_OVERSEAS_BATCH_TIME_ZONE = "Asia/Seoul"
+DEFAULT_OVERSEAS_ACCOUNT_LABEL = "brokerage"
+DEFAULT_OVERSEAS_EXCHANGE = "NAS"
+DEFAULT_TOKEN_WARMUP_SCHEDULE = "30 8 * * 1-5"
+DEFAULT_TOKEN_WARMUP_TIME_ZONE = "Asia/Seoul"
+DEFAULT_TOKEN_WARMUP_ACCOUNT_LABEL = "all"
+DEFAULT_TOKEN_WARMUP_VALID_THROUGH = "16:30"
 
 
 def _load_env() -> dict[str, str]:
@@ -175,9 +188,54 @@ def _build_remote_runtime_flags(env: dict[str, str]) -> list[str]:
     return [
         "--concurrency",
         env.get("KIS_CLOUD_RUN_REMOTE_CONCURRENCY", DEFAULT_REMOTE_CONCURRENCY),
+        "--min-instances",
+        env.get("KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES", DEFAULT_REMOTE_MIN_INSTANCES),
         "--max-instances",
         env.get("KIS_CLOUD_RUN_REMOTE_MAX_INSTANCES", DEFAULT_REMOTE_MAX_INSTANCES),
     ]
+
+
+def _build_batch_runtime_flags(env: dict[str, str]) -> list[str]:
+    runtime_flags = [
+        "--task-timeout",
+        env.get("KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT", DEFAULT_BATCH_TASK_TIMEOUT),
+        "--max-retries",
+        env.get("KIS_CLOUD_RUN_BATCH_MAX_RETRIES", DEFAULT_BATCH_MAX_RETRIES),
+    ]
+    batch_service_account = env.get("KIS_CLOUD_RUN_BATCH_SERVICE_ACCOUNT", "").strip()
+    if batch_service_account:
+        runtime_flags.extend(["--service-account", batch_service_account])
+    return runtime_flags
+
+
+def _build_overseas_batch_command_args(env: dict[str, str]) -> str:
+    account_label = env.get(
+        "KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL",
+        DEFAULT_OVERSEAS_ACCOUNT_LABEL,
+    )
+    exchange = env.get(
+        "KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE",
+        DEFAULT_OVERSEAS_EXCHANGE,
+    )
+    return (
+        "run,kis-portfolio-batch,collect-overseas-transaction-history,"
+        f"--date,today,--account-label,{account_label},--exchange,{exchange}"
+    )
+
+
+def _build_token_warmup_command_args(env: dict[str, str]) -> str:
+    account_label = env.get(
+        "KIS_TOKEN_WARMUP_ACCOUNT_LABEL",
+        DEFAULT_TOKEN_WARMUP_ACCOUNT_LABEL,
+    )
+    valid_through = env.get(
+        "KIS_TOKEN_WARMUP_VALID_THROUGH",
+        DEFAULT_TOKEN_WARMUP_VALID_THROUGH,
+    )
+    return (
+        "run,kis-portfolio-batch,warm-token-cache,"
+        f"--account-label,{account_label},--valid-through,{valid_through},--dry-run"
+    )
 
 
 def _validate_required(env: dict[str, str], required: list[str]) -> list[str]:
@@ -421,9 +479,78 @@ def _deploy_service_or_job(
             pass
 
 
+def _deploy_scheduler_target(
+    *,
+    args: argparse.Namespace,
+    env: dict[str, str],
+    project: str,
+    job: str,
+    scheduler: str,
+    scheduler_region: str,
+    schedule: str,
+    time_zone: str,
+) -> int:
+    scheduler_service_account = _resolve_scheduler_service_account(
+        env,
+        project=project,
+        dry_run=args.dry_run,
+    )
+    if not scheduler_service_account:
+        print("Missing required environment variables:")
+        print("- KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT or GOOGLE_CLOUD_PROJECT_NUMBER")
+        return 1
+
+    binding_code = _run(
+        _build_job_invoker_binding_command(
+            job=job,
+            region=args.region,
+            service_account=scheduler_service_account,
+            project=project,
+        ),
+        dry_run=args.dry_run,
+    )
+    if binding_code != 0:
+        return binding_code
+
+    action = "create"
+    if not args.dry_run and _scheduler_exists(
+        scheduler=scheduler,
+        scheduler_region=scheduler_region,
+        project=project,
+        dry_run=False,
+    ):
+        action = "update"
+
+    return _run(
+        _build_scheduler_http_command(
+            action=action,
+            scheduler=scheduler,
+            scheduler_region=scheduler_region,
+            schedule=schedule,
+            time_zone=time_zone,
+            uri=_build_run_job_uri(project=project, region=args.region, job=job),
+            service_account=scheduler_service_account,
+            project=project,
+        ),
+        dry_run=args.dry_run,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", choices=("auth", "remote", "batch", "scheduler"))
+    parser.add_argument(
+        "target",
+        choices=(
+            "auth",
+            "remote",
+            "batch",
+            "scheduler",
+            "overseas-batch",
+            "overseas-scheduler",
+            "token-warmup-batch",
+            "token-warmup-scheduler",
+        ),
+    )
     parser.add_argument("--region", default=DEFAULT_REGION)
     parser.add_argument("--project")
     parser.add_argument("--service")
@@ -479,22 +606,47 @@ def main() -> int:
             for key in missing:
                 print(f"- {key}")
             return 1
-        runtime_flags = [
-            "--task-timeout",
-            env.get("KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT", DEFAULT_BATCH_TASK_TIMEOUT),
-            "--max-retries",
-            env.get("KIS_CLOUD_RUN_BATCH_MAX_RETRIES", DEFAULT_BATCH_MAX_RETRIES),
-        ]
-        batch_service_account = env.get("KIS_CLOUD_RUN_BATCH_SERVICE_ACCOUNT", "").strip()
-        if batch_service_account:
-            runtime_flags.extend(["--service-account", batch_service_account])
         return _deploy_service_or_job(
             args=args,
             project=project,
             payload=_build_batch_env(env),
-            runtime_flags=runtime_flags,
+            runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_BATCH_JOB_NAME") or DEFAULT_BATCH_JOB,
             command_args="run,kis-portfolio-batch,collect-domestic-order-history,--date,today",
+            is_job=True,
+        )
+
+    if args.target == "overseas-batch":
+        missing = _validate_required(env, _required_keys_for_batch(env))
+        if missing:
+            print("Missing required environment variables:")
+            for key in missing:
+                print(f"- {key}")
+            return 1
+        return _deploy_service_or_job(
+            args=args,
+            project=project,
+            payload=_build_batch_env(env),
+            runtime_flags=_build_batch_runtime_flags(env),
+            target_name=args.job or env.get("KIS_OVERSEAS_BATCH_JOB_NAME") or DEFAULT_OVERSEAS_BATCH_JOB,
+            command_args=_build_overseas_batch_command_args(env),
+            is_job=True,
+        )
+
+    if args.target == "token-warmup-batch":
+        missing = _validate_required(env, _required_keys_for_batch(env))
+        if missing:
+            print("Missing required environment variables:")
+            for key in missing:
+                print(f"- {key}")
+            return 1
+        return _deploy_service_or_job(
+            args=args,
+            project=project,
+            payload=_build_batch_env(env),
+            runtime_flags=_build_batch_runtime_flags(env),
+            target_name=args.job or env.get("KIS_TOKEN_WARMUP_JOB_NAME") or DEFAULT_TOKEN_WARMUP_JOB,
+            command_args=_build_token_warmup_command_args(env),
             is_job=True,
         )
 
@@ -503,54 +655,39 @@ def main() -> int:
         print("- GOOGLE_CLOUD_PROJECT")
         return 1
 
-    job = args.job or env.get("KIS_BATCH_JOB_NAME") or DEFAULT_BATCH_JOB
-    scheduler = args.scheduler or env.get("KIS_BATCH_SCHEDULER_NAME") or DEFAULT_BATCH_SCHEDULER
-    scheduler_region = args.scheduler_region or env.get("KIS_CLOUD_SCHEDULER_REGION") or args.region
-    schedule = args.schedule or env.get("KIS_BATCH_ORDER_HISTORY_SCHEDULE") or DEFAULT_BATCH_SCHEDULE
-    time_zone = args.time_zone or env.get("KIS_BATCH_ORDER_HISTORY_TIME_ZONE") or DEFAULT_BATCH_TIME_ZONE
-    scheduler_service_account = _resolve_scheduler_service_account(
-        env,
-        project=project,
-        dry_run=args.dry_run,
-    )
-    if not scheduler_service_account:
-        print("Missing required environment variables:")
-        print("- KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT or GOOGLE_CLOUD_PROJECT_NUMBER")
-        return 1
-
-    binding_code = _run(
-        _build_job_invoker_binding_command(
-            job=job,
-            region=args.region,
-            service_account=scheduler_service_account,
+    if args.target == "scheduler":
+        return _deploy_scheduler_target(
+            args=args,
+            env=env,
             project=project,
-        ),
-        dry_run=args.dry_run,
-    )
-    if binding_code != 0:
-        return binding_code
+            job=args.job or env.get("KIS_BATCH_JOB_NAME") or DEFAULT_BATCH_JOB,
+            scheduler=args.scheduler or env.get("KIS_BATCH_SCHEDULER_NAME") or DEFAULT_BATCH_SCHEDULER,
+            scheduler_region=args.scheduler_region or env.get("KIS_CLOUD_SCHEDULER_REGION") or args.region,
+            schedule=args.schedule or env.get("KIS_BATCH_ORDER_HISTORY_SCHEDULE") or DEFAULT_BATCH_SCHEDULE,
+            time_zone=args.time_zone or env.get("KIS_BATCH_ORDER_HISTORY_TIME_ZONE") or DEFAULT_BATCH_TIME_ZONE,
+        )
 
-    action = "create"
-    if not args.dry_run and _scheduler_exists(
-        scheduler=scheduler,
-        scheduler_region=scheduler_region,
-        project=project,
-        dry_run=False,
-    ):
-        action = "update"
-
-    return _run(
-        _build_scheduler_http_command(
-            action=action,
-            scheduler=scheduler,
-            scheduler_region=scheduler_region,
-            schedule=schedule,
-            time_zone=time_zone,
-            uri=_build_run_job_uri(project=project, region=args.region, job=job),
-            service_account=scheduler_service_account,
+    if args.target == "token-warmup-scheduler":
+        return _deploy_scheduler_target(
+            args=args,
+            env=env,
             project=project,
-        ),
-        dry_run=args.dry_run,
+            job=args.job or env.get("KIS_TOKEN_WARMUP_JOB_NAME") or DEFAULT_TOKEN_WARMUP_JOB,
+            scheduler=args.scheduler or env.get("KIS_TOKEN_WARMUP_SCHEDULER_NAME") or DEFAULT_TOKEN_WARMUP_SCHEDULER,
+            scheduler_region=args.scheduler_region or env.get("KIS_CLOUD_SCHEDULER_REGION") or args.region,
+            schedule=args.schedule or env.get("KIS_TOKEN_WARMUP_SCHEDULE") or DEFAULT_TOKEN_WARMUP_SCHEDULE,
+            time_zone=args.time_zone or env.get("KIS_TOKEN_WARMUP_TIME_ZONE") or DEFAULT_TOKEN_WARMUP_TIME_ZONE,
+        )
+
+    return _deploy_scheduler_target(
+        args=args,
+        env=env,
+        project=project,
+        job=args.job or env.get("KIS_OVERSEAS_BATCH_JOB_NAME") or DEFAULT_OVERSEAS_BATCH_JOB,
+        scheduler=args.scheduler or env.get("KIS_OVERSEAS_BATCH_SCHEDULER_NAME") or DEFAULT_OVERSEAS_BATCH_SCHEDULER,
+        scheduler_region=args.scheduler_region or env.get("KIS_CLOUD_SCHEDULER_REGION") or args.region,
+        schedule=args.schedule or env.get("KIS_OVERSEAS_TRANSACTION_HISTORY_SCHEDULE") or DEFAULT_OVERSEAS_BATCH_SCHEDULE,
+        time_zone=args.time_zone or env.get("KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE") or DEFAULT_OVERSEAS_BATCH_TIME_ZONE,
     )
 
 

@@ -31,6 +31,9 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 | 환율 이력 조회 | `get-exchange-rate-history` |
 | 국내주식 기간별 매매손익 | `get-period-trade-profit` |
 | 해외주식 기간별 손익 | `get-overseas-period-profit` |
+| 해외주식 일별거래내역 | `get-overseas-transaction-history` |
+| 해외주식 주문체결내역 | `get-overseas-order-history` |
+| 해외주식 결제기준잔고 | `get-overseas-settlement-balance` |
 | 주문 조회/상세 | `get-order-list`, `get-order-detail` |
 | 주문 stub | `submit-stock-order`, `submit-overseas-stock-order` |
 | 종목 기본정보 | `get-stock-info` |

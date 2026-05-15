@@ -31,6 +31,11 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 ├── instrument_classification_overrides.parquet
 ├── domestic_orders.parquet
 ├── order_history.parquet
+├── overseas_order_history.parquet
+├── overseas_orders.parquet
+├── overseas_transaction_history.parquet
+├── overseas_transactions.parquet
+├── overseas_settlement_balance_snapshots.parquet
 ├── portfolio_snapshots.parquet
 ├── price_history.parquet
 ├── trade_profit_history.parquet
