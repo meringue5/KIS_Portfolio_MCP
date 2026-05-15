@@ -118,3 +118,55 @@ def test_upsert_domestic_orders_separates_account_product_codes(tmp_path, monkey
     assert len(rows_29) == 1
     assert rows_01[0]["account_type"] == "brokerage"
     assert rows_29[0]["account_type"] == "irp"
+
+
+def test_upsert_overseas_transactions_deduplicates_by_raw_row_hash(tmp_path, monkeypatch):
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path))
+
+    import kis_portfolio.db as kisdb
+
+    kisdb = importlib.reload(kisdb)
+    try:
+        base_row = {
+            "account_id": "12345678",
+            "account_product_code": "01",
+            "account_type": "brokerage",
+            "transaction_date": "20260423",
+            "exchange_code": "NAS",
+            "symbol": "AAPL",
+            "symbol_name": "Apple Inc",
+            "side_code": "02",
+            "quantity": 2.0,
+            "price": 170.5,
+            "amount": 341.0,
+            "currency": "USD",
+            "last_source": "kis_api",
+            "last_transaction_history_id": "snapshot-1",
+            "raw_data": {"erlm_dt": "20260423", "pdno": "AAPL", "ord_no": "O-1"},
+        }
+        assert kisdb.upsert_overseas_transactions([base_row]) == 1
+        updated_row = {
+            **base_row,
+            "amount": 342.0,
+            "last_source": "batch",
+            "last_transaction_history_id": "snapshot-2",
+        }
+        assert kisdb.upsert_overseas_transactions([updated_row]) == 1
+
+        rows = kisdb.get_overseas_transactions(
+            "12345678",
+            "01",
+            "20260423",
+            "20260423",
+            exchange_code="NAS",
+            symbol="AAPL",
+        )
+    finally:
+        kisdb.close_connection()
+
+    assert len(rows) == 1
+    assert rows[0]["symbol"] == "AAPL"
+    assert rows[0]["amount"] == 342.0
+    assert rows[0]["last_source"] == "batch"
+    assert rows[0]["last_transaction_history_id"] == "snapshot-2"

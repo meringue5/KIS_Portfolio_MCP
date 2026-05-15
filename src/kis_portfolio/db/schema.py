@@ -229,6 +229,124 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     """)
 
     con.execute("""
+        CREATE TABLE IF NOT EXISTS overseas_order_history (
+            id          VARCHAR NOT NULL DEFAULT gen_random_uuid(),
+            account_id  VARCHAR NOT NULL,
+            account_product_code VARCHAR NOT NULL,
+            account_type VARCHAR NOT NULL,
+            start_date  DATE,
+            end_date    DATE,
+            exchange_code VARCHAR,
+            symbol      VARCHAR,
+            side_code   VARCHAR,
+            fill_status_code VARCHAR,
+            fetched_at  TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            data        JSON,
+            PRIMARY KEY (id)
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS overseas_orders (
+            account_id  VARCHAR NOT NULL,
+            account_product_code VARCHAR NOT NULL,
+            account_type VARCHAR NOT NULL,
+            order_date  DATE NOT NULL,
+            exchange_code VARCHAR NOT NULL DEFAULT '',
+            order_branch_no VARCHAR NOT NULL DEFAULT '',
+            order_no    VARCHAR NOT NULL,
+            symbol      VARCHAR,
+            symbol_name VARCHAR,
+            side_code   VARCHAR,
+            side_name   VARCHAR,
+            order_type_code VARCHAR,
+            order_type_name VARCHAR,
+            order_time  VARCHAR,
+            order_qty   DOUBLE,
+            order_price DOUBLE,
+            avg_price   DOUBLE,
+            filled_qty  DOUBLE,
+            filled_amount DOUBLE,
+            pending_qty DOUBLE,
+            currency    VARCHAR,
+            first_seen_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            last_seen_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            last_source VARCHAR,
+            last_order_history_id VARCHAR,
+            raw_data    JSON,
+            PRIMARY KEY (
+                account_id, account_product_code, order_date,
+                exchange_code, order_branch_no, order_no
+            )
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS overseas_transaction_history (
+            id          VARCHAR NOT NULL DEFAULT gen_random_uuid(),
+            account_id  VARCHAR NOT NULL,
+            account_product_code VARCHAR NOT NULL,
+            account_type VARCHAR NOT NULL,
+            start_date  DATE,
+            end_date    DATE,
+            exchange_code VARCHAR,
+            symbol      VARCHAR,
+            side_code   VARCHAR,
+            loan_dvsn_cd VARCHAR,
+            fetched_at  TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            data        JSON,
+            PRIMARY KEY (id)
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS overseas_transactions (
+            account_id  VARCHAR NOT NULL,
+            account_product_code VARCHAR NOT NULL,
+            account_type VARCHAR NOT NULL,
+            transaction_hash VARCHAR NOT NULL,
+            transaction_date DATE NOT NULL,
+            exchange_code VARCHAR NOT NULL DEFAULT '',
+            symbol      VARCHAR,
+            symbol_name VARCHAR,
+            side_code   VARCHAR,
+            side_name   VARCHAR,
+            transaction_type_code VARCHAR,
+            transaction_type_name VARCHAR,
+            quantity    DOUBLE,
+            price       DOUBLE,
+            amount      DOUBLE,
+            fee         DOUBLE,
+            tax         DOUBLE,
+            currency    VARCHAR,
+            settlement_amount DOUBLE,
+            fx_rate     DOUBLE,
+            order_no    VARCHAR,
+            first_seen_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            last_seen_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            last_source VARCHAR,
+            last_transaction_history_id VARCHAR,
+            raw_data    JSON,
+            PRIMARY KEY (account_id, account_product_code, transaction_hash)
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS overseas_settlement_balance_snapshots (
+            id          VARCHAR NOT NULL DEFAULT gen_random_uuid(),
+            account_id  VARCHAR NOT NULL,
+            account_product_code VARCHAR NOT NULL,
+            account_type VARCHAR NOT NULL,
+            base_date   DATE,
+            wcrc_frcr_dvsn_cd VARCHAR,
+            inqr_dvsn_cd VARCHAR,
+            fetched_at  TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            data        JSON,
+            PRIMARY KEY (id)
+        )
+    """)
+
+    con.execute("""
         CREATE TABLE IF NOT EXISTS market_calendar (
             market      VARCHAR NOT NULL,  -- 'krx'
             trade_date  DATE NOT NULL,

@@ -47,6 +47,9 @@ OVERSEAS_STOCK_PRICE_PATH = "/uapi/overseas-price/v1/quotations/price"
 OVERSEAS_ORDER_PATH = "/uapi/overseas-stock/v1/trading/order"
 OVERSEAS_BALANCE_PATH = "/uapi/overseas-stock/v1/trading/inquire-balance"
 OVERSEAS_ORDER_LIST_PATH = "/uapi/overseas-stock/v1/trading/inquire-daily-ccld"
+OVERSEAS_ORDER_CCNL_PATH = "/uapi/overseas-stock/v1/trading/inquire-ccnl"
+OVERSEAS_PERIOD_TRANS_PATH = "/uapi/overseas-stock/v1/trading/inquire-period-trans"
+OVERSEAS_PAYMT_STDR_BALANCE_PATH = "/uapi/overseas-stock/v1/trading/inquire-paymt-stdr-balance"
 
 # Market codes for overseas stock
 MARKET_CODES = {
@@ -75,6 +78,92 @@ def _disabled_order_response() -> dict:
         "status": "disabled",
         "message": "주문 tool은 기본 비활성입니다. KIS_ENABLE_ORDER_TOOLS=true 설정 후 명시적으로 다시 시도하세요.",
     }
+
+
+def _account_product_code() -> str:
+    return os.environ.get("KIS_ACNT_PRDT_CD", "01")
+
+
+def _current_account_type(account_id: str, account_product_code: str) -> str:
+    return os.environ.get("KIS_ACCOUNT_LABEL") or infer_account_type(account_id, account_product_code)
+
+
+def _as_output_rows(value):
+    if value in ("", None):
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict) and not value:
+        return []
+    return [value]
+
+
+def _merge_output(aggregate: dict, data: dict, output_keys: tuple[str, ...]) -> None:
+    for key in output_keys:
+        aggregate.setdefault(key, [])
+        aggregate[key].extend(_as_output_rows(data.get(key)))
+
+
+async def _get_paginated_kis_json(
+    path: str,
+    tr_id: str,
+    params: dict,
+    *,
+    output_keys: tuple[str, ...],
+    domain: str = DOMAIN,
+    context_size: str = "200",
+    max_pages: int = 10,
+) -> dict:
+    """Fetch a KIS GET endpoint and concatenate common output arrays across pages."""
+    aggregate: dict = {key: [] for key in output_keys}
+    page_count = 0
+    tr_cont = ""
+    next_params = dict(params)
+
+    async with httpx.AsyncClient() as client:
+        token = await get_access_token(client, DOMAIN)
+        for page_index in range(max_pages):
+            headers = {
+                "content-type": CONTENT_TYPE,
+                "authorization": f"{AUTH_TYPE} {token}",
+                "appkey": os.environ["KIS_APP_KEY"],
+                "appsecret": os.environ["KIS_APP_SECRET"],
+                "tr_id": tr_id,
+            }
+            if tr_cont:
+                headers["tr_cont"] = tr_cont
+
+            response = await client.get(
+                f"{domain}{path}",
+                headers=headers,
+                params=next_params,
+            )
+            if response.status_code != 200:
+                raise Exception(f"Failed to fetch KIS endpoint {path}: {response.text}")
+
+            data = response.json()
+            page_count += 1
+            _merge_output(aggregate, data, output_keys)
+            for key, value in data.items():
+                if key not in output_keys:
+                    aggregate[key] = value
+
+            continuation = response.headers.get("tr_cont", "")
+            if continuation not in ("M", "F"):
+                break
+
+            tr_cont = "N"
+            if context_size:
+                fk_key = f"CTX_AREA_FK{context_size}"
+                nk_key = f"CTX_AREA_NK{context_size}"
+                next_params[fk_key] = data.get(f"ctx_area_fk{context_size}") or data.get(fk_key) or ""
+                next_params[nk_key] = data.get(f"ctx_area_nk{context_size}") or data.get(nk_key) or ""
+
+            if page_index == max_pages - 1:
+                aggregate["pagination_warning"] = f"max_pages {max_pages} reached"
+
+    aggregate["pagination"] = {"page_count": page_count, "max_pages": max_pages}
+    return aggregate
 
 
 class TrIdManager:
@@ -107,6 +196,7 @@ class TrIdManager:
         "sz_sell": "TTTS0304U",     # 심천 매도 주문
         "vn_buy": "TTTS0311U",      # 베트남 매수 주문
         "vn_sell": "TTTS0310U",     # 베트남 매도 주문
+        "overseas_order_ccnl": "TTTS3035R",  # 해외주식 주문체결내역
     }
     
     # 모의계좌용 TR_ID
@@ -136,6 +226,7 @@ class TrIdManager:
         "sz_sell": "VTTS0304U",     # 심천 매도 주문
         "vn_buy": "VTTS0311U",      # 베트남 매수 주문
         "vn_sell": "VTTS0310U",     # 베트남 매도 주문
+        "overseas_order_ccnl": "VTTS3035R",  # 해외주식 주문체결내역
     }
     
     @classmethod
@@ -804,6 +895,208 @@ async def inquery_overseas_deposit(
     if not result:
         result["raw"] = data
     return result
+
+
+async def inquery_overseas_order_ccnl(
+    start_date: str,
+    end_date: str,
+    symbol: str = "",
+    exchange: str = "%",
+    side: str = "00",
+    fill_status: str = "00",
+    sort: str = "DS",
+    save_history: bool = False,
+    return_metadata: bool = False,
+):
+    """
+    해외주식 주문체결내역 조회 (TTTS3035R / VTTS3035R).
+
+    Args:
+        start_date: 주문시작일자 YYYYMMDD
+        end_date: 주문종료일자 YYYYMMDD
+        symbol: 상품번호. 빈값=전체
+        exchange: 해외거래소코드. "%"=전체, NASD/NYSE/AMEX/SEHK/SHAA/SZAA/TKSE/HASE/VNSE
+        side: "00"=전체, "01"=매도, "02"=매수
+        fill_status: "00"=전체, "01"=체결, "02"=미체결
+        sort: "DS"=정순, "AS"=역순
+    """
+    account_id = _current_account_id()
+    acnt_prdt_cd = _account_product_code()
+    tr_id = TrIdManager.get_tr_id("overseas_order_ccnl")
+    domain = TrIdManager.get_domain("overseas_order_ccnl")
+    params = {
+        "CANO": account_id,
+        "ACNT_PRDT_CD": acnt_prdt_cd,
+        "PDNO": symbol,
+        "ORD_STRT_DT": start_date,
+        "ORD_END_DT": end_date,
+        "SLL_BUY_DVSN": side,
+        "CCLD_NCCS_DVSN": fill_status,
+        "OVRS_EXCG_CD": exchange,
+        "SORT_SQN": sort,
+        "ORD_DT": "",
+        "ORD_GNO_BRNO": "",
+        "ODNO": "",
+        "CTX_AREA_NK200": "",
+        "CTX_AREA_FK200": "",
+    }
+    data = await _get_paginated_kis_json(
+        OVERSEAS_ORDER_CCNL_PATH,
+        tr_id,
+        params,
+        output_keys=("output",),
+        domain=domain,
+        context_size="200",
+    )
+
+    saved_order_history_id = None
+    if save_history:
+        try:
+            saved_order_history_id = kisdb.insert_overseas_order_history(
+                account_id,
+                acnt_prdt_cd,
+                _current_account_type(account_id, acnt_prdt_cd),
+                start_date,
+                end_date,
+                exchange,
+                symbol,
+                side,
+                fill_status,
+                data,
+            )
+        except Exception as e:
+            logger.warning(f"DB overseas_order_history save failed (non-critical): {e}")
+
+    if return_metadata:
+        return {
+            "raw": data,
+            "saved_order_history_id": saved_order_history_id,
+        }
+    return data
+
+
+async def inquery_overseas_period_trans(
+    start_date: str,
+    end_date: str,
+    exchange: str = "NAS",
+    symbol: str = "",
+    side: str = "00",
+    loan_dvsn_cd: str = "",
+    save_history: bool = False,
+    return_metadata: bool = False,
+):
+    """
+    해외주식 일별거래내역 조회 (CTOS4001R).
+
+    Args:
+        start_date: 등록시작일자 YYYYMMDD
+        end_date: 등록종료일자 YYYYMMDD
+        exchange: 해외거래소코드. 공식 예제는 미국 나스닥 계열에 NAS를 사용
+        symbol: 상품번호. 빈값=전체
+        side: "00"=전체, "01"=매도, "02"=매수
+        loan_dvsn_cd: 대출구분코드. 보통 빈값
+    """
+    account_id = _current_account_id()
+    acnt_prdt_cd = _account_product_code()
+    params = {
+        "CANO": account_id,
+        "ACNT_PRDT_CD": acnt_prdt_cd,
+        "ERLM_STRT_DT": start_date,
+        "ERLM_END_DT": end_date,
+        "OVRS_EXCG_CD": exchange,
+        "PDNO": symbol,
+        "SLL_BUY_DVSN_CD": side,
+        "LOAN_DVSN_CD": loan_dvsn_cd,
+        "CTX_AREA_FK100": "",
+        "CTX_AREA_NK100": "",
+    }
+    data = await _get_paginated_kis_json(
+        OVERSEAS_PERIOD_TRANS_PATH,
+        "CTOS4001R",
+        params,
+        output_keys=("output1", "output2"),
+        context_size="100",
+    )
+
+    saved_transaction_history_id = None
+    if save_history:
+        try:
+            saved_transaction_history_id = kisdb.insert_overseas_transaction_history(
+                account_id,
+                acnt_prdt_cd,
+                _current_account_type(account_id, acnt_prdt_cd),
+                start_date,
+                end_date,
+                exchange,
+                symbol,
+                side,
+                loan_dvsn_cd,
+                data,
+            )
+        except Exception as e:
+            logger.warning(f"DB overseas_transaction_history save failed (non-critical): {e}")
+
+    if return_metadata:
+        return {
+            "raw": data,
+            "saved_transaction_history_id": saved_transaction_history_id,
+        }
+    return data
+
+
+async def inquery_overseas_paymt_stdr_balance(
+    base_date: str,
+    wcrc_frcr_dvsn_cd: str = "01",
+    inqr_dvsn_cd: str = "00",
+    save_snapshot: bool = False,
+    return_metadata: bool = False,
+):
+    """
+    해외주식 결제기준잔고 조회 (CTRP6010R).
+
+    Args:
+        base_date: 기준일자 YYYYMMDD
+        wcrc_frcr_dvsn_cd: "01"=원화기준, "02"=외화기준
+        inqr_dvsn_cd: "00"=전체, "01"=일반, "02"=미니스탁
+    """
+    account_id = _current_account_id()
+    acnt_prdt_cd = _account_product_code()
+    params = {
+        "CANO": account_id,
+        "ACNT_PRDT_CD": acnt_prdt_cd,
+        "BASS_DT": base_date,
+        "WCRC_FRCR_DVSN_CD": wcrc_frcr_dvsn_cd,
+        "INQR_DVSN_CD": inqr_dvsn_cd,
+    }
+    data = await _get_paginated_kis_json(
+        OVERSEAS_PAYMT_STDR_BALANCE_PATH,
+        "CTRP6010R",
+        params,
+        output_keys=("output1", "output2", "output3"),
+        context_size="",
+    )
+
+    saved_snapshot_id = None
+    if save_snapshot:
+        try:
+            saved_snapshot_id = kisdb.insert_overseas_settlement_balance_snapshot(
+                account_id,
+                acnt_prdt_cd,
+                _current_account_type(account_id, acnt_prdt_cd),
+                base_date,
+                wcrc_frcr_dvsn_cd,
+                inqr_dvsn_cd,
+                data,
+            )
+        except Exception as e:
+            logger.warning(f"DB overseas_settlement_balance_snapshots save failed (non-critical): {e}")
+
+    if return_metadata:
+        return {
+            "raw": data,
+            "saved_snapshot_id": saved_snapshot_id,
+        }
+    return data
 
 
 async def inquery_exchange_rate_history(

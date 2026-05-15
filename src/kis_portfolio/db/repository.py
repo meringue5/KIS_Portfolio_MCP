@@ -1,5 +1,6 @@
 """Repository functions for raw KIS portfolio data."""
 
+import hashlib
 import json
 import logging
 import tempfile
@@ -11,6 +12,19 @@ from kis_portfolio.common.values import normalize_row, to_float, to_int
 from kis_portfolio.db.connection import get_connection
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_yyyymmdd(value: str) -> date:
+    return datetime.strptime(value, "%Y%m%d").date()
+
+
+def _json_dump(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, default=str)
+
+
+def _stable_hash(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def upsert_price_history(rows: list[dict], adjusted: bool = False) -> int:
@@ -470,6 +484,584 @@ def get_domestic_orders(
         "raw_data",
     ]
     return [normalize_row(dict(zip(cols, row))) for row in rows]
+
+
+def insert_overseas_order_history(
+    account_id: str,
+    account_product_code: str,
+    account_type: str,
+    start_date: str,
+    end_date: str,
+    exchange_code: str,
+    symbol: str,
+    side_code: str,
+    fill_status_code: str,
+    data: Any,
+) -> str:
+    """Store raw overseas order/execution history. Always INSERT."""
+    con = get_connection()
+    row = con.execute("""
+        INSERT INTO overseas_order_history (
+            account_id, account_product_code, account_type, start_date, end_date,
+            exchange_code, symbol, side_code, fill_status_code, data
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+    """, [
+        account_id,
+        account_product_code,
+        account_type,
+        _parse_yyyymmdd(start_date),
+        _parse_yyyymmdd(end_date),
+        exchange_code,
+        symbol,
+        side_code,
+        fill_status_code,
+        _json_dump(data),
+    ]).fetchone()
+    return row[0]
+
+
+def get_latest_overseas_order_history_snapshot(
+    account_id: str,
+    account_product_code: str,
+    start_date: str,
+    end_date: str,
+    exchange_code: str,
+    symbol: str,
+    side_code: str,
+    fill_status_code: str,
+) -> dict | None:
+    """Return latest raw overseas order-history snapshot for an exact query."""
+    con = get_connection()
+    row = con.execute("""
+        SELECT id, account_id, account_product_code, account_type, start_date, end_date,
+               exchange_code, symbol, side_code, fill_status_code, fetched_at, data
+        FROM overseas_order_history
+        WHERE account_id=?
+          AND account_product_code=?
+          AND start_date=?
+          AND end_date=?
+          AND COALESCE(exchange_code, '')=?
+          AND COALESCE(symbol, '')=?
+          AND COALESCE(side_code, '')=?
+          AND COALESCE(fill_status_code, '')=?
+        ORDER BY fetched_at DESC, id DESC
+        LIMIT 1
+    """, [
+        account_id,
+        account_product_code,
+        _parse_yyyymmdd(start_date),
+        _parse_yyyymmdd(end_date),
+        exchange_code,
+        symbol,
+        side_code,
+        fill_status_code,
+    ]).fetchone()
+    if not row:
+        return None
+    cols = [
+        "id",
+        "account_id",
+        "account_product_code",
+        "account_type",
+        "start_date",
+        "end_date",
+        "exchange_code",
+        "symbol",
+        "side_code",
+        "fill_status_code",
+        "fetched_at",
+        "data",
+    ]
+    return normalize_row(dict(zip(cols, row)))
+
+
+def upsert_overseas_orders(rows: list[dict]) -> int:
+    """Upsert canonical overseas order rows keyed by KIS order identity."""
+    if not rows:
+        return 0
+
+    con = get_connection()
+    saved = 0
+    for row in rows:
+        order_date = row["order_date"]
+        if isinstance(order_date, str):
+            order_date = _parse_yyyymmdd(order_date)
+
+        con.execute("""
+            INSERT INTO overseas_orders (
+                account_id,
+                account_product_code,
+                account_type,
+                order_date,
+                exchange_code,
+                order_branch_no,
+                order_no,
+                symbol,
+                symbol_name,
+                side_code,
+                side_name,
+                order_type_code,
+                order_type_name,
+                order_time,
+                order_qty,
+                order_price,
+                avg_price,
+                filled_qty,
+                filled_amount,
+                pending_qty,
+                currency,
+                last_source,
+                last_order_history_id,
+                raw_data
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (
+                account_id, account_product_code, order_date,
+                exchange_code, order_branch_no, order_no
+            ) DO UPDATE SET
+                account_type=excluded.account_type,
+                symbol=excluded.symbol,
+                symbol_name=excluded.symbol_name,
+                side_code=excluded.side_code,
+                side_name=excluded.side_name,
+                order_type_code=excluded.order_type_code,
+                order_type_name=excluded.order_type_name,
+                order_time=excluded.order_time,
+                order_qty=excluded.order_qty,
+                order_price=excluded.order_price,
+                avg_price=excluded.avg_price,
+                filled_qty=excluded.filled_qty,
+                filled_amount=excluded.filled_amount,
+                pending_qty=excluded.pending_qty,
+                currency=excluded.currency,
+                last_seen_at=now(),
+                last_source=excluded.last_source,
+                last_order_history_id=excluded.last_order_history_id,
+                raw_data=excluded.raw_data
+        """, [
+            row["account_id"],
+            row["account_product_code"],
+            row["account_type"],
+            order_date,
+            row.get("exchange_code") or "",
+            row.get("order_branch_no") or "",
+            row["order_no"],
+            row.get("symbol"),
+            row.get("symbol_name"),
+            row.get("side_code"),
+            row.get("side_name"),
+            row.get("order_type_code"),
+            row.get("order_type_name"),
+            row.get("order_time"),
+            row.get("order_qty"),
+            row.get("order_price"),
+            row.get("avg_price"),
+            row.get("filled_qty"),
+            row.get("filled_amount"),
+            row.get("pending_qty"),
+            row.get("currency"),
+            row.get("last_source"),
+            row.get("last_order_history_id"),
+            _json_dump(row.get("raw_data")),
+        ])
+        saved += 1
+    return saved
+
+
+def get_overseas_orders(
+    account_id: str,
+    account_product_code: str,
+    start_date: str,
+    end_date: str,
+    *,
+    exchange_code: str = "",
+    symbol: str = "",
+) -> list[dict]:
+    """Return canonical overseas orders for one account and date range."""
+    con = get_connection()
+    start = _parse_yyyymmdd(start_date)
+    end = _parse_yyyymmdd(end_date)
+
+    where = """
+        WHERE account_id=?
+          AND account_product_code=?
+          AND order_date BETWEEN ? AND ?
+    """
+    params: list[Any] = [account_id, account_product_code, start, end]
+    if exchange_code and exchange_code != "%":
+        where += " AND upper(exchange_code)=?"
+        params.append(exchange_code.upper())
+    if symbol:
+        where += " AND upper(symbol)=?"
+        params.append(symbol.upper())
+
+    rows = con.execute(f"""
+        SELECT
+            account_id,
+            account_product_code,
+            account_type,
+            order_date,
+            exchange_code,
+            order_branch_no,
+            order_no,
+            symbol,
+            symbol_name,
+            side_code,
+            side_name,
+            order_type_code,
+            order_type_name,
+            order_time,
+            order_qty,
+            order_price,
+            avg_price,
+            filled_qty,
+            filled_amount,
+            pending_qty,
+            currency,
+            first_seen_at,
+            last_seen_at,
+            last_source,
+            last_order_history_id,
+            raw_data
+        FROM overseas_orders
+        {where}
+        ORDER BY order_date DESC, order_time DESC NULLS LAST, order_no DESC
+    """, params).fetchall()
+    cols = [
+        "account_id",
+        "account_product_code",
+        "account_type",
+        "order_date",
+        "exchange_code",
+        "order_branch_no",
+        "order_no",
+        "symbol",
+        "symbol_name",
+        "side_code",
+        "side_name",
+        "order_type_code",
+        "order_type_name",
+        "order_time",
+        "order_qty",
+        "order_price",
+        "avg_price",
+        "filled_qty",
+        "filled_amount",
+        "pending_qty",
+        "currency",
+        "first_seen_at",
+        "last_seen_at",
+        "last_source",
+        "last_order_history_id",
+        "raw_data",
+    ]
+    return [normalize_row(dict(zip(cols, row))) for row in rows]
+
+
+def insert_overseas_transaction_history(
+    account_id: str,
+    account_product_code: str,
+    account_type: str,
+    start_date: str,
+    end_date: str,
+    exchange_code: str,
+    symbol: str,
+    side_code: str,
+    loan_dvsn_cd: str,
+    data: Any,
+) -> str:
+    """Store raw overseas daily transaction history. Always INSERT."""
+    con = get_connection()
+    row = con.execute("""
+        INSERT INTO overseas_transaction_history (
+            account_id, account_product_code, account_type, start_date, end_date,
+            exchange_code, symbol, side_code, loan_dvsn_cd, data
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+    """, [
+        account_id,
+        account_product_code,
+        account_type,
+        _parse_yyyymmdd(start_date),
+        _parse_yyyymmdd(end_date),
+        exchange_code,
+        symbol,
+        side_code,
+        loan_dvsn_cd,
+        _json_dump(data),
+    ]).fetchone()
+    return row[0]
+
+
+def get_latest_overseas_transaction_history_snapshot(
+    account_id: str,
+    account_product_code: str,
+    start_date: str,
+    end_date: str,
+    exchange_code: str,
+    symbol: str,
+    side_code: str,
+    loan_dvsn_cd: str,
+) -> dict | None:
+    """Return latest raw overseas transaction snapshot for an exact query."""
+    con = get_connection()
+    row = con.execute("""
+        SELECT id, account_id, account_product_code, account_type, start_date, end_date,
+               exchange_code, symbol, side_code, loan_dvsn_cd, fetched_at, data
+        FROM overseas_transaction_history
+        WHERE account_id=?
+          AND account_product_code=?
+          AND start_date=?
+          AND end_date=?
+          AND COALESCE(exchange_code, '')=?
+          AND COALESCE(symbol, '')=?
+          AND COALESCE(side_code, '')=?
+          AND COALESCE(loan_dvsn_cd, '')=?
+        ORDER BY fetched_at DESC, id DESC
+        LIMIT 1
+    """, [
+        account_id,
+        account_product_code,
+        _parse_yyyymmdd(start_date),
+        _parse_yyyymmdd(end_date),
+        exchange_code,
+        symbol,
+        side_code,
+        loan_dvsn_cd,
+    ]).fetchone()
+    if not row:
+        return None
+    cols = [
+        "id",
+        "account_id",
+        "account_product_code",
+        "account_type",
+        "start_date",
+        "end_date",
+        "exchange_code",
+        "symbol",
+        "side_code",
+        "loan_dvsn_cd",
+        "fetched_at",
+        "data",
+    ]
+    return normalize_row(dict(zip(cols, row)))
+
+
+def upsert_overseas_transactions(rows: list[dict]) -> int:
+    """Upsert normalized overseas transaction rows keyed by a stable row hash."""
+    if not rows:
+        return 0
+
+    con = get_connection()
+    saved = 0
+    for row in rows:
+        transaction_date = row["transaction_date"]
+        if isinstance(transaction_date, str):
+            transaction_date = _parse_yyyymmdd(transaction_date)
+        transaction_hash = row.get("transaction_hash") or _stable_hash(row.get("raw_data"))
+
+        con.execute("""
+            INSERT INTO overseas_transactions (
+                account_id,
+                account_product_code,
+                account_type,
+                transaction_hash,
+                transaction_date,
+                exchange_code,
+                symbol,
+                symbol_name,
+                side_code,
+                side_name,
+                transaction_type_code,
+                transaction_type_name,
+                quantity,
+                price,
+                amount,
+                fee,
+                tax,
+                currency,
+                settlement_amount,
+                fx_rate,
+                order_no,
+                last_source,
+                last_transaction_history_id,
+                raw_data
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (account_id, account_product_code, transaction_hash) DO UPDATE SET
+                account_type=excluded.account_type,
+                transaction_date=excluded.transaction_date,
+                exchange_code=excluded.exchange_code,
+                symbol=excluded.symbol,
+                symbol_name=excluded.symbol_name,
+                side_code=excluded.side_code,
+                side_name=excluded.side_name,
+                transaction_type_code=excluded.transaction_type_code,
+                transaction_type_name=excluded.transaction_type_name,
+                quantity=excluded.quantity,
+                price=excluded.price,
+                amount=excluded.amount,
+                fee=excluded.fee,
+                tax=excluded.tax,
+                currency=excluded.currency,
+                settlement_amount=excluded.settlement_amount,
+                fx_rate=excluded.fx_rate,
+                order_no=excluded.order_no,
+                last_seen_at=now(),
+                last_source=excluded.last_source,
+                last_transaction_history_id=excluded.last_transaction_history_id,
+                raw_data=excluded.raw_data
+        """, [
+            row["account_id"],
+            row["account_product_code"],
+            row["account_type"],
+            transaction_hash,
+            transaction_date,
+            row.get("exchange_code") or "",
+            row.get("symbol"),
+            row.get("symbol_name"),
+            row.get("side_code"),
+            row.get("side_name"),
+            row.get("transaction_type_code"),
+            row.get("transaction_type_name"),
+            row.get("quantity"),
+            row.get("price"),
+            row.get("amount"),
+            row.get("fee"),
+            row.get("tax"),
+            row.get("currency"),
+            row.get("settlement_amount"),
+            row.get("fx_rate"),
+            row.get("order_no"),
+            row.get("last_source"),
+            row.get("last_transaction_history_id"),
+            _json_dump(row.get("raw_data")),
+        ])
+        saved += 1
+    return saved
+
+
+def get_overseas_transactions(
+    account_id: str,
+    account_product_code: str,
+    start_date: str,
+    end_date: str,
+    *,
+    exchange_code: str = "",
+    symbol: str = "",
+) -> list[dict]:
+    """Return normalized overseas daily transactions for one account/date range."""
+    con = get_connection()
+    start = _parse_yyyymmdd(start_date)
+    end = _parse_yyyymmdd(end_date)
+    where = """
+        WHERE account_id=?
+          AND account_product_code=?
+          AND transaction_date BETWEEN ? AND ?
+    """
+    params: list[Any] = [account_id, account_product_code, start, end]
+    if exchange_code and exchange_code != "%":
+        where += " AND upper(exchange_code)=?"
+        params.append(exchange_code.upper())
+    if symbol:
+        where += " AND upper(symbol)=?"
+        params.append(symbol.upper())
+
+    rows = con.execute(f"""
+        SELECT
+            account_id,
+            account_product_code,
+            account_type,
+            transaction_hash,
+            transaction_date,
+            exchange_code,
+            symbol,
+            symbol_name,
+            side_code,
+            side_name,
+            transaction_type_code,
+            transaction_type_name,
+            quantity,
+            price,
+            amount,
+            fee,
+            tax,
+            currency,
+            settlement_amount,
+            fx_rate,
+            order_no,
+            first_seen_at,
+            last_seen_at,
+            last_source,
+            last_transaction_history_id,
+            raw_data
+        FROM overseas_transactions
+        {where}
+        ORDER BY transaction_date DESC, symbol NULLS LAST, transaction_hash
+    """, params).fetchall()
+    cols = [
+        "account_id",
+        "account_product_code",
+        "account_type",
+        "transaction_hash",
+        "transaction_date",
+        "exchange_code",
+        "symbol",
+        "symbol_name",
+        "side_code",
+        "side_name",
+        "transaction_type_code",
+        "transaction_type_name",
+        "quantity",
+        "price",
+        "amount",
+        "fee",
+        "tax",
+        "currency",
+        "settlement_amount",
+        "fx_rate",
+        "order_no",
+        "first_seen_at",
+        "last_seen_at",
+        "last_source",
+        "last_transaction_history_id",
+        "raw_data",
+    ]
+    return [normalize_row(dict(zip(cols, row))) for row in rows]
+
+
+def insert_overseas_settlement_balance_snapshot(
+    account_id: str,
+    account_product_code: str,
+    account_type: str,
+    base_date: str,
+    wcrc_frcr_dvsn_cd: str,
+    inqr_dvsn_cd: str,
+    data: Any,
+) -> str:
+    """Store overseas settlement-basis balance snapshot. Always INSERT."""
+    con = get_connection()
+    row = con.execute("""
+        INSERT INTO overseas_settlement_balance_snapshots (
+            account_id, account_product_code, account_type, base_date,
+            wcrc_frcr_dvsn_cd, inqr_dvsn_cd, data
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+    """, [
+        account_id,
+        account_product_code,
+        account_type,
+        _parse_yyyymmdd(base_date),
+        wcrc_frcr_dvsn_cd,
+        inqr_dvsn_cd,
+        _json_dump(data),
+    ]).fetchone()
+    return row[0]
 
 
 def upsert_market_calendar_rows(rows: list[dict]) -> int:
