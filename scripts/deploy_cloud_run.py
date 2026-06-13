@@ -675,8 +675,7 @@ def _deploy_service_or_job(
                 "--command",
                 command,
             ]
-            if command_args:
-                command.extend(["--args", command_args])
+            command.extend(["--args", command_args])
         else:
             command = [
                 "gcloud",
@@ -693,8 +692,7 @@ def _deploy_service_or_job(
                 "--command",
                 command,
             ]
-            if command_args:
-                command.extend(["--args", command_args])
+            command.extend(["--args", command_args])
         command.extend(runtime_flags)
         command.extend(_build_secret_flags(secret_refs))
         command.extend(_build_label_flags(args.target))

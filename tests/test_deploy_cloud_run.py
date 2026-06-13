@@ -261,7 +261,7 @@ def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):
     assert "--command" in command
     assert command[command.index("--command") + 1] == "kis-portfolio-remote"
     assert "uv" not in command
-    assert "--args" not in command
+    assert command[command.index("--args") + 1] == ""
 
 
 def test_cloud_run_job_deploy_uses_batch_console_script(monkeypatch):
