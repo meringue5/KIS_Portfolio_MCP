@@ -161,7 +161,12 @@ def test_batch_cli_sync_market_calendar_prints_json(monkeypatch, capsys):
 
 
 def test_batch_cli_warm_token_cache_prints_json(monkeypatch, capsys):
-    async def fake_warm_token_cache(account_label: str, valid_through: str, dry_run: bool):
+    async def fake_warm_token_cache(
+        account_label: str,
+        valid_through: str,
+        dry_run: bool,
+        warm_service_health_checks: bool,
+    ):
         return {
             "source": "token_cache",
             "operation": "warm-token-cache",
@@ -169,6 +174,7 @@ def test_batch_cli_warm_token_cache_prints_json(monkeypatch, capsys):
             "account_label": account_label,
             "valid_through": valid_through,
             "dry_run": dry_run,
+            "warm_service_health": warm_service_health_checks,
             "error_count": 0,
             "accounts": [],
         }
@@ -186,6 +192,7 @@ def test_batch_cli_warm_token_cache_prints_json(monkeypatch, capsys):
                 "account_label": "all",
                 "valid_through": "16:30",
                 "dry_run": True,
+                "warm_service_health": True,
             },
         )(),
     )
@@ -197,6 +204,7 @@ def test_batch_cli_warm_token_cache_prints_json(monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["operation"] == "warm-token-cache"
     assert payload["dry_run"] is True
+    assert payload["warm_service_health"] is True
 
 
 def argparse_namespace():

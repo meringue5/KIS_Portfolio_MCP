@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, time
+from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -47,11 +49,85 @@ def _needs_refresh_for_valid_through(status: dict, valid_through_at: datetime) -
     return refresh_after_dt <= valid_through_at
 
 
+def _health_url_from_service_url(value: str | None) -> str | None:
+    if not value:
+        return None
+    parts = urlsplit(value.strip())
+    if not parts.scheme or not parts.netloc:
+        return None
+    return urlunsplit((parts.scheme, parts.netloc, "/health", "", ""))
+
+
+def _split_warmup_urls(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [
+        item.strip()
+        for chunk in value.split(",")
+        for item in chunk.split()
+        if item.strip()
+    ]
+
+
+def resolve_service_health_urls() -> list[str]:
+    configured = _split_warmup_urls(os.environ.get("KIS_SERVICE_WARMUP_HEALTH_URLS"))
+    if configured:
+        return list(dict.fromkeys(configured))
+
+    candidates = [
+        _health_url_from_service_url(os.environ.get("KIS_AUTH_BASE_URL")),
+        _health_url_from_service_url(os.environ.get("KIS_AUTH_ISSUER_URL")),
+        _health_url_from_service_url(os.environ.get("KIS_RESOURCE_SERVER_URL")),
+    ]
+    return [url for url in dict.fromkeys(candidates) if url]
+
+
+async def warm_service_health(
+    urls: list[str] | None = None,
+    *,
+    timeout_seconds: float = 10.0,
+) -> list[dict]:
+    resolved_urls = urls if urls is not None else resolve_service_health_urls()
+    rows = []
+    async with httpx.AsyncClient(timeout=timeout_seconds, follow_redirects=False) as client:
+        for url in resolved_urls:
+            row = {"url": url, "status": "pending"}
+            try:
+                response = await client.get(url)
+            except Exception as exc:
+                row.update({
+                    "status": "error",
+                    "error_type": type(exc).__name__,
+                })
+                log_event(
+                    logger,
+                    "service_health_warmup_failed",
+                    level=logging.WARNING,
+                    url=url,
+                    error_type=type(exc).__name__,
+                )
+            else:
+                row.update({
+                    "status": "ok" if 200 <= response.status_code < 300 else "unexpected_status",
+                    "http_status": response.status_code,
+                })
+                log_event(
+                    logger,
+                    "service_health_warmup_complete",
+                    url=url,
+                    http_status=response.status_code,
+                    status=row["status"],
+                )
+            rows.append(row)
+    return rows
+
+
 async def warm_token_cache(
     *,
     account_label: str = "all",
     valid_through: str = "16:30",
     dry_run: bool = True,
+    warm_service_health_checks: bool = False,
 ) -> dict:
     operation_id = new_operation_id("batch")
     valid_through_at = parse_valid_through(valid_through)
@@ -125,18 +201,28 @@ async def warm_token_cache(
     error_count = sum(1 for row in rows if row["refresh_status"] == "error")
     refresh_count = sum(1 for row in rows if row["refresh_status"] == "refreshed")
     would_refresh_count = sum(1 for row in rows if row["refresh_status"] == "would_refresh")
-    status = "ok" if error_count == 0 else "partial_error"
+    service_health_rows = []
+    if warm_service_health_checks:
+        service_health_rows = await warm_service_health()
+    service_health_error_count = sum(
+        1 for row in service_health_rows
+        if row["status"] not in {"ok"}
+    )
+    status = "ok" if error_count == 0 and service_health_error_count == 0 else "partial_error"
     return {
         "source": "token_cache",
         "operation": "warm-token-cache",
         "status": status,
         "dry_run": dry_run,
+        "warm_service_health": warm_service_health_checks,
         "valid_through": valid_through_at.isoformat(),
         "count": len(rows),
         "needs_refresh_count": sum(1 for row in rows if row["needs_refresh"]),
         "would_refresh_count": would_refresh_count,
         "refresh_count": refresh_count,
         "error_count": error_count,
+        "service_health_error_count": service_health_error_count,
+        "service_health": service_health_rows,
         "accounts": rows,
         "diagnostics": {"operation_id": operation_id},
     }

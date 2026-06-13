@@ -21,8 +21,8 @@ remote resource server는 두 가지 모드를 지원한다.
 
 ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth server + 기존 remote MCP resource server 분리**다.
 
-- auth server: `uv run kis-portfolio-auth`
-- resource server: `uv run kis-portfolio-remote`
+- auth server local command: `uv run kis-portfolio-auth`
+- resource server local command: `uv run kis-portfolio-remote`
 - `KIS_REMOTE_AUTH_MODE=oauth`
 - `GET /health`는 공개
 - `/mcp`는 OAuth bearer token 필수
@@ -35,11 +35,12 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 - `/register`, `/token`, `/revoke`는 auth server로 proxy
 - auth server는 `/.well-known/oauth-authorization-server`와 함께
   `/.well-known/openid-configuration` alias도 제공한다. 일부 클라이언트가 OIDC discovery를 먼저 probe한 뒤 OAuth metadata로 fallback하기 때문이다.
-- Cloud Run auth는 기본적으로 `max-instances=1`로 배포한다.
+- Cloud Run auth는 기본적으로 `min-instances=1`, `max-instances=1`로 배포한다.
   현재 운영 가정이 단일 소유자 interactive auth flow이기 때문에 기본값을 보수적으로 둔다.
-- Cloud Run remote는 기본적으로 `min-instances=0`, `max-instances=1`, `concurrency=20`으로 배포한다.
+- Cloud Run remote는 기본적으로 `min-instances=1`, `max-instances=1`, `concurrency=20`으로 배포한다.
   Streamable HTTP 세션은 프로세스 메모리에 있고, 같은 세션에서 long-running GET과 POST가 동시에 들어오기 때문이다.
-  cold start를 줄여야 할 때만 `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES=1`로 올린다.
+  로그인/초기 세션 안정성보다 비용을 더 우선해야 할 때만 `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES=0`으로 낮춘다.
+  Cloud Run 배포는 이미지에 설치된 console script를 직접 실행하며, startup path에서 `uv run`을 사용하지 않는다.
 
 `scripts/deploy_cloud_run.py remote`는 `KIS_REMOTE_AUTH_MODE`가 비어 있으면 ChatGPT 친화 기본값으로 `oauth`를 사용한다.
 
@@ -234,8 +235,11 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 현재 `batch` target은 `collect-domestic-order-history --date today` 전용 Cloud Run Job을 배포한다.
 `overseas-batch` target은 `collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS`
 전용 Cloud Run Job을 배포한다. 기본값은 다음과 같다.
-`token-warmup-batch` target은 `warm-token-cache --account-label all --valid-through 16:30 --dry-run`
+`token-warmup-batch` target은
+`warm-token-cache --account-label all --valid-through 16:30 --dry-run --warm-service-health`
 전용 Cloud Run Job을 배포한다. 초기 rollout은 dry-run만 수행하므로 KIS 토큰 발급을 유발하지 않는다.
+`--warm-service-health`는 auth/remote 서비스의 공개 `/health` endpoint를 호출해 scale-to-zero 상태의 Cloud Run
+서비스를 미리 깨운다. 이 호출은 KIS API endpoint를 호출하지 않는다.
 
 - Job name: `kis-portfolio-domestic-order-history`
 - Scheduler name: `kis-portfolio-domestic-order-history-1535`

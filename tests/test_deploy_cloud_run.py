@@ -104,17 +104,18 @@ def test_auth_deploy_defaults_to_single_instance():
 
     runtime_flags = deploy_cloud_run._build_auth_runtime_flags(env)
 
-    assert runtime_flags == ["--max-instances", "1"]
+    assert runtime_flags == ["--min-instances", "1", "--max-instances", "1"]
 
 
 def test_auth_deploy_keeps_explicit_max_instance_override():
     env = {
+        "KIS_CLOUD_RUN_AUTH_MIN_INSTANCES": "0",
         "KIS_CLOUD_RUN_AUTH_MAX_INSTANCES": "2",
     }
 
     runtime_flags = deploy_cloud_run._build_auth_runtime_flags(env)
 
-    assert runtime_flags == ["--max-instances", "2"]
+    assert runtime_flags == ["--min-instances", "0", "--max-instances", "2"]
 
 
 def test_remote_deploy_keeps_explicit_bearer_override():
@@ -144,6 +145,7 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
         "KIS_CANO_RIA": "12345678",
         "KIS_ACNT_PRDT_CD_RIA": "01",
         "KIS_REMOTE_AUTH_MODE": "oauth",
+        "KIS_RESOURCE_SERVER_URL": "https://remote.example.com/mcp",
     }
 
     required = deploy_cloud_run._required_keys_for_batch(env)
@@ -153,6 +155,7 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
     assert payload["KIS_TOKEN_ENCRYPTION_KEY"] == "enc-key"
     assert payload["KIS_APP_KEY_RIA"] == "app-key"
     assert payload["KIS_ACNT_PRDT_CD_RIA"] == "01"
+    assert payload["KIS_RESOURCE_SERVER_URL"] == "https://remote.example.com/mcp"
     assert "KIS_REMOTE_AUTH_MODE" not in payload
 
 
@@ -179,7 +182,7 @@ def test_overseas_batch_command_uses_default_account_and_exchange():
     command_args = deploy_cloud_run._build_overseas_batch_command_args({})
 
     assert command_args == (
-        "run,kis-portfolio-batch,collect-overseas-transaction-history,"
+        "collect-overseas-transaction-history,"
         "--date,today,--account-label,brokerage,--exchange,NAS"
     )
 
@@ -198,8 +201,8 @@ def test_token_warmup_batch_command_is_dry_run_only():
     command_args = deploy_cloud_run._build_token_warmup_command_args({})
 
     assert command_args == (
-        "run,kis-portfolio-batch,warm-token-cache,"
-        "--account-label,all,--valid-through,16:30,--dry-run"
+        "warm-token-cache,"
+        "--account-label,all,--valid-through,16:30,--dry-run,--warm-service-health"
     )
 
 
@@ -212,7 +215,7 @@ def test_remote_runtime_flags_keep_existing_safe_defaults():
         "--concurrency",
         "20",
         "--min-instances",
-        "0",
+        "1",
         "--max-instances",
         "1",
     ]
@@ -220,13 +223,75 @@ def test_remote_runtime_flags_keep_existing_safe_defaults():
 
 def test_remote_runtime_flags_support_min_instance_override():
     env = {
-        "KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES": "1",
+        "KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES": "0",
     }
 
     runtime_flags = deploy_cloud_run._build_remote_runtime_flags(env)
 
     assert "--min-instances" in runtime_flags
-    assert runtime_flags[runtime_flags.index("--min-instances") + 1] == "1"
+    assert runtime_flags[runtime_flags.index("--min-instances") + 1] == "0"
+
+
+def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):
+    args = argparse.Namespace(region="asia-northeast3", target="remote", dry_run=True)
+    captured = {}
+
+    def fake_run(command, dry_run=False):
+        captured["command"] = command
+        captured["dry_run"] = dry_run
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_run", fake_run)
+
+    result = deploy_cloud_run._deploy_service_or_job(
+        args=args,
+        project="kis-portfolio-prod",
+        payload={"KIS_DB_MODE": "motherduck"},
+        secret_refs={},
+        runtime_flags=["--min-instances", "1"],
+        target_name="kis-portfolio-remote",
+        command="kis-portfolio-remote",
+        command_args="",
+        is_job=False,
+    )
+
+    command = captured["command"]
+    assert result == 0
+    assert captured["dry_run"] is True
+    assert "--command" in command
+    assert command[command.index("--command") + 1] == "kis-portfolio-remote"
+    assert "uv" not in command
+    assert "--args" not in command
+
+
+def test_cloud_run_job_deploy_uses_batch_console_script(monkeypatch):
+    args = argparse.Namespace(region="asia-northeast3", target="batch", dry_run=True)
+    captured = {}
+
+    def fake_run(command, dry_run=False):
+        captured["command"] = command
+        captured["dry_run"] = dry_run
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_run", fake_run)
+
+    result = deploy_cloud_run._deploy_service_or_job(
+        args=args,
+        project="kis-portfolio-prod",
+        payload={"KIS_DB_MODE": "motherduck"},
+        secret_refs={},
+        runtime_flags=["--task-timeout", "1800s"],
+        target_name="kis-portfolio-domestic-order-history",
+        command="kis-portfolio-batch",
+        command_args="collect-domestic-order-history,--date,today",
+        is_job=True,
+    )
+
+    command = captured["command"]
+    assert result == 0
+    assert command[command.index("--command") + 1] == "kis-portfolio-batch"
+    assert command[command.index("--args") + 1] == "collect-domestic-order-history,--date,today"
+    assert "uv" not in command
 
 
 def test_scheduler_service_account_defaults_to_project_compute_account():

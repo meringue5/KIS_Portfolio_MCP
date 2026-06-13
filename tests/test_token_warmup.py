@@ -34,6 +34,30 @@ def test_valid_through_refresh_decision_uses_refresh_after():
     )
 
 
+def test_resolve_service_health_urls_from_auth_and_resource_env(monkeypatch):
+    monkeypatch.setenv("KIS_AUTH_BASE_URL", "https://auth.example.com")
+    monkeypatch.setenv("KIS_AUTH_ISSUER_URL", "https://auth.example.com/")
+    monkeypatch.setenv("KIS_RESOURCE_SERVER_URL", "https://remote.example.com/mcp")
+
+    assert token_warmup.resolve_service_health_urls() == [
+        "https://auth.example.com/health",
+        "https://remote.example.com/health",
+    ]
+
+
+def test_resolve_service_health_urls_prefers_explicit_env(monkeypatch):
+    monkeypatch.setenv("KIS_AUTH_BASE_URL", "https://auth.example.com")
+    monkeypatch.setenv(
+        "KIS_SERVICE_WARMUP_HEALTH_URLS",
+        "https://one.example.com/health, https://two.example.com/health",
+    )
+
+    assert token_warmup.resolve_service_health_urls() == [
+        "https://one.example.com/health",
+        "https://two.example.com/health",
+    ]
+
+
 def test_warm_token_cache_dry_run_does_not_request_token(monkeypatch):
     apply_account_env(monkeypatch)
 
@@ -67,6 +91,46 @@ def test_warm_token_cache_dry_run_does_not_request_token(monkeypatch):
     assert result["needs_refresh_count"] == 1
     assert result["would_refresh_count"] == 1
     assert result["accounts"][0]["refresh_status"] == "would_refresh"
+
+
+def test_warm_token_cache_can_wake_services_during_dry_run(monkeypatch):
+    apply_account_env(monkeypatch)
+    service_calls = []
+
+    def fake_status():
+        return {
+            "exists": True,
+            "status": "valid",
+            "storage": "db",
+            "expires_at": "2026-05-15T16:35:00",
+            "refresh_after": "2026-05-15T16:25:00",
+            "needs_refresh": False,
+        }
+
+    async def fail_get_access_token(*args, **kwargs):
+        raise AssertionError("dry-run must not call KIS token endpoint")
+
+    async def fake_warm_service_health():
+        service_calls.append(True)
+        return [{"url": "https://remote.example.com/health", "status": "ok", "http_status": 200}]
+
+    monkeypatch.setattr(token_warmup, "get_token_status", fake_status)
+    monkeypatch.setattr(token_warmup, "get_access_token", fail_get_access_token)
+    monkeypatch.setattr(token_warmup, "warm_service_health", fake_warm_service_health)
+
+    result = asyncio.run(
+        token_warmup.warm_token_cache(
+            account_label="brokerage",
+            valid_through="16:30",
+            dry_run=True,
+            warm_service_health_checks=True,
+        )
+    )
+
+    assert service_calls == [True]
+    assert result["status"] == "ok"
+    assert result["warm_service_health"] is True
+    assert result["service_health_error_count"] == 0
 
 
 def test_warm_token_cache_refreshes_when_not_dry_run(monkeypatch):

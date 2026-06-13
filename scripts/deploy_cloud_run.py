@@ -23,9 +23,10 @@ DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
 DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
 DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
 DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
+DEFAULT_AUTH_MIN_INSTANCES = "1"
 DEFAULT_AUTH_MAX_INSTANCES = "1"
 DEFAULT_REMOTE_CONCURRENCY = "20"
-DEFAULT_REMOTE_MIN_INSTANCES = "0"
+DEFAULT_REMOTE_MIN_INSTANCES = "1"
 DEFAULT_REMOTE_MAX_INSTANCES = "1"
 DEFAULT_CHATGPT_REMOTE_AUTH_MODE = "oauth"
 DEFAULT_BATCH_TASK_TIMEOUT = "1800s"
@@ -221,6 +222,10 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_ACCOUNT_TYPE",
         "KIS_DATA_DIR",
         "KIS_TOKEN_ENCRYPTION_KEY",
+        "KIS_AUTH_BASE_URL",
+        "KIS_AUTH_ISSUER_URL",
+        "KIS_RESOURCE_SERVER_URL",
+        "KIS_SERVICE_WARMUP_HEALTH_URLS",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload.update(_build_account_env(env))
@@ -229,6 +234,8 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
 
 def _build_auth_runtime_flags(env: dict[str, str]) -> list[str]:
     return [
+        "--min-instances",
+        env.get("KIS_CLOUD_RUN_AUTH_MIN_INSTANCES", DEFAULT_AUTH_MIN_INSTANCES),
         "--max-instances",
         env.get("KIS_CLOUD_RUN_AUTH_MAX_INSTANCES", DEFAULT_AUTH_MAX_INSTANCES),
     ]
@@ -268,7 +275,7 @@ def _build_overseas_batch_command_args(env: dict[str, str]) -> str:
         DEFAULT_OVERSEAS_EXCHANGE,
     )
     return (
-        "run,kis-portfolio-batch,collect-overseas-transaction-history,"
+        "collect-overseas-transaction-history,"
         f"--date,today,--account-label,{account_label},--exchange,{exchange}"
     )
 
@@ -283,8 +290,9 @@ def _build_token_warmup_command_args(env: dict[str, str]) -> str:
         DEFAULT_TOKEN_WARMUP_VALID_THROUGH,
     )
     return (
-        "run,kis-portfolio-batch,warm-token-cache,"
-        f"--account-label,{account_label},--valid-through,{valid_through},--dry-run"
+        "warm-token-cache,"
+        f"--account-label,{account_label},--valid-through,{valid_through},"
+        "--dry-run,--warm-service-health"
     )
 
 
@@ -645,6 +653,7 @@ def _deploy_service_or_job(
     secret_refs: dict[str, str],
     runtime_flags: list[str],
     target_name: str,
+    command: str,
     command_args: str,
     is_job: bool,
 ) -> int:
@@ -664,10 +673,10 @@ def _deploy_service_or_job(
                 "--env-vars-file",
                 env_yaml_path,
                 "--command",
-                "uv",
-                "--args",
-                command_args,
+                command,
             ]
+            if command_args:
+                command.extend(["--args", command_args])
         else:
             command = [
                 "gcloud",
@@ -682,10 +691,10 @@ def _deploy_service_or_job(
                 "--env-vars-file",
                 env_yaml_path,
                 "--command",
-                "uv",
-                "--args",
-                command_args,
+                command,
             ]
+            if command_args:
+                command.extend(["--args", command_args])
         command.extend(runtime_flags)
         command.extend(_build_secret_flags(secret_refs))
         command.extend(_build_label_flags(args.target))
@@ -818,7 +827,8 @@ def main() -> int:
             secret_refs=secret_refs,
             runtime_flags=_build_auth_runtime_flags(env),
             target_name=args.service or DEFAULT_AUTH_SERVICE,
-            command_args="run,kis-portfolio-auth",
+            command="kis-portfolio-auth",
+            command_args="",
             is_job=False,
         )
 
@@ -844,7 +854,8 @@ def main() -> int:
             secret_refs=secret_refs,
             runtime_flags=_build_remote_runtime_flags(env),
             target_name=args.service or DEFAULT_REMOTE_SERVICE,
-            command_args="run,kis-portfolio-remote",
+            command="kis-portfolio-remote",
+            command_args="",
             is_job=False,
         )
 
@@ -870,7 +881,8 @@ def main() -> int:
             secret_refs=secret_refs,
             runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_BATCH_JOB_NAME") or DEFAULT_BATCH_JOB,
-            command_args="run,kis-portfolio-batch,collect-domestic-order-history,--date,today",
+            command="kis-portfolio-batch",
+            command_args="collect-domestic-order-history,--date,today",
             is_job=True,
         )
 
@@ -896,6 +908,7 @@ def main() -> int:
             secret_refs=secret_refs,
             runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_OVERSEAS_BATCH_JOB_NAME") or DEFAULT_OVERSEAS_BATCH_JOB,
+            command="kis-portfolio-batch",
             command_args=_build_overseas_batch_command_args(env),
             is_job=True,
         )
@@ -922,6 +935,7 @@ def main() -> int:
             secret_refs=secret_refs,
             runtime_flags=_build_batch_runtime_flags(env),
             target_name=args.job or env.get("KIS_TOKEN_WARMUP_JOB_NAME") or DEFAULT_TOKEN_WARMUP_JOB,
+            command="kis-portfolio-batch",
             command_args=_build_token_warmup_command_args(env),
             is_job=True,
         )

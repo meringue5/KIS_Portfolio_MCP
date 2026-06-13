@@ -67,6 +67,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Only report which accounts would refresh; do not call the KIS token endpoint.",
     )
+    token_warmup.add_argument(
+        "--warm-service-health",
+        action="store_true",
+        help="Also GET auth/remote /health endpoints to wake Cloud Run services.",
+    )
 
     market_calendar = subparsers.add_parser(
         "sync-market-calendar",
@@ -102,9 +107,10 @@ async def _run_warm_token_cache(args: argparse.Namespace) -> int:
         account_label=args.account_label,
         valid_through=args.valid_through,
         dry_run=args.dry_run,
+        warm_service_health_checks=args.warm_service_health,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0 if result["error_count"] == 0 else 1
+    return 0 if result["status"] == "ok" else 1
 
 
 def _run_sync_market_calendar(args: argparse.Namespace) -> int:
