@@ -180,7 +180,7 @@ class TrIdManager:
         "order_list": "TTTC8001R",  # 일별주문체결조회
         "order_detail": "TTTC8036R",  # 주문체결내역조회
         "stock_info": "FHKST01010400",  # 일별주가조회
-        "stock_history": "FHKST03010200",  # 주식일별주가조회
+        "stock_history": "FHKST03010100",  # 국내주식기간별시세(일/주/월/년)
         "stock_ask": "FHKST01010200",  # 주식호가조회
         
         # 해외주식
@@ -210,7 +210,7 @@ class TrIdManager:
         "order_list": "VTTC8001R",  # 일별주문체결조회
         "order_detail": "VTTC8036R",  # 주문체결내역조회
         "stock_info": "FHKST01010400",  # 일별주가조회
-        "stock_history": "FHKST03010200",  # 주식일별주가조회
+        "stock_history": "FHKST03010100",  # 국내주식기간별시세(일/주/월/년)
         "stock_ask": "FHKST01010200",  # 주식호가조회
         
         # 해외주식
