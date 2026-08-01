@@ -245,6 +245,10 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 정상 스냅샷만 exit 0으로 처리하며, feeder 오류·환율 누락·stale fallback·저장 실패는 exit 1과
 `KIS_BATCH_ALERT_WEBHOOK_URL` webhook 알림으로 시끄럽게 실패한다. webhook URL은
 Secret Manager의 `kis-portfolio-kis-batch-alert-webhook-url`에 저장해야 한다.
+Telegram을 사용할 때는 Bot API URL
+`https://api.telegram.org/bot<BOT_TOKEN>/sendMessage?chat_id=<CHAT_ID>`를 사용한다.
+배치는 Telegram URL을 감지해 `sendMessage`의 `chat_id`와 `text` payload로 변환한다.
+bot token은 비밀번호와 동일하게 취급하며 Git, 채팅, 로그에 남기지 않는다.
 
 - Job name: `kis-portfolio-domestic-order-history`
 - Scheduler name: `kis-portfolio-domestic-order-history-1535`
