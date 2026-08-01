@@ -13,11 +13,14 @@
 - `exchange_rate_history`: cache by currency/date/period; duplicates ignored.
 - `instrument_master`: upserted KIS master metadata for classification.
 - `instrument_classification_overrides`: local override layer for exposure classification.
+- `cash_flow`: idempotent signed cash-flow ledger keyed by caller-supplied idempotency key.
+- `trade_journal`: idempotent decision journal keyed by caller-supplied idempotency key.
 
 ## Curated Layer
 
 - `portfolio_daily_snapshots` is a view over raw snapshots.
 - `asset_overview_daily_snapshots` is a view over canonical total-asset snapshots.
+- `asset_return_daily` is a flow-adjusted performance view over canonical snapshots and `cash_flow`.
 - Daily representative policy is implemented in view/query logic, not by deleting raw rows.
 
 ## Secret Policy

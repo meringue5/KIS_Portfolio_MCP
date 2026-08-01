@@ -9,6 +9,8 @@ import json
 from dotenv import load_dotenv
 
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
+from kis_portfolio.services.alerts import notify_batch_failure
+from kis_portfolio.services.asset_pipeline import collect_total_asset_overview
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.token_warmup import warm_token_cache
@@ -83,6 +85,22 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="Calendar years to generate, for example: 2026 2027",
     )
+
+    asset_snapshot = subparsers.add_parser(
+        "collect-asset-overview-snapshot",
+        help="Refresh all balances, resolve FX, and store one canonical total-asset snapshot.",
+    )
+    asset_snapshot.add_argument(
+        "--overseas-account-label",
+        default="brokerage",
+        help="Configured account used for overseas holdings. Default: brokerage",
+    )
+    asset_snapshot.add_argument(
+        "--top-n",
+        type=int,
+        default=10,
+        help="Number of overseas holdings kept in summary chart data. Default: 10",
+    )
     return parser
 
 
@@ -119,6 +137,38 @@ def _run_sync_market_calendar(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _run_collect_asset_overview_snapshot(args: argparse.Namespace) -> int:
+    try:
+        result = await collect_total_asset_overview(
+            refresh=True,
+            save_snapshot=True,
+            overseas_account_label=args.overseas_account_label,
+            top_n=args.top_n,
+            include_raw=False,
+        )
+    except Exception as error:
+        alert = await notify_batch_failure(
+            "collect-asset-overview-snapshot",
+            "error",
+            f"{type(error).__name__}: canonical asset snapshot failed",
+        )
+        print(json.dumps({
+            "status": "error",
+            "error_type": type(error).__name__,
+            "alert": alert,
+        }, ensure_ascii=False, indent=2))
+        return 1
+
+    if result.get("status") != "ok" or result.get("snapshot_status") != "saved":
+        result["alert"] = await notify_batch_failure(
+            "collect-asset-overview-snapshot",
+            result.get("status", "error"),
+            "Canonical asset snapshot completed with degraded or incomplete data.",
+        )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result.get("status") == "ok" and result.get("snapshot_status") == "saved" else 1
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -132,6 +182,8 @@ def main() -> None:
         raise SystemExit(asyncio.run(_run_warm_token_cache(args)))
     if args.command == "sync-market-calendar":
         raise SystemExit(_run_sync_market_calendar(args))
+    if args.command == "collect-asset-overview-snapshot":
+        raise SystemExit(asyncio.run(_run_collect_asset_overview_snapshot(args)))
 
     parser.print_help()
     raise SystemExit(2)

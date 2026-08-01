@@ -198,6 +198,8 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 | `instrument_master` | upsert | `scripts/sync_instrument_master.py` 실행 시 |
 | `instrument_classification_overrides` | upsert | 로컬 override 등록 시 |
 | `trade_profit_history` | append-only INSERT | `get-period-trade-profit`, `get-overseas-period-profit` 호출 시 |
+| `cash_flow` | idempotency key upsert | `record-cash-flow` 호출 시 |
+| `trade_journal` | idempotency key upsert | `record-trade-journal` 호출 시 |
 
 **DB 전용 조회 툴 (API 호출 없음):**
 - `get-portfolio-history` — 계좌 잔고 스냅샷 이력
@@ -223,6 +225,7 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 - 분/일 단위 중복 제거는 저장 시점이 아니라 curated view/pipeline에서 처리
 - 현재 일별 대표값 view: `portfolio_daily_snapshots`
 - 현재 canonical 일별 대표값 view: `asset_overview_daily_snapshots`
+- 현금흐름 조정 성과 view: `asset_return_daily`
 - 국내 상장 해외 ETF/REIT 분류는 `override > KIS master group code > 이름 heuristic > unknown`
 - 상세 문서: `docs/data-pipeline.md`
 
@@ -242,6 +245,7 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 Cloud Run 배포 target:
 - `batch` / `scheduler`: 국내 주문체결 이력 Job + 평일 15:35 KST 스케줄
 - `overseas-batch` / `overseas-scheduler`: 해외 일별거래내역 Job + 평일 07:35 KST 스케줄
+- `asset-snapshot-batch` / `asset-snapshot-scheduler`: canonical 총자산 Job + 매일 16:10 KST 스케줄
 
 노출 tool:
 - `get-configured-accounts`
@@ -261,6 +265,7 @@ Cloud Run 배포 target:
 - `get-total-asset-trend`, `get-total-asset-allocation-history`
 - `get-portfolio-daily-change`
 - `get-portfolio-anomalies`, `get-portfolio-trend`, `get-bollinger-bands`
+- `record-cash-flow`, `record-trade-journal`, `get-asset-return-history`
 
 기존 fork의 `inquery-*` tool alias는 기본 MCP 표면에 등록하지 않는다.
 토큰 원문과 secret은 응답에 포함하지 않는다. 계좌번호는 계좌 메타데이터에서는 항상 마스킹한다.

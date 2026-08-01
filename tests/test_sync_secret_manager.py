@@ -24,6 +24,7 @@ def test_secret_manager_sync_plan_only_includes_allowlisted_secrets():
         "MOTHERDUCK_DATABASE": "kis_portfolio",
         "MOTHERDUCK_TOKEN": "md-token",
         "KIS_DEPLOY_ENV": "bundled-env",
+        "KIS_BATCH_ALERT_WEBHOOK_URL": "https://alerts.example.invalid/hook",
     }
 
     plan = sync_secret_manager._build_secret_plan(env)
@@ -33,4 +34,5 @@ def test_secret_manager_sync_plan_only_includes_allowlisted_secrets():
         "KIS_APP_SECRET_RIA": "kis-portfolio-kis-app-secret-ria",
         "KIS_CANO_RIA": "kis-portfolio-kis-cano-ria",
         "MOTHERDUCK_TOKEN": "kis-portfolio-motherduck-token",
+        "KIS_BATCH_ALERT_WEBHOOK_URL": "kis-portfolio-kis-batch-alert-webhook-url",
     }

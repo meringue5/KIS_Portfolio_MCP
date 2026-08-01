@@ -257,6 +257,13 @@ def test_get_total_asset_overview_precomputes_allocation(monkeypatch):
     )
     monkeypatch.setattr(portfolio_mcp.kisdb, "get_instrument_master_map", lambda symbols: {})
     monkeypatch.setattr(portfolio_mcp.kisdb, "get_classification_override_map", lambda symbols: {})
+    monkeypatch.setattr(
+        portfolio_mcp.kisdb,
+        "get_latest_exchange_rate",
+        lambda *args, **kwargs: pytest.fail(
+            "DB FX fallback must not run when the live deposit response has the rate"
+        ),
+    )
     monkeypatch.setattr(portfolio_mcp.kisdb, "insert_overseas_asset_snapshot", lambda *args, **kwargs: "ovs-1")
     monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_overview_snapshot", lambda *args, **kwargs: "overview-1")
     monkeypatch.setattr(portfolio_mcp.kisdb, "insert_asset_holding_snapshots", lambda *args, **kwargs: 3)
@@ -527,7 +534,9 @@ def test_get_total_asset_overview_excludes_raw_by_default(monkeypatch):
 
     result = asyncio.run(portfolio_mcp.get_total_asset_overview())
 
-    assert result["status"] == "ok"
+    assert result["status"] == "degraded"
+    assert result["data_quality"]["is_complete"] is False
+    assert result["data_quality"]["flags"][-1]["code"] == "domestic_snapshot_missing"
     assert_overview_totals_are_consistent(result)
     assert "raw" not in result
 

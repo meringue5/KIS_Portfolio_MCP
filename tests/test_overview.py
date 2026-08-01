@@ -1,9 +1,11 @@
 from kis_portfolio.account_registry import AccountConfig
 from kis_portfolio.services.overview import (
+    build_cached_fx_fallback,
     build_total_asset_overview,
     build_fx_rates,
     summarize_overseas_deposit,
 )
+from datetime import date
 
 
 def account(label, cano, display_name=None):
@@ -27,6 +29,23 @@ def test_build_fx_rates_extracts_deposit_rates():
     assert result["USD"]["rate"] == 1400.5
     assert result["HKD"]["rate"] == 180.2
     assert result["JPY"]["rate"] == 9.1
+
+
+def test_cached_fx_fallback_marks_stale_rates_with_provenance():
+    result = build_cached_fx_fallback(
+        ["USD"],
+        lambda *args, **kwargs: {"currency": "USD", "date": "2026-07-20", "rate": 1400},
+        valuation_date=date(2026, 7, 24),
+        stale_after_days=3,
+    )
+
+    assert result["USD"] == {
+        "rate": 1400.0,
+        "source": "db_cache",
+        "rate_date": "2026-07-20",
+        "age_days": 4,
+        "stale": True,
+    }
 
 
 def test_summarize_overseas_deposit_extracts_total_asset_and_cash():
@@ -100,6 +119,57 @@ def test_build_total_asset_overview_uses_foreign_cash_for_overseas_total():
     assert result["totals"]["overseas_total_asset_amt_krw"] == 175_000
     assert result["totals"]["total_eval_amt_krw"] == 275_000
     assert result["overseas"]["total_asset_source"] == "stock_eval_plus_deposit_foreign_cash"
+
+
+def test_build_total_asset_overview_does_not_report_domestic_only_as_complete_total():
+    accounts = [account("brokerage", "11111111", "일반 위탁")]
+    result = build_total_asset_overview(
+        {
+            "accounts": [{
+                "account_id": "11111111",
+                "account_type": "brokerage",
+                "total_eval_amt": 100_000,
+            }],
+        },
+        {"NASD": {"output1": [{
+            "ovrs_pdno": "AAPL",
+            "tr_crcy_cd": "USD",
+            "ovrs_stck_evlu_amt": "100",
+        }]}},
+        {"예수금_총계": {"외화사용가능금액": "0"}},
+        accounts,
+        accounts[0],
+    )
+
+    assert result["status"] == "degraded"
+    assert result["data_quality"]["is_complete"] is False
+    assert result["totals"]["total_eval_amt_krw"] is None
+    assert result["totals"]["known_total_eval_amt_krw"] == 100_000
+    assert result["data_quality"]["flags"][0]["code"] == "fx_rate_missing"
+
+
+def test_build_total_asset_overview_uses_fresh_db_fallback_with_explicit_warning():
+    accounts = [account("brokerage", "11111111", "일반 위탁")]
+    result = build_total_asset_overview(
+        {"accounts": [{"account_id": "11111111", "total_eval_amt": 100_000}]},
+        {"NASD": {"output1": [{
+            "ovrs_pdno": "AAPL",
+            "tr_crcy_cd": "USD",
+            "ovrs_stck_evlu_amt": "100",
+        }]}},
+        {"예수금_총계": {"외화사용가능금액": "20000"}},
+        accounts,
+        accounts[0],
+        fallback_fx_rates={
+            "USD": {"rate": 1400, "source": "db_cache", "age_days": 1, "stale": False},
+        },
+    )
+
+    assert result["status"] == "ok"
+    assert result["data_quality"]["is_complete"] is True
+    assert result["data_quality"]["flags"][0]["code"] == "fx_rate_db_fallback"
+    assert result["totals"]["overseas_stock_eval_amt_krw"] == 140_000
+    assert result["overseas"]["fx_rates"]["USD"]["source"] == "db_cache"
 
 
 def test_build_total_asset_overview_ignores_reported_overseas_total_that_duplicates_domestic_cash():

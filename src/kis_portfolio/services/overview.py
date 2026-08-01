@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import date, datetime
 from typing import Any
 
 from kis_portfolio.account_registry import AccountConfig
@@ -20,6 +21,49 @@ EXCHANGE_CURRENCY = {
     "HASE": "VND",
     "VNSE": "VND",
 }
+
+
+def overseas_holding_currencies(overseas_balance: dict) -> list[str]:
+    """Return currencies that need KRW conversion for positive holdings."""
+    currencies: set[str] = set()
+    for exchange, payload in (overseas_balance.items() if isinstance(overseas_balance, dict) else []):
+        if not isinstance(payload, dict):
+            continue
+        for row in payload.get("output1") or []:
+            if not isinstance(row, dict):
+                continue
+            value = _first_number(row, ["ovrs_stck_evlu_amt", "frcr_evlu_amt2"])
+            if value is not None and value > 0:
+                currencies.add(row.get("tr_crcy_cd") or EXCHANGE_CURRENCY.get(str(exchange), "USD"))
+    return sorted(currencies)
+
+
+def build_cached_fx_fallback(
+    currencies: list[str],
+    latest_rate_getter,
+    *,
+    valuation_date: date | None = None,
+    stale_after_days: int = 7,
+) -> dict[str, dict]:
+    """Build provenance-rich fallback rates from the exchange-rate cache."""
+    valuation_date = valuation_date or date.today()
+    fallback: dict[str, dict] = {}
+    for currency in currencies:
+        row = latest_rate_getter(currency, on_or_before=valuation_date, period="D")
+        if not row:
+            continue
+        rate_date = row.get("date")
+        if isinstance(rate_date, str):
+            rate_date = datetime.fromisoformat(rate_date).date()
+        age_days = (valuation_date - rate_date).days if rate_date else None
+        fallback[currency] = {
+            "rate": parse_number(row.get("rate")),
+            "source": "db_cache",
+            "rate_date": rate_date.isoformat() if rate_date else None,
+            "age_days": age_days,
+            "stale": age_days is None or age_days > stale_after_days,
+        }
+    return fallback
 
 
 def parse_number(value: Any) -> float | None:
@@ -52,9 +96,21 @@ def _first_number(row: dict, keys: list[str]) -> float | None:
     return None
 
 
-def build_fx_rates(overseas_deposit: dict) -> dict[str, dict]:
-    """Extract KRW FX rates from overseas deposit response."""
-    rates: dict[str, dict] = {}
+def build_fx_rates(
+    overseas_deposit: dict,
+    fallback_fx_rates: dict[str, dict] | None = None,
+) -> dict[str, dict]:
+    """Extract KRW FX rates, preferring the KIS deposit response over cache."""
+    rates: dict[str, dict] = {
+        currency.upper(): {
+            "currency": currency.upper(),
+            "quote": "KRW",
+            **value,
+            "source": value.get("source", "db_cache"),
+        }
+        for currency, value in (fallback_fx_rates or {}).items()
+        if isinstance(value, dict) and parse_number(value.get("rate")) is not None
+    }
     raw_rates = overseas_deposit.get("적용환율") or {}
     if isinstance(raw_rates, dict):
         for pair, raw_value in raw_rates.items():
@@ -65,7 +121,13 @@ def build_fx_rates(overseas_deposit: dict) -> dict[str, dict]:
                 continue
             rate = parse_number(raw_value)
             if rate is not None:
-                rates[currency] = {"currency": currency, "quote": "KRW", "rate": rate}
+                rates[currency] = {
+                    "currency": currency,
+                    "quote": "KRW",
+                    "rate": rate,
+                    "source": "kis_deposit_summary",
+                    "stale": False,
+                }
 
     for row in overseas_deposit.get("통화별_잔고") or []:
         if not isinstance(row, dict):
@@ -73,7 +135,13 @@ def build_fx_rates(overseas_deposit: dict) -> dict[str, dict]:
         currency = row.get("crcy_cd")
         rate = parse_number(row.get("frst_bltn_exrt"))
         if currency and rate is not None:
-            rates.setdefault(currency, {"currency": currency, "quote": "KRW", "rate": rate})
+            rates[currency] = {
+                "currency": currency,
+                "quote": "KRW",
+                "rate": rate,
+                "source": "kis_deposit_currency_balance",
+                "stale": False,
+            }
     return rates
 
 
@@ -107,6 +175,7 @@ def summarize_overseas_deposit(overseas_deposit: dict) -> dict:
 
     return {
         "total_asset_amt_krw": total_asset_krw,
+        "reported_account_total_asset_amt_krw": total_asset_krw,
         "reported_total_asset_amt_krw": total_asset_krw,
         "total_cash_amt_krw": total_cash_krw,
         "cash_from_fields_amt_krw": cash_from_fields,
@@ -114,6 +183,11 @@ def summarize_overseas_deposit(overseas_deposit: dict) -> dict:
         "foreign_cash_amt_krw": foreign_cash_krw,
         "krw_cash_amt_krw": krw_cash,
         "cash_by_currency": by_currency,
+        "cash_semantics": {
+            "canonical_overseas_cash_field": "foreign_cash_amt_krw",
+            "reported_total_asset_includes_securities": True,
+            "total_cash_may_overlap_domestic_feeder": True,
+        },
     }
 
 
@@ -122,12 +196,14 @@ def summarize_overseas_holdings(
     overseas_deposit: dict,
     overseas_account: AccountConfig,
     top_n: int = 10,
+    fallback_fx_rates: dict[str, dict] | None = None,
 ) -> dict:
     """Normalize overseas holdings and pre-compute KRW allocations."""
     top_n = max(1, min(int(top_n), 50))
-    fx_rates = build_fx_rates(overseas_deposit)
+    fx_rates = build_fx_rates(overseas_deposit, fallback_fx_rates)
     deposit = summarize_overseas_deposit(overseas_deposit)
     holdings: list[dict] = []
+    missing_fx_currencies: set[str] = set()
     totals_by_currency: dict[str, dict] = defaultdict(
         lambda: {"currency": "", "value_foreign": 0.0, "value_krw": 0.0, "fx_rate": None}
     )
@@ -149,6 +225,8 @@ def summarize_overseas_holdings(
                 continue
             fx_rate = (fx_rates.get(currency) or {}).get("rate")
             value_krw = value_foreign * fx_rate if fx_rate else None
+            if not fx_rate:
+                missing_fx_currencies.add(currency)
             profit_foreign = parse_number(row.get("frcr_evlu_pfls_amt"))
             holding = {
                 "account_label": overseas_account.label,
@@ -179,13 +257,16 @@ def summarize_overseas_holdings(
                 bucket["fx_rate"] = fx_rate
                 bucket["value_krw"] += value_foreign * fx_rate
 
-    stock_krw = sum((row.get("value_krw") or 0) for row in holdings)
+    known_stock_krw = sum((row.get("value_krw") or 0) for row in holdings)
+    stock_krw = None if missing_fx_currencies else known_stock_krw
     cash_krw = deposit.get("usable_cash_amt_krw")
     total_asset_source = "stock_eval_plus_deposit_foreign_cash"
     if cash_krw is None:
         cash_krw = deposit.get("cash_from_fields_amt_krw") or 0
         total_asset_source = "stock_eval_plus_deposit_cash_fields"
-    total_asset_krw = stock_krw + cash_krw
+    total_asset_krw = stock_krw + cash_krw if stock_krw is not None else None
+    if missing_fx_currencies:
+        total_asset_source = "incomplete_missing_fx"
 
     stock_eval_by_currency = []
     for row in totals_by_currency.values():
@@ -220,12 +301,14 @@ def summarize_overseas_holdings(
         "account": overseas_account.public_dict(),
         "holdings_count": len(holdings),
         "stock_eval_amt_krw": parse_int(stock_krw),
+        "known_stock_eval_amt_krw": parse_int(known_stock_krw),
         "cash_amt_krw": parse_int(cash_krw),
         "total_asset_amt_krw": parse_int(total_asset_krw),
         "total_asset_source": total_asset_source,
         "deposit": deposit,
         "stock_eval_by_currency": sorted(stock_eval_by_currency, key=lambda row: row["currency"]),
         "fx_rates": fx_rates,
+        "missing_fx_currencies": sorted(missing_fx_currencies),
         "holdings_top": holdings[:top_n],
         "chart_data": chart_holdings,
         "_normalized_holdings": holdings,
@@ -373,15 +456,56 @@ def build_total_asset_overview(
     domestic_snapshot_rows: list[dict] | None = None,
     instrument_map: dict[str, dict] | None = None,
     override_map: dict[str, dict] | None = None,
+    fallback_fx_rates: dict[str, dict] | None = None,
 ) -> dict:
     """Build token-efficient canonical total-asset overview response."""
     domestic_accounts = summarize_domestic_accounts(portfolio_summary, accounts)
     domestic_krw = sum(row["value_krw"] for row in domestic_accounts)
-    overseas = summarize_overseas_holdings(overseas_balance, overseas_deposit, overseas_account, top_n)
-    overseas_stock_krw = overseas.get("stock_eval_amt_krw") or 0
+    overseas = summarize_overseas_holdings(
+        overseas_balance,
+        overseas_deposit,
+        overseas_account,
+        top_n,
+        fallback_fx_rates,
+    )
+    overseas_stock_krw = overseas.get("stock_eval_amt_krw")
     overseas_cash_krw = overseas.get("cash_amt_krw") or 0
-    overseas_total_krw = overseas.get("total_asset_amt_krw") or overseas_stock_krw + overseas_cash_krw
-    total_krw = domestic_krw + overseas_total_krw
+    overseas_total_krw = overseas.get("total_asset_amt_krw")
+    total_krw = domestic_krw + overseas_total_krw if overseas_total_krw is not None else None
+    known_total_krw = domestic_krw + (overseas.get("known_stock_eval_amt_krw") or 0) + overseas_cash_krw
+    missing_fx_currencies = overseas.get("missing_fx_currencies") or []
+    stale_fx_currencies = sorted(
+        currency for currency, rate in overseas.get("fx_rates", {}).items()
+        if rate.get("stale")
+    )
+    quality_flags = []
+    if missing_fx_currencies:
+        quality_flags.append({
+            "code": "fx_rate_missing",
+            "severity": "error",
+            "currencies": missing_fx_currencies,
+            "message": "해외 보유자산의 원화 환율이 없어 총자산을 완전하게 계산할 수 없습니다.",
+        })
+    if stale_fx_currencies:
+        quality_flags.append({
+            "code": "fx_rate_stale_fallback",
+            "severity": "warning",
+            "currencies": stale_fx_currencies,
+            "message": "오래된 DB 환율 fallback으로 해외자산을 환산했습니다.",
+        })
+    fallback_currencies = sorted(
+        currency for currency, rate in overseas.get("fx_rates", {}).items()
+        if rate.get("source") == "db_cache"
+    )
+    if fallback_currencies:
+        quality_flags.append({
+            "code": "fx_rate_db_fallback",
+            "severity": "warning",
+            "currencies": fallback_currencies,
+            "message": "KIS 예수금 응답에 환율이 없어 DB 캐시 환율을 사용했습니다.",
+        })
+    quality_status = "degraded" if missing_fx_currencies or stale_fx_currencies else "ok"
+    is_complete = not missing_fx_currencies
 
     domestic_holdings, domestic_exposure, classification_warnings = summarize_domestic_holdings(
         domestic_accounts,
@@ -392,7 +516,7 @@ def build_total_asset_overview(
     overseas_holdings = list(overseas.get("_normalized_holdings", []))
     classification_amounts = {
         "domestic_direct": domestic_exposure.get("domestic_direct", 0),
-        "overseas_direct": domestic_exposure.get("overseas_direct", 0) + overseas_stock_krw,
+        "overseas_direct": domestic_exposure.get("overseas_direct", 0) + (overseas_stock_krw or 0),
         "overseas_indirect": domestic_exposure.get("overseas_indirect", 0),
         "cash": domestic_exposure.get("cash", 0) + overseas_cash_krw,
         "unknown": domestic_exposure.get("unknown", 0),
@@ -518,8 +642,15 @@ def build_total_asset_overview(
 
     result = {
         "source": "kis_portfolio_overview",
-        "status": "ok",
+        "status": quality_status,
         "base_currency": "KRW",
+        "data_quality": {
+            "status": quality_status,
+            "is_complete": is_complete,
+            "flags": quality_flags,
+            "warning_count": sum(flag.get("severity") == "warning" for flag in quality_flags),
+            "error_count": sum(flag.get("severity") == "error" for flag in quality_flags),
+        },
         "totals": {
             "domestic_eval_amt_krw": domestic_krw,
             "overseas_stock_eval_amt_krw": overseas_stock_krw,
@@ -554,6 +685,8 @@ def build_total_asset_overview(
         },
         "_normalized_holdings": normalized_holdings,
     }
+    if not is_complete:
+        result["totals"]["known_total_eval_amt_krw"] = known_total_krw
     if include_raw:
         result["raw"] = {
             "portfolio_summary": portfolio_summary,

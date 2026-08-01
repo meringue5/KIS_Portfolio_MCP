@@ -103,8 +103,58 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
             unknown_amt_krw BIGINT,
             allocation_data JSON,
             classification_summary JSON,
+            quality_status VARCHAR,
+            quality_flags JSON,
+            is_complete BOOLEAN,
             overview_data JSON,
             PRIMARY KEY (id)
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS cash_flow (
+            idempotency_key VARCHAR NOT NULL,
+            event_date DATE NOT NULL,
+            account_label VARCHAR NOT NULL,
+            flow_type VARCHAR NOT NULL,
+            amount_krw BIGINT NOT NULL,
+            amount_foreign DOUBLE,
+            currency VARCHAR NOT NULL DEFAULT 'KRW',
+            note VARCHAR,
+            source VARCHAR NOT NULL DEFAULT 'manual',
+            source_ref VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            PRIMARY KEY (idempotency_key),
+            CHECK (flow_type IN ('deposit', 'withdrawal', 'fx_convert', 'dividend', 'tax'))
+        )
+    """)
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS trade_journal (
+            id VARCHAR NOT NULL DEFAULT gen_random_uuid(),
+            idempotency_key VARCHAR NOT NULL UNIQUE,
+            trade_date DATE NOT NULL,
+            account_label VARCHAR,
+            symbol VARCHAR NOT NULL,
+            market VARCHAR,
+            side VARCHAR NOT NULL,
+            quantity DOUBLE NOT NULL,
+            price DOUBLE NOT NULL,
+            currency VARCHAR NOT NULL DEFAULT 'KRW',
+            trigger_type VARCHAR NOT NULL,
+            trigger_detail VARCHAR,
+            exit_plan VARCHAR,
+            principle_check JSON,
+            linked_order_no VARCHAR,
+            linked_transaction_hash VARCHAR,
+            realized_return_pct DOUBLE,
+            note VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+            PRIMARY KEY (id),
+            CHECK (side IN ('buy', 'sell')),
+            CHECK (trigger_type IN ('price', 'indicator', 'earnings', 'emotion', 'chatroom', 'mentor'))
         )
     """)
 
@@ -498,6 +548,9 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     _ensure_column(con, "kis_api_access_tokens", "created_at", "TIMESTAMP")
     _ensure_column(con, "kis_api_access_tokens", "updated_at", "TIMESTAMP")
     _ensure_column(con, "order_history", "account_product_code", "VARCHAR")
+    _ensure_column(con, "asset_overview_snapshots", "quality_status", "VARCHAR")
+    _ensure_column(con, "asset_overview_snapshots", "quality_flags", "JSON")
+    _ensure_column(con, "asset_overview_snapshots", "is_complete", "BOOLEAN")
 
     create_curated_views(con)
     logger.info("DB schema initialized")
@@ -547,8 +600,61 @@ def create_curated_views(con: duckdb.DuckDBPyConnection) -> None:
             arg_max(unknown_amt_krw, snapshot_at) AS unknown_amt_krw,
             arg_max(allocation_data, snapshot_at) AS allocation_data,
             arg_max(classification_summary, snapshot_at) AS classification_summary,
+            coalesce(
+                arg_max(quality_status, snapshot_at),
+                'legacy_unassessed'
+            ) AS quality_status,
+            coalesce(
+                arg_max(quality_flags, snapshot_at),
+                CAST('["legacy_cash_semantics_unverified"]' AS JSON)
+            ) AS quality_flags,
+            coalesce(arg_max(is_complete, snapshot_at), FALSE) AS is_complete,
             arg_max(overview_data, snapshot_at) AS overview_data
         FROM asset_overview_snapshots
         WHERE total_eval_amt_krw IS NOT NULL
         GROUP BY snap_date
+    """)
+
+    con.execute("""
+        CREATE OR REPLACE VIEW asset_return_daily AS
+        WITH snapshot_changes AS (
+            SELECT
+                snap_date,
+                snapshot_at,
+                total_eval_amt_krw,
+                quality_status,
+                is_complete,
+                lag(total_eval_amt_krw) OVER (ORDER BY snap_date) AS prev_total_eval_amt_krw
+            FROM asset_overview_daily_snapshots
+        ),
+        daily_flows AS (
+            SELECT
+                event_date,
+                sum(amount_krw) AS net_activity_krw,
+                sum(CASE
+                    WHEN flow_type IN ('deposit', 'withdrawal') THEN amount_krw
+                    ELSE 0
+                END) AS net_external_flow_krw
+            FROM cash_flow
+            GROUP BY event_date
+        )
+        SELECT
+            s.snap_date,
+            s.snapshot_at,
+            s.total_eval_amt_krw,
+            s.prev_total_eval_amt_krw,
+            coalesce(f.net_activity_krw, 0) AS net_activity_krw,
+            coalesce(f.net_external_flow_krw, 0) AS net_external_flow_krw,
+            s.total_eval_amt_krw - s.prev_total_eval_amt_krw AS balance_change_krw,
+            s.total_eval_amt_krw - s.prev_total_eval_amt_krw
+                - coalesce(f.net_external_flow_krw, 0) AS flow_adjusted_change_krw,
+            round(
+                ((s.total_eval_amt_krw - coalesce(f.net_external_flow_krw, 0))
+                    / nullif(s.prev_total_eval_amt_krw, 0) - 1) * 100,
+                4
+            ) AS daily_twr_return_pct,
+            s.quality_status,
+            s.is_complete
+        FROM snapshot_changes s
+        LEFT JOIN daily_flows f ON f.event_date = s.snap_date
     """)

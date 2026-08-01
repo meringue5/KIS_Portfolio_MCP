@@ -55,6 +55,7 @@
 | `KIS_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google Cloud OAuth app | auth server | No | ID in env, secret in Secret Manager | Rotate in Google Cloud, sync Secret Manager for the secret, redeploy auth. |
 | `KIS_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth app | auth server | No | ID in env, secret in Secret Manager | Rotate in GitHub, sync Secret Manager for the secret, redeploy auth. |
 | `KIS_REMOTE_AUTH_TOKEN` | Generated secret, GCP Secret Manager | remote bearer fallback only | No | env/secret manager only | Bearer mode is for experiments. Rotate token and update clients together. |
+| `KIS_BATCH_ALERT_WEBHOOK_URL` | Alert provider, local `.env`, GCP Secret Manager | canonical asset snapshot batch | No | env/secret manager only | URL 자체가 credential일 수 있다. 로그/DB에 남기지 말고 rotation 후 snapshot Job을 재배포한다. |
 | `KIS_DEPLOY_ENV` | Deprecated GitHub Environment secret | None in current workflow | No | Deprecated GitHub secret | Do not add back to workflow. Remove after Secret Manager deployment is verified. |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | GitHub Environment secret | GitHub Actions auth | No | GitHub secret | Deployment control plane credential/config. Keep scoped to this repository/environment. |
 | `GCP_SERVICE_ACCOUNT` | GitHub Environment secret or var | GitHub Actions auth | No | GitHub secret/var | Not a password, but grants deployment authority through WIF. Keep least-privilege IAM. |

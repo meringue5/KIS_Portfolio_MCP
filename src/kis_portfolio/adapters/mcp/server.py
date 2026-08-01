@@ -19,6 +19,7 @@ from kis_portfolio.account_registry import (
 )
 from kis_portfolio.analytics.bollinger import get_bollinger_bands as analyze_bollinger_bands
 from kis_portfolio.analytics.asset_overview import (
+    get_asset_return_history as analyze_asset_return_history,
     get_total_asset_allocation_history as analyze_total_asset_allocation_history,
     get_total_asset_daily_change as analyze_total_asset_daily_change,
     get_total_asset_history as analyze_total_asset_history,
@@ -37,8 +38,8 @@ from kis_portfolio.observability import (
     operation_context,
 )
 from kis_portfolio.services import kis_api
+from kis_portfolio.services.asset_pipeline import collect_total_asset_overview
 from kis_portfolio.services.account import fetch_balance_snapshot
-from kis_portfolio.services.overview import build_total_asset_overview
 from kis_portfolio.services.order_history import get_domestic_order_history
 from kis_portfolio.services.overseas_history import (
     get_overseas_order_history as get_overseas_order_history_service,
@@ -431,145 +432,20 @@ async def _get_total_asset_overview_impl(
     include_raw: bool,
     operation_id: str,
 ):
-    accounts = load_account_registry()
-    refresh_status = {"requested": refresh}
-    if refresh:
-        refresh_result = await refresh_all_account_snapshots()
-        refresh_status.update({
-            "count": refresh_result.get("count", 0),
-            "success_count": refresh_result.get("success_count", 0),
-            "error_count": refresh_result.get("error_count", 0),
-            "snapshot_status_counts": {
-                "saved": sum(
-                    1 for row in refresh_result.get("accounts", [])
-                    if row.get("snapshot_status") == "saved"
-                ),
-                "not_saved": sum(
-                    1 for row in refresh_result.get("accounts", [])
-                    if row.get("snapshot_status") == "not_saved"
-                ),
-            },
-        })
-        refresh_errors = [
-            {
-                "account": row.get("account"),
-                "error": row.get("error"),
-            }
-            for row in refresh_result.get("accounts", [])
-            if row.get("status") == "error"
-        ]
-        if refresh_errors:
-            refresh_status["errors"] = refresh_errors
-
-    con = kisdb.get_connection()
-    portfolio_summary = analyze_latest_portfolio_summary(con, "", 30)
-    overseas_account = get_account(_account_label(overseas_account_label), accounts)
-    domestic_snapshot_rows = []
-    domestic_symbols: list[str] = []
-    missing_snapshot_accounts = []
-    for account in accounts:
-        rows = kisdb.get_portfolio_snapshots(account.cano, limit=1)
-        if not rows:
-            missing_snapshot_accounts.append(account.public_dict())
-            continue
-        row = rows[0]
-        row["account"] = account.public_dict()
-        row["account_label"] = account.label
-        domestic_snapshot_rows.append(row)
-        for holding in row.get("balance_data", {}).get("output1") or []:
-            if isinstance(holding, dict) and holding.get("pdno"):
-                domestic_symbols.append(str(holding["pdno"]).strip())
-    instrument_map = kisdb.get_instrument_master_map(sorted(set(domestic_symbols)))
-    override_map = kisdb.get_classification_override_map(sorted(set(domestic_symbols)))
-
-    errors = []
-    overseas_balance = {}
-    overseas_deposit = {}
-    with scoped_account_env(overseas_account):
-        try:
-            overseas_balance = await kis_api.inquery_overseas_balance("ALL")
-        except Exception as e:
-            safe_error = _safe_error_message(e, [overseas_account])
-            log_event(
-                logger,
-                "overview_feeder_failed",
-                level=logging.WARNING,
-                operation_id=operation_id,
-                tool="get-overseas-balance",
-                account_label=overseas_account.label,
-                masked_cano=overseas_account.masked_cano,
-                error_type=type(e).__name__,
-                error=safe_error,
-            )
-            errors.append({"tool": "get-overseas-balance", "error": safe_error})
-        try:
-            overseas_deposit = await kis_api.inquery_overseas_deposit("01", "000")
-        except Exception as e:
-            safe_error = _safe_error_message(e, [overseas_account])
-            log_event(
-                logger,
-                "overview_feeder_failed",
-                level=logging.WARNING,
-                operation_id=operation_id,
-                tool="get-overseas-deposit",
-                account_label=overseas_account.label,
-                masked_cano=overseas_account.masked_cano,
-                error_type=type(e).__name__,
-                error=safe_error,
-            )
-            errors.append({"tool": "get-overseas-deposit", "error": safe_error})
-
-    overview = build_total_asset_overview(
-        portfolio_summary=portfolio_summary,
-        overseas_balance=overseas_balance,
-        overseas_deposit=overseas_deposit,
-        accounts=accounts,
-        overseas_account=overseas_account,
+    return await collect_total_asset_overview(
+        refresh=refresh,
+        save_snapshot=save_snapshot,
+        overseas_account_label=_account_label(overseas_account_label),
         top_n=top_n,
         include_raw=include_raw,
-        domestic_snapshot_rows=domestic_snapshot_rows,
-        instrument_map=instrument_map,
-        override_map=override_map,
+        refresh_runner=refresh_all_account_snapshots,
+        summary_runner=analyze_latest_portfolio_summary,
+        overseas_balance_fetcher=kis_api.inquery_overseas_balance,
+        overseas_deposit_fetcher=kis_api.inquery_overseas_deposit,
+        exchange_rate_history_fetcher=kis_api.inquery_exchange_rate_history,
+        refresh_fx_cache=False,
+        db_module=kisdb,
     )
-    normalized_holdings = overview.pop("_normalized_holdings", [])
-    overview["refresh"] = refresh_status
-    overview["status"] = "partial_error" if errors or refresh_status.get("error_count", 0) else "ok"
-    if errors:
-        overview["errors"] = errors
-    if missing_snapshot_accounts:
-        overview["missing_snapshot_accounts"] = missing_snapshot_accounts
-    if save_snapshot:
-        overseas_snapshot_id = kisdb.insert_overseas_asset_snapshot(
-            overseas_account.cano,
-            overseas_account.label,
-            overview["totals"].get("overseas_stock_eval_amt_krw"),
-            overview["totals"].get("overseas_cash_amt_krw"),
-            overview["totals"].get("overseas_total_asset_amt_krw"),
-            overview["overseas"].get("fx_rates"),
-            overseas_balance,
-            overseas_deposit,
-        )
-        overview_snapshot_id = kisdb.insert_asset_overview_snapshot(
-            overview["totals"],
-            overview["allocation"],
-            overview["classification_summary"],
-            overview,
-        )
-        holding_count = kisdb.insert_asset_holding_snapshots(overview_snapshot_id, normalized_holdings)
-        overview["saved_snapshot_id"] = overview_snapshot_id
-        overview["overseas_snapshot_id"] = overseas_snapshot_id
-        overview["holding_snapshot_count"] = holding_count
-        overview["snapshot_status"] = "saved"
-    else:
-        overview["snapshot_status"] = "not_saved"
-    overview["used_tools"] = [
-        "refresh-all-account-snapshots" if refresh else None,
-        "get-latest-portfolio-summary",
-        "get-overseas-balance",
-        "get-overseas-deposit",
-    ]
-    overview["used_tools"] = [tool for tool in overview["used_tools"] if tool]
-    return overview
 
 
 @mcp.tool(
@@ -1153,6 +1029,86 @@ async def get_total_asset_allocation_history(
 ):
     con = kisdb.get_connection()
     return analyze_total_asset_allocation_history(con, days)
+
+
+@mcp.tool(
+    name="record-cash-flow",
+    description="Use this to idempotently record a deposit, withdrawal, FX conversion, dividend, or tax event for flow-adjusted portfolio return analysis. 실제 금융 거래를 실행하지 않고 MotherDuck 원장만 갱신합니다.",
+    annotations=SAFE_LOCAL_WRITE_TOOL,
+)
+async def record_cash_flow(
+    idempotency_key: Annotated[str, Field(description="Stable caller-supplied key used to make retries idempotent.")],
+    event_date: DateYmd,
+    account_label: ConfiguredAccountLabel,
+    flow_type: Annotated[str, Field(description="One of deposit, withdrawal, fx_convert, dividend, or tax.")],
+    amount_krw: Annotated[int, Field(description="Signed KRW amount: deposits/dividends positive; withdrawals/taxes negative.")],
+    amount_foreign: Annotated[float | None, Field(description="Optional original foreign-currency amount.")] = None,
+    currency: CurrencyCode = "KRW",
+    note: Annotated[str, Field(description="Optional human-readable note.")] = "",
+):
+    account = get_account(_account_label(account_label))
+    saved_key = kisdb.upsert_cash_flow({
+        "idempotency_key": idempotency_key,
+        "event_date": event_date,
+        "account_label": account.label,
+        "flow_type": flow_type,
+        "amount_krw": amount_krw,
+        "amount_foreign": amount_foreign,
+        "currency": currency,
+        "note": note or None,
+        "source": "mcp_manual",
+    })
+    return {"source": "motherduck", "status": "saved", "idempotency_key": saved_key}
+
+
+@mcp.tool(
+    name="record-trade-journal",
+    description="Use this before or after a trade decision to idempotently record its trigger, rationale, exit plan, and principle checks. 실제 주문 API는 호출하지 않습니다.",
+    annotations=SAFE_LOCAL_WRITE_TOOL,
+)
+async def record_trade_journal(
+    idempotency_key: Annotated[str, Field(description="Stable caller-supplied key used to make retries idempotent.")],
+    trade_date: DateYmd,
+    symbol: InstrumentSymbol,
+    side: Annotated[str, Field(description="buy or sell.")],
+    quantity: Annotated[float, Field(description="Trade quantity.", gt=0)],
+    price: Annotated[float, Field(description="Decision or execution price.", ge=0)],
+    trigger_type: Annotated[str, Field(description="One of price, indicator, earnings, emotion, chatroom, or mentor.")],
+    trigger_detail: Annotated[str, Field(description="Specific decision trigger or evidence.")],
+    exit_plan: Annotated[str, Field(description="Target, stop, or re-entry condition.")],
+    principle_check: Annotated[list[str], Field(description="Applied or violated investment-principle checks.")],
+    account_label: ConfiguredAccountLabel = DEFAULT_ACCOUNT_LABEL,
+    market: Annotated[str, Field(description="Market code such as KRX or NASD.")] = "KRX",
+    currency: CurrencyCode = "KRW",
+):
+    account = get_account(_account_label(account_label))
+    journal_id = kisdb.upsert_trade_journal({
+        "idempotency_key": idempotency_key,
+        "trade_date": trade_date,
+        "account_label": account.label,
+        "symbol": symbol,
+        "market": market,
+        "side": side,
+        "quantity": quantity,
+        "price": price,
+        "currency": currency,
+        "trigger_type": trigger_type,
+        "trigger_detail": trigger_detail,
+        "exit_plan": exit_plan,
+        "principle_check": principle_check,
+    })
+    return {"source": "motherduck", "status": "saved", "journal_id": journal_id}
+
+
+@mcp.tool(
+    name="get-asset-return-history",
+    description="Use this when you need cash-flow-adjusted daily portfolio changes and chain-linked TWR from canonical asset snapshots and the cash-flow ledger.",
+    annotations=READ_ONLY_TOOL,
+)
+async def get_asset_return_history(
+    days: Annotated[int, Field(description="How many recent days of flow-adjusted returns to include.", ge=2, le=3650)] = 90,
+):
+    return analyze_asset_return_history(kisdb.get_connection(), days)
 
 
 def main() -> None:

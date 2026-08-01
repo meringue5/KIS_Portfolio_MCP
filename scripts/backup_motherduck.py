@@ -48,6 +48,8 @@ TABLES = (
     "overseas_transactions",
     "overseas_settlement_balance_snapshots",
     "trade_profit_history",
+    "cash_flow",
+    "trade_journal",
 )
 
 
@@ -80,13 +82,18 @@ def quote_sql_string(value: Path) -> str:
 
 def backup_tables(con: duckdb.DuckDBPyConnection, output_dir: Path) -> dict:
     output_dir.mkdir(parents=True, exist_ok=False)
+    existing_tables = {name for (name,) in con.execute("SHOW TABLES").fetchall()}
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "format": "parquet",
         "tables": {},
+        "skipped_tables": [],
     }
 
     for table in TABLES:
+        if table not in existing_tables:
+            manifest["skipped_tables"].append(table)
+            continue
         row_count = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
         parquet_path = output_dir / f"{table}.parquet"
         con.execute(
@@ -145,6 +152,10 @@ def main() -> int:
     print(f"Backup written: {run_dir}")
     for table, info in manifest["tables"].items():
         print(f"- {table}: {info['rows']} rows -> {info['path']}")
+    if manifest["skipped_tables"]:
+        print("Skipped tables not present in the source database:")
+        for table in manifest["skipped_tables"]:
+            print(f"- {table}")
     if removed:
         print("Pruned old backups:")
         for path in removed:

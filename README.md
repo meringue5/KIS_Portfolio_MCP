@@ -67,6 +67,9 @@
 - `overseas_asset_snapshots`: 해외 자산 raw/aggregate 스냅샷
 - `asset_overview_snapshots`: canonical 총자산 스냅샷
 - `asset_holding_snapshots`: 총자산 스냅샷 기준 정규화 보유 row
+- `cash_flow`: 입출금·환전·배당·세금 canonical 현금흐름 원장
+- `trade_journal`: 트리거 유형과 원칙 점검을 포함한 매매 의사결정 원장
+- `asset_return_daily`: 외부 현금흐름을 차감한 일별 성과/TWR view
 - `order_history`: 국내 주문/체결 raw observation
 - `domestic_orders`: 국내 주문/체결 canonical upsert 저장소
 - `overseas_order_history`: 해외 주문/체결 raw observation
@@ -201,6 +204,7 @@ uv run kis-portfolio-remote
 uv run kis-portfolio-batch collect-domestic-order-history --date today
 uv run kis-portfolio-batch collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS
 uv run kis-portfolio-batch warm-token-cache --account-label all --valid-through 16:30 --dry-run
+uv run kis-portfolio-batch collect-asset-overview-snapshot --overseas-account-label brokerage
 uv run kis-portfolio-batch sync-market-calendar 2026 2027
 ```
 
@@ -209,6 +213,7 @@ uv run kis-portfolio-batch sync-market-calendar 2026 2027
 `sync-market-calendar`는 KRX 거래 캘린더를 연도 단위로 생성해 `market_calendar`에 upsert 합니다.
 `collect-overseas-transaction-history`는 지정 계좌/거래소의 해외주식 일별거래내역을 수집해 raw snapshot과 canonical transaction row를 함께 저장합니다.
 `warm-token-cache`는 지정 시각까지 안전하게 유효하지 않은 KIS access token을 계좌별로 점검합니다. 초기 운영은 `--dry-run`으로만 예약해 실제 토큰 발급 없이 장중 만료 위험을 관측합니다.
+`collect-asset-overview-snapshot`은 전 계좌 feeder, 해외잔고, 예수금, 환율 fallback을 합쳐 canonical 스냅샷을 저장합니다. 품질이 degraded이면 비정상 종료하고 `KIS_BATCH_ALERT_WEBHOOK_URL`로 알립니다.
 Cloud Scheduler/cron 기준 첫 스케줄 예시는 평일 `15:35` KST, cron 표현으로는 `35 15 * * 1-5` 입니다.
 
 ### ChatGPT 앱 메타데이터 권장값
@@ -226,16 +231,16 @@ ChatGPT에서 custom app으로 연결할 때는 아래처럼 app-level metadata�
 
 - workflow 파일: [.github/workflows/deploy-cloud-run.yml](./.github/workflows/deploy-cloud-run.yml)
 - 기본 흐름: `workflow_dispatch -> uv run pytest -> auth deploy -> remote deploy -> batch deploy -> scheduler deploy`
-- 수동 실행: GitHub Actions에서 `workflow_dispatch`로 `all`, `auth`, `remote`, `batch`, `scheduler` 중 하나를 선택
+- 수동 실행: GitHub Actions에서 `workflow_dispatch`로 개별 service/job/scheduler target을 선택하며, 총자산 배치는 `asset-snapshot-batch`와 `asset-snapshot-scheduler`를 사용
 - `master` push만으로는 배포되지 않습니다.
 - 로컬 수동 배포 예시:
   - `uv run python scripts/deploy_cloud_run.py batch`
   - `uv run python scripts/deploy_cloud_run.py scheduler`
+  - `uv run python scripts/deploy_cloud_run.py asset-snapshot-batch`
+  - `uv run python scripts/deploy_cloud_run.py asset-snapshot-scheduler`
 
 필수 GitHub Environment/Repository secrets:
 
-- `KIS_DEPLOY_ENV`
-  - 배포용 `.env` 전체 내용을 그대로 담은 멀티라인 secret
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
   - Workload Identity Provider 전체 리소스 이름
 - `GCP_SERVICE_ACCOUNT`
@@ -258,11 +263,13 @@ ChatGPT에서 custom app으로 연결할 때는 아래처럼 app-level metadata�
 - `KIS_BATCH_SCHEDULER_NAME` 기본값 `kis-portfolio-domestic-order-history-1535`
 - `KIS_OVERSEAS_BATCH_JOB_NAME` 기본값 `kis-portfolio-overseas-transaction-history`
 - `KIS_OVERSEAS_BATCH_SCHEDULER_NAME` 기본값 `kis-portfolio-overseas-transaction-history-0735`
+- `KIS_ASSET_SNAPSHOT_JOB_NAME` 기본값 `kis-portfolio-asset-overview-snapshot`
+- `KIS_ASSET_SNAPSHOT_SCHEDULER_NAME` 기본값 `kis-portfolio-asset-overview-snapshot-1610`
 - `KIS_CLOUD_SCHEDULER_REGION` 기본값 `asia-northeast3`
 
 Scheduler는 Cloud Run Job의 `jobs:run` Google API endpoint를 OAuth로 호출합니다. `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 명시하면 그 계정을 쓰고, 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 gcloud 조회 결과를 바탕으로 기본 compute service account를 fallback으로 사용합니다. 이 계정에는 Cloud Run Job에 대한 `roles/run.invoker`가 필요합니다.
 
-`KIS_DEPLOY_ENV`에는 운영용 `.env` 전체가 들어가므로 고위험 secret으로 취급합니다. 포함되는 값과 회전 정책은 [docs/security-and-secrets.md](./docs/security-and-secrets.md)를 기준으로 합니다.
+장기 runtime secret은 GitHub 멀티라인 env가 아니라 GCP Secret Manager에 저장합니다. 포함되는 값과 회전 정책은 [docs/security-and-secrets.md](./docs/security-and-secrets.md)를 기준으로 합니다.
 
 ## Claude Desktop 연결
 
@@ -305,6 +312,9 @@ bash scripts/setup.sh
 - `get-total-asset-daily-change`
 - `get-total-asset-trend`
 - `get-total-asset-allocation-history`
+- `record-cash-flow`
+- `record-trade-journal`
+- `get-asset-return-history`
 - `get-portfolio-history`
 - `get-portfolio-daily-change`
 - `get-portfolio-trend`

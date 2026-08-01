@@ -871,6 +871,13 @@ async def inquery_overseas_deposit(
         )
         data = response.json()
 
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to fetch overseas deposit: HTTP {response.status_code}")
+    if str(data.get("rt_cd", "0")) != "0":
+        raise RuntimeError(
+            f"Failed to fetch overseas deposit: {data.get('msg_cd') or 'KIS API error'}"
+        )
+
     # output2: 통화별 외화예수금, output3: 원화환산 총계 (예수금액, 총예수금액 등)
     result = {}
     if data.get("output2"):
@@ -894,6 +901,24 @@ async def inquery_overseas_deposit(
         }
     if not result:
         result["raw"] = data
+    try:
+        from datetime import date
+
+        cached_rates: dict[str, str] = {}
+        for row in result.get("통화별_잔고") or []:
+            currency = row.get("crcy_cd")
+            rate = row.get("frst_bltn_exrt")
+            if currency and rate not in (None, "", "0", "0.00"):
+                cached_rates[currency] = rate
+        for pair, rate in (result.get("적용환율") or {}).items():
+            currency = pair.split("/", 1)[0]
+            if rate not in (None, "", "0", "0.00"):
+                cached_rates.setdefault(currency, rate)
+        today = date.today().strftime("%Y%m%d")
+        for currency, rate in cached_rates.items():
+            kisdb.upsert_exchange_rate_history(currency, "D", [{"date": today, "rate": rate}])
+    except Exception as e:
+        logger.warning(f"DB exchange-rate cache from overseas deposit failed (non-critical): {e}")
     return result
 
 
@@ -1154,6 +1179,13 @@ async def inquery_exchange_rate_history(
             },
         )
     data = response.json()
+
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to fetch exchange-rate history: HTTP {response.status_code}")
+    if str(data.get("rt_cd", "0")) != "0":
+        raise RuntimeError(
+            f"Failed to fetch exchange-rate history: {data.get('msg_cd') or 'KIS API error'}"
+        )
 
     # ── DB: 환율 이력 캐시 저장 ──
     try:

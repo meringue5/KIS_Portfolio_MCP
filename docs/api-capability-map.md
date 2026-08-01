@@ -22,7 +22,8 @@ core service 함수와 저장 정책을 설계한다.
 | Order | 국내/해외 주문, 정정취소, 주문조회 | 국내/해외 조회 일부 구현, 주문은 safety gate | 기본 비활성, 별도 confirmation/audit 전까지 확장 금지 |
 | Market Data | 국내/해외 현재가, 호가, 일/분봉 | 일부 구현 및 가격 이력 저장 | 가격 서비스와 DB cache 분리 |
 | Master Data | 국내/해외 종목코드, 업종, 테마, 회원사, 상품 메타데이터 | 국내 master ingestion v1 구현 | 공식 `stocks_info` 예제를 ingestion 기준으로 사용 |
-| Analytics | 최신 합산, 일별 변화, 추세, 이상치, 볼린저 밴드 | 일부 구현 | canonical 총자산과 feeder 분석을 분리 유지 |
+| Analytics | 최신 합산, 일별 변화, 추세, 이상치, 볼린저 밴드, flow-adjusted TWR | 구현 | canonical 총자산과 feeder 분석을 분리 유지 |
+| Decision Journal | 현금흐름, 매매 트리거, exit plan, 원칙 점검 | idempotent ledger v1 구현 | 체결 연결과 trigger별 성과 통계 확장 |
 | Realtime | websocket 실시간 시세/체결통보 | 미구현 | 원격 배포와 auth 설계 이후 검토 |
 | Remote Access | Streamable HTTP MCP, web/backend hosting | OAuth remote 구현 | read-only remote와 future backend HTTP API 검토 |
 
