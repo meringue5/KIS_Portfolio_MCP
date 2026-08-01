@@ -60,6 +60,9 @@ EXPECTED_TOOLS = {
     "get-total-asset-daily-change",
     "get-total-asset-trend",
     "get-total-asset-allocation-history",
+    "record-cash-flow",
+    "record-trade-journal",
+    "get-asset-return-history",
 }
 
 

@@ -8,6 +8,7 @@ from kis_portfolio.db.repository import (
     get_classification_override_map,
     get_domestic_orders,
     get_exchange_rate_history,
+    get_latest_exchange_rate,
     get_instrument_master,
     get_instrument_master_map,
     get_latest_order_history_snapshot,
@@ -34,6 +35,8 @@ from kis_portfolio.db.repository import (
     upsert_market_calendar_rows,
     upsert_instrument_master,
     upsert_exchange_rate_history,
+    upsert_cash_flow,
+    upsert_trade_journal,
     upsert_price_history,
 )
 from kis_portfolio.db.schema import init_schema
@@ -47,6 +50,7 @@ __all__ = [
     "get_domestic_orders",
     "get_connection",
     "get_exchange_rate_history",
+    "get_latest_exchange_rate",
     "get_instrument_master",
     "get_instrument_master_map",
     "get_latest_order_history_snapshot",
@@ -74,5 +78,7 @@ __all__ = [
     "upsert_market_calendar_rows",
     "upsert_instrument_master",
     "upsert_exchange_rate_history",
+    "upsert_cash_flow",
+    "upsert_trade_journal",
     "upsert_price_history",
 ]

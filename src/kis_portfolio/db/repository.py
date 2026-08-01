@@ -134,6 +134,27 @@ def get_exchange_rate_history(currency: str, start_date: str,
     return [normalize_row(dict(zip(cols, row))) for row in rows]
 
 
+def get_latest_exchange_rate(
+    currency: str,
+    *,
+    on_or_before: date | None = None,
+    period: str = "D",
+) -> dict | None:
+    """Return the newest cached FX rate on or before a valuation date."""
+    con = get_connection()
+    cutoff = on_or_before or date.today()
+    row = con.execute("""
+        SELECT currency, date, period, rate
+        FROM exchange_rate_history
+        WHERE currency=? AND period=? AND date <= ? AND rate IS NOT NULL
+        ORDER BY date DESC
+        LIMIT 1
+    """, [currency.upper(), period, cutoff]).fetchone()
+    if not row:
+        return None
+    return normalize_row(dict(zip(["currency", "date", "period", "rate"], row)))
+
+
 def insert_portfolio_snapshot(account_id: str, account_type: str,
                               balance_data: Any,
                               total_eval_amt: int | None = None) -> str:
@@ -1089,7 +1110,7 @@ def upsert_market_calendar_rows(rows: list[dict]) -> int:
                 source=excluded.source,
                 note=excluded.note,
                 raw_data=excluded.raw_data,
-                updated_at=current_timestamp
+                updated_at=now()
         """, [
             row["market"],
             trade_date,
@@ -1203,9 +1224,12 @@ def insert_asset_overview_snapshot(
             unknown_amt_krw,
             allocation_data,
             classification_summary,
+            quality_status,
+            quality_flags,
+            is_complete,
             overview_data
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
     """, [
         overview_data.get("base_currency", "KRW"),
@@ -1225,9 +1249,117 @@ def insert_asset_overview_snapshot(
         classification_summary.get("amounts", {}).get("unknown"),
         json.dumps(allocation, ensure_ascii=False, default=str),
         json.dumps(classification_summary, ensure_ascii=False, default=str),
+        overview_data.get("data_quality", {}).get("status", overview_data.get("status", "unknown")),
+        json.dumps(overview_data.get("data_quality", {}).get("flags", []), ensure_ascii=False),
+        bool(overview_data.get("data_quality", {}).get("is_complete", False)),
         json.dumps(overview_data, ensure_ascii=False, default=str),
     ]).fetchone()
     return row[0]
+
+
+def upsert_cash_flow(row: dict) -> str:
+    """Idempotently store one signed cash-flow event."""
+    flow_type = str(row["flow_type"]).strip().lower()
+    amount_krw = int(row["amount_krw"])
+    if flow_type == "deposit" and amount_krw < 0:
+        raise ValueError("deposit amount_krw must be positive")
+    if flow_type in {"withdrawal", "tax"} and amount_krw > 0:
+        raise ValueError(f"{flow_type} amount_krw must be negative")
+    idempotency_key = str(row["idempotency_key"]).strip()
+    if not idempotency_key:
+        raise ValueError("idempotency_key is required")
+    event_date = row["event_date"]
+    if isinstance(event_date, str):
+        event_date = _parse_yyyymmdd(event_date.replace("-", ""))
+    con = get_connection()
+    con.execute("""
+        INSERT INTO cash_flow (
+            idempotency_key, event_date, account_label, flow_type,
+            amount_krw, amount_foreign, currency, note, source, source_ref
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (idempotency_key) DO UPDATE SET
+            event_date=excluded.event_date,
+            account_label=excluded.account_label,
+            flow_type=excluded.flow_type,
+            amount_krw=excluded.amount_krw,
+            amount_foreign=excluded.amount_foreign,
+            currency=excluded.currency,
+            note=excluded.note,
+            source=excluded.source,
+            source_ref=excluded.source_ref,
+            updated_at=now()
+    """, [
+        idempotency_key,
+        event_date,
+        row["account_label"],
+        flow_type,
+        amount_krw,
+        row.get("amount_foreign"),
+        str(row.get("currency") or "KRW").upper(),
+        row.get("note"),
+        row.get("source") or "manual",
+        row.get("source_ref"),
+    ])
+    return idempotency_key
+
+
+def upsert_trade_journal(row: dict) -> str:
+    """Idempotently store one decision journal entry."""
+    idempotency_key = str(row["idempotency_key"]).strip()
+    if not idempotency_key:
+        raise ValueError("idempotency_key is required")
+    trade_date = row["trade_date"]
+    if isinstance(trade_date, str):
+        trade_date = _parse_yyyymmdd(trade_date.replace("-", ""))
+    con = get_connection()
+    saved = con.execute("""
+        INSERT INTO trade_journal (
+            idempotency_key, trade_date, account_label, symbol, market, side,
+            quantity, price, currency, trigger_type, trigger_detail, exit_plan,
+            principle_check, linked_order_no, linked_transaction_hash,
+            realized_return_pct, note
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (idempotency_key) DO UPDATE SET
+            trade_date=excluded.trade_date,
+            account_label=excluded.account_label,
+            symbol=excluded.symbol,
+            market=excluded.market,
+            side=excluded.side,
+            quantity=excluded.quantity,
+            price=excluded.price,
+            currency=excluded.currency,
+            trigger_type=excluded.trigger_type,
+            trigger_detail=excluded.trigger_detail,
+            exit_plan=excluded.exit_plan,
+            principle_check=excluded.principle_check,
+            linked_order_no=excluded.linked_order_no,
+            linked_transaction_hash=excluded.linked_transaction_hash,
+            realized_return_pct=excluded.realized_return_pct,
+            note=excluded.note,
+            updated_at=now()
+        RETURNING id
+    """, [
+        idempotency_key,
+        trade_date,
+        row.get("account_label"),
+        str(row["symbol"]).upper(),
+        row.get("market"),
+        str(row["side"]).lower(),
+        row["quantity"],
+        row["price"],
+        str(row.get("currency") or "KRW").upper(),
+        str(row["trigger_type"]).lower(),
+        row.get("trigger_detail"),
+        row.get("exit_plan"),
+        _json_dump(row.get("principle_check")),
+        row.get("linked_order_no"),
+        row.get("linked_transaction_hash"),
+        row.get("realized_return_pct"),
+        row.get("note"),
+    ]).fetchone()
+    return saved[0]
 
 
 def insert_asset_holding_snapshots(overview_snapshot_id: str, rows: list[dict]) -> int:

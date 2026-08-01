@@ -39,6 +39,8 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 ├── portfolio_snapshots.parquet
 ├── price_history.parquet
 ├── trade_profit_history.parquet
+├── cash_flow.parquet
+├── trade_journal.parquet
 └── manifest.json
 ```
 
@@ -46,6 +48,9 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 같은 민감한 인증/캐시 테이블은 기본 Parquet 백업 대상에 포함하지 않는다.
 다만 기본 백업에도 계좌 id, 보유 종목, 주문/체결 이력, 평가금액이 포함될 수 있으므로 백업 산출물은
 민감 데이터로 취급한다. 자세한 분류와 보관 원칙은 [Security and Secrets](./security-and-secrets.md)를 따른다.
+
+스키마 업그레이드 전에 아직 생성되지 않은 신규 테이블은 백업을 중단시키지 않고 건너뛴다.
+건너뛴 테이블 이름은 해당 백업의 `manifest.json` 내 `skipped_tables`에 기록된다.
 
 최근 백업 N개만 남기려면:
 

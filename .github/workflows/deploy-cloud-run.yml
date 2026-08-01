@@ -18,6 +18,8 @@ on:
           - overseas-scheduler
           - token-warmup-batch
           - token-warmup-scheduler
+          - asset-snapshot-batch
+          - asset-snapshot-scheduler
 
 permissions:
   contents: read
@@ -42,6 +44,8 @@ jobs:
       KIS_OVERSEAS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_OVERSEAS_BATCH_SCHEDULER_NAME || 'kis-portfolio-overseas-transaction-history-0735' }}
       KIS_TOKEN_WARMUP_JOB_NAME: ${{ vars.KIS_TOKEN_WARMUP_JOB_NAME || 'kis-portfolio-token-warmup-dry-run' }}
       KIS_TOKEN_WARMUP_SCHEDULER_NAME: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULER_NAME || 'kis-portfolio-token-warmup-0830' }}
+      KIS_ASSET_SNAPSHOT_JOB_NAME: ${{ vars.KIS_ASSET_SNAPSHOT_JOB_NAME || 'kis-portfolio-asset-overview-snapshot' }}
+      KIS_ASSET_SNAPSHOT_SCHEDULER_NAME: ${{ vars.KIS_ASSET_SNAPSHOT_SCHEDULER_NAME || 'kis-portfolio-asset-overview-snapshot-1610' }}
       KIS_CLOUD_SCHEDULER_REGION: ${{ vars.KIS_CLOUD_SCHEDULER_REGION || 'asia-northeast3' }}
       GOOGLE_CLOUD_PROJECT_NUMBER: ${{ vars.GOOGLE_CLOUD_PROJECT_NUMBER }}
       KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT: ${{ vars.KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT }}
@@ -78,6 +82,10 @@ jobs:
       KIS_TOKEN_WARMUP_TIME_ZONE: ${{ vars.KIS_TOKEN_WARMUP_TIME_ZONE || 'Asia/Seoul' }}
       KIS_TOKEN_WARMUP_ACCOUNT_LABEL: ${{ vars.KIS_TOKEN_WARMUP_ACCOUNT_LABEL || 'all' }}
       KIS_TOKEN_WARMUP_VALID_THROUGH: ${{ vars.KIS_TOKEN_WARMUP_VALID_THROUGH || '16:30' }}
+      KIS_ASSET_SNAPSHOT_SCHEDULE: ${{ vars.KIS_ASSET_SNAPSHOT_SCHEDULE || '10 16 * * *' }}
+      KIS_ASSET_SNAPSHOT_TIME_ZONE: ${{ vars.KIS_ASSET_SNAPSHOT_TIME_ZONE || 'Asia/Seoul' }}
+      KIS_SNAPSHOT_STALE_AFTER_DAYS: ${{ vars.KIS_SNAPSHOT_STALE_AFTER_DAYS || '2' }}
+      KIS_FX_FALLBACK_STALE_AFTER_DAYS: ${{ vars.KIS_FX_FALLBACK_STALE_AFTER_DAYS || '7' }}
       KIS_DEPLOY_SECRET_MODE: secret-manager
     steps:
       - name: Check out repository
@@ -193,4 +201,23 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_TOKEN_WARMUP_JOB_NAME}" \
             --scheduler "${KIS_TOKEN_WARMUP_SCHEDULER_NAME}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
+
+      - name: Deploy canonical asset snapshot batch job
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'asset-snapshot-batch'
+        run: |
+          uv run python scripts/deploy_cloud_run.py asset-snapshot-batch \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_ASSET_SNAPSHOT_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Deploy canonical asset snapshot scheduler
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'asset-snapshot-scheduler'
+        run: |
+          uv run python scripts/deploy_cloud_run.py asset-snapshot-scheduler \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_ASSET_SNAPSHOT_JOB_NAME}" \
+            --scheduler "${KIS_ASSET_SNAPSHOT_SCHEDULER_NAME}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"

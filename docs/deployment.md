@@ -240,6 +240,11 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 전용 Cloud Run Job을 배포한다. 초기 rollout은 dry-run만 수행하므로 KIS 토큰 발급을 유발하지 않는다.
 `--warm-service-health`는 auth/remote 서비스의 공개 `/health` endpoint를 호출해 scale-to-zero 상태의 Cloud Run
 서비스를 미리 깨운다. 이 호출은 KIS API endpoint를 호출하지 않는다.
+`asset-snapshot-batch` target은
+`collect-asset-overview-snapshot --overseas-account-label brokerage` 전용 Job을 배포한다.
+정상 스냅샷만 exit 0으로 처리하며, feeder 오류·환율 누락·stale fallback·저장 실패는 exit 1과
+`KIS_BATCH_ALERT_WEBHOOK_URL` webhook 알림으로 시끄럽게 실패한다. webhook URL은
+Secret Manager의 `kis-portfolio-kis-batch-alert-webhook-url`에 저장해야 한다.
 
 - Job name: `kis-portfolio-domestic-order-history`
 - Scheduler name: `kis-portfolio-domestic-order-history-1535`
@@ -250,6 +255,9 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 - Token warm-up Job name: `kis-portfolio-token-warmup-dry-run`
 - Token warm-up Scheduler name: `kis-portfolio-token-warmup-0830`
 - Token warm-up Schedule: 평일 `08:30` KST (`30 8 * * 1-5`)
+- Asset snapshot Job name: `kis-portfolio-asset-overview-snapshot`
+- Asset snapshot Scheduler name: `kis-portfolio-asset-overview-snapshot-1610`
+- Asset snapshot Schedule: 매일 `16:10` KST (`10 16 * * *`)
 - Time zone: `Asia/Seoul`
 - Cloud Run Job task timeout: `1800s`
 - Cloud Run Job max retries: `0`
@@ -271,6 +279,12 @@ Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJ
 - `KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE`
 - `KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL`
 - `KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE`
+- `KIS_ASSET_SNAPSHOT_JOB_NAME`
+- `KIS_ASSET_SNAPSHOT_SCHEDULER_NAME`
+- `KIS_ASSET_SNAPSHOT_SCHEDULE`
+- `KIS_ASSET_SNAPSHOT_TIME_ZONE`
+- `KIS_SNAPSHOT_STALE_AFTER_DAYS`
+- `KIS_FX_FALLBACK_STALE_AFTER_DAYS`
 
 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 `gcloud projects describe ... --format=value(projectNumber)` 결과를 사용해 기본 compute service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`)를 fallback으로 잡는다.
 
@@ -287,7 +301,7 @@ CI workflow:
 
 Deploy workflow:
 
-- `workflow_dispatch`만 지원하며 target은 `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`다.
+- `workflow_dispatch`만 지원하며 target은 `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`, `asset-snapshot-batch`, `asset-snapshot-scheduler`다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

@@ -52,6 +52,8 @@ def main() -> int:
         "trade_profit_history",
         "price_history",
         "exchange_rate_history",
+        "cash_flow",
+        "trade_journal",
     ]:
         if table not in schema:
             failures.append(f"schema missing table/view reference: {table}")
@@ -64,6 +66,8 @@ def main() -> int:
         failures.append("schema must define portfolio_daily_snapshots curated view")
     if "CREATE OR REPLACE VIEW asset_overview_daily_snapshots" not in schema:
         failures.append("schema must define asset_overview_daily_snapshots curated view")
+    if "CREATE OR REPLACE VIEW asset_return_daily" not in schema:
+        failures.append("schema must define asset_return_daily flow-adjusted view")
 
     portfolio_insert = function_block(repo, "insert_portfolio_snapshot")
     if "INSERT INTO portfolio_snapshots" not in portfolio_insert:

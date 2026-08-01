@@ -23,6 +23,8 @@ DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
 DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
 DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
 DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
+DEFAULT_ASSET_SNAPSHOT_JOB = "kis-portfolio-asset-overview-snapshot"
+DEFAULT_ASSET_SNAPSHOT_SCHEDULER = "kis-portfolio-asset-overview-snapshot-1610"
 DEFAULT_AUTH_MIN_INSTANCES = "1"
 DEFAULT_AUTH_MAX_INSTANCES = "1"
 DEFAULT_REMOTE_CONCURRENCY = "20"
@@ -41,6 +43,8 @@ DEFAULT_TOKEN_WARMUP_SCHEDULE = "30 8 * * 1-5"
 DEFAULT_TOKEN_WARMUP_TIME_ZONE = "Asia/Seoul"
 DEFAULT_TOKEN_WARMUP_ACCOUNT_LABEL = "all"
 DEFAULT_TOKEN_WARMUP_VALID_THROUGH = "16:30"
+DEFAULT_ASSET_SNAPSHOT_SCHEDULE = "10 16 * * *"
+DEFAULT_ASSET_SNAPSHOT_TIME_ZONE = "Asia/Seoul"
 DEFAULT_DEPLOY_SECRET_MODE = "secret-manager"
 PRODUCTION_BRANCH = "master"
 DEFAULT_ACCOUNT_PRODUCT_CODES = {
@@ -60,6 +64,7 @@ SECRET_ENV_EXACT_KEYS = {
     "KIS_AUTH_CLAUDE_CLIENT_SECRET",
     "KIS_OAUTH_GOOGLE_CLIENT_SECRET",
     "KIS_OAUTH_GITHUB_CLIENT_SECRET",
+    "KIS_BATCH_ALERT_WEBHOOK_URL",
 }
 SECRET_ENV_PREFIXES = (
     "KIS_APP_KEY_",
@@ -138,6 +143,10 @@ def _required_keys_for_batch(env: dict[str, str]) -> list[str]:
     if env.get("KIS_DB_MODE", "").lower() == "motherduck":
         keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
     return keys
+
+
+def _required_keys_for_asset_snapshot(env: dict[str, str]) -> list[str]:
+    return [*_required_keys_for_batch(env), "KIS_BATCH_ALERT_WEBHOOK_URL"]
 
 
 def _effective_remote_auth_mode(env: dict[str, str]) -> str:
@@ -226,6 +235,9 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_AUTH_ISSUER_URL",
         "KIS_RESOURCE_SERVER_URL",
         "KIS_SERVICE_WARMUP_HEALTH_URLS",
+        "KIS_BATCH_ALERT_WEBHOOK_URL",
+        "KIS_SNAPSHOT_STALE_AFTER_DAYS",
+        "KIS_FX_FALLBACK_STALE_AFTER_DAYS",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload.update(_build_account_env(env))
@@ -776,6 +788,8 @@ def main() -> int:
             "overseas-scheduler",
             "token-warmup-batch",
             "token-warmup-scheduler",
+            "asset-snapshot-batch",
+            "asset-snapshot-scheduler",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -938,6 +952,33 @@ def main() -> int:
             is_job=True,
         )
 
+    if args.target == "asset-snapshot-batch":
+        required = _required_keys_for_asset_snapshot(env)
+        missing = _validate_required(env, required, secret_mode=args.secret_mode)
+        if missing:
+            print("Missing required environment variables:")
+            for key in missing:
+                print(f"- {key}")
+            return 1
+        payload, secret_refs = _split_runtime_env(
+            env=env,
+            payload=_build_batch_env(env),
+            required=required,
+            secret_mode=args.secret_mode,
+            include_account_secrets=True,
+        )
+        return _deploy_service_or_job(
+            args=args,
+            project=project,
+            payload=payload,
+            secret_refs=secret_refs,
+            runtime_flags=_build_batch_runtime_flags(env),
+            target_name=args.job or env.get("KIS_ASSET_SNAPSHOT_JOB_NAME") or DEFAULT_ASSET_SNAPSHOT_JOB,
+            command="kis-portfolio-batch",
+            command_args="collect-asset-overview-snapshot,--overseas-account-label,brokerage",
+            is_job=True,
+        )
+
     if not project:
         print("Missing required environment variables:")
         print("- GOOGLE_CLOUD_PROJECT")
@@ -965,6 +1006,18 @@ def main() -> int:
             scheduler_region=args.scheduler_region or env.get("KIS_CLOUD_SCHEDULER_REGION") or args.region,
             schedule=args.schedule or env.get("KIS_TOKEN_WARMUP_SCHEDULE") or DEFAULT_TOKEN_WARMUP_SCHEDULE,
             time_zone=args.time_zone or env.get("KIS_TOKEN_WARMUP_TIME_ZONE") or DEFAULT_TOKEN_WARMUP_TIME_ZONE,
+        )
+
+    if args.target == "asset-snapshot-scheduler":
+        return _deploy_scheduler_target(
+            args=args,
+            env=env,
+            project=project,
+            job=args.job or env.get("KIS_ASSET_SNAPSHOT_JOB_NAME") or DEFAULT_ASSET_SNAPSHOT_JOB,
+            scheduler=args.scheduler or env.get("KIS_ASSET_SNAPSHOT_SCHEDULER_NAME") or DEFAULT_ASSET_SNAPSHOT_SCHEDULER,
+            scheduler_region=args.scheduler_region or env.get("KIS_CLOUD_SCHEDULER_REGION") or args.region,
+            schedule=args.schedule or env.get("KIS_ASSET_SNAPSHOT_SCHEDULE") or DEFAULT_ASSET_SNAPSHOT_SCHEDULE,
+            time_zone=args.time_zone or env.get("KIS_ASSET_SNAPSHOT_TIME_ZONE") or DEFAULT_ASSET_SNAPSHOT_TIME_ZONE,
         )
 
     return _deploy_scheduler_target(

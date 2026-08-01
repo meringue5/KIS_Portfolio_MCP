@@ -32,6 +32,10 @@ raw tables
   instrument_classification_overrides
   trade_profit_history
 
+canonical decision / flow ledgers
+  cash_flow
+  trade_journal
+
 canonical / curated tables
   domestic_orders
   overseas_orders
@@ -40,6 +44,7 @@ canonical / curated tables
 curated views / future tables
   portfolio_daily_snapshots
   asset_overview_daily_snapshots
+  asset_return_daily
   future: portfolio_minute_snapshots
   future: account_nav_daily
 
@@ -47,6 +52,7 @@ analytics functions
   bollinger bands
   portfolio anomalies
   portfolio trend
+  flow-adjusted daily return / chain-linked TWR
 ```
 
 ## 스냅샷 중복 처리
@@ -96,6 +102,24 @@ asset_overview_daily_snapshots
 이 view들은 계좌별 또는 canonical snapshot별 일자 마지막 스냅샷을 대표값으로 사용한다.
 
 ## 향후 정제 작업 후보
+
+`cash_flow.amount_krw`는 signed amount다. deposit/dividend는 양수, withdrawal/tax는 음수이며,
+`fx_convert`는 내부 통화 이동이라 외부 순유입 계산에서 제외한다. `asset_return_daily`는
+deposit/withdrawal만 외부 현금흐름으로 차감해 잔고 변화와 투자성과를 분리한다. 일중 현금흐름 시점이
+없으므로 현재 TWR은 일말(end-of-day) flow 가정의 근사치다. MWR/XIRR은 충분한 현금흐름 이력이 쌓인 뒤
+별도 analytics 함수로 추가한다.
+
+`trade_journal`은 `idempotency_key`로 재시도를 안전하게 만들고, `trigger_type`은
+`price/indicator/earnings/emotion/chatroom/mentor`로 제한한다. 실제 체결 연결은
+`linked_order_no` 또는 `linked_transaction_hash`를 사용한다.
+
+과거 canonical 스냅샷은 cash 의미와 FX provenance가 저장되기 전 행이므로 curated view에서
+`quality_status=legacy_unassessed`, `legacy_cash_semantics_unverified`로 표시한다. raw/canonical 행을
+소급 덮어쓰지 않는다.
+
+스냅샷이 전혀 없는 날짜의 정확한 잔고는 KIS 현재잔고 API로 소급 조회할 수 없다. 따라서 2026년 7월
+공백을 실제 관측값처럼 backfill하지 않는다. 향후 체결/현금흐름/종가가 충분히 확보되면 별도
+`estimated` 재구성 계층을 만들 수 있지만, raw/canonical 관측값과 반드시 분리하고 추정 품질을 표시한다.
 
 - `portfolio_minute_snapshots`: 같은 계좌의 같은 분 내 마지막 스냅샷
 - `account_nav_daily`: 계좌별 일별 평가금액, 현금, 보유 평가금액, 환산 금액

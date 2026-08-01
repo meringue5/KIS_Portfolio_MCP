@@ -206,6 +206,27 @@ def test_token_warmup_batch_command_is_dry_run_only():
     )
 
 
+def test_asset_snapshot_batch_requires_alert_webhook_secret_reference():
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+    }
+
+    required = deploy_cloud_run._required_keys_for_asset_snapshot(env)
+    missing = deploy_cloud_run._validate_required(env, required, secret_mode="secret-manager")
+    _, secret_refs = deploy_cloud_run._split_runtime_env(
+        env=env,
+        payload=deploy_cloud_run._build_batch_env(env),
+        required=required,
+        secret_mode="secret-manager",
+        include_account_secrets=True,
+    )
+
+    assert missing == []
+    assert secret_refs["KIS_BATCH_ALERT_WEBHOOK_URL"] == "kis-portfolio-kis-batch-alert-webhook-url"
+    assert deploy_cloud_run.DEFAULT_ASSET_SNAPSHOT_SCHEDULE == "10 16 * * *"
+
+
 def test_remote_runtime_flags_keep_existing_safe_defaults():
     env = {}
 

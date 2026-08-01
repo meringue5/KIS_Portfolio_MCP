@@ -11,6 +11,7 @@ from kis_portfolio import db as kisdb
 from kis_portfolio.accounts import extract_total_eval_amt, infer_account_type, is_irp_account
 from kis_portfolio.auth import get_access_token
 from kis_portfolio.clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN
+from kis_portfolio.account_registry import load_account_registry, scoped_account_env
 
 
 logger = logging.getLogger(__name__)
@@ -124,3 +125,39 @@ def save_balance_snapshot(data: dict) -> str | None:
     except Exception as e:
         logger.warning(f"DB snapshot save failed (non-critical): {e}")
         return None
+
+
+async def refresh_configured_balance_snapshots() -> dict:
+    """Refresh every configured account sequentially without depending on MCP."""
+    accounts = load_account_registry()
+    results = []
+    for account in accounts:
+        try:
+            with scoped_account_env(account):
+                result = await fetch_balance_snapshot(save_snapshot=True, return_metadata=True)
+            snapshot_id = result.get("saved_snapshot_id")
+            results.append({
+                "source": "kis_api",
+                "status": "ok",
+                "account": account.public_dict(),
+                "snapshot_status": "saved" if snapshot_id else "not_saved",
+                **({"saved_snapshot_id": snapshot_id} if snapshot_id else {}),
+            })
+        except Exception as error:
+            message = str(error)
+            for value in (account.cano, account.app_key, account.app_secret):
+                if value:
+                    message = message.replace(value, "[redacted]")
+            results.append({
+                "source": "kis_api",
+                "status": "error",
+                "account": account.public_dict(),
+                "error": message,
+            })
+    return {
+        "source": "kis_api",
+        "count": len(results),
+        "success_count": sum(row["status"] == "ok" for row in results),
+        "error_count": sum(row["status"] == "error" for row in results),
+        "accounts": results,
+    }

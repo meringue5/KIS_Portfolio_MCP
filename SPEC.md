@@ -21,6 +21,8 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 | 전체 계좌 국내/연금 잔고 스냅샷 | `refresh-all-account-snapshots` |
 | 국내/해외/환율 반영 전체 자산 요약 | `get-total-asset-overview` |
 | 총자산 일별 변화/추이/비중 이력 | `get-total-asset-daily-change`, `get-total-asset-trend`, `get-total-asset-allocation-history` |
+| 현금흐름 기록과 flow-adjusted TWR | `record-cash-flow`, `get-asset-return-history` |
+| 매매 의사결정/트리거 기록 | `record-trade-journal` |
 | 단일 계좌 국내주식 잔고 조회 | `get-account-balance` |
 | 단일 계좌 해외주식 잔고 조회 | `get-overseas-balance` |
 | 해외 예수금 + 적용환율 조회 | `get-overseas-deposit` |
@@ -425,6 +427,25 @@ client-specific discovery와 대화 단위 attachment 상태를 별도 호환성
 - `kis_portfolio.kis_token_crypto`, `kis_portfolio.adapters.auth.crypto`, `kis_portfolio.db.utils`는 호환 shim
 
 ---
+
+### ADR-018: 총자산 품질과 현금흐름 기반 수익률 계약
+
+**결정**: 해외 보유자산 환율이 KIS 예수금 응답에 없으면 `exchange_rate_history` 최신값을
+provenance와 age와 함께 fallback으로 사용한다. 환율이 끝내 없으면 국내 금액만을 정상 총자산으로
+반환하지 않고 `total_eval_amt_krw=NULL`, `status=degraded`, `data_quality.is_complete=false`로 반환한다.
+stale fallback도 명시적 warning으로 남긴다.
+
+`overseas_cash_amt_krw`에는 `frcr_use_psbl_amt` 기반 순수 외화 사용가능금액만 포함한다.
+KIS `tot_asst_amt`는 증권 평가액이 포함된 참고용 account total로 보존하며 cash로 가산하지 않는다.
+기존 snapshot은 덮어쓰지 않고 curated view에서 `legacy_cash_semantics_unverified`로 표시한다.
+
+외부 현금흐름과 성과를 분리하기 위해 `cash_flow`, 의사결정 품질 분석을 위해 `trade_journal`을 둔다.
+두 테이블은 caller-supplied idempotency key로 upsert한다. `asset_return_daily`는 deposit/withdrawal만
+외부 flow로 보고 일별 flow-adjusted change와 근사 TWR을 제공한다.
+
+canonical 총자산은 `collect-asset-overview-snapshot` Cloud Run Job으로 매일 적재한다. 품질 저하나
+저장 실패는 non-zero exit와 alert webhook으로 노출하며, 조회 응답은 마지막 snapshot age가 임계값을
+넘으면 stale warning을 포함한다.
 
 ## API 제한사항
 
