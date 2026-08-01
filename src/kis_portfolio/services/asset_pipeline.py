@@ -129,8 +129,12 @@ async def collect_total_asset_overview(
                     "error_type": type(error).__name__,
                 })
 
+    fallback_currencies = [
+        currency for currency in required_currencies
+        if currency not in deposit_fx_rates
+    ]
     fallback_fx_rates = build_cached_fx_fallback(
-        required_currencies,
+        fallback_currencies,
         db_module.get_latest_exchange_rate,
         stale_after_days=max(1, int(os.environ.get("KIS_FX_FALLBACK_STALE_AFTER_DAYS", "7"))),
     )
