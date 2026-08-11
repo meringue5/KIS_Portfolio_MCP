@@ -99,12 +99,18 @@ def test_secret_flags_do_not_include_secret_values():
     assert "super-secret-value" not in " ".join(flags)
 
 
-def test_auth_deploy_defaults_to_single_instance():
+def test_auth_deploy_defaults_to_scale_to_zero_with_startup_cpu_boost():
     env = {}
 
     runtime_flags = deploy_cloud_run._build_auth_runtime_flags(env)
 
-    assert runtime_flags == ["--min-instances", "1", "--max-instances", "1"]
+    assert runtime_flags == [
+        "--cpu-boost",
+        "--min-instances",
+        "0",
+        "--max-instances",
+        "1",
+    ]
 
 
 def test_auth_deploy_keeps_explicit_max_instance_override():
@@ -115,7 +121,13 @@ def test_auth_deploy_keeps_explicit_max_instance_override():
 
     runtime_flags = deploy_cloud_run._build_auth_runtime_flags(env)
 
-    assert runtime_flags == ["--min-instances", "0", "--max-instances", "2"]
+    assert runtime_flags == [
+        "--cpu-boost",
+        "--min-instances",
+        "0",
+        "--max-instances",
+        "2",
+    ]
 
 
 def test_remote_deploy_keeps_explicit_bearer_override():
@@ -206,16 +218,17 @@ def test_token_warmup_batch_command_is_dry_run_only():
     )
 
 
-def test_remote_runtime_flags_keep_existing_safe_defaults():
+def test_remote_runtime_flags_default_to_scale_to_zero_with_startup_cpu_boost():
     env = {}
 
     runtime_flags = deploy_cloud_run._build_remote_runtime_flags(env)
 
     assert runtime_flags == [
+        "--cpu-boost",
         "--concurrency",
         "20",
         "--min-instances",
-        "1",
+        "0",
         "--max-instances",
         "1",
     ]
@@ -223,13 +236,13 @@ def test_remote_runtime_flags_keep_existing_safe_defaults():
 
 def test_remote_runtime_flags_support_min_instance_override():
     env = {
-        "KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES": "0",
+        "KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES": "1",
     }
 
     runtime_flags = deploy_cloud_run._build_remote_runtime_flags(env)
 
     assert "--min-instances" in runtime_flags
-    assert runtime_flags[runtime_flags.index("--min-instances") + 1] == "0"
+    assert runtime_flags[runtime_flags.index("--min-instances") + 1] == "1"
 
 
 def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):

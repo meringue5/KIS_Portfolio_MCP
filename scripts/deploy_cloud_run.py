@@ -23,10 +23,10 @@ DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
 DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
 DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
 DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
-DEFAULT_AUTH_MIN_INSTANCES = "1"
+DEFAULT_AUTH_MIN_INSTANCES = "0"
 DEFAULT_AUTH_MAX_INSTANCES = "1"
 DEFAULT_REMOTE_CONCURRENCY = "20"
-DEFAULT_REMOTE_MIN_INSTANCES = "1"
+DEFAULT_REMOTE_MIN_INSTANCES = "0"
 DEFAULT_REMOTE_MAX_INSTANCES = "1"
 DEFAULT_CHATGPT_REMOTE_AUTH_MODE = "oauth"
 DEFAULT_BATCH_TASK_TIMEOUT = "1800s"
@@ -234,6 +234,7 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
 
 def _build_auth_runtime_flags(env: dict[str, str]) -> list[str]:
     return [
+        "--cpu-boost",
         "--min-instances",
         env.get("KIS_CLOUD_RUN_AUTH_MIN_INSTANCES", DEFAULT_AUTH_MIN_INSTANCES),
         "--max-instances",
@@ -243,6 +244,7 @@ def _build_auth_runtime_flags(env: dict[str, str]) -> list[str]:
 
 def _build_remote_runtime_flags(env: dict[str, str]) -> list[str]:
     return [
+        "--cpu-boost",
         "--concurrency",
         env.get("KIS_CLOUD_RUN_REMOTE_CONCURRENCY", DEFAULT_REMOTE_CONCURRENCY),
         "--min-instances",

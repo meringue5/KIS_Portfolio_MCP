@@ -35,11 +35,10 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 - `/register`, `/token`, `/revoke`는 auth server로 proxy
 - auth server는 `/.well-known/oauth-authorization-server`와 함께
   `/.well-known/openid-configuration` alias도 제공한다. 일부 클라이언트가 OIDC discovery를 먼저 probe한 뒤 OAuth metadata로 fallback하기 때문이다.
-- Cloud Run auth는 기본적으로 `min-instances=1`, `max-instances=1`로 배포한다.
-  현재 운영 가정이 단일 소유자 interactive auth flow이기 때문에 기본값을 보수적으로 둔다.
-- Cloud Run remote는 기본적으로 `min-instances=1`, `max-instances=1`, `concurrency=20`으로 배포한다.
+- Cloud Run auth는 기본적으로 `min-instances=0`, `max-instances=1`로 배포한다.
+- Cloud Run remote는 기본적으로 `min-instances=0`, `max-instances=1`, `concurrency=20`으로 배포한다.
   Streamable HTTP 세션은 프로세스 메모리에 있고, 같은 세션에서 long-running GET과 POST가 동시에 들어오기 때문이다.
-  로그인/초기 세션 안정성보다 비용을 더 우선해야 할 때만 `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES=0`으로 낮춘다.
+  유휴 상태에서는 scale-to-zero로 비용을 줄이고, 첫 로그인/재연결 cold start에는 `--cpu-boost`를 사용한다.
   Cloud Run 배포는 이미지에 설치된 console script를 직접 실행하며, startup path에서 `uv run`을 사용하지 않는다.
 
 `scripts/deploy_cloud_run.py remote`는 `KIS_REMOTE_AUTH_MODE`가 비어 있으면 ChatGPT 친화 기본값으로 `oauth`를 사용한다.
