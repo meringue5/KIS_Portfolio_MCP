@@ -1,6 +1,26 @@
 import importlib
 
 
+def test_upsert_market_calendar_rows_uses_one_statement(monkeypatch):
+    from kis_portfolio.db import repository
+
+    calls = []
+
+    class Connection:
+        def execute(self, query, parameters):
+            calls.append((query, parameters))
+
+    monkeypatch.setattr(repository, "get_connection", lambda: Connection())
+    rows = [
+        {"market": "krx", "trade_date": "20260810", "is_open": True, "raw_data": {"version": 1}},
+        {"market": "krx", "trade_date": "20260811", "is_open": True, "raw_data": {"version": 1}},
+    ]
+
+    assert repository.upsert_market_calendar_rows(rows) == 2
+    assert len(calls) == 1
+    assert calls[0][0].count("(?, ?, ?, ?, ?, ?, ?, ?, ?)") == 2
+    assert len(calls[0][1]) == 18
+
 def test_upsert_market_calendar_rows_updates_existing_date(tmp_path, monkeypatch):
     monkeypatch.setenv("KIS_DB_MODE", "local")
     monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path))
