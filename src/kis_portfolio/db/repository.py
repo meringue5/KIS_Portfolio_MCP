@@ -1070,27 +1070,12 @@ def upsert_market_calendar_rows(rows: list[dict]) -> int:
         return 0
 
     con = get_connection()
-    saved = 0
+    values = []
     for row in rows:
         trade_date = row["trade_date"]
         if isinstance(trade_date, str):
             trade_date = datetime.strptime(trade_date, "%Y%m%d").date()
-        con.execute("""
-            INSERT INTO market_calendar (
-                market, trade_date, is_open, open_time_local, close_time_local,
-                timezone, source, note, raw_data
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (market, trade_date) DO UPDATE SET
-                is_open=excluded.is_open,
-                open_time_local=excluded.open_time_local,
-                close_time_local=excluded.close_time_local,
-                timezone=excluded.timezone,
-                source=excluded.source,
-                note=excluded.note,
-                raw_data=excluded.raw_data,
-                updated_at=now()
-        """, [
+        values.append([
             row["market"],
             trade_date,
             row["is_open"],
@@ -1101,8 +1086,26 @@ def upsert_market_calendar_rows(rows: list[dict]) -> int:
             row.get("note"),
             json.dumps(row.get("raw_data"), ensure_ascii=False, default=str),
         ])
-        saved += 1
-    return saved
+
+    placeholders = ", ".join(["(?, ?, ?, ?, ?, ?, ?, ?, ?)"] * len(values))
+    parameters = [value for row in values for value in row]
+    con.execute(f"""
+        INSERT INTO market_calendar (
+            market, trade_date, is_open, open_time_local, close_time_local,
+            timezone, source, note, raw_data
+        )
+        VALUES {placeholders}
+        ON CONFLICT (market, trade_date) DO UPDATE SET
+            is_open=excluded.is_open,
+            open_time_local=excluded.open_time_local,
+            close_time_local=excluded.close_time_local,
+            timezone=excluded.timezone,
+            source=excluded.source,
+            note=excluded.note,
+            raw_data=excluded.raw_data,
+            updated_at=now()
+    """, parameters)
+    return len(values)
 
 
 def get_market_calendar_entry(market: str, trade_date: str) -> dict | None:
