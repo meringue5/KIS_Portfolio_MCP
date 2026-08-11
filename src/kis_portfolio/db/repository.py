@@ -1089,7 +1089,7 @@ def upsert_market_calendar_rows(rows: list[dict]) -> int:
                 source=excluded.source,
                 note=excluded.note,
                 raw_data=excluded.raw_data,
-                updated_at=current_timestamp
+                updated_at=now()
         """, [
             row["market"],
             trade_date,
