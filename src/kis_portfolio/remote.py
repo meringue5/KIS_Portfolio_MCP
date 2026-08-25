@@ -9,6 +9,8 @@ from urllib.parse import urlsplit
 import httpx
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
 from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend, RequireAuthMiddleware
+from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
@@ -113,7 +115,7 @@ def _protected_resource_metadata(
 
 
 def _resource_metadata_url(resource_server_url: str) -> str:
-    return f"{_origin_from_url(resource_server_url)}/.well-known/oauth-protected-resource"
+    return f"{_origin_from_url(resource_server_url)}/.well-known/oauth-protected-resource/mcp"
 
 
 def _oauth_challenge(
@@ -178,9 +180,27 @@ class ExactPathMCPApp:
         await self.app(child_scope, receive, send)
 
 
-def _create_mcp_handler() -> tuple[ASGIApp, object]:
+def _transport_security(resource_server_url: str | None) -> TransportSecuritySettings:
+    if not resource_server_url:
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+    parts = urlsplit(resource_server_url)
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[parts.netloc],
+        allowed_origins=[
+            _origin_from_url(resource_server_url),
+            "https://claude.ai",
+            "https://claude.com",
+        ],
+    )
+
+
+def _create_mcp_handler(resource_server_url: str | None = None) -> tuple[ASGIApp, object]:
     server = build_mcp_server()
-    server.streamable_http_app()
+    server.streamable_http_app(
+        transport_security=_transport_security(resource_server_url),
+    )
 
     async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
         await server.session_manager.handle_request(scope, receive, send)
@@ -189,7 +209,7 @@ def _create_mcp_handler() -> tuple[ASGIApp, object]:
 
 
 def _build_bearer_app(auth_token: str) -> ASGIApp:
-    mcp_handler, server = _create_mcp_handler()
+    mcp_handler, server = _create_mcp_handler(get_resource_server_url())
     exact_mcp_handler = ExactPathMCPApp(mcp_handler)
     app = Starlette(
         routes=[
@@ -283,9 +303,13 @@ def _build_oauth_app() -> ASGIApp:
         token_pepper=token_pepper,
         resource_server_url=resource_server_url,
     )
-    mcp_handler, server = _create_mcp_handler()
+    mcp_handler, server = _create_mcp_handler(resource_server_url)
     protected_mcp_handler = OAuthChallengeMiddleware(
-        RequireAuthMiddleware(mcp_handler, required_scopes),
+        RequireAuthMiddleware(
+            mcp_handler,
+            required_scopes,
+            AnyHttpUrl(_resource_metadata_url(resource_server_url)),
+        ),
         resource_server_url=resource_server_url,
         required_scopes=required_scopes,
     )
@@ -318,7 +342,7 @@ def _build_oauth_app() -> ASGIApp:
             ),
         ],
         middleware=[
-            Middleware(AuthenticationMiddleware, backend=BearerAuthBackend(provider=provider)),
+            Middleware(AuthenticationMiddleware, backend=BearerAuthBackend(provider)),
             Middleware(AuthContextMiddleware),
         ],
         lifespan=lambda app: server.session_manager.run(),
