@@ -56,7 +56,7 @@ def _insert_cached_row(
     migrated_from_file: bool = False,
     token_ciphertext: str | None = None,
 ):
-    issued_at = issued_at or datetime.now()
+    issued_at = issued_at or auth._kis_now()
     expires_at = expires_at or (issued_at + timedelta(hours=1))
     return upsert_kis_api_access_token(
         cache_key=_cache_key(account_type, cano, app_key),
@@ -81,7 +81,7 @@ def test_get_token_file_uses_account_specific_name(tmp_path, monkeypatch):
 
 def test_save_and_load_valid_token(tmp_path):
     token_file = tmp_path / "token.json"
-    expires_at = datetime.now() + timedelta(hours=1)
+    expires_at = auth._kis_now() + timedelta(hours=1)
 
     auth.save_token("abc", expires_at, token_file)
 
@@ -92,14 +92,14 @@ def test_save_and_load_valid_token(tmp_path):
 
 def test_load_token_ignores_expired_token(tmp_path):
     token_file = tmp_path / "token.json"
-    auth.save_token("expired", datetime.now() - timedelta(seconds=1), token_file)
+    auth.save_token("expired", auth._kis_now() - timedelta(seconds=1), token_file)
 
     assert auth.load_token(token_file) == (None, None)
 
 
 def test_load_token_ignores_token_near_expiry(tmp_path):
     token_file = tmp_path / "token.json"
-    auth.save_token("near-expiry", datetime.now() + timedelta(minutes=5), token_file)
+    auth.save_token("near-expiry", auth._kis_now() + timedelta(minutes=5), token_file)
 
     assert auth.load_token(token_file) == (None, None)
 
@@ -125,7 +125,7 @@ def test_parse_kis_expiry_uses_expires_in():
 
 @pytest.mark.anyio
 async def test_get_token_status_hides_token_value(local_token_cache_env):
-    future_expiry = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    future_expiry = (auth._kis_now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
     class Response:
         status_code = 200
@@ -169,8 +169,48 @@ async def test_get_access_token_reuses_cached_db_token(local_token_cache_env):
 
 
 @pytest.mark.anyio
+async def test_get_access_token_refreshes_expired_kis_wall_clock_token(
+    local_token_cache_env,
+    monkeypatch,
+):
+    monkeypatch.setattr(auth, "_kis_now", lambda: datetime(2026, 8, 25, 15, 40, 0))
+    _insert_cached_row(
+        issued_at=datetime(2026, 8, 24, 15, 35, 0),
+        expires_at=datetime(2026, 8, 25, 15, 35, 0),
+    )
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "access_token": "refreshed-token",
+                "token_type": "Bearer",
+                "expires_in": 86400,
+                "access_token_token_expired": "2026-08-26 15:40:00",
+            }
+
+    class Client:
+        def __init__(self):
+            self.calls = 0
+
+        async def post(self, *args, **kwargs):
+            self.calls += 1
+            return Response()
+
+    client = Client()
+
+    assert await auth.get_access_token(client, "https://example.com") == "refreshed-token"
+    assert client.calls == 1
+
+    status = auth.get_token_status()
+    assert status["status"] == "valid"
+    assert status["expires_at"] == "2026-08-26T15:40:00"
+
+
+@pytest.mark.anyio
 async def test_get_access_token_requests_and_saves_new_token(local_token_cache_env):
-    future_expiry = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    future_expiry = (auth._kis_now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
     class Response:
         status_code = 200
@@ -210,7 +250,7 @@ async def test_get_access_token_requests_and_saves_new_token(local_token_cache_e
 
 @pytest.mark.anyio
 async def test_get_access_token_logs_refresh_without_secrets(local_token_cache_env, caplog):
-    future_expiry = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    future_expiry = (auth._kis_now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
     class Response:
         status_code = 200
@@ -244,7 +284,7 @@ async def test_get_access_token_uses_process_memory_when_db_upsert_fails(
     local_token_cache_env,
     monkeypatch,
 ):
-    future_expiry = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    future_expiry = (auth._kis_now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
     class Response:
         status_code = 200
@@ -359,7 +399,7 @@ async def test_get_access_token_does_not_retry_read_timeout(local_token_cache_en
 
 @pytest.mark.anyio
 async def test_get_access_token_refreshes_near_expiry_db_token(local_token_cache_env):
-    _insert_cached_row(expires_at=datetime.now() + timedelta(minutes=5))
+    _insert_cached_row(expires_at=auth._kis_now() + timedelta(minutes=5))
 
     class Response:
         status_code = 200
@@ -419,7 +459,7 @@ async def test_get_access_token_migrates_legacy_file_to_db(local_token_cache_env
     legacy_file = Path(local_token_cache_env) / "tokens" / "token_12345678.json"
     auth.save_token(
         "legacy-token",
-        datetime.now() + timedelta(hours=1),
+        auth._kis_now() + timedelta(hours=1),
         legacy_file,
         response_data={"token_type": "Bearer", "expires_in": 3600},
     )
@@ -441,7 +481,7 @@ async def test_get_access_token_migrates_legacy_file_to_db(local_token_cache_env
 async def test_get_access_token_ignores_legacy_file_when_db_row_exists(local_token_cache_env):
     _insert_cached_row(token="db-token")
     legacy_file = Path(local_token_cache_env) / "tokens" / "token_12345678.json"
-    auth.save_token("legacy-token", datetime.now() + timedelta(hours=1), legacy_file)
+    auth.save_token("legacy-token", auth._kis_now() + timedelta(hours=1), legacy_file)
 
     class Client:
         async def post(self, *args, **kwargs):

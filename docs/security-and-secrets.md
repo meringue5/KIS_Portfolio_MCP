@@ -77,7 +77,9 @@ KIS API token cache:
 - Sensitive value: KIS access token
 - Stored value: Fernet-encrypted `token_ciphertext`
 - Required env: `KIS_TOKEN_ENCRYPTION_KEY`
-- Expiry policy: treat as refreshable from `expires_at - 10 minutes`
+- Shared consumers: local MCP, Cloud Run remote, and batch use the same cache key and common token manager
+- Expiry policy: compare KIS wall-clock timestamps in `Asia/Seoul` and refresh from `expires_at - 10 minutes`
+- Refresh ownership: whichever consumer refreshes first upserts the shared row; later cold starts reuse that ciphertext
 - Legacy migration input: `var/tokens/token_{CANO}.json`, then delete the file after migration
 
 MCP OAuth state:

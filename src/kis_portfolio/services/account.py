@@ -9,7 +9,7 @@ import httpx
 
 from kis_portfolio import db as kisdb
 from kis_portfolio.accounts import extract_total_eval_amt, infer_account_type, is_irp_account
-from kis_portfolio.auth import get_access_token
+from kis_portfolio.auth import get_access_token, is_kis_expired_token_response
 from kis_portfolio.clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN
 
 
@@ -56,27 +56,28 @@ async def fetch_balance_snapshot(
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
 
-        if is_irp_account(acnt_prdt_cd):
-            request_data = {
-                "CANO": cano,
-                "ACNT_PRDT_CD": acnt_prdt_cd,
-                "ACCA_DVSN_CD": "00",
-                "INQR_DVSN": "00",
-                "CTX_AREA_FK100": "",
-                "CTX_AREA_NK100": "",
-            }
-            response = await client.get(
-                f"{DOMAIN}{PENSION_BALANCE_PATH}",
-                headers={
-                    "content-type": CONTENT_TYPE,
-                    "authorization": f"{AUTH_TYPE} {token}",
-                    "appkey": os.environ["KIS_APP_KEY"],
-                    "appsecret": os.environ["KIS_APP_SECRET"],
-                    "tr_id": get_balance_tr_id("pension_balance"),
-                },
-                params=request_data,
-            )
-        else:
+        async def request_balance(access_token: str):
+            if is_irp_account(acnt_prdt_cd):
+                request_data = {
+                    "CANO": cano,
+                    "ACNT_PRDT_CD": acnt_prdt_cd,
+                    "ACCA_DVSN_CD": "00",
+                    "INQR_DVSN": "00",
+                    "CTX_AREA_FK100": "",
+                    "CTX_AREA_NK100": "",
+                }
+                return await client.get(
+                    f"{DOMAIN}{PENSION_BALANCE_PATH}",
+                    headers={
+                        "content-type": CONTENT_TYPE,
+                        "authorization": f"{AUTH_TYPE} {access_token}",
+                        "appkey": os.environ["KIS_APP_KEY"],
+                        "appsecret": os.environ["KIS_APP_SECRET"],
+                        "tr_id": get_balance_tr_id("pension_balance"),
+                    },
+                    params=request_data,
+                )
+
             request_data = {
                 "CANO": cano,
                 "ACNT_PRDT_CD": acnt_prdt_cd,
@@ -90,17 +91,22 @@ async def fetch_balance_snapshot(
                 "CTX_AREA_NK100": "",
                 "OFL_YN": "",
             }
-            response = await client.get(
+            return await client.get(
                 f"{get_balance_domain()}{BALANCE_PATH}",
                 headers={
                     "content-type": CONTENT_TYPE,
-                    "authorization": f"{AUTH_TYPE} {token}",
+                    "authorization": f"{AUTH_TYPE} {access_token}",
                     "appkey": os.environ["KIS_APP_KEY"],
                     "appsecret": os.environ["KIS_APP_SECRET"],
                     "tr_id": get_balance_tr_id("balance"),
                 },
                 params=request_data,
             )
+
+        response = await request_balance(token)
+        if is_kis_expired_token_response(response):
+            token = await get_access_token(client, DOMAIN, force_refresh=True)
+            response = await request_balance(token)
 
     if response.status_code != 200:
         raise Exception(f"Failed to get balance: {response.text}")

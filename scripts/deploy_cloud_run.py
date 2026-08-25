@@ -294,7 +294,7 @@ def _build_token_warmup_command_args(env: dict[str, str]) -> str:
     return (
         "warm-token-cache,"
         f"--account-label,{account_label},--valid-through,{valid_through},"
-        "--dry-run,--warm-service-health"
+        "--warm-service-health"
     )
 
 
