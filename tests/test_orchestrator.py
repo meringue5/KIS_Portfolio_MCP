@@ -52,20 +52,20 @@ def test_mcp_tool_metadata_guides_chatgpt_discovery():
     order_stub = portfolio_mcp.mcp._tool_manager._tools["submit-stock-order"]
 
     assert stock_price.description.startswith("Use this when")
-    assert stock_price.annotations.readOnlyHint is True
+    assert stock_price.annotations.read_only_hint is True
     assert stock_price.parameters["properties"]["symbol"]["description"] == (
         "Domestic KRX stock or ETF code, usually a 6-digit symbol."
     )
 
     assert overview.description.startswith("Use this when")
-    assert overview.annotations.destructiveHint is False
-    assert overview.annotations.openWorldHint is False
+    assert overview.annotations.destructive_hint is False
+    assert overview.annotations.open_world_hint is False
     assert overview.parameters["properties"]["top_n"]["minimum"] == 1
     assert overview.parameters["properties"]["top_n"]["maximum"] == 50
 
     assert order_list.description.startswith("Use this when")
-    assert order_list.annotations.destructiveHint is False
-    assert order_list.annotations.openWorldHint is False
+    assert order_list.annotations.destructive_hint is False
+    assert order_list.annotations.open_world_hint is False
     assert order_list.parameters["properties"]["symbol"]["description"] == (
         "Optional domestic KRX symbol filter. Leave empty to include all symbols in the date range."
     )
@@ -73,8 +73,8 @@ def test_mcp_tool_metadata_guides_chatgpt_discovery():
 
     assert order_stub.description.startswith("Use this only when")
     assert "disabled stub" in order_stub.description
-    assert order_stub.annotations.destructiveHint is False
-    assert order_stub.annotations.openWorldHint is False
+    assert order_stub.annotations.destructive_hint is False
+    assert order_stub.annotations.open_world_hint is False
 
 
 def test_get_configured_accounts_masks_account_numbers(monkeypatch):

@@ -7,7 +7,7 @@ import time
 from typing import Annotated
 
 from dotenv import load_dotenv
-from mcp.server.fastmcp.server import FastMCP
+from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
@@ -51,11 +51,11 @@ logger = logging.getLogger("kis-portfolio-mcp")
 load_dotenv()
 
 DEFAULT_ACCOUNT_LABEL = "brokerage"
-mcp = FastMCP("KIS Portfolio Service", dependencies=["httpx", "xmltodict"])
+mcp = MCPServer("KIS Portfolio Service", dependencies=["httpx", "xmltodict"])
 
-READ_ONLY_TOOL = ToolAnnotations(readOnlyHint=True)
-SAFE_LOCAL_WRITE_TOOL = ToolAnnotations(destructiveHint=False, openWorldHint=False)
-NON_DESTRUCTIVE_ACTION_TOOL = ToolAnnotations(destructiveHint=False, openWorldHint=False)
+READ_ONLY_TOOL = ToolAnnotations(read_only_hint=True)
+SAFE_LOCAL_WRITE_TOOL = ToolAnnotations(destructive_hint=False, open_world_hint=False)
+NON_DESTRUCTIVE_ACTION_TOOL = ToolAnnotations(destructive_hint=False, open_world_hint=False)
 
 ConfiguredAccountLabel = Annotated[
     str,
@@ -105,7 +105,7 @@ OrderHistorySource = Annotated[
 ]
 
 
-def register_tools(server: FastMCP) -> None:
+def register_tools(server: MCPServer) -> None:
     for tool in mcp._tool_manager.list_tools():
         server.add_tool(
             tool.fn,
@@ -115,8 +115,8 @@ def register_tools(server: FastMCP) -> None:
         )
 
 
-def build_mcp_server() -> FastMCP:
-    server = FastMCP("KIS Portfolio Service", dependencies=["httpx", "xmltodict"])
+def build_mcp_server() -> MCPServer:
+    server = MCPServer("KIS Portfolio Service", dependencies=["httpx", "xmltodict"])
     register_tools(server)
     return server
 

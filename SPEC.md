@@ -667,7 +667,7 @@ ORDER BY snap_date DESC;
 
 ### 4. 구현 가이드라인 (Codex용)
 
-1. **신규 tool 추가 패턴**: 기존 `get-portfolio-history` tool의 구조를 참고. FastMCP 함수 파라미터로 입력을 받고, DB 커넥션은 `kisdb.get_connection()`으로 획득한다. 연결은 프로세스 싱글톤이므로 tool 내부에서 닫지 않는다.
+1. **신규 tool 추가 패턴**: 기존 `get-portfolio-history` tool의 구조를 참고. MCPServer 함수 파라미터로 입력을 받고, DB 커넥션은 `kisdb.get_connection()`으로 획득한다. 연결은 프로세스 싱글톤이므로 tool 내부에서 닫지 않는다.
 2. **SQL 파라미터 바인딩**: DuckDB Python API는 `?` 플레이스홀더 사용 (`conn.execute(sql, [param1, param2])`)
 3. **window 변수**: SQL 문자열 안의 `{window-1}` 같은 표현은 f-string 또는 `.format()`으로 치환 (SQL injection 위험 없는 정수값)
 4. **결과 직렬화**: DuckDB cursor의 `description`과 `fetchall()`로 `list[dict]`를 만들고, `date`/`datetime`은 ISO 문자열로 변환한다.

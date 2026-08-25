@@ -429,6 +429,10 @@ class KisOAuthProvider:
             resource=record.get("resource"),
         )
 
+    async def verify_token(self, token: str) -> StoredAccessToken | None:
+        """Verify a bearer token for the MCP 2.x resource-server middleware."""
+        return await self.load_access_token(token)
+
     async def revoke_token(
         self,
         token: StoredAccessToken | StoredRefreshToken,

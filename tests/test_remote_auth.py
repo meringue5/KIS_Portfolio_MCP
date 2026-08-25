@@ -104,7 +104,7 @@ def _dummy_remote_server():
         def __init__(self):
             self._session_manager = DummySessionManager()
 
-        def streamable_http_app(self):
+        def streamable_http_app(self, **_kwargs):
             return Starlette(routes=[Route("/", lambda request: JSONResponse({"unused": True}))])
 
         @property
@@ -260,8 +260,8 @@ def test_remote_oauth_mode_challenges_with_resource_metadata(monkeypatch):
 
     assert response.status_code == 401
     assert response.headers["www-authenticate"] == (
-        'Bearer resource_metadata="https://resource.example.com/.well-known/oauth-protected-resource", '
-        'scope="mcp:read"'
+        'Bearer error="invalid_token", error_description="Authentication required", '
+        'resource_metadata="https://resource.example.com/.well-known/oauth-protected-resource/mcp"'
     )
 
 
@@ -309,10 +309,88 @@ def test_remote_oauth_mode_rejects_token_for_other_resource(monkeypatch):
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
     monkeypatch.setattr(remote, "build_mcp_server", _dummy_remote_server)
 
-    with TestClient(remote.create_app()) as client_http:
+    with TestClient(
+        remote.create_app(),
+        base_url="https://resource.example.com",
+    ) as client_http:
         response = client_http.get(
             "/mcp",
             headers={"Authorization": f"Bearer {token.access_token}"},
         )
 
     assert response.status_code == 401
+
+
+def test_remote_oauth_mode_supports_2026_discovery(monkeypatch):
+    provider = _oauth_provider()
+    user = auth_repository.upsert_auth_user("owner@example.com", "Owner")
+    grant = auth_repository.upsert_oauth_grant(user["id"], "claude-client", "mcp:read")
+    client = asyncio.run(provider.get_client("claude-client"))
+    assert client is not None
+
+    code = asyncio.run(provider.issue_authorization_code(
+        user_id=user["id"],
+        client_id="claude-client",
+        grant_id=grant["id"],
+        scope="mcp:read",
+        redirect_uri="https://claude.ai/api/mcp/auth_callback",
+        redirect_uri_provided_explicitly=True,
+        code_challenge="challenge",
+        resource="https://resource.example.com/mcp",
+        state=None,
+        provider="google",
+    ))
+    stored_code = asyncio.run(provider.load_authorization_code(client, code))
+    token = asyncio.run(provider.exchange_authorization_code(
+        client,
+        stored_code,
+        resource="https://resource.example.com/mcp",
+    ))
+
+    monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "oauth")
+    monkeypatch.setenv("KIS_AUTH_ISSUER_URL", "https://auth.example.com")
+    monkeypatch.setenv("KIS_RESOURCE_SERVER_URL", "https://resource.example.com/mcp")
+    monkeypatch.setenv("KIS_AUTH_TOKEN_PEPPER", "pepper")
+    monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
+
+    remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+
+    request = {
+        "jsonrpc": "2.0",
+        "id": "discover-1",
+        "method": "server/discover",
+        "params": {
+            "_meta": {
+                "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                "io.modelcontextprotocol/clientInfo": {
+                    "name": "Claude",
+                    "version": "test",
+                },
+                "io.modelcontextprotocol/clientCapabilities": {},
+            }
+        },
+    }
+    headers = {
+        "Authorization": f"Bearer {token.access_token}",
+        "Accept": "application/json, text/event-stream",
+        "MCP-Protocol-Version": "2026-07-28",
+        "MCP-Method": "server/discover",
+        "Origin": "https://claude.ai",
+    }
+
+    with TestClient(
+        remote.create_app(),
+        base_url="https://resource.example.com",
+    ) as client_http:
+        response = client_http.post("/mcp", json=request, headers=headers)
+        follow_up_request = dict(request, id="discover-2")
+        follow_up = client_http.post("/mcp", json=follow_up_request, headers=headers)
+        health = client_http.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == "discover-1"
+    assert "2026-07-28" in payload["result"]["supportedVersions"]
+    assert follow_up.status_code == 200
+    assert follow_up.json()["id"] == "discover-2"
+    assert health.status_code == 200
