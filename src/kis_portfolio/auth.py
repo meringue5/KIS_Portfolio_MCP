@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -34,9 +35,16 @@ TOKEN_PATH = "/oauth2/tokenP"
 HASHKEY_PATH = "/uapi/hashkey"
 TOKEN_REFRESH_SAFETY = timedelta(minutes=10)
 DEFAULT_TOKEN_LIFETIME = timedelta(hours=23, minutes=50)
+SEOUL_TZ = ZoneInfo("Asia/Seoul")
+KIS_EXPIRED_TOKEN_CODES = frozenset({"EGW00123"})
 _TOKEN_REFRESH_LOCKS: dict[str, asyncio.Lock] = {}
 _PROCESS_TOKEN_CACHE: dict[str, dict[str, Any]] = {}
 logger = logging.getLogger("kis-portfolio-auth")
+
+
+def _kis_now() -> datetime:
+    """Return the current KIS wall-clock time as a DB-compatible timestamp."""
+    return datetime.now(SEOUL_TZ).replace(tzinfo=None)
 
 
 def get_token_file(cano: str | None = None) -> Path:
@@ -124,7 +132,7 @@ def _store_process_memory_token(
         "token_type": token_type or AUTH_TYPE,
         "expires_in": expires_in,
         "response_expiry_raw": response_expiry_raw,
-        "updated_at": datetime.now(),
+        "updated_at": _kis_now(),
         "persisted": persisted,
     }
 
@@ -206,6 +214,15 @@ def _extract_kis_response_fields(response: httpx.Response) -> dict[str, Any]:
         fields["kis_msg1"] = payload.get("msg1")
         fields["rt_cd"] = payload.get("rt_cd")
     return fields
+
+
+def is_kis_expired_token_response(response: httpx.Response) -> bool:
+    """Return whether KIS rejected the supplied access token as expired."""
+    try:
+        payload = response.json()
+    except Exception:
+        return False
+    return isinstance(payload, dict) and payload.get("msg_cd") in KIS_EXPIRED_TOKEN_CODES
 
 
 async def _request_new_token_with_retry(
@@ -307,7 +324,7 @@ def _migrate_legacy_token_if_available(
 
     token_data = json.loads(path.read_text())
     issued_at_raw = token_data.get("issued_at")
-    issued_at = datetime.fromisoformat(issued_at_raw) if issued_at_raw else datetime.now()
+    issued_at = datetime.fromisoformat(issued_at_raw) if issued_at_raw else _kis_now()
     _persist_token_record(
         cache_context=cache_context,
         token=token,
@@ -343,7 +360,7 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
             memory_token, memory_record = _read_valid_token_from_process_memory(cache_context)
             if memory_record is not None:
                 expires_at = memory_record["expires_at"]
-                now = datetime.now()
+                now = _kis_now()
                 return {
                     "exists": bool(memory_token),
                     "status": "valid" if memory_token else "expired",
@@ -381,7 +398,7 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
         or not is_token_valid(record["expires_at"])
     ):
         expires_at = memory_record["expires_at"]
-        now = datetime.now()
+        now = _kis_now()
         result = {
             "exists": True,
             "status": "valid",
@@ -431,7 +448,7 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
                 "needs_refresh": True,
                 "error": str(e),
             }
-        now = datetime.now()
+        now = _kis_now()
         if is_token_valid(expires_at, now):
             status = "valid"
         elif now < expires_at:
@@ -456,7 +473,7 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
         return result
 
     expires_at = record["expires_at"]
-    now = datetime.now()
+    now = _kis_now()
     if is_token_valid(expires_at, now):
         status = "valid"
     elif now < expires_at:
@@ -490,7 +507,7 @@ def get_token_status(token_file: Path | None = None) -> dict[str, Any]:
 
 def is_token_valid(expires_at: datetime, now: datetime | None = None) -> bool:
     """Return whether a token is safely reusable."""
-    now = now or datetime.now()
+    now = now or _kis_now()
     return now < expires_at - TOKEN_REFRESH_SAFETY
 
 
@@ -529,7 +546,7 @@ def save_token(
     """Save token to file."""
     path = token_file or get_token_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    issued_at = issued_at or datetime.now()
+    issued_at = issued_at or _kis_now()
     payload = {
         "token": token,
         "issued_at": issued_at.isoformat(),
@@ -678,7 +695,7 @@ async def get_access_token(
             operation_id,
         )
 
-        issued_at = datetime.now()
+        issued_at = _kis_now()
         token_data = token_response.json()
         token = token_data["access_token"]
         expires_at = parse_kis_expiry(token_data, issued_at)

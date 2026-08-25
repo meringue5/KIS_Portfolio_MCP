@@ -235,10 +235,12 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 `overseas-batch` target은 `collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS`
 전용 Cloud Run Job을 배포한다. 기본값은 다음과 같다.
 `token-warmup-batch` target은
-`warm-token-cache --account-label all --valid-through 16:30 --dry-run --warm-service-health`
-전용 Cloud Run Job을 배포한다. 초기 rollout은 dry-run만 수행하므로 KIS 토큰 발급을 유발하지 않는다.
+`warm-token-cache --account-label all --valid-through 16:30 --warm-service-health`
+전용 Cloud Run Job을 배포한다. 각 계좌 토큰이 당일 16:30 KST까지 안전하게 유효하지 않으면 KIS 토큰을
+재발급하고 암호화된 최신 값을 MotherDuck 공유 캐시에 저장한다.
 `--warm-service-health`는 auth/remote 서비스의 공개 `/health` endpoint를 호출해 scale-to-zero 상태의 Cloud Run
-서비스를 미리 깨운다. 이 호출은 KIS API endpoint를 호출하지 않는다.
+서비스를 미리 깨운다. 이 health probe는 best-effort이며, 콜드 스타트 타임아웃만으로 토큰 워밍업 Job을
+실패 처리하지 않는다.
 
 - Job name: `kis-portfolio-domestic-order-history`
 - Scheduler name: `kis-portfolio-domestic-order-history-1535`

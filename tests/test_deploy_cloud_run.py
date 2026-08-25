@@ -209,12 +209,12 @@ def test_overseas_batch_command_allows_account_and_exchange_override():
     assert "--exchange,NYSE" in command_args
 
 
-def test_token_warmup_batch_command_is_dry_run_only():
+def test_token_warmup_batch_command_refreshes_tokens():
     command_args = deploy_cloud_run._build_token_warmup_command_args({})
 
     assert command_args == (
         "warm-token-cache,"
-        "--account-label,all,--valid-through,16:30,--dry-run,--warm-service-health"
+        "--account-label,all,--valid-through,16:30,--warm-service-health"
     )
 
 

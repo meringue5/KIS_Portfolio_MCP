@@ -133,6 +133,39 @@ def test_warm_token_cache_can_wake_services_during_dry_run(monkeypatch):
     assert result["service_health_error_count"] == 0
 
 
+def test_health_warmup_timeout_does_not_fail_successful_token_work(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    def fake_status():
+        return {
+            "exists": True,
+            "status": "valid",
+            "storage": "db",
+            "expires_at": "2026-05-16T16:35:00",
+            "refresh_after": "2026-05-16T16:25:00",
+            "needs_refresh": False,
+        }
+
+    async def fake_warm_service_health():
+        return [{"url": "https://auth.example.com/health", "status": "error"}]
+
+    monkeypatch.setattr(token_warmup, "get_token_status", fake_status)
+    monkeypatch.setattr(token_warmup, "warm_service_health", fake_warm_service_health)
+
+    result = asyncio.run(
+        token_warmup.warm_token_cache(
+            account_label="brokerage",
+            valid_through="16:30",
+            dry_run=True,
+            warm_service_health_checks=True,
+        )
+    )
+
+    assert result["status"] == "ok"
+    assert result["service_health_status"] == "partial_error"
+    assert result["service_health_error_count"] == 1
+
+
 def test_warm_token_cache_refreshes_when_not_dry_run(monkeypatch):
     apply_account_env(monkeypatch)
     statuses = [

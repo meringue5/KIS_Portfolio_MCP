@@ -208,7 +208,9 @@ async def warm_token_cache(
         1 for row in service_health_rows
         if row["status"] not in {"ok"}
     )
-    status = "ok" if error_count == 0 and service_health_error_count == 0 else "partial_error"
+    # Health warming is best-effort: a cold service may exceed this short probe while
+    # the token refresh itself succeeds. Keep the batch result tied to token safety.
+    status = "ok" if error_count == 0 else "partial_error"
     return {
         "source": "token_cache",
         "operation": "warm-token-cache",
@@ -222,6 +224,7 @@ async def warm_token_cache(
         "refresh_count": refresh_count,
         "error_count": error_count,
         "service_health_error_count": service_health_error_count,
+        "service_health_status": "ok" if service_health_error_count == 0 else "partial_error",
         "service_health": service_health_rows,
         "accounts": rows,
         "diagnostics": {"operation_id": operation_id},
