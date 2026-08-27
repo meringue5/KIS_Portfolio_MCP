@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import shutil
 from pathlib import Path
 
@@ -57,9 +58,17 @@ def test_project_os_rejects_two_in_progress_work_items(tmp_path: Path):
         shutil.copy2(source, destination)
 
     first = target / "docs/work-items/WI-000-project-operating-system.md"
+    active_text = re.sub(
+        r"^status: .+$",
+        "status: in_progress",
+        first.read_text(encoding="utf-8"),
+        count=1,
+        flags=re.MULTILINE,
+    )
+    first.write_text(active_text, encoding="utf-8")
     duplicate = target / "docs/work-items/WI-001-duplicate-active.md"
     duplicate.write_text(
-        first.read_text(encoding="utf-8")
+        active_text
         .replace("id: WI-000", "id: WI-001", 1)
         .replace("# WI-000", "# WI-001", 1),
         encoding="utf-8",

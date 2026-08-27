@@ -72,11 +72,16 @@ traceability, 공통 로컬/CI 하네스가 하나의 운영 계약으로 연결
 - `bash scripts/check.sh quick`: Project OS, architecture, warehouse, MCP surface, shell/JSON 통과
 - `bash scripts/check.sh full`: 190 passed, architecture/warehouse/MCP/Project OS contract 통과
 - `git config --local --get core.hooksPath`: `.githooks`
+- 첫 기준선 commit 뒤 clean-checkout full gate가 실패함: 음성 테스트가 WI-000의 `verified` 상태까지 복사해
+  두 개의 `in_progress` fixture를 만들지 못한 test coupling을 발견함. WI-000을 재개해 fixture를 독립화함.
+- fixture가 source Work Item의 실제 상태와 무관하게 두 active item을 만들도록 수정한 뒤 targeted 2 tests와
+  full gate 190 tests가 다시 통과함.
 - 운영 증거: production 변경 없음
 
 ## Closeout
 
 - 결과: Project OS 정책·Skill·Work Item·traceability·Issue/PR template·single check harness·tracked hook·CI를
-  연결하고 현재 세션에서 Skill을 로드해 WI-000에 dogfood했다.
+  연결하고 현재 세션에서 Skill을 로드해 WI-000에 dogfood했다. post-commit 결함도 같은 feedback loop로
+  재개·수정·재검증했다.
 - 남은 위험: 실제 GitHub Issue 기반 workflow와 release 작업에서 추가 dogfood 필요
 - 후속 Work Item: V2 Architecture delta review
