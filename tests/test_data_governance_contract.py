@@ -46,6 +46,10 @@ def _copy_harness(target: Path) -> None:
         destination = target / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
+    # Fixture tests replace the source/dataset/collection registries below. Keep the
+    # independently tested pipeline registry empty so repository contracts cannot
+    # leak unresolved references into these isolated positive/negative cases.
+    (target / "governance/catalog/pipelines.toml").write_text("schema_version = 1\n", encoding="utf-8")
 
 
 def test_current_repository_satisfies_data_governance_contract():

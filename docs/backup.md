@@ -19,6 +19,11 @@ V2 registry의 backup policy는 `V2_DATA_OBJECTS`와 `v2_backup_table_names()`�
 운영 migration 전까지 현재 V1 `backup_motherduck.py`의 export 목록에는 자동 편입하지 않는다. V2가 live로
 적용되면 qualified schema를 보존하는 새 backup manifest version으로 다음을 export한다.
 
+```bash
+uv run python scripts/backup_v2_motherduck.py
+uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS --database :memory:
+```
+
 - Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`,
   `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.cash_flow_events`,
   `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
@@ -27,9 +32,10 @@ V2 registry의 backup policy는 `V2_DATA_OBJECTS`와 `v2_backup_table_names()`�
   `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
   `gold.portfolio_daily_state`, `control.pipeline_definitions`, `control.pipeline_runs`,
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`.
-- Private content-addressed object: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
-  `silver.owner_research_extractions`의 대응 object bytes. MotherDuck metadata만으로 원문 backup이 됐다고
-  간주하지 않는다.
+- Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
+  `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
+- Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
+  원문 backup이 됐다고 간주하지 않는다.
 - Rebuild/excluded: `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.schema_migrations`.
 
@@ -83,6 +89,9 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 
 Gold view와 `schema_migrations`도 기본 백업에서 제외한다. Gold는 복원된 Bronze/Silver/Control table과
 versioned migration으로 재생성하고, migration ledger는 복원 대상 database에서 새로 검증한다.
+
+2026-08-28 병렬 적용과 실제 복원 리허설 결과는
+[MotherDuck V2 Parallel Foundation](./operations/motherduck-v2-foundation-2026-08.md)에 기록한다.
 
 최근 백업 N개만 남기려면:
 

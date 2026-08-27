@@ -48,6 +48,7 @@ def main() -> int:
     schema = text("src/kis_portfolio/db/schema.py")
     repo = text("src/kis_portfolio/db/repository.py")
     backup = text("scripts/backup_motherduck.py")
+    v2_backup = text("scripts/backup_v2_motherduck.py")
     docs = text("docs/data-pipeline.md") + "\n" + text("docs/backup.md")
     catalog_doc = text("docs/data-catalog.md")
     v2_migrations = "\n".join(
@@ -127,6 +128,8 @@ def main() -> int:
 
     if "TABLES = backup_table_names()" not in backup:
         failures.append("backup script must derive TABLES from the governed data catalog")
+    if "TABLES = v2_backup_table_names()" not in v2_backup:
+        failures.append("V2 backup script must derive TABLES from the governed V2 data catalog")
     backup_doc = text("docs/backup.md")
     for table in backup_table_names():
         if table not in backup_doc:

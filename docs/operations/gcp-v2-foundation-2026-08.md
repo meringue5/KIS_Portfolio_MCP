@@ -3,8 +3,9 @@
 ## Scope and authorization
 
 DEC-045와 WI-005에 따라 기존 resource를 보존하면서 합의된 Secret Manager·Firestore 기반만
-create-or-verify했다. Cloud Run 배포, IAM 변경, production traffic cutover, secret payload read/write와
-MotherDuck live migration은 이 작업에서 수행하지 않았다.
+create-or-verify했다. Cloud Run 배포, IAM 변경, production traffic cutover와 secret payload read/write는
+수행하지 않았다. 병렬 MotherDuck migration 증거는
+[MotherDuck V2 Parallel Foundation](./motherduck-v2-foundation-2026-08.md)이 소유한다.
 
 ## Preflight inventory
 
