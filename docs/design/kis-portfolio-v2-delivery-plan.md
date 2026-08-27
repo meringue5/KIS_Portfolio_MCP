@@ -5,6 +5,12 @@
 > 상위 설계: `docs/design/kis-portfolio-v2-system-design.md`
 > 원칙: 각 Wave는 산출물·자동검증·운영증거·rollback gate가 모두 충족돼야 완료된다.
 
+## 0. 선행 조건 — Package F Project Operating System
+
+V2 제품 구현에 앞서 `docs/governance/project-operating-system.md`의 변경 분류, Work Item, traceability,
+공통 check harness와 CI gate를 활성화한다. 각 V2 Work Item은 이 운영체계를 사용하며, 제품 구현을 위해
+Project OS gate를 임시 우회하지 않는다. Package F의 bootstrap 작업은 `WI-000`이 소유한다.
+
 ## 1. 계획 운영 방식
 
 V2는 장기 branch에서 한 번에 교체하지 않는다. 작은 vertical release를 mainline에 통합하되 V1 제품표면과
@@ -25,7 +31,7 @@ requirement / ADR
 
 | Wave | 목적 | 사용자-visible 변화 | 필수 선행 |
 | --- | --- | --- | --- |
-| 0 | 비용·운영·설계 기준선 고정 | 없음 | 이 설계 승인 |
+| 0 | 비용·운영·설계 기준선 고정 | 없음 | Package F + 이 설계 승인 |
 | 1 | V2 코드 골격과 release foundation | 없음 | Wave 0 |
 | 2 | Firestore state plane과 explicit migration | OAuth 재연결 준비 | Wave 1 |
 | 3 | V2 warehouse와 canonical ledger | DB-only 비교 결과 | Wave 2 |

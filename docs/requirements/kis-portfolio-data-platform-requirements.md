@@ -897,6 +897,7 @@ Architecture delta 검토 전에는 선택된 구현으로 간주하지 않는�
 | C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 완료; DEC-020~DEC-025 승인 |
 | D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 완료; DEC-026~DEC-032 승인 |
 | E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 완료; DEC-033~DEC-041 승인 |
+| F | Project Operating System | 변경 분류, 결정 SSOT, Work Item·traceability, Skill·hook·CI와 운영 feedback | 선행 승인; ADR-022·WI-000에서 구현 |
 
 각 패키지가 너무 크면 독립적으로 승인 가능한 소단위로 나누되, 다음 패키지 전체의 미리보기를 함께
 제공한다. 사용자가 명시적으로 요청하지 않는 한 단순 필드 하나마다 승인을 반복해서 요구하지 않는다.

@@ -69,6 +69,24 @@ bash scripts/stop_mcp.sh
 
 ## 핵심 설계 규칙
 
+### Project Operating System
+
+이 저장소의 개발·운영 상위 체계는 **Project Operating System(Project OS, 프로젝트 운영체계)** 이다.
+canonical policy는 `docs/governance/project-operating-system.md`, 요구·결정·작업·증거 연결은
+`docs/traceability.md`가 담당한다. `Project Governance`는 Project OS의 결정·권한·변경통제 하위 영역이다.
+
+repository를 변경하거나 비사소한 버그·요구·incident를 분류하기 전에는 다음을 수행한다.
+
+1. `.agent/skills/kis-project-os/SKILL.md`를 읽는다.
+2. active Work Item과 `docs/traceability.md`를 확인한다.
+3. 변경을 defect/clarification/change/architecture/incident/maintenance/governance로 분류한다.
+4. 동시에 하나의 구현 Work Item만 `in_progress`로 둔다.
+5. 작업 중 `bash scripts/check.sh quick`, 종료 전 `bash scripts/check.sh full`을 실행한다.
+
+Issue/Work Item은 추적 레코드이며 결정 SSOT가 아니다. 승인된 제품 요구는 `docs/requirements/`, 장기
+architecture decision은 `SPEC.md`, 데이터 계약은 `docs/data-catalog.md`가 소유한다. Skill, hook과 CI는
+정책을 복제하지 않고 공통 하네스를 호출한다. 구현에 맞춰 계약을 조용히 완화하지 않는다.
+
 ### 공통 운용 스킬
 에이전트 공통 운용 절차는 `.agent/skills/` 아래에 둔다.
 native skill discovery를 지원하지 않는 환경에서도 관련 작업 전에는 해당 `SKILL.md`를 읽고 따른다.
@@ -79,6 +97,7 @@ native skill discovery를 지원하지 않는 환경에서도 관련 작업 전�
 - `.agent/skills/kis-api-capability-implementation/SKILL.md`: KIS Open API 신규 기능 추가 절차
 - `.agent/skills/kis-warehouse-contract/SKILL.md`: MotherDuck/DuckDB schema, repository, backup 계약 점검
 - `.agent/skills/kis-release-ops/SKILL.md`: CI/CD, Secret Manager, GitHub Actions, Cloud Run 릴리즈 절차
+- `.agent/skills/kis-project-os/SKILL.md`: 변경 분류, Work Item, traceability와 공통 gate 절차
 
 DB 작업에서는 `docs/data-catalog.md`를 가장 먼저 읽는다. 이 문서가 객체 목적, grain, logical layer,
 민감도, 백업 정책과 schema migration 계획의 canonical governance 문서다. `schema.py` 또는 live DB에만

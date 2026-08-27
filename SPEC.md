@@ -533,6 +533,34 @@ GCS, OAuth/KIS token·lease·run request 같은 operational state는 Firestore�
 
 ---
 
+### ADR-022: Project Operating System을 개발·운영 상위 control system으로 채택
+
+**결정**: 정식 명칭을 **Project Operating System**, 한국어를 **프로젝트 운영체계**, 약칭을
+**Project OS**로 고정한다. `Project Governance`는 그 안의 결정권·문서 권한·변경통제 하위 영역이다.
+Project OS는 제품 application/data/runtime architecture와 병립하면서 이를 승인된 계약에 맞게 변경하는
+상위 Engineering Control System이다.
+
+**상태**: 사용자 승인, 즉시 적용. canonical policy는 `docs/governance/project-operating-system.md`가
+소유한다.
+
+**이유**:
+- 1인 앱도 대화, TODO, 코드와 운영 상태 사이의 판단 근거가 흩어지면 architecture drift가 발생한다.
+- 제품 아키텍처만으로는 bug, requirement change, architecture change와 incident의 처리 흐름을 소유하지
+  못한다.
+- Skill과 hook은 유용하지만 정책 SSOT가 되면 문서·CI와 서로 다른 규칙으로 노후화될 수 있다.
+- 요구/ADR → Work Item → 구현 → 자동·운영 증거 → 인수의 연결이 있어야 개선과 유지보수가 재현된다.
+
+**계약**:
+- 티켓은 관찰·진행·증거의 tracker이고 승인된 DEC/ADR/catalog가 결정 SSOT다.
+- 모든 비사소한 변경은 분류, 계약 비교, 영향, 인수 기준과 evidence를 가진다.
+- 동시에 하나의 구현 Work Item만 `in_progress`로 둔다.
+- Skill, tracked Git hook과 CI는 `scripts/check.sh` 단일 검사 entrypoint를 사용한다.
+- local hook은 조기 피드백이고 CI와 release approval이 최종 gate다.
+- 구현을 이유로 계약을 silent widening하지 않고, 의도한 계약 변경은 사용자 승인을 먼저 받는다.
+- Project OS 자체 변경도 governance Work Item과 dogfood 검증을 거친다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

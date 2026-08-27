@@ -7,6 +7,12 @@
 `docs/design/kis-portfolio-v2-delivery-plan.md`에 제안되어 있다. V2 문서는 구현 승인이 아니며, 승인 전에는
 이 문서의 V1 runtime·schema·보안 계약을 대체하지 않는다.
 
+제품 architecture의 변경·검증·배포·운영 feedback은 상위 **Project Operating System**의 통제를 받는다.
+Project OS는 runtime component가 아니며 제품 code에 포함되지 않는다. canonical 운영 정책은
+`docs/governance/project-operating-system.md`, trace는 `docs/traceability.md`가 소유한다. 제품 architecture
+변경은 관련 ADR과 Work Item뿐 아니라 이를 검증하는 contract checker와 release evidence까지 함께
+완료돼야 한다.
+
 ## 구조 원칙
 
 루트 디렉터리는 프로젝트를 이해하고 운영하는 데 필요한 문서와 설정 진입점만 둔다.

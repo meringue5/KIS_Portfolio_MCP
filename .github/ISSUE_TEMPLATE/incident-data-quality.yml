@@ -1,0 +1,38 @@
+name: Incident or data-quality issue
+description: 운영 장애, 데이터 오염·누락, 보안 또는 비용 이상을 기록합니다.
+title: "[Incident] "
+labels:
+  - incident
+body:
+  - type: markdown
+    attributes:
+      value: |
+        원본 증거를 보존하되 secret, raw token과 전체 계좌번호는 본문에 넣지 마세요.
+  - type: textarea
+    id: impact
+    attributes:
+      label: 영향과 시작 시각
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 로그·run ID·freshness·관찰 증거
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: 현재 완화 상태
+    validations:
+      required: true
+  - type: textarea
+    id: integrity
+    attributes:
+      label: 데이터 보존·복구·보안 영향
+    validations:
+      required: true
+  - type: textarea
+    id: followup
+    attributes:
+      label: 원인 분류와 후속 Work Item

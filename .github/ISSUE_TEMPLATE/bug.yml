@@ -1,0 +1,48 @@
+name: Bug report
+description: 승인된 요구나 계약과 실제 동작의 차이를 보고합니다.
+title: "[Bug] "
+labels:
+  - defect
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Secret, raw token, 전체 계좌번호와 민감한 원문 payload를 입력하지 마세요.
+  - type: textarea
+    id: observed
+    attributes:
+      label: 관찰한 동작과 증거
+      description: 시각, 환경, run/request ID, 마스킹된 로그를 포함합니다.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작
+      description: 관련 DEC, ADR, catalog 또는 문서를 알고 있다면 링크합니다.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 방법
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 영향
+      options:
+        - 데이터 정확성 또는 유실
+        - 인증 또는 보안
+        - 배치 또는 알림 누락
+        - MCP 조회 또는 호환성
+        - 비용 또는 성능
+        - 기타 기능
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: 계약 비교와 초기 분류
+      description: maintainer가 defect인지 clarification/change인지 판정합니다.

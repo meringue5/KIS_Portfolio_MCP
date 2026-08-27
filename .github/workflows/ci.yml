@@ -22,20 +22,5 @@ jobs:
           python-version: "3.13"
           enable-cache: true
 
-      - name: Run tests
-        run: uv run pytest
-
-      - name: Check architecture contract
-        run: uv run python .agent/skills/kis-architecture-audit/scripts/check_architecture_contracts.py
-
-      - name: Check MCP surface
-        run: uv run python .agent/skills/kis-mcp-surface-audit/scripts/inspect_mcp_surface.py
-
-      - name: Check shell scripts
-        run: bash -n scripts/setup.sh
-
-      - name: Check JSON examples
-        run: python3 -m json.tool docs/examples/claude_desktop_config.example.json
-
-      - name: Check whitespace
-        run: git diff --check
+      - name: Run Project OS full gate
+        run: bash scripts/check.sh full
