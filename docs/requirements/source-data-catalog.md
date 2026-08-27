@@ -251,7 +251,7 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 | 조정 계약 | `FID_ORG_ADJ_PRC=0` 수정주가, `1` 원주가 |
 | 현재 저장 | Silver cache `price_history`; raw Bronze 없음 |
 | 현재 gap | 수정주가를 `adjusted=FALSE`로 저장할 수 있고 dual basis PK가 없음 |
-| 상태 | `official-confirmed`, `live-verified`, `gap` |
+| 상태 | `official-confirmed`, `live-verified`, `selected`, 현재 구현은 `gap` |
 
 3년 범위를 한 번 호출한 probe는 최신 100행만 반환했다. 따라서 승인된 3년 backfill은 날짜 범위를
 100거래일보다 짧은 shard로 분할하고 시작·종료 coverage를 검증해야 한다.
@@ -272,7 +272,7 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 | 조정 계약 | `MODP=0` 미반영, `1` 반영 |
 | 현재 저장 | Silver cache `price_history`; raw Bronze 없음 |
 | 현재 gap | 현재 서비스는 첫 page만 저장하고 dual basis를 표현하지 못함 |
-| 상태 | `official-confirmed`, `live-verified`, `gap` |
+| 상태 | `official-confirmed`, `live-verified`, `selected`, 현재 구현은 `gap` |
 
 분할 구간 probe에서 수정 옵션에 따라 100행의 가격이 모두 달랐지만 거래량은 동일했다. 거래량은
 vendor raw observation으로 보존하고 corporate action 보정 전에는 분할 전후 상대비교 품질을 낮춰야 한다.
@@ -293,7 +293,7 @@ vendor raw observation으로 보존하고 corporate action 보정 전에는 분�
 | 현재 보유 probe | 14/14 성공, 선언 642행 중 286행 반환, 8종은 30행, continuation 없음 |
 | 요구 연결 | 당일 상위 구성종목 확인, KRX/운용사 PDF cross-check |
 | 한계 | 전체 구성과 역사적 snapshot을 보장하지 않음 |
-| 상태 | `official-confirmed`, `live-verified`, `gap` |
+| 상태 | `official-confirmed`, `live-verified`, 보조 원천으로 `selected`, 완전성은 `gap` |
 
 모든 시험 ETF에서 output1의 선언 구성종목 수가 output2 반환 수보다 컸다. 따라서 완전한 ETF
 look-through의 canonical source로 선정하지 않는다.
@@ -312,7 +312,7 @@ look-through의 canonical source로 선정하지 않는다.
 | 반환 grain 후보 | ETF·기준일·구성자산 |
 | 요구 필드 | 구성자산 식별자·명칭·수량·평가금액·비중, 기준일, source URL·hash |
 | 요구 연결 | canonical ETF 구성 snapshot과 direct/recursive look-through |
-| 현재 상태 | `official-confirmed`; 자동수집·과거 coverage·이용조건은 `gap` |
+| 현재 상태 | canonical 원천으로 `selected`, `official-confirmed`; 자동수집·과거 coverage·이용조건은 `gap` |
 
 KRX는 PDF가 거래소와 운용사 홈페이지에 매일 공시된다고 설명한다. 현재 보유 운용사 페이지에서도
 구성종목과 Excel 다운로드가 확인된다. 구현 전에는 KRX dataset의 안정적인 자동 접근 방식, 이용조건,
@@ -325,22 +325,22 @@ KRX는 PDF가 거래소와 운용사 홈페이지에 매일 공시된다고 설�
 ### 계산 데이터 계약 후보
 
 RSI, 이동평균, rolling high와 ETF look-through는 외부 원천 dataset이 아니라 위 원천에서 재생성하는
-Gold 지표다. 권고 계산 계약은 `review-package-b-price-trend-etf.md`가 관리하며 사용자 승인 전에는
-`selected` 상태로 승격하지 않는다.
+Gold 지표다. B-1~B-5 승인으로 수정주가, SMA20·50·120, 거래량 20일 비율, Wilder RSI14, 보유 에피소드
+고점과 ETF look-through 계약을 `selected`로 확정했다.
 
 ## 7. 다음 검증 게이트
 
-다음 단계는 패키지 B 승인 후 패키지 C의 read-only source 조사다. 승인 전에는 구현하지 않는다.
+다음 단계는 패키지 C의 read-only source 조사다. 승인 전에는 구현하지 않는다.
 
-1. 패키지 B의 B-1~B-5 논리 계약을 사용자에게 승인받는다.
-2. 실적·공시·forward 전망·배당·매크로 원천의 가격, 라이선스, coverage를 조사한다.
-3. KRX PDF 자동 접근 방식과 이용조건은 패키지 B 구현 계획 전에 별도 검증한다.
-4. 패키지 A 구현 계획에서 국내 100건 초과 pagination 검증과 sanitized fixture를 인수조건으로 둔다.
+1. 실적·공시·forward 전망·배당·매크로 원천의 가격, 라이선스, coverage를 조사한다.
+2. KRX PDF 자동 접근 방식과 이용조건은 패키지 B 구현 계획 전에 별도 검증한다.
+3. 패키지 A 구현 계획에서 국내 100건 초과 pagination 검증과 sanitized fixture를 인수조건으로 둔다.
 
 ## 8. 조사 이력
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 B 승인 | dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 `selected`로 확정함 |
 | 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 100행·조정 옵션, KIS ETF 구성 30행 제한, KRX/운용사 PDF와 지표 계약을 조사함 |
 | 2026-08-27 | 패키지 A 승인 | IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link와 미지정 매도 FIFO inferred 배분을 `selected`로 확정함 |
 | 2026-08-27 | 패키지 A 조사 | 공식 IRP 전용 현재 주문상태 endpoint를 확인하고 3년 backfill 복원성, 해외 주문·비용·환율 candidate link를 민감값 없이 측정함 |

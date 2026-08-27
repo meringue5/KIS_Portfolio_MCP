@@ -239,6 +239,50 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   append-only allocation revision으로 기록한다.
 - 내부 배분 손익은 증권사 공식 평단가·실현손익·세무기록과 분리한다.
 
+### DEC-015: 수정주가를 분석 기준으로 하고 원주가와 provenance를 병렬 보존한다
+
+- Bronze에는 vendor raw 응답, 요청한 조정 옵션, 요청 범위, page와 수집 시각을 보존한다.
+- Silver 일봉은 수정주가와 원주가를 함께 표현할 수 있는 price basis를 가진다.
+- 수익률, 이동평균, RSI, 고점과 낙폭의 기본 입력은 수정주가 OHLC로 한다.
+- 거래내역 reconciliation, 실제 체결가 대조와 원천 감사에는 원주가를 사용한다.
+- 거래량과 거래대금은 vendor 관측값으로 보존하고 corporate action의 영향을 품질 상태로 표시한다.
+
+### DEC-016: v1 추세·거래량·RSI 계산 계약을 고정한다
+
+- 추세의 기본 이동평균은 수정 종가의 `SMA20`, `SMA50`, `SMA120`이다.
+- 거래량은 원거래량, `SMA20(volume)`과 `volume / SMA20(volume)`을 기본 지표로 한다.
+- RSI는 일봉 수정 종가와 Wilder smoothing을 사용하는 `RSI14`를 기본으로 한다.
+- `RSI20`은 비교·연구용으로 허용하지만 기본 경보 입력으로 사용하지 않는다.
+- `RSI50`과 `RSI120`은 기본 생성하지 않으며 50·120일 추세는 이동평균이 담당한다.
+- 관측이 부족한 지표는 `insufficient_history`로 표시하고 계산 버전과 price basis를 노출한다.
+
+### DEC-017: 보유 에피소드 고점을 주 지표로 하고 ATH 명칭을 엄격히 사용한다
+
+- 같은 계좌·종목의 수량이 0보다 커진 때부터 다시 0이 될 때까지를 보유 에피소드로 정의한다.
+- 전량 매도 후 재매수하면 새 에피소드로 시작한다.
+- 포지션, purchase lot과 trade thread는 각 시작일부터 수정주가 일중 고가의 최고값을 별도로 가진다.
+- 단기 맥락은 20·50·120거래일 rolling high와 대비 낙폭으로 제공한다.
+- 상장 이후 전 기간을 완전하게 수집한 경우에만 `all_time_high`라는 이름을 사용한다.
+- 승인된 3년 구간의 최고값은 `available_history_high_3y`이며, 252거래일 고점은 v1 기본 경보에서 제외한다.
+
+### DEC-018: KRX·운용사 PDF를 ETF 구성의 canonical source로 사용한다
+
+- 국내 상장 ETF의 canonical 구성종목 원천은 KRX PDF 또는 동일한 운용사 공식 PDF다.
+- KIS 구성종목시세는 당일 상위 구성종목 확인과 cross-check에만 사용하고 완전성 source로 사용하지 않는다.
+- 구성 row는 주식뿐 아니라 현금, 채권, 선물, swap, ETN과 nested ETF를 원래 유형으로 보존한다.
+- nested ETF는 최대 3단계, cycle guard와 source-date 일치 규칙으로 펼치며 미해결 비중은
+  `unexpanded_residual`로 남긴다.
+- 향후 미국 상장 ETF가 편입되면 공식 issuer source를 확인할 때까지 look-through를
+  `unsupported_source`로 표시한다.
+
+### DEC-019: ETF 구성종목 일별 snapshot을 최근 3년 범위로 보존한다
+
+- 거래일마다 최신 공개 PDF를 한 번 수집하고 기준일, 수집시각, source URL과 hash를 보존한다.
+- 10:00 평가 전 새 PDF가 없으면 직전본과 age를 명시한다.
+- ETF 구성종목 일별 snapshot의 기본 retention과 초도 backfill 목표는 최근 3년이다.
+- 원본 binary의 물리 보존 위치와 change-only 최적화는 패키지 E에서 결정한다.
+- 이 결정은 논리 수집 계약이며 실제 자동수집, schema, backfill 또는 배포를 승인하지 않는다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -540,8 +584,8 @@ DEC-011~DEC-014로 승인했다.
 - 신호는 정보 제공용이며 주문을 실행하지 않는다.
 
 가격·추세·ETF 노출의 실제 원천 검증과 계산 권고안은
-`docs/requirements/review-package-b-price-trend-etf.md`에 기록한다. 현재 B-1~B-5는 사용자 승인
-대기이며 이 참조는 구현 승인이 아니다.
+`docs/requirements/review-package-b-price-trend-etf.md`에서 함께 검토했다. B-1~B-5는
+DEC-015~DEC-019로 승인됐으며 이 승인은 구현 승인이 아니다.
 
 ### 8.6 매크로 및 사건 맥락
 
@@ -745,7 +789,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 | 순서 | 검토 패키지 | 함께 승인할 주요 항목 | 상태 |
 | --- | --- | --- | --- |
 | A | 거래 원장과 과거 복원 | lot grain, IRP 원천·fallback, backfill 깊이, 해외 비용·환율 결합, 매도 임시 배분 | 완료; DEC-010~DEC-014 승인 |
-| B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 조사 완료; B-1~B-5 승인 대기 |
+| B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 완료; DEC-015~DEC-019 승인 |
 | C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 예정 |
 | D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 일부 요구 승인; 계약 보완 예정 |
 | E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 개념 승인; 물리 설계 예정 |
@@ -757,6 +801,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 요구 승인 | 패키지 B의 dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 모두 승인함 |
 | 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 조정 옵션·100행 제한, KIS ETF 30행 제한, KRX/운용사 PDF, RSI·보유기간 고점과 3년 용량 권고안을 문서화함 |
 | 2026-08-27 | 요구 승인 | 패키지 A의 IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link, 미지정 매도 FIFO inferred 배분을 모두 승인함 |
 | 2026-08-27 | 분석 결과 | 패키지 A read-only 조사에서 비IRP 국내 15개 보유종목은 3년 거래와 수량 일치 후보, IRP 7개와 미국주식 4개는 opening/reconciliation 필요로 판정함 |
