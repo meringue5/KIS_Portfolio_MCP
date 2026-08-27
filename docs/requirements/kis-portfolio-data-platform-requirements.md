@@ -828,15 +828,21 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
   `asset_return_daily`와 총자산 품질 컬럼은 현 checkout과 drift 상태이고 `asset_return_daily`는 broken이다.
 - MotherDuck Flights는 현재 Business plan 기능이다. Lite 10 GB 범위에서 Cloud Run Jobs/Scheduler를
   유지하고 typed data와 object storage를 분리하는 쪽을 Package E에서 승인했다. 기존 Cloud Run 배포
-  문서도 auth·remote `min-instances=0`을 사용하므로 전면 재작성보다 비용 guardrail을 보강하는 점진
-  개선이 적합하다.
+  문서도 auth·remote `min-instances=0`을 사용하므로 이 저비용 배포 topology는 재사용할 가치가 있다.
+  다만 내부 adapter·repository·runtime DDL과 operational/analytics state 결합은 V2 계약에 맞춘
+  재개발 대상으로 둘 수 있다.
 - 운영 DB drift 문서에는 초기 `cash_flow`, `trade_journal`, `asset_return_daily` 객체가 기록되어 있지만,
   그 존재만으로 현재 계약이나 구현을 승인하지 않는다.
 - 이 관찰은 후속 구현 계획 전에 다시 검증해야 한다.
 
 ## 13. 명시적으로 유보한 구현 결정
 
-다음은 아직 선택하지 않았다.
+요구사항 분석 이후의 차세대 설계안은 `docs/design/kis-portfolio-v2-system-design.md`, 구현·전환 Wave는
+`docs/design/kis-portfolio-v2-delivery-plan.md`에 정리했다. 두 문서는 아래 미결정 사항에 대한 권고안을
+제시하지만 아직 구현이나 infrastructure 변경을 승인하지 않는다.
+
+다음은 요구사항 기준선에서 아직 구현 결정으로 승인하지 않았다. V2 설계 문서가 제안한 항목도
+Architecture delta 검토 전에는 선택된 구현으로 간주하지 않는다.
 
 - 실제 Bronze/Silver/Gold schema 이동
 - Telegram bot·destination의 실제 생성과 배포 환경
@@ -899,6 +905,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | V2 설계 검토 대기 | 현행 코드·운영 DB·Cloud Run·비용 구성을 재조사하고 serverless modular monolith, stateless Remote MCP, Firestore state plane, parallel schema와 Wave 0~8 전환 설계안을 작성함. 구현과 provisioning은 미승인 |
 | 2026-08-27 | 요구 승인 | 패키지 C·D·E를 피드백과 함께 승인함. point-in-time consensus 위험 신호, 표준 macro profile v1, Bollinger 보조 context, 월 5만원 상한과 scale-to-zero·batch-first를 DEC-020~DEC-041로 확정함 |
 | 2026-08-27 | 패키지 C·D·E 승인 대기 | 공식 원천·live coverage, 경보·Telegram·scope, orchestration·retention·recovery 조사를 끝내고 20개 권고를 통합 검토 문서로 묶음 |
 | 2026-08-27 | 요구 승인 | 패키지 B의 dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 모두 승인함 |

@@ -2,6 +2,11 @@
 
 이 문서는 프로젝트의 코드 배치와 장기 구조 원칙을 정리한다.
 
+이 문서의 package tree와 DB 설명은 **현재 V1 구조**의 canonical 설명이다. 승인된 요구를 구현할
+차세대 목표 구조와 전환 순서는 각각 `docs/design/kis-portfolio-v2-system-design.md`,
+`docs/design/kis-portfolio-v2-delivery-plan.md`에 제안되어 있다. V2 문서는 구현 승인이 아니며, 승인 전에는
+이 문서의 V1 runtime·schema·보안 계약을 대체하지 않는다.
+
 ## 구조 원칙
 
 루트 디렉터리는 프로젝트를 이해하고 운영하는 데 필요한 문서와 설정 진입점만 둔다.
@@ -134,8 +139,9 @@ MotherDuck과 유료 데이터 provider를 포함한다.
   별도 승인받기 전까지 보류한다.
 - 비용 경보는 지출 차단을 보장하지 않으므로 max instances, job timeout·retry, source call budget과
   관리된 비필수 작업 중지 경로를 함께 둔다.
-- 기존 shared-core 구조를 우선 개선한다. 재작성은 비용 또는 제품 경계를 충족할 수 없다는 근거가 생길
-  때만 대안으로 재검토한다.
+- 검증된 KIS endpoint·resilience·OAuth protocol·순수 포트폴리오 계산은 재사용한다. 다만 다음 버전은
+  monolithic MCP adapter, repository, runtime DDL과 operational/analytics state 결합을 V2 경계에 맞게
+  재개발할 수 있다.
 
 OAuth token 발급을 제외한 KIS 업무 REST 호출은 `clients.kis.request_kis` 단일 경로를 사용한다.
 token 발급은 auth keyed lock과 전용 pacing/retry를 유지한다. `clients.kis_resilience`가 process-local
@@ -161,6 +167,10 @@ gold     reproducible analytics views and serving tables
 control  migration ledger and reference/override data
 security encrypted or hashed auth/token state
 ```
+
+위 `security` schema는 현재 V1 목표 계약이다. V2 설계는 OAuth/KIS token·lease·run request를 Firestore와
+Secret Manager로 분리하고 MotherDuck을 `bronze/silver/gold/control` 분석 plane으로 제한하는 변경을
+제안한다. 이 변경은 V2-ADR-005 승인과 migration·reconnect rehearsal 전에는 적용하지 않는다.
 
 물리 이동은 runtime auto-DDL과 분리된 versioned migration runner, 단일 writer, backup/restore rehearsal,
 row-count/aggregate reconciliation을 갖춘 뒤 수행한다. 그 전에도 logical layer 계약과 신규 객체 등록
