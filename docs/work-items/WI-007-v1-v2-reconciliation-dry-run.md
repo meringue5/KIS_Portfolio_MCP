@@ -1,7 +1,7 @@
 ---
 id: WI-007
 title: Rehearse V1 to V2 migration and produce reconciliation evidence
-status: proposed
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-008, V2-ADR-010, V2-ADR-016
@@ -69,11 +69,11 @@ V2 business row is written.
 
 ## Evidence
 
-- 명령/테스트: 시작 전
-- 운영 증거: 없음; isolated rehearsal only
+- 명령/테스트: isolated DuckDB transform 1회 + 동일 manifest 재실행; 자동 회귀 1개 통과
+- 운영 증거: source 5,378 = Bronze 5,378; instrument 4,446; price 838; FX 100; 재실행 후 동일 count
 
 ## Closeout
 
-- 결과: 시작 전
+- 결과: isolated DuckDB에서 5,378 source observation, 4,446 instrument, 838 price bar, 100 FX rate를 대사했고 동일 입력 재실행이 no-op임을 확인했다.
 - 남은 위험: report가 통과해도 live permission/connection/locking은 WI-008에서 별도 검증
 - 후속 Work Item: WI-008

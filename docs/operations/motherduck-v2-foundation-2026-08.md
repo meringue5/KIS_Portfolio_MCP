@@ -56,5 +56,29 @@ warning: restricted/raw object bytes require a separate private object restore
 ## Rollback and next gate
 
 현재 V2 consumer와 writer가 없으므로 V1 runtime rollback은 traffic 변경 없이 성립한다. V2 schema 삭제는
-데이터 손실 가능성이 있는 별도 destructive change이며 자동 rollback으로 수행하지 않는다. 다음 단계는
-backfill dry-run과 reconciliation 보고서를 먼저 만들고, owner 승인 뒤 bounded live backfill을 실행하는 것이다.
+데이터 손실 가능성이 있는 별도 destructive change이며 자동 rollback으로 수행하지 않는다. 아래 bounded
+backfill 이후의 다음 gate는 defer된 portfolio/order/transaction identity 계약과 reconciliation이다.
+
+## Bounded historical backfill — 2026-08-28
+
+`WI-006` mapping은 V1 managed/drift object 20개를 분류했다. key/null/duplicate 검사를 통과한
+`instrument_master`, `price_history`, `exchange_rate_history`만 transform allowlist에 넣고, portfolio/order/
+transaction/Gold aggregate와 known drift는 의미 계약이 완성될 때까지 `defer`했다.
+
+격리 DuckDB dry-run과 동일-input rerun 후 live V2에 다음 결과를 적재했다.
+
+| Object | Reconciled rows |
+| --- | ---: |
+| `bronze.source_observations` | 5,378 |
+| `silver.instruments` | 4,446 |
+| `silver.price_bars_daily` | 838 |
+| `silver.fx_rates_daily` | 100 |
+
+- pre-backfill V2 backup: `var/backup/v2-parquet/20260827_215540/`
+- live rerun: 동일 count, duplicate 증가 없음
+- post-backfill V2 backup: `var/backup/v2-parquet/20260827_215630/`
+- post-backfill restore: fresh DuckDB에 29 table 복원 및 view compile 통과
+- application reader/writer와 V1 `main`: 변경 없음
+
+실제 DB 단계는 dry-run 약 0.3초, live transform/reconciliation 실행당 약 12초, backup은 각각 약 16초였다.
+Work Item의 사전 추정치는 사람 기준 분석·구현 effort이며 agent wall-clock이나 DB runtime과 동일하지 않다.

@@ -1,7 +1,7 @@
 ---
 id: WI-006
 title: Define the executable V1 to V2 mapping contract
-status: ready
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-008, V2-ADR-016
@@ -67,11 +67,12 @@ extra quality columns must be classified explicitly rather than silently adopted
 
 ## Evidence
 
-- 명령/테스트: 시작 전
+- 명령/테스트: `governance/migrations/v1-v2-history-v1.toml`; mapping validator와
+  `tests/test_v1_v2_history_migration.py` 통과
 - 운영 증거: `docs/operations/motherduck-v2-foundation-2026-08.md`의 preflight와 backup manifest
 
 ## Closeout
 
-- 결과: 시작 전
+- 결과: 20개 V1 managed/drift object를 transform 3, reference-only 1, defer 16으로 분류하고 executable TOML 계약과 validator를 완료했다.
 - 남은 위험: mapping 과정에서 새 requirement/ADR가 필요할 수 있음
 - 후속 Work Item: WI-007

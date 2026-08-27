@@ -1,7 +1,7 @@
 ---
 id: WI-008
 title: Backfill only reconciled V1 history into live V2 tables
-status: proposed
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-008, V2-ADR-010, V2-ADR-016
@@ -70,11 +70,12 @@ cutover and does not retire V1.
 
 ## Evidence
 
-- 명령/테스트: 시작 전
-- 운영 증거: 시작 전
+- 명령/테스트: `scripts/migrate_v1_v2_history.py --motherduck` 2회; 두 번째 count 동일.
+- 운영 증거: pre-backfill backup `20260827_215540`; post-backfill backup `20260827_215630`;
+  post-backfill fresh DuckDB restore 29 tables 통과. Bronze 5,378, instruments 4,446, prices 838, FX 100.
 
 ## Closeout
 
-- 결과: 시작 전
-- 남은 위험: V2 production writer/reader와 Remote MCP cutover는 별도 Work Item
+- 결과: allowlisted historical reference/market data backfill과 즉시 대사·복원 검증 완료. 1영업일 관찰 대기.
+- 남은 위험: V2 production writer/reader와 Remote MCP cutover는 별도 Work Item. Portfolio/order/trade history는 defer 상태.
 - 후속 Work Item: remaining Wave 3/4 production integration and dual-run
