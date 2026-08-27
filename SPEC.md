@@ -505,27 +505,31 @@ core를 유지하면서 request-based scale-to-zero Cloud Run service와 실행 
 
 ---
 
-### ADR-021 (제안): KIS Portfolio V2 재개발 기준선
+### ADR-021: KIS Portfolio V2 재개발 기준선
 
-**제안**: 승인된 DEC-001~DEC-041을 구현하는 다음 버전은 serverless modular monolith로 재개발한다.
+**결정**: 승인된 DEC-001~DEC-041을 구현하는 다음 버전은 serverless modular monolith로 재개발한다.
 하나의 versioned application core와 여러 adapter를 같은 immutable image digest로 배포하고, 사용자-facing
 표면은 stateless OAuth Remote MCP 하나로 제한한다. 분석·장기 이력은 MotherDuck, 원문·복구본은 private
 GCS, OAuth/KIS token·lease·run request 같은 operational state는 Firestore와 Secret Manager에 둔다.
 
-**상태**: 설계 검토 대상이며 구현·provisioning 미승인. 상세 결정, 대안, 전환 계획은
-`docs/design/kis-portfolio-v2-system-design.md`와 `docs/design/kis-portfolio-v2-delivery-plan.md`가 소유한다.
+**상태**: 2026-08-28 사용자 승인. 상세 결정, 대안, 전환 계획은
+`docs/design/kis-portfolio-v2-system-design.md`, `docs/design/kis-portfolio-v2-delivery-plan.md`와
+`docs/design/v2-architecture-delta-review.md`가 소유한다. 이 승인은 목표 architecture의 기준선이며
+Firestore 활성화, secret migration, 배포, connector cutover 또는 V1 제거 권한은 아니다.
 
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
-- ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. V2는 transactional state를
-  Firestore로 옮기는 V2-ADR-005를 제안하며, 승인 전에는 현행 catalog나 runtime을 바꾸지 않는다.
+- ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는
+  transactional state를 Seoul의 Firestore Standard database 하나로 옮기고, collection allowlist와
+  Secret Manager key 격리로 보완한다. migration·reconnect rehearsal과 cutover 승인 전에는 현행 catalog나
+  runtime을 바꾸지 않는다.
 - ADR-020의 "검증된 shared core 우선"은 endpoint/resilience/domain calculation 재사용 원칙으로 좁힌다.
   monolithic MCP adapter, repository, runtime DDL과 analytics/operational-state 결합은 V2 계약에 맞춰
   재개발한다.
 - 기존 `main` 데이터는 삭제하거나 in-place 변형하지 않고 parallel schema, dual-run, reconciliation과
   rollback gate를 거쳐 전환한다.
 
-**승인 묶음**:
+**승인된 계약**:
 1. Firestore state plane과 OAuth/KIS token 재발급·재연결 방식
 2. stateless MCP와 18개 이하 public tool catalog
 3. 단일 image digest, fixed-argument managed Job과 allowlisted LLM trigger

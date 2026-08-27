@@ -4,8 +4,9 @@
 
 이 문서의 package tree와 DB 설명은 **현재 V1 구조**의 canonical 설명이다. 승인된 요구를 구현할
 차세대 목표 구조와 전환 순서는 각각 `docs/design/kis-portfolio-v2-system-design.md`,
-`docs/design/kis-portfolio-v2-delivery-plan.md`에 제안되어 있다. V2 문서는 구현 승인이 아니며, 승인 전에는
-이 문서의 V1 runtime·schema·보안 계약을 대체하지 않는다.
+`docs/design/kis-portfolio-v2-delivery-plan.md`에 승인된 기준선으로 기록되어 있다. V2 architecture 승인은
+개별 구현·provisioning·cutover 승인이 아니다. 관련 Work Item과 rehearsal이 완료되기 전에는 이 문서의
+V1 runtime·schema·보안 계약을 대체하지 않는다.
 
 제품 architecture의 변경·검증·배포·운영 feedback은 상위 **Project Operating System**의 통제를 받는다.
 Project OS는 runtime component가 아니며 제품 code에 포함되지 않는다. canonical 운영 정책은
@@ -174,9 +175,11 @@ control  migration ledger and reference/override data
 security encrypted or hashed auth/token state
 ```
 
-위 `security` schema는 현재 V1 목표 계약이다. V2 설계는 OAuth/KIS token·lease·run request를 Firestore와
-Secret Manager로 분리하고 MotherDuck을 `bronze/silver/gold/control` 분석 plane으로 제한하는 변경을
-제안한다. 이 변경은 V2-ADR-005 승인과 migration·reconnect rehearsal 전에는 적용하지 않는다.
+위 `security` schema는 현재 V1 목표 계약이다. 승인된 V2 목표는 OAuth/KIS token·lease·run request를
+Seoul의 Firestore Standard database 하나로 옮기고 장기 credential과 encryption key를 Secret Manager에
+두며, MotherDuck을 `bronze/silver/gold/control` 분석 plane으로 제한한다. Firestore collection allowlist와
+trust-boundary별 key 격리를 적용하며, 별도 Work Item의 provisioning·migration·reconnect rehearsal과
+cutover 승인 전에는 현재 runtime에 적용하지 않는다.
 
 물리 이동은 runtime auto-DDL과 분리된 versioned migration runner, 단일 writer, backup/restore rehearsal,
 row-count/aggregate reconciliation을 갖춘 뒤 수행한다. 그 전에도 logical layer 계약과 신규 객체 등록

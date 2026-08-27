@@ -1,6 +1,6 @@
 # KIS Portfolio V2 Architecture Delta Review
 
-> 상태: 검토 완료, 사용자 승인 대기
+> 상태: 2026-08-28 사용자 승인 완료 — 구현·provisioning 미착수
 > 기준일: 2026-08-28
 > Work Item: `WI-001`
 > 대상 결정: `V2-ADR-003`, `V2-ADR-004`, `V2-ADR-005`, `V2-ADR-006`, `V2-ADR-009`,
@@ -11,7 +11,7 @@
 ## 1. 결론
 
 네 architecture delta는 모두 V2의 비용·보안·운영 목표에 맞다. 다만 원안 그대로가 아니라 아래 보완을
-포함해 승인하는 것을 권고한다.
+포함해 승인했다.
 
 | Delta | 권고 | 승인에 포함할 보완 |
 | --- | --- | --- |
@@ -68,7 +68,7 @@ OAuth authorization code 소비, refresh token rotation, KIS token refresh lease
 | Firestore 한 database | transaction, TTL, scale-to-zero형 사용량 과금 | **선택**; collection IAM 부재를 adapter allowlist와 secret key 격리로 보완 |
 | Firestore 두 database | transaction을 유지하며 database 단위 IAM 격리 | 다중 사용자·운영자 분리·security audit 요구까지 보류 |
 
-### 3.2 승인 권고
+### 3.2 승인 결정
 
 `V2-ADR-005`를 다음 내용으로 승인한다.
 
@@ -181,7 +181,7 @@ server-to-client sampling·push elicitation 같은 back-channel을 사용할 수
 포함하지 않고, 오래 걸리는 작업은 `run_id`를 반환하는 managed Job으로 전환하므로 이 trade-off를 수용할
 수 있다.
 
-### 4.2 승인 권고와 구현 조건
+### 4.2 승인 결정과 구현 조건
 
 `V2-ADR-004`를 compatibility gate 조건으로 승인한다.
 
@@ -212,7 +212,7 @@ server-to-client sampling·push elicitation 같은 back-channel을 사용할 수
 
 ## 5. Delta C — Build once, deploy one digest
 
-### 5.1 승인 권고
+### 5.1 승인 결정
 
 `V2-ADR-003`의 두 service 경계와 `V2-ADR-011`의 한 image digest를 함께 승인한다.
 
@@ -327,9 +327,9 @@ V2 data contract가 실제로 구현된 뒤에만 catalog에 노출한다. 이�
 다음 단계는 구현 일괄 승인이 아니다. 이 review를 승인한 뒤 각 행을 별도 Work Item으로 시작하고,
 provisioning·deployment·connector cutover 시점에는 다시 명시적 실행 승인을 받는다.
 
-## 8. 승인 문구
+## 8. 승인 기록
 
-사용자는 다음 네 항목을 한 묶음 또는 개별적으로 승인·수정·보류할 수 있다.
+사용자는 2026-08-28 다음 네 항목을 한 묶음으로 승인했다.
 
 1. Firestore state plane 하나를 승인하되 collection allowlist, Secret Manager key 격리, reconnect/reissue
    migration과 비용 rehearsal을 필수 조건으로 한다. database 분리는 명시된 확장 조건까지 보류한다.
@@ -339,8 +339,8 @@ provisioning·deployment·connector cutover 시점에는 다시 명시적 실행
    release를 승인한다.
 4. 세 scope의 18개 V2 public tool catalog와 주문 tool 제거를 승인한다.
 
-승인되면 `SPEC.md`와 V2 system design의 해당 ADR을 `approved`로 승격하고, 한 Firestore database와 신뢰경계별
-Secret Manager bundle 결정을 반영한다. 구현은 새 Work Item에서 시작한다.
+`SPEC.md`와 V2 system design의 해당 ADR을 `approved`로 승격하고, 한 Firestore database와 신뢰경계별
+Secret Manager bundle 결정을 반영한다. 구현은 새 Work Item에서만 시작한다.
 
 ## 9. 공식 근거
 

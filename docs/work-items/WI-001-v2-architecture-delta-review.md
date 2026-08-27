@@ -1,7 +1,7 @@
 ---
 id: WI-001
 title: Review and approve the KIS Portfolio V2 architecture delta
-status: verified
+status: closed
 type: architecture
 owner: owner
 decision_refs: ADR-021, V2-ADR-003..006, V2-ADR-009, V2-ADR-011, V2-ADR-015
@@ -18,14 +18,15 @@ cost_impact: yes
 
 V2 설계는 현행 구조에서 네 가지 큰 변경을 제안한다: Firestore operational state plane, stateless Remote
 MCP, 하나의 immutable image digest, 18개 이하의 V2 public tool catalog. 모두 구현 가능성은 조사됐지만
-ADR-021과 일부 V2 ADR은 아직 제안 상태이며 사용자 승인 전에는 production 구현을 시작할 수 없다.
+검토 시점에는 ADR-021과 일부 V2 ADR이 제안 상태였으며 사용자 승인 전에는 production 구현을 시작할 수
+없었다. 2026-08-28 사용자 승인에 따라 이제 canonical 문서에 architecture 기준선을 반영한다.
 
 ## Classification and contract
 
 - 초기 분류: `architecture`
 - 관련 승인 요구: Remote MCP SSOT, scope 분리, Scheduler primary, scale-to-zero·batch-first와 월 5만원 상한
 - 변경 대상: auth/storage trust boundary, remote transport, release topology, public MCP contract
-- 승인 필요 여부: 네 결정은 architecture gate 조건에 해당하며 사용자 승인 필요
+- 승인 상태: 네 결정은 2026-08-28 사용자 승인 완료. 구현·provisioning·cutover는 별도 Work Item 승인 필요
 
 ## Scope
 
@@ -66,6 +67,7 @@ ADR-021과 일부 V2 ADR은 아직 제안 상태이며 사용자 승인 전에�
 - `uv run python .agent/skills/kis-architecture-audit/scripts/check_architecture_contracts.py`: 통과
 - `bash scripts/check.sh quick`: Project OS/architecture/warehouse/MCP surface 통과
 - `bash scripts/check.sh full`: 190 passed, Project OS/architecture/warehouse/MCP surface 통과
+- 사용자 승인 반영 후 `bash scripts/check.sh full`: 190 passed, 네 contract gate 통과
 - code evidence: MCP adapter 1,202행, DB repository 1,442행, KIS service 1,560행; MCP adapter direct
   `get_connection()` 경로 10개; deploy target별 `--source .`
 - 운영 metadata: auth/remote scale-to-zero·max 1, 3개 Job 최근 성공, Artifact Registry 약 2.65 GB와 cleanup
@@ -79,7 +81,8 @@ ADR-021과 일부 V2 ADR은 아직 제안 상태이며 사용자 승인 전에�
 
 - 결과: Firestore 1 DB + Secret Manager key 격리, conditional stateless MCP, build-once digest, 18-tool V2
   catalog의 승인 권고와 migration·rollback·cost/compatibility gate를 한 review package로 작성했다.
-- 사용자 인수: 대기 중. 승인 전에는 ADR 상태와 production implementation을 변경하지 않는다.
+- 사용자 인수: 2026-08-28 승인됨. 이번 변경은 ADR과 owner 문서의 상태만 승격하며 production
+  implementation은 시작하지 않는다.
 - 남은 위험: 실제 client compatibility, active secret version 수와 billing baseline, Firestore collection
   allowlist의 IAM 대비 약한 격리는 implementation rehearsal이 필요하다.
-- 후속 Work Item: 사용자 승인 결과에 따른 ADR 승격/수정, 이후 V2-W0001 또는 architecture revision
+- 후속 Work Item: V2-W0001 비용 baseline 조사부터 Wave 0을 별도 승인·추적한다.

@@ -1,7 +1,7 @@
 # KIS Portfolio V2 구현 설계와 전환 계획
 
-> 상태: 실행 가능한 설계 계획 v0.1 — 구현 미승인
-> 기준일: 2026-08-27
+> 상태: 승인 architecture 구현 계획 v0.2 — Work Item별 실행 승인 필요
+> 기준일: 2026-08-28
 > 상위 설계: `docs/design/kis-portfolio-v2-system-design.md`
 > 원칙: 각 Wave는 산출물·자동검증·운영증거·rollback gate가 모두 충족돼야 완료된다.
 
@@ -52,7 +52,8 @@ requirement / ADR
 - `V2-W0003` 현재 7,500원 budget을 일반월 early warning으로 유지하고 35,000·42,500·50,000원 hard-envelope
   alert/gate 설계를 확정한다.
 - `V2-W0004` unmanaged DB objects와 quality column drift의 provenance, row count, consumer를 확정한다.
-- `V2-W0005` V2 ADR-005 Firestore와 V2 public tool catalog를 사용자 승인 대상으로 묶는다.
+- `V2-W0005` V2 ADR-005 Firestore와 V2 public tool catalog의 2026-08-28 승인 기록을 canonical owner
+  문서와 traceability에 반영한다.
 
 ### Acceptance gate
 
@@ -96,7 +97,8 @@ requirement / ADR
 
 ### Work items
 
-- `V2-W0201` Firestore default database의 region, free quota, IAM, index, TTL schema 설계·provisioning plan.
+- `V2-W0201` Seoul의 Firestore Standard database 하나에 대한 region, free quota, IAM, application collection
+  allowlist, index, TTL schema 설계·provisioning plan.
 - `V2-W0202` `StateStorePort`와 local in-memory/emulator adapter, Firestore adapter.
 - `V2-W0203` OAuth client/grant/code/token repository를 port로 전환하고 atomic refresh rotation을 test한다.
 - `V2-W0204` KIS token ciphertext, refresh lease와 fencing token을 Firestore로 이전한다.

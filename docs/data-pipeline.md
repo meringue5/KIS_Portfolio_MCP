@@ -4,6 +4,11 @@
 OLTP 성격이 강하다. 하지만 장기 목표는 포트폴리오 분석, 시계열 비교, 이상치 탐지 같은 OLAP
 워크로드다. 따라서 저장 계층과 분석 계층을 섞지 않는 방향으로 설계한다.
 
+2026-08-28 승인된 V2 목표에서는 Scheduler와 LLM 요청이 동일한 allowlisted managed pipeline registry를
+호출하고, fixed Job args와 Firestore의 run request·lease·idempotency claim을 사용한다. MotherDuck은
+`bronze/silver/gold/control` 데이터 plane을 맡는다. 이 문서 아래의 현재 V1 쓰기 경로는 별도 pipeline
+Work Item과 dual-run 전까지 그대로 유효하다.
+
 ## 원칙
 
 1. Raw 데이터는 가능한 한 보존한다.
@@ -29,7 +34,8 @@ Security -> auth/token repositories only
 - Silver: 정규화 시계열, deduplicated order/transaction, canonical total assets
 - Gold: 일별 대표값과 재생성 가능한 분석 view/table
 - Control: migration, 시장 달력, 종목마스터, classification override
-- Security: 암호화/해시된 token과 OAuth state; 분석/기본 백업에서 격리
+- Security: 현재 V1은 암호화/해시된 token과 OAuth state를 MotherDuck에서 격리한다. 승인된 V2는 이를
+  Firestore와 Secret Manager로 이동한다.
 
 전체 객체 목록, grain, key, 민감도, 백업 정책과 물리 schema 전환 계획은
 [Data Store Governance and Catalog](./data-catalog.md)가 관리한다. 이 문서에서는 객체 목록을

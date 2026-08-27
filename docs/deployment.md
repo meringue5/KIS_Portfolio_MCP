@@ -13,6 +13,16 @@ uv run kis-portfolio-mcp
 Dockerfile은 이 local MCP 서버를 컨테이너에서 실행할 수 있게 하는 최소 베이스라인이다.
 원격 클라이언트용 entrypoint는 `kis-portfolio-remote`이며, `/mcp` endpoint를 Streamable HTTP로 노출한다.
 
+### 승인된 V2 배포 목표
+
+2026-08-28 승인된 V2 기준선은 auth와 Remote MCP를 별도 service로 유지하되, commit당 한 번 만든 동일한
+immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP는
+`stateless_http=true`·`json_response=true`를 목표로 하지만 Claude·ChatGPT·iPhone 실제 호환성 검증 뒤에만
+전환한다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
+
+이 목표는 아직 현재 배포 절차를 바꾸지 않는다. build-once workflow, secret migration, Firestore
+provisioning과 connector cutover는 각각 별도 Work Item과 rollback evidence를 필요로 한다.
+
 ## Remote MCP 인증
 
 remote resource server는 두 가지 모드를 지원한다.
@@ -361,4 +371,3 @@ Google Cloud 권장 인증 방식:
 - read-only mode 기본값 추가
 - 주문 tool은 disabled stub으로 유지
 - MCP inspector로 remote endpoint 검증
-

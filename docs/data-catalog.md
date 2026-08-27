@@ -31,9 +31,10 @@ DB 객체를 추가하거나 의미를 바꿀 때는 이 문서를 먼저 또는
 현재 물리 위치는 모두 `kis_portfolio.main`이며, 아래 계층은 즉시 적용하는 논리 계약이자 향후 목표
 schema다.
 
-> V2 설계 참고: `docs/design/kis-portfolio-v2-system-design.md`는 operational Security state를
-> Firestore/Secret Manager로 분리하는 V2-ADR-005를 제안한다. 아직 승인되지 않았으므로 이 문서의
-> 현재 V1 catalog, registry 또는 live DB 계약은 변경하지 않는다.
+> 승인된 V2 목표: `docs/design/kis-portfolio-v2-system-design.md`의 V2-ADR-005는 operational Security
+> state를 Seoul의 Firestore Standard database 하나와 Secret Manager로 분리한다. 이 architecture 승인은
+> schema migration이나 cutover가 아니다. 별도 Work Item이 완료되기 전까지 이 문서의 현재 V1 catalog,
+> registry와 live DB 계약은 그대로 유지한다.
 
 ## Layer Model
 

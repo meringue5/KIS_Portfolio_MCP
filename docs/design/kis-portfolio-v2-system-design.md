@@ -1,7 +1,7 @@
 # KIS Portfolio V2 시스템 설계
 
-> 상태: 차세대 설계 기준선 v0.1 — 구현 미승인
-> 기준일: 2026-08-27
+> 상태: 승인된 차세대 architecture 기준선 v0.2 — 구현은 Work Item별 승인
+> 기준일: 2026-08-28
 > 소유 문서: 목표 구조, 배포 topology, 모듈 경계, 운영·데이터·보안 architecture와 V2 ADR
 > 연계 요구사항: `docs/requirements/kis-portfolio-data-platform-requirements.md`
 > 구현 순서: `docs/design/kis-portfolio-v2-delivery-plan.md`
@@ -22,7 +22,8 @@ OAuth 호환성, REST resilience와 포트폴리오 계산은 재사용하되, �
 4. 수집·정제·품질·신호·전송은 pipeline registry를 실행하는 **Cloud Run Jobs**다. Scheduler가 필수
    실행의 SSOT이며 LLM 예약 작업은 같은 관리 Job을 추가로 호출한다.
 5. 분석 사실과 장기 이력은 MotherDuck, 원문과 복구본은 private GCS, 짧은 수명의 인증·lease·run request는
-   Firestore에 둔다. MotherDuck을 OAuth·lease의 OLTP 저장소로 사용하지 않는다.
+   Seoul의 Firestore Standard database 하나에 둔다. 장기 credential과 encryption key는 Secret Manager의
+   trust-boundary별 bundle로 관리하며 MotherDuck을 OAuth·lease의 OLTP 저장소로 사용하지 않는다.
 6. 기존 `main`은 그대로 보존한 채 새 `bronze/silver/gold/control` schema를 구축하고, dual-run 검증 뒤
    소비자를 전환한다. V2의 Security plane은 MotherDuck schema가 아니라 Firestore + Secret Manager다.
 7. 일반 월 운영 목표는 현재 설정된 7,500원 예산 안쪽, 절대 상한은 50,000원이다. cold start를 허용하고
@@ -226,7 +227,7 @@ src/kis_portfolio/
 
 | 저장소 | SSOT 책임 | 넣지 않는 것 |
 | --- | --- | --- |
-| Firestore | OAuth current state, encrypted KIS token cache, refresh lease, run request, idempotency claim | 장기 분석 fact, 대량 raw payload |
+| Firestore Standard 1 DB | OAuth current state, encrypted KIS token cache, refresh lease, run request, idempotency claim | 장기 분석 fact, 대량 raw payload |
 | GCS raw | immutable source bundle, filing/PDF/XLSX/ZIP, content hash object | credential, 평문 token |
 | MotherDuck Bronze | observation envelope, raw object reference, 작은 replay metadata | OAuth·KIS token |
 | MotherDuck Silver | normalized canonical facts, identity, reconciliation | LLM이 추측한 사실 |
@@ -234,9 +235,10 @@ src/kis_portfolio/
 | MotherDuck Control | dataset/metric/pipeline version, immutable run summary, watermark mirror, quality, lineage | active lease와 bearer token |
 | Secret Manager | long-lived provider credentials와 encryption key | 분석 데이터와 runtime event |
 
-Firestore 도입은 기존 DEC-036의 `security` MotherDuck physical schema 부분을 V2에서 대체한다. 이 변경은
-OAuth/KIS operational state의 atomic update와 expiry 처리, least-privilege IAM을 얻기 위한 것이다.
-Firestore API는 현재 프로젝트에서 활성화돼 있지 않으므로 설계 승인 뒤 별도 provisioning으로 다룬다.
+Firestore 도입은 기존 DEC-036의 `security` MotherDuck physical schema 부분을 V2에서 대체한다. 한 database의
+database-level IAM과 application collection allowlist, Secret Manager encryption-key 격리를 함께 사용한다.
+collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위험은 negative test로 관리한다. Firestore API는
+현재 프로젝트에서 활성화돼 있지 않으므로 별도 provisioning Work Item으로 다룬다.
 
 ### 6.2 Raw landing
 
@@ -476,7 +478,8 @@ Cloud Billing budget은 차단장치가 아니다. 실제 보호는 아래를 �
 - GCS lifecycle와 content deduplication
 - billing export 또는 월별 수동 report를 통한 서비스·SKU별 actual baseline
 
-Firestore는 현재 예상 규모에서 free quota보다 훨씬 작은 auth·lease 문서만 사용한다. TTL delete와
+Firestore 한 database는 현재 예상 규모에서 free quota보다 훨씬 작은 auth·lease 문서만 사용할 것으로
+추정한다. TTL delete와
 BigQuery billing export에는 free quota 밖 비용 가능성이 있으므로 정상월 비용표에 포함한다.
 
 ### 12.2 기본적으로 도입하지 않는 구성
@@ -494,19 +497,19 @@ BigQuery billing export에는 free quota 밖 비용 가능성이 있으므로 �
 | --- | --- | --- | --- |
 | V2-ADR-001 | serverless modular monolith | 설계 채택 | microservice network tier 없이 내부를 재개발 |
 | V2-ADR-002 | Remote MCP만 제품표면 | 기존 승인 재확인 | local stdio는 harness로만 유지 |
-| V2-ADR-003 | auth/resource 두 service + 한 image digest | 설계 채택 | secret 격리와 release 일관성 동시 확보 |
-| V2-ADR-004 | stateless Streamable HTTP | 설계 채택, compatibility gate | session affinity와 3,600초 timeout 제거 가능 |
-| V2-ADR-005 | Firestore operational state plane | 설계 채택, 신규 승인 필요 | OAuth/token/lease를 MotherDuck에서 분리 |
-| V2-ADR-006 | MotherDuck은 bronze/silver/gold/control | 설계 채택 | V2 Security는 warehouse 밖으로 이동 |
+| V2-ADR-003 | auth/resource 두 service + 한 image digest | 2026-08-28 승인 | secret 격리와 release 일관성 동시 확보 |
+| V2-ADR-004 | stateless Streamable HTTP | 2026-08-28 조건부 승인 | actual client compatibility gate 뒤 전환 |
+| V2-ADR-005 | Firestore operational state plane | 2026-08-28 승인 | 한 DB + application allowlist·key 격리 |
+| V2-ADR-006 | MotherDuck은 bronze/silver/gold/control | 2026-08-28 승인 | V2 Security는 warehouse 밖으로 이동 |
 | V2-ADR-007 | GCS immutable raw + off-vendor Parquet | 기존 승인 구체화 | replay·restore와 warehouse 용량 분리 |
 | V2-ADR-008 | explicit migration, runtime DDL 금지 | 설계 채택 | startup conflict와 silent drift 방지 |
-| V2-ADR-009 | managed pipeline registry + fixed Job args | 설계 채택 | Scheduler/LLM 동일 경로, 임의 실행 차단 |
+| V2-ADR-009 | managed pipeline registry + fixed Job args | 2026-08-28 승인 | Scheduler/LLM 동일 경로, 임의 실행 차단 |
 | V2-ADR-010 | at-least-once + idempotent effect | 설계 채택 | 중복 trigger를 현실적으로 처리 |
-| V2-ADR-011 | build once, deploy by digest | 설계 채택 | target drift와 image storage 감소 |
+| V2-ADR-011 | build once, deploy by digest | 2026-08-28 승인 | target drift와 image storage 감소 |
 | V2-ADR-012 | point-in-time metric/signal | 기존 승인 구체화 | look-ahead bias와 과거 재작성 방지 |
 | V2-ADR-013 | 7,500원 target / 50,000원 ceiling | 설계 채택 | 일반월 절약과 hard limit 동시 관리 |
 | V2-ADR-014 | V2 초기 REST snapshot, WebSocket 보류 | 설계 채택 | KIS rate/resilience 자산 재사용 |
-| V2-ADR-015 | 주문 기능은 V2 public surface에서 제거 | 설계 채택 | disabled stub보다 명확한 권한 경계 |
+| V2-ADR-015 | 주문 기능은 V2 public surface에서 제거 | 2026-08-28 승인 | disabled stub보다 명확한 권한 경계 |
 | V2-ADR-016 | parallel schema + dual-run cutover | 설계 채택 | 재개발 중에도 V1 데이터 보존과 rollback 가능 |
 
 ## 14. 선택한 대안의 비교

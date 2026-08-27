@@ -7,6 +7,12 @@
 `scripts/backup_motherduck.py`의 대상 목록은 `src/kis_portfolio/db/catalog.py`에서 직접 파생하므로,
 테이블을 추가할 때 백업 포함 여부를 명시하지 않으면 warehouse contract 검사를 통과할 수 없다.
 
+2026-08-28 승인된 V2에서도 MotherDuck 분석 데이터의 off-vendor Parquet 백업 책임은 유지한다. Firestore의
+active OAuth/token/lease state를 MotherDuck이나 이 Parquet 백업에 복제하지 않는다. V2 operational-state
+복구는 OAuth connector 재연결, KIS token 재발급, immutable run summary와 idempotent 재실행을 기본으로 하며,
+Firestore PITR/managed backup은 실제 비용·RPO 검토를 거친 별도 Work Item 전에는 활성화하지 않는다.
+현재 V1 백업 대상과 실행 절차는 아래와 같이 유지된다.
+
 ## Parquet 백업
 
 기본 백업 포맷은 Parquet이다. 이유는 다음과 같다.
