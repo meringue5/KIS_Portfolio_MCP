@@ -204,6 +204,41 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   확장할 수 있다.
 - 이 결정은 논리 데이터 계약이며 물리 schema, 수집 코드, backfill 및 배포를 승인하지 않는다.
 
+### DEC-011: IRP 최근 거래는 provisional 상태와 지연 reconciliation으로 관리한다
+
+- 3개월 이전 IRP 주문은 `CTSC9215R`에서 확인한 원천 사실로 지연 수집한다.
+- 공통 최근구간 API가 제공하지 못하는 기간은 최신 잔고 기반 `provisional` reconciliation 상태로 둔다.
+- 사용자 보완은 `manual` 근거로 보존하고, 거래가 과거 endpoint에 나타나면 `actual` 또는
+  `reconciliation_exception`으로 정정한다.
+- 날짜가 없는 IRP 현재 주문상태 API는 보조 관측으로만 사용하며 전체 거래 이력을 대표하지 않는다.
+
+### DEC-012: 거래내역도 최근 3년을 초도 backfill한다
+
+- 국내·해외 주문·거래내역의 최초 backfill 범위를 가격 일봉과 같은 최근 3년으로 한다.
+- 실제 주문은 purchase lot 또는 sell event로 보존하고, replay 수량과 현재 잔고가 맞으며 예외가 없으면
+  파생 상태를 `reconstructed`로 표시한다.
+- 차이는 실제 주문을 덮어쓰지 않고 잔여수량만 `inferred_opening`으로 만들며, 설명 불가능하거나 음수인
+  잔여분은 `reconciliation_exception`으로 둔다.
+- 현재 증권사 평단가를 과거 실제 매수가격으로 소급하지 않는다.
+
+### DEC-013: 해외 주문과 비용·환율 거래사건은 가역적인 후보 관계로 연결한다
+
+- 주문체결과 일별거래 row를 서로 다른 immutable 원천 사건으로 보존한다.
+- 계좌·시장·거래일·종목·매매방향·수량과 가격·금액 허용오차를 통과한 후보가 하나일 때만
+  `derived_candidate` link를 만든다.
+- 후보가 없거나 둘 이상이면 자동 연결하지 않고 review queue에 둔다.
+- candidate link는 분석에 사용할 수 있지만 raw row를 병합·삭제하지 않으며, 더 강한 근거가 생기면
+  상태와 변경 이력을 보존하면서 승격한다.
+
+### DEC-014: 미지정 매도는 FIFO로 임시 배분하고 LLM이 확인한다
+
+- 사용자가 지정한 lot·thread 연결을 최우선 `explicit` 근거로 사용한다.
+- thread만 지정하면 그 thread의 오래된 open lot부터 FIFO로 배분한다.
+- 지정이 없으면 같은 계좌·종목의 전체 open lot에 FIFO를 적용하되 `inferred`로 표시한다.
+- LLM은 다음 예약 검토에서 축소·종료한 투자 판단을 질문하고, 답변은 원천 사건을 변경하지 않는
+  append-only allocation revision으로 기록한다.
+- 내부 배분 손익은 증권사 공식 평단가·실현손익·세무기록과 분리한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -489,12 +524,12 @@ DEC-010에 따라 주문 단위 purchase lot을 사용한다.
 - 수정 이력, 작성 주체, 시각 및 거래 당시 기록과 사후 회고를 구분해 보존한다.
 - 누락되거나 불완전한 일지 및 매도 매핑을 예약 작업으로 검토할 수 있어야 한다.
 
-#### 8.4.8 패키지 A 승인 대기 항목
+#### 8.4.8 패키지 A 승인 결과
 
 거래 원장과 과거 복원의 현황, 대안과 권고안은
-`docs/requirements/review-package-a-transaction-ledger.md`에서 함께 검토한다. 현재 승인 대기 항목은
-IRP 최근구간 fallback, 거래내역 3년 초도 backfill, 해외 비용·환율 candidate link 및 미지정 매도의
-FIFO 임시 배분이다.
+`docs/requirements/review-package-a-transaction-ledger.md`에서 함께 검토했다. IRP 최근구간 fallback,
+거래내역 3년 초도 backfill, 해외 비용·환율 candidate link와 미지정 매도의 FIFO 임시 배분을
+DEC-011~DEC-014로 승인했다.
 
 ### 8.5 위험 및 신호 엔진
 
@@ -700,7 +735,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 순서 | 검토 패키지 | 함께 승인할 주요 항목 | 상태 |
 | --- | --- | --- | --- |
-| A | 거래 원장과 과거 복원 | lot grain, IRP 원천·fallback, backfill 깊이, 해외 비용·환율 결합, 매도 임시 배분 | 조사 완료; 4개 권고안 승인 대기 |
+| A | 거래 원장과 과거 복원 | lot grain, IRP 원천·fallback, backfill 깊이, 해외 비용·환율 결합, 매도 임시 배분 | 완료; DEC-010~DEC-014 승인 |
 | B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 예정 |
 | C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 예정 |
 | D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 일부 요구 승인; 계약 보완 예정 |
@@ -713,6 +748,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 요구 승인 | 패키지 A의 IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link, 미지정 매도 FIFO inferred 배분을 모두 승인함 |
 | 2026-08-27 | 분석 결과 | 패키지 A read-only 조사에서 비IRP 국내 15개 보유종목은 3년 거래와 수량 일치 후보, IRP 7개와 미국주식 4개는 opening/reconciliation 필요로 판정함 |
 | 2026-08-27 | 요구 승인 | v1 purchase lot을 체결된 매수 주문 단위로 확정하고 fill grain은 신뢰 가능한 원천 확보 후 확장하기로 함 |
 | 2026-08-27 | 분석 결과 | 승인된 read-only probe에서 국내·해외 주문 이력의 확인 grain이 개별 fill이 아닌 주문 단위 체결 집계임을 확인하고, 주문 단위 purchase lot을 v1 권고안으로 기록함. IRP 최근구간은 source gap으로 남김 |

@@ -188,9 +188,9 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 | 증권사 평단가 position | 국내·연금·해외 잔고 API와 canonical snapshot | 현재 기본 트랙으로 사용 가능, 계좌별 reconciliation 필요 |
 | 주문 단위 purchase lot | 국내·해외 주문번호, 주문시각, 평균체결가·총체결수량 | `selected`; v1 grain으로 승인 |
 | 개별 fill 단위 execution | 확인된 국내·해외 응답에 fill 번호·시각·수량이 없음 | `gap`; 별도 원천 확보 전에는 생성 금지 |
-| 해외 비용·환율 포함 lot | 일별거래내역에 비용·환율은 있으나 주문 identity가 없음 | 보강 원천으로 조건부 사용; 모호한 자동 join 금지 |
-| 매도와 lot/thread 연결 | 원천은 매도를 제공하지만 어떤 매수 의도를 청산했는지는 제공하지 않음 | 사용자 지정 또는 명시적 내부 배분 규칙 필요 |
-| 과거 현재보유 lot 재구성 | 3년 probe와 현재 잔고 reconciliation | 비IRP 국내는 전 종목 후보 일치; IRP·해외는 balancing opening 필요 |
+| 해외 비용·환율 포함 lot | 일별거래내역에 비용·환율은 있으나 주문 identity가 없음 | `selected`; 유일 후보만 가역적 `derived_candidate` link |
+| 매도와 lot/thread 연결 | 원천은 매도를 제공하지만 어떤 매수 의도를 청산했는지는 제공하지 않음 | `selected`; explicit 우선, 미지정은 FIFO `inferred` |
+| 과거 현재보유 lot 재구성 | 3년 probe와 현재 잔고 reconciliation | `selected`; 3년 backfill 후 잔여분만 opening/exception |
 | trade thread와 매매일지 | 증권사 원천에는 투자 의도가 없음 | 사용자·LLM 입력이 authoritative source |
 
 ### 4.1 v1 grain 결정 — 승인
@@ -238,18 +238,18 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 
 ## 6. 다음 검증 게이트
 
-다음 단계는 구현이 아니라 승인된 read-only source probe와 응답 계약 확정이다.
+다음 단계는 구현이 아니라 패키지 B의 read-only source probe와 응답 계약 확정이다.
 
-1. `review-package-a-transaction-ledger.md`의 IRP fallback, 3년 거래 backfill, 해외 비용·환율 link와
-   매도 임시 배분 권고안을 사용자에게 승인받는다.
-2. 국내 100건 초과 조건에서 pagination 완전성 계약을 추가 검증한다.
-3. 실제 응답 fixture가 필요하면 계좌번호·종목·금액을 제거한 field-name/shape만 보존한다.
-4. 다음 장바구니인 가격·거래량·RSI 원천의 endpoint, 기간, 조정주가와 시장 coverage를 조사한다.
+1. 가격·거래량·RSI 원천의 endpoint, 기간, 조정주가와 시장 coverage를 조사한다.
+2. 보유기간 ATH와 일반 ATH의 원천·계산 계약을 대조한다.
+3. 국내·미국 ETF 구성종목의 source, 갱신주기, 식별자와 coverage를 조사한다.
+4. 패키지 A 구현 계획에서 국내 100건 초과 pagination 검증과 sanitized fixture를 인수조건으로 둔다.
 
 ## 7. 조사 이력
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 A 승인 | IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link와 미지정 매도 FIFO inferred 배분을 `selected`로 확정함 |
 | 2026-08-27 | 패키지 A 조사 | 공식 IRP 전용 현재 주문상태 endpoint를 확인하고 3년 backfill 복원성, 해외 주문·비용·환율 candidate link를 민감값 없이 측정함 |
 | 2026-08-27 | `selected` | v1 purchase lot을 총체결수량이 0보다 큰 매수 주문 1건 단위로 승인함. fill grain은 신뢰 가능한 원천 확보 후 확장함 |
 | 2026-08-27 | read-only live 검증 | 국내 5개 계좌 유형의 최근·이전 구간, 해외 주문체결 pagination, 해외 일별거래내역 field shape를 민감값 없이 확인함. 개별 fill identity 부재와 IRP 최근구간 gap을 기록함 |
