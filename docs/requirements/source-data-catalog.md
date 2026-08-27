@@ -62,12 +62,12 @@
 | 위험자산 일임 | `01` | 성공, row 확인 | 성공, row 확인 | 두 구간 사용 가능 |
 | ISA | `01` | 성공, row 확인 | 성공, 해당 시험 구간은 0 row | endpoint 동작 확인 |
 | 일반 위탁 | `01` | 성공, row 확인 | 성공, row 확인 | 두 구간 사용 가능 |
-| IRP | `29` | 실패 `APBK1744` | 성공, row 확인 | 최근구간 공통 endpoint 사용 불가; 전용 원천 조사 필요 |
+| IRP | `29` | 실패 `APBK1744` | 성공, row 확인 | 최근구간 공통 endpoint 사용 불가; 지연 수집과 fallback 필요 |
 | 연금저축 | `22` | 성공, row 확인 | 성공, 해당 시험 구간은 0 row | endpoint 동작 확인 |
 
-IRP 최근구간 응답은 `퇴직연금계좌는 해당 서비스가 불가합니다.`라고 명시했다. 이전구간 endpoint가
-row를 반환했다는 비대칭만으로 IRP 거래 원장 전체를 구성할 수 있다고 간주하지 않는다. 공식 예제 검색에서도
-IRP 전용 주문·체결 이력 원천을 특정하지 못했으므로 이는 별도 source gap이다.
+IRP 최근구간 응답은 `퇴직연금계좌는 해당 서비스가 불가합니다.`라고 명시했다. 이전구간 endpoint는
+3년 probe의 짧은 조회 구간에서 오류 없이 과거 row를 반환했다. 따라서 오래된 IRP 주문은 지연 수집할
+수 있지만, 최근 약 3개월을 같은 원천으로 즉시 복원할 수는 없다.
 
 실제 `output1`은 `ord_dt`, `odno`, `ord_gno_brno`, `ord_tmd`, `pdno`, `sll_buy_dvsn_cd`,
 `ord_qty`, `tot_ccld_qty`, `avg_prvs` 등 36개 field를 제공했다. 반면 개별 체결번호·체결시각·개별
@@ -84,6 +84,34 @@ IRP 전용 주문·체결 이력 원천을 특정하지 못했으므로 이는 �
 
 공식 근거:
 [KIS 공식 국내주식 주식일별주문체결조회 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/inquire_daily_ccld/inquire_daily_ccld.py)
+
+### SRC-KIS-IRP-DAILY-CCLD: 퇴직연금 미체결내역
+
+| 항목 | 조사 결과 |
+| --- | --- |
+| Provider | 한국투자증권 Open API |
+| Capability | 국내주식 주문/계좌·퇴직연금 |
+| 공식 API | 퇴직연금 미체결내역 `[v1_국내주식-033]` |
+| Endpoint | `/uapi/domestic-stock/v1/trading/pension/inquire-daily-ccld` |
+| TR ID | 실전 `TTTC2201R` |
+| 주요 요청 축 | 계좌·상품코드, 사용자구분, 매수/매도, 전체·체결·미체결, 조회구분 |
+| 날짜 범위 | 날짜 파라미터 없음 |
+| Pagination | `CTX_AREA_FK100`, `CTX_AREA_NK100`, 응답 header의 `tr_cont` |
+| 요구 연결 | IRP 당일 주문 상태의 보조 관측 후보 |
+| 현재 상태 | `official-confirmed`, `live-verified`, `gap` |
+
+공식 명칭은 미체결내역이지만 `CCLD_NCCS_DVSN`은 전체·체결·미체결을 선택할 수 있다. 날짜를 받지
+않으므로 과거 backfill 원천으로 선정하지 않는다. 2026-08-27 read-only probe에서는 전체와 체결 조회
+모두 0 row였고 빈 page에서도 continuation header가 반복되었다. 구현 시에는 빈 page, 동일 context와
+최대 page를 모두 종료 조건으로 사용해야 한다.
+
+현재 보유상태는 별도 퇴직연금 체결기준잔고 `TTTC2202R` 또는 잔고조회 `TTTC2208R`에서 확인할 수
+있지만, 잔고는 개별 매수 사실을 복원하지 않는다. 따라서 IRP의 최근구간은 잔고 기반 provisional 상태,
+사용자 보완 및 3개월 이후 이전구간 endpoint의 지연 reconciliation을 조합해야 한다.
+
+공식 근거:
+[KIS 공식 퇴직연금 미체결내역 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/pension_inquire_daily_ccld/pension_inquire_daily_ccld.py),
+[KIS 공식 퇴직연금 체결기준잔고 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/pension_inquire_present_balance/pension_inquire_present_balance.py)
 
 ### SRC-KIS-OVRS-ORDER-CCNL: 해외주식 주문체결내역
 
@@ -109,7 +137,9 @@ IRP 전용 주문·체결 이력 원천을 특정하지 못했으므로 이는 �
 체결시각은 확인되지 않았다. 따라서 해외 주문체결내역도 **주문 단위 체결 집계**로 판정한다.
 
 현재 서비스는 연속조회 helper를 사용하고 주문 단위 평균가격·체결수량을 canonical row로 만든다.
-API가 제공하는 최장 과거 기간은 이번 probe만으로 확정하지 않는다.
+3년 read-only probe는 60일 구간으로 분할했을 때 오류 없이 완료됐다. 180일 구간은 연속조회 중
+`SYDB0050` 데이터 변경 오류가 발생했으므로 초도 적재도 짧은 shard, bounded retry와 watermark를
+사용해야 한다. API가 제공하는 절대 최장 보존기간은 이번 결과만으로 확정하지 않는다.
 
 공식 근거:
 [KIS 공식 해외주식 주문체결내역 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_user/overseas_stock/overseas_stock_functions.py)
@@ -143,6 +173,11 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 일치하지 않아 일부 canonical 값이 0 또는 누락될 가능성이 있다. 이는 구현 결함 수정 승인이 아니라
 후속 수집 계약과 구현 계획에서 다뤄야 할 확인사항이다.
 
+3년 probe에서는 해외 주문 43건과 일별거래 39건이 관측됐다. 일별거래 39건 모두 수수료와 적용환율이
+있었다. 계좌·거래일·종목·매수매도·수량만으로 대조하면 35건은 주문 후보가 하나였고 4건은 일치 후보가
+없었다. 이번 표본에 복수 후보는 없었지만 공식 order identity가 없으므로 35건도 원천상 확정 join이
+아니라 가역적인 `derived_candidate` 관계로만 취급해야 한다.
+
 공식 근거:
 [KIS 공식 legacy 해외주식 예제](https://github.com/koreainvestment/open-trading-api/blob/main/legacy/Sample01/kis_ovrseastk.py)
 
@@ -155,7 +190,7 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 | 개별 fill 단위 execution | 확인된 국내·해외 응답에 fill 번호·시각·수량이 없음 | `gap`; 별도 원천 확보 전에는 생성 금지 |
 | 해외 비용·환율 포함 lot | 일별거래내역에 비용·환율은 있으나 주문 identity가 없음 | 보강 원천으로 조건부 사용; 모호한 자동 join 금지 |
 | 매도와 lot/thread 연결 | 원천은 매도를 제공하지만 어떤 매수 의도를 청산했는지는 제공하지 않음 | 사용자 지정 또는 명시적 내부 배분 규칙 필요 |
-| 과거 현재보유 lot 재구성 | 국내 이전구간 API 후보, 해외 기간 API | 제공 깊이·계좌 coverage 미확정 |
+| 과거 현재보유 lot 재구성 | 3년 probe와 현재 잔고 reconciliation | 비IRP 국내는 전 종목 후보 일치; IRP·해외는 balancing opening 필요 |
 | trade thread와 매매일지 | 증권사 원천에는 투자 의도가 없음 | 사용자·LLM 입력이 authoritative source |
 
 ### 4.1 v1 grain 결정 — 승인
@@ -174,6 +209,22 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 이 grain은 2026-08-27 사용자 승인으로 `selected` 상태가 되었다. 이는 논리 데이터 계약의 승인이지
 물리 schema, 수집 코드, backfill 또는 배포의 구현 승인은 아니다.
 
+### 4.2 3년 backfill 복원성 probe
+
+2026-08-27에 2023-08-28부터 2026-08-27까지 읽기 전용으로 조사했다. 원천 payload, 종목, 수량,
+가격과 금액은 저장하거나 문서화하지 않았다. 아래의 수량 일치는 corporate action과 계좌이체를 아직
+반영하지 않은 **복원 후보 판정**이지 회계적 확정이 아니다.
+
+| 범위 | 현재 보유종목 수 | 3년 내 매수 근거 | 잔고 수량 일치 후보 | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| 비IRP 국내 4개 계좌 합계 | 15 | 15 | 15 | 3년 주문 backfill로 초기 재구성 가능성이 높음 |
+| IRP | 7 | 6 | 0 | 최근 약 3개월 공백 때문에 전 종목 reconciliation 필요 |
+| 미국주식 | 4 | 3 | 0 | 실제 주문 lot은 보존하되 전 종목에 잔여 opening/reconciliation 필요 |
+
+비IRP 국내의 일치는 신뢰도를 높이지만 corporate action, 외부 입고와 과거 정정이 없었다는 검증 전에는
+`reconstructed`를 넘어 `actual` position history로 승격하지 않는다. IRP와 해외는 관측된 실제 주문을
+버리지 않고, 현재 잔고와의 차이만 `inferred_opening` 또는 `reconciliation_exception`으로 분리한다.
+
 ## 5. 품질 및 identity 요구
 
 - 원천 주문·체결 row를 Bronze에 append-only로 보존하고 수집 시각과 요청 범위를 기록한다.
@@ -189,17 +240,17 @@ field를 확인했다. `trad_dt`, `pdno`, `sll_buy_dvsn_cd`, `ccld_qty`, `ft_ccl
 
 다음 단계는 구현이 아니라 승인된 read-only source probe와 응답 계약 확정이다.
 
-1. IRP 최근 주문·체결 이력을 제공하는 전용 endpoint 또는 대체 원천을 조사한다.
-2. 현재 보유종목의 최초 매수를 복원할 수 있는 과거 깊이를 계좌별로 측정한다.
-3. 국내 100건 초과 및 해외 다중 page 조건에서 pagination 완전성 계약을 추가 검증한다.
-4. 해외 주문과 일별거래내역을 안전하게 연결할 수 있는 조건과 모호성 처리 규칙을 정의한다.
-5. 실제 응답 fixture가 필요하면 계좌번호·종목·금액을 제거한 field-name/shape만 보존한다.
-6. 다음 장바구니인 가격·거래량·RSI 원천의 endpoint, 기간, 조정주가와 시장 coverage를 조사한다.
+1. `review-package-a-transaction-ledger.md`의 IRP fallback, 3년 거래 backfill, 해외 비용·환율 link와
+   매도 임시 배분 권고안을 사용자에게 승인받는다.
+2. 국내 100건 초과 조건에서 pagination 완전성 계약을 추가 검증한다.
+3. 실제 응답 fixture가 필요하면 계좌번호·종목·금액을 제거한 field-name/shape만 보존한다.
+4. 다음 장바구니인 가격·거래량·RSI 원천의 endpoint, 기간, 조정주가와 시장 coverage를 조사한다.
 
 ## 7. 조사 이력
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 A 조사 | 공식 IRP 전용 현재 주문상태 endpoint를 확인하고 3년 backfill 복원성, 해외 주문·비용·환율 candidate link를 민감값 없이 측정함 |
 | 2026-08-27 | `selected` | v1 purchase lot을 총체결수량이 0보다 큰 매수 주문 1건 단위로 승인함. fill grain은 신뢰 가능한 원천 확보 후 확장함 |
 | 2026-08-27 | read-only live 검증 | 국내 5개 계좌 유형의 최근·이전 구간, 해외 주문체결 pagination, 해외 일별거래내역 field shape를 민감값 없이 확인함. 개별 fill identity 부재와 IRP 최근구간 gap을 기록함 |
 | 2026-08-27 | 1차 조사 | 국내·해외 주문체결 및 해외 일별거래내역을 lot/thread 원천 후보로 대조하고 현재 coverage gap을 기록함 |
