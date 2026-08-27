@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; 7월 warm cost 49,473원; full gate 190 passed; 운영 변경 없음 | verified, acceptance pending |
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
 | DEC-001..DEC-041: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | Wave별 acceptance/rollback gate; 구현 미착수 | design_approved |

@@ -45,8 +45,9 @@ requirement / ADR
 
 ### Work items
 
-- `V2-W0001` 현재 GCP SKU별 최근 3개월 actual/credit/forecast를 수집한다. 표준 billing export가 없으면
-  console report를 승인 evidence로 보존하고 향후 export 도입 여부를 결정한다.
+- `V2-W0001` **완료 (`WI-002`, 2026-08-28)** — GCP SKU별 최근 3개월 actual/credit/forecast와
+  scale-to-zero 이후 정상월 baseline을 `docs/operations/cost-baseline-2026-08.md`에 기록했다. 현재는 월간
+  Console snapshot을 사용하고 project/복잡도 증가 시 detailed billing export를 재검토한다.
 - `V2-W0002` Cloud Run service/Job/Scheduler, service account, Secret Manager, GCS, Artifact Registry와
   MotherDuck usage inventory를 machine-readable snapshot으로 만든다.
 - `V2-W0003` 현재 7,500원 budget을 일반월 early warning으로 유지하고 35,000·42,500·50,000원 hard-envelope

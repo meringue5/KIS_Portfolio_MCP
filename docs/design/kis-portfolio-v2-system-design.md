@@ -75,13 +75,16 @@ Streamable HTTP와 JSON response로 전환할 수 있다. 이 전환은 Claude·
 | --- | --- | --- |
 | GCP budget | 월 7,500원, actual 50%·90%·100%, forecast 100% | 일반월 early-warning budget으로 유지 |
 | 요구 hard ceiling | 월 50,000원 | 35,000·42,500·50,000원 단계의 비필수 작업 gate 추가 |
-| Artifact Registry | 약 2.53 GB, 과거 image 다수 | build-once와 cleanup policy 도입 |
+| Artifact Registry | 2026-08-28 기준 2.65 GB, cleanup policy 없음 | build-once와 cleanup policy 도입 |
 | cleanup policy | 없음 | 최근 release·rollback digest 보존 규칙 필요 |
 | Scheduler | 현재 3개 | billing account free quota와 별개로 추가 job 비용은 작지만 월 비용표에 포함 |
-| 실제 월 비용 export | repository나 CLI에서 확인 가능한 billing export 없음 | 구현 Wave 0에서 billing baseline과 표준 export 결정 |
+| 실제 월 비용 | 7월 49,473원; 8/12~26 환산 정상월 약 3,700원, 보수 baseline 5,100원 | `docs/operations/cost-baseline-2026-08.md`를 기준으로 완전한 scale-to-zero 월 재측정 |
+| billing export | BigQuery export 없음, billing account 내 project 1개 | 현재는 월간 Console snapshot, project/복잡도 증가 시 detailed export 재검토 |
 
-현재 7,500원 budget은 **실제 비용이 7,500원이라는 증거가 아니다**. alert도 지출을 차단하지 않는다.
-V2는 실제 청구자료와 resource label을 연결해 정상월·backfill월·장애월을 따로 추정한다.
+현재 7,500원 budget은 **실제 비용이 7,500원이라는 뜻이 아니며** alert도 지출을 차단하지 않는다.
+2026-08 baseline 조사에서 warm min-instance가 7월 비용의 86.2%였고, scale-to-zero 이후 보수 정상월은
+약 5,100원으로 측정됐다. V2는 월간 청구자료와 resource label을 연결해 정상월·backfill월·장애월을
+계속 분리한다.
 
 ## 3. 설계 목표와 비목표
 
