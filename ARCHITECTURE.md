@@ -90,6 +90,7 @@ src/kis_portfolio/
 │   ├── redaction.py
 │   └── token_encryption.py
 ├── db/
+│   ├── catalog.py
 │   ├── connection.py
 │   ├── schema.py
 │   └── repository.py
@@ -116,11 +117,34 @@ analytics service를 내부 코어로 두고, MCP와 batch, 향후 HTTP/Web API�
 `common`은 env, DB connection, HTTP client, KIS 도메인 판단 로직을 import하지 않는다. `security`는
 보안 primitive만 제공하며 OAuth auth server 자체는 `adapters/auth`에 둔다.
 
+OAuth token 발급을 제외한 KIS 업무 REST 호출은 `clients.kis.request_kis` 단일 경로를 사용한다.
+token 발급은 auth keyed lock과 전용 pacing/retry를 유지한다. `clients.kis_resilience`가 process-local
+rate interval, shared cooldown, bounded queue/in-flight bulkhead, request deadline, idempotent retry와 endpoint
+circuit breaker를 소유한다. services는 quote/account/history 정책을 선택하고 DB fallback의 업무 의미를
+결정한다. adapter가 retry나 cache fallback을 자체 구현하지 않는다. live 주문 POST는 자동 재시도하지 않으며,
+stale 데이터는 `status`, `source`, `as_of`와 age를 명시하지 않고 fresh 응답으로 반환할 수 없다.
+
 ## DB와 런타임 파일
 
 MotherDuck이 운영 데이터베이스다. 로컬 DuckDB는 개발, 장애 대응, 주기적 백업 타겟으로만 사용한다.
 `MOTHERDUCK_TOKEN`이 없을 때 조용히 로컬 파일로 fallback하지 않는다. 운영 서버에서 token이 빠졌다면
 서버가 명확히 실패해야 데이터가 여러 DB로 흩어지는 사고를 막을 수 있다.
+
+DB 객체와 schema의 관리 책임은 `docs/data-catalog.md`에 둔다. `src/kis_portfolio/db/catalog.py`는
+동일 계약의 machine-readable allowlist이고, `schema.py`는 현재 물리 DDL이다. 현재 모든 객체가
+`kis_portfolio.main`에 있지만 목표 namespace는 다음과 같이 분리한다.
+
+```text
+bronze   KIS raw observations and replayable snapshots
+silver   normalized, deduplicated, canonical portfolio state
+gold     reproducible analytics views and serving tables
+control  migration ledger and reference/override data
+security encrypted or hashed auth/token state
+```
+
+물리 이동은 runtime auto-DDL과 분리된 versioned migration runner, 단일 writer, backup/restore rehearsal,
+row-count/aggregate reconciliation을 갖춘 뒤 수행한다. 그 전에도 logical layer 계약과 신규 객체 등록
+규칙은 적용한다. live DB에만 존재하는 비관리 객체는 drift로 보고하며 자동 삭제하지 않는다.
 
 기본 로컬 파일 배치는 다음과 같다.
 
@@ -138,7 +162,8 @@ MotherDuck 백업은 Parquet을 기본 포맷으로 둔다. `scripts/backup_moth
 
 스냅샷 raw table은 append-only로 유지한다. 분/일 단위 중복 제거와 대표값 선택은 raw write path에서
 하지 않고 curated view 또는 향후 pipeline 단계에서 처리한다. 현재 `portfolio_daily_snapshots` view가
-계좌별/일자별 마지막 스냅샷을 제공한다. 자세한 방향은 `docs/data-pipeline.md`를 참고한다.
+계좌별/일자별 마지막 스냅샷을 제공한다. 객체 계약과 schema 계획은 `docs/data-catalog.md`, 데이터 흐름은
+`docs/data-pipeline.md`를 참고한다.
 
 환경변수:
 

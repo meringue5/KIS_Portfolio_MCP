@@ -12,6 +12,7 @@ core service 함수와 저장 정책을 설계한다.
 - 한국투자 공식 예제 저장소: https://github.com/koreainvestment/open-trading-api
 - 종목정보 예제: https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
 - 호출 유량 계약: [kis-api-rate-limits.md](./kis-api-rate-limits.md)
+- 장애 대응 계약: [kis-api-resilience.md](./kis-api-resilience.md)
 
 ## Capability Groups
 
@@ -83,3 +84,4 @@ Future backend API는 별도 public surface가 필요해지는 시점에 `adapte
 2. README/SPEC에서 fork attribution은 유지하고, 프로젝트 설명은 포트폴리오 서비스 중심으로 변경한다.
 3. Python package는 `kis_portfolio`, public MCP는 `kis-portfolio-mcp`로 사용한다.
 4. upstream 병합 가치가 낮아진 시점에 GitHub repository rename을 검토한다.
+

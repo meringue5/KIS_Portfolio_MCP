@@ -1,24 +1,18 @@
 # Warehouse Contracts
 
-## Raw Tables
+The canonical object inventory and detailed contracts live in `docs/data-catalog.md`.
+This reference is intentionally limited to invariants used while implementing changes.
 
-- `portfolio_snapshots`: append-only balance observations; raw KIS response in JSON.
-- `overseas_asset_snapshots`: append-only overseas balance/deposit observations and derived aggregate fields.
-- `asset_overview_snapshots`: append-only canonical total-asset aggregates.
-- `asset_holding_snapshots`: normalized holdings and cash rows keyed by overview snapshot.
-- `market_calendar`: upserted market session calendar keyed by market/date.
-- `order_history`: append-only domestic/overseas order and execution observations.
-- `trade_profit_history`: append-only profit report observations.
-- `price_history`: cache by symbol/exchange/date; duplicate historical rows ignored unless an adjusted resync is explicit.
-- `exchange_rate_history`: cache by currency/date/period; duplicates ignored.
-- `instrument_master`: upserted KIS master metadata for classification.
-- `instrument_classification_overrides`: local override layer for exposure classification.
+## Layer Invariants
 
-## Curated Layer
-
-- `portfolio_daily_snapshots` is a view over raw snapshots.
-- `asset_overview_daily_snapshots` is a view over canonical total-asset snapshots.
-- Daily representative policy is implemented in view/query logic, not by deleting raw rows.
+- Bronze is append-only and preserves KIS observations needed for replay.
+- Silver owns normalized rows, keyed deduplication, and canonical total-asset snapshots.
+- Gold is reproducible from Silver plus governed Control data.
+- Control owns migration state and reference/override data.
+- Security is isolated from analytics and default Parquet backups.
+- Current physical schema is `main`; target schemas are the layer names above. Physical moves require a versioned migration and reconciliation.
+- `asset_overview_snapshots`, not domestic-only feeder data, is the canonical global total-asset source.
+- Daily representative policy is implemented in Gold view/query logic, never by deleting Bronze rows.
 
 ## Secret Policy
 
@@ -28,5 +22,6 @@
 
 ## Backup Policy
 
-- Parquet backup should include core raw/cache/canonical tables.
+- Parquet backup tables are selected by `src/kis_portfolio/db/catalog.py`.
 - Backup manifest should describe exported tables and timestamp.
+- Live objects absent from the registry are drift and are never automatically deleted.

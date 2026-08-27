@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 
 import httpx
 
@@ -77,6 +78,7 @@ async def fetch_balance_snapshot(
                     "GET",
                     f"{DOMAIN}{PENSION_BALANCE_PATH}",
                     domain=DOMAIN,
+                    policy="account",
                     headers={
                         "content-type": CONTENT_TYPE,
                         "authorization": f"{AUTH_TYPE} {access_token}",
@@ -106,6 +108,7 @@ async def fetch_balance_snapshot(
                 "GET",
                 f"{balance_domain}{BALANCE_PATH}",
                 domain=balance_domain,
+                policy="account",
                 headers={
                     "content-type": CONTENT_TYPE,
                     "authorization": f"{AUTH_TYPE} {access_token}",
@@ -143,3 +146,36 @@ def save_balance_snapshot(data: dict) -> str | None:
     except Exception as e:
         logger.warning(f"DB snapshot save failed (non-critical): {e}")
         return None
+
+
+def get_latest_balance_fallback(account_id: str) -> dict | None:
+    """Return the latest saved balance with explicit stale metadata."""
+    try:
+        rows = kisdb.get_portfolio_snapshots(account_id, limit=1)
+    except Exception as exc:
+        logger.warning("DB balance fallback lookup failed: %s", type(exc).__name__)
+        return None
+    if not rows:
+        return None
+
+    row = rows[0]
+    as_of = row.get("snapshot_at")
+    stale_age_seconds = None
+    if as_of:
+        try:
+            parsed = datetime.fromisoformat(str(as_of).replace("Z", "+00:00"))
+            now = datetime.now(parsed.tzinfo) if parsed.tzinfo else datetime.now()
+            stale_age_seconds = max(0, int((now - parsed).total_seconds()))
+        except (TypeError, ValueError):
+            pass
+
+    return {
+        "status": "stale",
+        "source": "motherduck_cache",
+        "as_of": as_of,
+        "stale_age_seconds": stale_age_seconds,
+        "snapshot_id": row.get("id"),
+        "total_eval_amt": row.get("total_eval_amt"),
+        "raw": row.get("balance_data") or {},
+    }
+

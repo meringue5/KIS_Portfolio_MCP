@@ -3,6 +3,10 @@
 운영 데이터베이스는 MotherDuck이다. 로컬 DuckDB 파일은 운영 트랜잭션 중심이 아니라
 개발, 장애 대응, 백업 검증을 위한 보조 산출물로 다룬다.
 
+백업 대상과 민감도 결정은 [Data Store Governance and Catalog](./data-catalog.md)가 관리한다.
+`scripts/backup_motherduck.py`의 대상 목록은 `src/kis_portfolio/db/catalog.py`에서 직접 파생하므로,
+테이블을 추가할 때 백업 포함 여부를 명시하지 않으면 warehouse contract 검사를 통과할 수 없다.
+
 ## Parquet 백업
 
 기본 백업 포맷은 Parquet이다. 이유는 다음과 같다.
@@ -46,6 +50,9 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 같은 민감한 인증/캐시 테이블은 기본 Parquet 백업 대상에 포함하지 않는다.
 다만 기본 백업에도 계좌 id, 보유 종목, 주문/체결 이력, 평가금액이 포함될 수 있으므로 백업 산출물은
 민감 데이터로 취급한다. 자세한 분류와 보관 원칙은 [Security and Secrets](./security-and-secrets.md)를 따른다.
+
+Gold view와 `schema_migrations`도 기본 백업에서 제외한다. Gold는 복원된 Bronze/Silver/Control table과
+versioned migration으로 재생성하고, migration ledger는 복원 대상 database에서 새로 검증한다.
 
 최근 백업 N개만 남기려면:
 

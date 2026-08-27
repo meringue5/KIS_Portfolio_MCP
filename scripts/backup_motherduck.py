@@ -28,27 +28,10 @@ from kis_portfolio.config import (  # noqa: E402
     get_motherduck_token,
     resolve_project_path,
 )
+from kis_portfolio.db.catalog import backup_table_names  # noqa: E402
 
 
-TABLES = (
-    "price_history",
-    "exchange_rate_history",
-    "portfolio_snapshots",
-    "overseas_asset_snapshots",
-    "asset_overview_snapshots",
-    "asset_holding_snapshots",
-    "market_calendar",
-    "instrument_master",
-    "instrument_classification_overrides",
-    "domestic_orders",
-    "order_history",
-    "overseas_order_history",
-    "overseas_orders",
-    "overseas_transaction_history",
-    "overseas_transactions",
-    "overseas_settlement_balance_snapshots",
-    "trade_profit_history",
-)
+TABLES = backup_table_names()
 
 
 def parse_args() -> argparse.Namespace:

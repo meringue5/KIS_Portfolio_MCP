@@ -24,6 +24,8 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
         "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS": "1.0",
         "KIS_TOKEN_MIN_INTERVAL_SECONDS": "1.0",
         "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS": "1.0",
+        "KIS_REAL_API_MAX_IN_FLIGHT": "3",
+        "KIS_CIRCUIT_FAILURE_THRESHOLD": "5",
     }
 
     required = deploy_cloud_run._required_keys_for_remote(env)
@@ -36,6 +38,8 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     assert payload["KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS"] == "1.0"
     assert payload["KIS_TOKEN_MIN_INTERVAL_SECONDS"] == "1.0"
     assert payload["KIS_RATE_LIMIT_RETRY_DELAY_SECONDS"] == "1.0"
+    assert payload["KIS_REAL_API_MAX_IN_FLIGHT"] == "3"
+    assert payload["KIS_CIRCUIT_FAILURE_THRESHOLD"] == "5"
 
 
 def test_secret_manager_uses_deterministic_secret_ids():
@@ -168,6 +172,8 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
         "KIS_RESOURCE_SERVER_URL": "https://remote.example.com/mcp",
         "KIS_REAL_API_MIN_INTERVAL_SECONDS": "0.15",
         "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS": "1.0",
+        "KIS_API_MAX_QUEUE_SIZE": "50",
+        "KIS_CIRCUIT_OPEN_SECONDS": "20.0",
     }
 
     required = deploy_cloud_run._required_keys_for_batch(env)
@@ -180,6 +186,8 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
     assert payload["KIS_RESOURCE_SERVER_URL"] == "https://remote.example.com/mcp"
     assert payload["KIS_REAL_API_MIN_INTERVAL_SECONDS"] == "0.15"
     assert payload["KIS_RATE_LIMIT_RETRY_DELAY_SECONDS"] == "1.0"
+    assert payload["KIS_API_MAX_QUEUE_SIZE"] == "50"
+    assert payload["KIS_CIRCUIT_OPEN_SECONDS"] == "20.0"
     assert "KIS_REMOTE_AUTH_MODE" not in payload
 
 
@@ -467,3 +475,4 @@ def test_deploy_workflow_uses_secret_manager_not_bundled_env():
     assert "environment: production" in workflow
     assert 'test "${GITHUB_REF}" = "refs/heads/master"' in workflow
     assert "KIS_DEPLOY_SECRET_MODE: secret-manager" in workflow
+

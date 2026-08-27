@@ -28,9 +28,29 @@
   - [x] `sync_instrument_master.py`의 MotherDuck 대량 upsert 성능을 staging + bulk upsert로 개선한다.
   - [ ] `sync_instrument_master.py`의 재시도/재개 전략을 정리한다.
 - [ ] 토큰 발급 감사 이벤트 저장을 추가한다.
-  - access token 원문은 `var/tokens/`의 런타임 secret cache에만 보관한다.
-  - MotherDuck에는 `account_label`, masked account id, `issued_at`, `expires_at`, refresh reason, token fingerprint 같은 메타데이터만 저장한다.
+  - access token은 `kis_api_access_tokens`에 암호화 저장하며 audit table에는 원문/ciphertext를 중복 저장하지 않는다.
+  - audit event에는 `account_label`, masked account id, `issued_at`, `expires_at`, refresh reason, token fingerprint 같은 메타데이터만 저장한다.
   - 목적은 KIS의 1일 1회 발급/잦은 발급 차단 정책 감시다.
+
+## Data Governance
+
+- [x] MotherDuck/DuckDB 관리 책임 문서와 전체 객체 카탈로그를 만든다.
+  - `docs/data-catalog.md`를 purpose/grain/key/layer/sensitivity/backup/schema plan의 canonical 문서로 지정한다.
+  - `src/kis_portfolio/db/catalog.py`에 25 tables + 2 views의 machine-readable allowlist를 둔다.
+  - backup table 목록을 catalog registry에서 파생하고 warehouse contract 검사에서 DDL/catalog/docs 일치를 검증한다.
+  - DB 검사 클라이언트에 `--inventory`와 managed/unmanaged drift 보고를 추가한다.
+- [ ] `codex/portfolio-pipeline-reliability`의 DB 변경을 현재 mainline과 통합한다.
+  - 출처 commit은 `9dea94c Fix portfolio snapshot integrity and operations`이며 현재 branch와 공통 base 이후 분기돼 있다.
+  - `cash_flow`, `trade_journal` table과 repository/test를 Silver 계약으로 편입한다. 현재 운영 table은 0 rows다.
+  - `asset_overview_snapshots`의 `quality_status`, `quality_flags`, `is_complete`를 DDL/catalog에 편입한다.
+  - `asset_overview_daily_snapshots`가 품질 컬럼을 투영하도록 갱신한 뒤 깨진 `asset_return_daily` Gold view를 재생성한다.
+  - branch 통합 전에는 해당 객체를 현재 서비스의 공식 조회, 자동 백업, 삭제 대상으로 삼지 않는다.
+- [ ] `main` 단일 schema를 계층별 물리 schema로 전환한다.
+  - 목표 schema: `bronze`, `silver`, `gold`, `control`, `security`.
+  - runtime auto-DDL을 versioned migration runner와 schema version check로 분리한다.
+  - single-writer migration lock과 backup/restore rehearsal을 준비한다.
+  - 객체별 row count, PK uniqueness, null contract, 총자산 aggregate reconciliation 후 repository SQL을 schema-qualified name으로 전환한다.
+  - transition 기간에는 필요한 `main` read-only compatibility view만 유지하고 최종적으로 retire한다.
 
 ## Remote MCP
 
@@ -78,7 +98,7 @@
 - [ ] DB schema initialization을 runtime 자동 실행에서 migration/initialization command로 분리한다.
   - 현재는 `get_connection()` 첫 호출에서 `init_schema()`가 실행된다.
   - MotherDuck에서 여러 프로세스가 동시에 시작되면 `CREATE OR REPLACE VIEW` catalog write-write conflict가 날 수 있어 retry로 1차 방어 중이다.
-  - 운영화 전에는 schema version check, migration lock, read-only 검사 연결 전략을 정리한다.
+  - 상세 이행 기준은 `docs/data-catalog.md`의 Physical Schema Migration Plan을 따른다.
 - [ ] `app.py` legacy MCP tool을 core service와 MCP adapter로 분리한다.
 - [ ] `docs/api-capability-map.md` 기준으로 KIS client/service 패키지 구조를 설계한다.
 - [ ] 포트폴리오 aggregate tool을 서비스 계층으로 추가 분리한다.

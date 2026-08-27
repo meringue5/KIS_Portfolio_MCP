@@ -426,6 +426,59 @@ client-specific discovery와 대화 단위 attachment 상태를 별도 호환성
 
 ---
 
+### ADR-018: 데이터 카탈로그와 계층별 schema governance
+
+**결정**: `docs/data-catalog.md`를 MotherDuck/DuckDB 객체 목적, grain, key, logical layer, 민감도,
+백업 정책과 물리 schema 이행 계획의 canonical 문서로 둔다. machine-readable allowlist는
+`src/kis_portfolio/db/catalog.py`가 담당하며 DDL, backup, live inventory와 자동 대조한다.
+
+논리 계층과 목표 schema는 `bronze`, `silver`, `gold`, `control`, `security`로 고정한다. 현재
+`kis_portfolio.main`의 객체는 versioned migration runner와 검증 절차를 구현하기 전까지 물리 이동하지
+않는다.
+
+**이유**:
+- `main` 하나에 raw observation, canonical portfolio state, analytics view, reference data, OAuth/token
+  state가 함께 있어 객체의 소유권과 소비 경계가 불명확하다.
+- MotherDuck 연결에는 attached database와 shared dataset이 함께 보이므로 catalog/schema를 명시하지 않은
+  검사는 동명 객체를 혼동할 수 있다.
+- 코드 밖에서 생성된 table/view가 backup과 analytics에 조용히 편입되는 것을 방지해야 한다.
+- 물리 schema 이동은 repository SQL, auth, batch, backup을 동시에 바꾸므로 문서 선언보다 versioned
+  migration과 reconciliation이 먼저 필요하다.
+
+**계약**:
+- Bronze는 append-only KIS 관측, Silver는 정규화/dedup/canonical state, Gold는 재생성 가능한 serving
+  객체를 소유한다.
+- Control은 migration/reference/override, Security는 암호화·해시된 인증 상태를 소유한다.
+- 신규 객체는 catalog, DDL/migration, writer/consumer, test, backup policy를 같은 변경에서 추가한다.
+- live DB에만 있는 객체는 drift이며 소유권 확인 전 자동 채택·백업·삭제하지 않는다.
+- `main` 물리 분리는 runtime auto-DDL 분리, single-writer migration, backup/restore rehearsal,
+  row-count/aggregate reconciliation 이후 단계적으로 수행한다.
+
+---
+
+### ADR-019: KIS REST 공통 resilience 계층
+
+**결정**: OAuth token 발급을 제외한 모든 KIS 업무 REST 요청을 `kis_portfolio.clients.kis.request_kis`로
+통합하고, token 발급은 auth keyed lock과 전용 pacing/retry를 유지한다. 업무 REST에는 process-local shared
+cooldown, bounded queue와 in-flight bulkhead, 요청 정책별 deadline/timeout, idempotent retry와 endpoint
+circuit breaker를 적용한다. 상세 운영 계약은 `docs/kis-api-resilience.md`가 소유한다.
+
+**이유**:
+- 호출 시작 간격만 조절하면 느린 요청이 중첩되고 rate-limit을 받은 다른 coroutine이 계속 호출할 수 있다.
+- MCP interactive 조회와 batch/backfill은 허용 가능한 latency와 retry budget이 다르다.
+- 연결 종료 후 주문 접수 여부가 불명확할 수 있으므로 POST를 일반 조회와 같은 방식으로 재시도하면 안 된다.
+- DB cache fallback은 transport가 아니라 데이터 신선도의 업무 의미를 아는 service가 결정해야 한다.
+
+**계약**:
+- GET/HEAD/OPTIONS만 기본 재시도하며 live order POST는 자동 재시도하지 않는다.
+- rate-limit 응답은 같은 runtime REST scope 전체에 adaptive cooldown으로 전파한다.
+- circuit은 endpoint path별 transient transport/5xx 실패만 집계한다.
+- live balance의 stale fallback은 호출자가 명시적으로 허용할 때만 사용한다.
+- stale/partial 응답은 source, as-of 시각, age와 upstream 상태를 표시한다.
+- remote와 batch 간 distributed limiter는 실제 충돌 관측 전에는 도입하지 않는다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유
