@@ -1,7 +1,7 @@
 ---
 id: WI-000
 title: Bootstrap the KIS Portfolio Project Operating System
-status: verified
+status: closed
 type: governance
 owner: owner
 decision_refs: ADR-022
@@ -83,5 +83,6 @@ traceability, 공통 로컬/CI 하네스가 하나의 운영 계약으로 연결
 - 결과: Project OS 정책·Skill·Work Item·traceability·Issue/PR template·single check harness·tracked hook·CI를
   연결하고 현재 세션에서 Skill을 로드해 WI-000에 dogfood했다. post-commit 결함도 같은 feedback loop로
   재개·수정·재검증했다.
+- 사용자 인수: 다음 Work Item인 V2 Architecture delta review 진행 지시로 Package F 인수를 확인함.
 - 남은 위험: 실제 GitHub Issue 기반 workflow와 release 작업에서 추가 dogfood 필요
 - 후속 Work Item: V2 Architecture delta review

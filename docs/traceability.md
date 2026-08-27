@@ -7,7 +7,8 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | verified |
+| DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + V2 ADR proposed | WI-001 | `docs/design/v2-architecture-delta-review.md` | full gate 190 passed; 현재/공식 근거, 대안, tool mapping, compatibility·migration·rollback gate | verified, acceptance pending |
+| GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
 | DEC-001..DEC-041: KIS Portfolio data platform | ADR-021 proposed | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | Wave별 acceptance/rollback gate | design_review |
 
 ## Governance Requirements
