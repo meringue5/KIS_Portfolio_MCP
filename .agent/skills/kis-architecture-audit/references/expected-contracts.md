@@ -4,7 +4,8 @@
 
 - Project package: `kis_portfolio`
 - Distribution name: `kis-portfolio`
-- Console scripts: `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, `kis-portfolio-remote`
+- Runtime console scripts: `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, `kis-portfolio-remote`
+- Administrative console script: `kis-portfolio-migrate` (explicit only; never runtime startup)
 - Public MCP name: `KIS Portfolio Service`
 
 ## Important Paths

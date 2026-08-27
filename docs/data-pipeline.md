@@ -16,6 +16,25 @@ Work Item과 dual-run 전까지 그대로 유효하다.
 3. 분석용 정제 데이터는 view, table, 또는 별도 pipeline 단계에서 만든다.
 4. 로컬 DuckDB는 운영 중심 DB가 아니라 백업/검증/개발용이다.
 
+## V2 Managed Runtime 구현 기준선
+
+`src/kis_portfolio/platform/pipeline.py`는 `(pipeline_id, version, logical_date, slot, partition)`을 hash한
+logical idempotency key, run/stage ledger, source-call budget과 stage resume를 구현한다. 성공 stage는 재시도
+때 건너뛰고 실패 stage부터 이어가며, 이미 성공한 logical run은 같은 `run_id`를 반환한다. quality와
+lineage는 `control.quality_results`, `control.lineage_edges`에 저장하고 DB-only read model로 조회한다.
+
+승인된 initial registry는 다음과 같다.
+
+- `pipeline.owned-portfolio-core-v2`
+- `pipeline.etf-lookthrough-v2`
+- `pipeline.fundamentals-dividends-v2`
+- `pipeline.macro-profile-v2`
+- `pipeline.owner-research-pdf-v1`
+
+`tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
+`src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
+lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.
+
 ## 계층
 
 논리 계층은 Bronze/Silver/Gold와 별도 Control/Security 영역으로 고정한다. 현재 물리 객체는 모두

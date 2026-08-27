@@ -13,6 +13,30 @@ active OAuth/token/lease state를 MotherDuck이나 이 Parquet 백업에 복제�
 Firestore PITR/managed backup은 실제 비용·RPO 검토를 거친 별도 Work Item 전에는 활성화하지 않는다.
 현재 V1 백업 대상과 실행 절차는 아래와 같이 유지된다.
 
+## V2 parallel backup contract
+
+V2 registry의 backup policy는 `V2_DATA_OBJECTS`와 `v2_backup_table_names()`에 machine-readable하게 있다.
+운영 migration 전까지 현재 V1 `backup_motherduck.py`의 export 목록에는 자동 편입하지 않는다. V2가 live로
+적용되면 qualified schema를 보존하는 새 backup manifest version으로 다음을 export한다.
+
+- Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`,
+  `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.cash_flow_events`,
+  `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
+  `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
+  `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
+  `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
+  `gold.portfolio_daily_state`, `control.pipeline_definitions`, `control.pipeline_runs`,
+  `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`.
+- Private content-addressed object: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
+  `silver.owner_research_extractions`의 대응 object bytes. MotherDuck metadata만으로 원문 backup이 됐다고
+  간주하지 않는다.
+- Rebuild/excluded: `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
+  `control.schema_migrations`.
+
+owner research 원문과 추출물은 restricted다. local rehearsal에서는 owner-only directory의 0600 file로
+검증하며, production object destination과 lifecycle은 별도 GCS provisioning/restore Work Item 전에는
+활성화하지 않는다.
+
 ## Parquet 백업
 
 기본 백업 포맷은 Parquet이다. 이유는 다음과 같다.

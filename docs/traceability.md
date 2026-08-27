@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-001..045 + DGOV-001..010: V2 Wave 1~4 foundation | ADR-021/023 + V2 ADR baseline | WI-005 | modular core, state port, explicit migrations, V2 warehouse, managed pipeline, PDF intake, approved GCP state/secret foundation | fresh DuckDB, idempotency/resume/catalog-quality-lineage, GCP inventory/provision evidence, full V1 regression | in_progress |
 | DEC-003/005/010..025/030/035..044 + DGOV-010: source inventory와 수집 장바구니 | ADR-023 source selection gate | WI-004 | 14 source, 19 dataset, 7 collection contracts; owner PDF 수동 반입 포함 | DGH/full gate; approved core·recommended와 proposed later·excluded 분리; production 변경 없음 | closed |
 | DGOV-001..DGOV-010: Data Governance Harness | ADR-023 | WI-003 | `docs/governance/data-governance-harness.md`, governed TOML registry, Skill/checker | full gate 193 passed; positive/negative contract tests; production 변경 없음 | verified, acceptance pending |
 | DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; MotherDuck Lite 0원; `my_db` empty legacy 확인; 운영 변경 없음 | verified, acceptance pending |

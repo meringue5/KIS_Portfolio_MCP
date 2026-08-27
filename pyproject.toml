@@ -12,11 +12,13 @@ dependencies = [
     "authlib>=1.6.1",
     "cryptography>=45.0.7",
     "duckdb>=1.5.2",
+    "google-cloud-firestore>=2.29.0",
     "holidays>=0.83",
     "httpx>=0.28.1",
     "itsdangerous>=2.2.0",
     "mcp>=2.0.0,<3",
     "pathlib>=1.0.1",
+    "pytz>=2025.2",
     "python-dotenv>=1.1.0",
     "starlette>=0.46.1",
     "uvicorn>=0.34.0",
@@ -31,6 +33,7 @@ kis-portfolio-auth = "kis_portfolio.adapters.auth:main"
 kis-portfolio-batch = "kis_portfolio.adapters.batch:main"
 kis-portfolio-remote = "kis_portfolio.remote:main"
 kis-portfolio-mcp = "kis_portfolio.adapters.mcp:main"
+kis-portfolio-migrate = "kis_portfolio.platform.migration_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/kis_portfolio"]

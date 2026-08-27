@@ -1,0 +1,184 @@
+"""Schema-qualified V2 warehouse repository used by local rehearsals and future adapters."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from typing import Any
+
+import duckdb
+
+from kis_portfolio.modules.core import new_id
+from kis_portfolio.ports.source import SourceEnvelope
+
+
+def _json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+
+
+class V2WarehouseRepository:
+    def __init__(self, connection: duckdb.DuckDBPyConnection) -> None:
+        self.connection = connection
+
+    def record_observation(self, dataset_id: str, envelope: SourceEnvelope, run_id: str | None = None) -> str:
+        key_source = f"{dataset_id}|{envelope.source_id}|{envelope.source_record_id}|{envelope.content_hash}"
+        key = hashlib.sha256(key_source.encode()).hexdigest()
+        observation_id = hashlib.sha256(f"observation|{key}".encode()).hexdigest()
+        self.connection.execute("""
+            INSERT INTO bronze.source_observations(
+                observation_id, dataset_id, source_id, source_record_id, idempotency_key,
+                effective_at, observed_at, fetched_at, content_hash, quality_status, payload, pipeline_run_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(idempotency_key) DO NOTHING
+        """, [
+            observation_id, dataset_id, envelope.source_id, envelope.source_record_id, key,
+            envelope.observed_at, envelope.observed_at, envelope.fetched_at, envelope.content_hash,
+            envelope.quality_status, _json(envelope.payload), run_id,
+        ])
+        row = self.connection.execute(
+            "SELECT observation_id FROM bronze.source_observations WHERE idempotency_key = ?", [key]
+        ).fetchone()
+        return row[0]
+
+    def upsert_account(self, payload: dict[str, Any], observation_id: str) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.accounts VALUES (?, ?, ?, ?, ?, NULL, ?)
+            ON CONFLICT(account_id) DO UPDATE SET
+                account_label = excluded.account_label,
+                account_type = excluded.account_type,
+                base_currency = excluded.base_currency,
+                provenance = excluded.provenance
+        """, [payload["account_id"], payload["account_label"], payload["account_type"],
+              payload.get("base_currency", "KRW"), payload["as_of"], _json({"observation_id": observation_id})])
+
+    def upsert_instrument(self, payload: dict[str, Any], observation_id: str) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.instruments VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+            ON CONFLICT(instrument_id) DO UPDATE SET
+                name = excluded.name, asset_type = excluded.asset_type, currency = excluded.currency,
+                issuer_id = excluded.issuer_id, classification_quality = excluded.classification_quality,
+                provenance = excluded.provenance
+        """, [payload["instrument_id"], payload["market"], payload["symbol"], payload.get("name"),
+              payload["asset_type"], payload["currency"], payload.get("issuer_id"), payload["as_of"],
+              payload.get("classification_quality", "source"), _json({"observation_id": observation_id})])
+
+    def upsert_position(self, payload: dict[str, Any], observation_id: str) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.position_snapshots VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id, instrument_id, as_of) DO UPDATE SET
+                quantity = excluded.quantity, average_cost = excluded.average_cost,
+                source_observation_id = excluded.source_observation_id, quality_status = excluded.quality_status
+        """, [payload["account_id"], payload["instrument_id"], payload["as_of"], payload["quantity"],
+              payload.get("average_cost"), payload.get("cost_currency", "KRW"), observation_id,
+              payload.get("quality_status", "pass")])
+
+    def upsert_cash(self, payload: dict[str, Any], observation_id: str) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.cash_snapshots VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id, currency, as_of) DO UPDATE SET
+                amount = excluded.amount, source_observation_id = excluded.source_observation_id,
+                quality_status = excluded.quality_status
+        """, [payload["account_id"], payload["currency"], payload["as_of"], payload["amount"],
+              observation_id, payload.get("quality_status", "pass")])
+
+    def record_trade_with_lot(self, payload: dict[str, Any], observation_id: str) -> tuple[str, str | None]:
+        identity = f"{payload['account_id']}|{payload['broker_order_id']}|{payload.get('event_version', 1)}"
+        trade_id = hashlib.sha256(identity.encode()).hexdigest()
+        self.connection.execute("""
+            INSERT INTO silver.trade_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id, broker_order_id, event_version) DO NOTHING
+        """, [trade_id, payload["account_id"], payload["instrument_id"], payload["side"],
+              payload["executed_at"], payload["quantity"], payload["price"], payload["currency"],
+              payload["broker_order_id"], payload.get("event_version", 1), observation_id,
+              payload.get("quality_status", "pass")])
+        if payload["side"].lower() != "buy":
+            return trade_id, None
+        lot_id = hashlib.sha256(f"lot|{trade_id}".encode()).hexdigest()
+        self.connection.execute("""
+            INSERT INTO silver.purchase_lots VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(trade_event_id) DO NOTHING
+        """, [lot_id, trade_id, payload["account_id"], payload["instrument_id"], payload["executed_at"],
+              payload["quantity"], payload["quantity"], payload["price"], payload["currency"],
+              payload.get("quality_status", "pass")])
+        return trade_id, lot_id
+
+    def create_thread(self, payload: dict[str, Any], lot_id: str | None = None) -> str:
+        thread_id = payload.get("thread_id") or new_id()
+        self.connection.execute("""
+            INSERT INTO silver.trade_threads VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?)
+            ON CONFLICT(thread_id) DO NOTHING
+        """, [thread_id, payload["account_id"], payload["instrument_id"], payload["opened_at"],
+              payload.get("title"), payload.get("status", "open"), payload.get("revision", 1),
+              _json(payload.get("provenance", {"source": "fixture"}))])
+        if lot_id:
+            self.connection.execute("""
+                INSERT INTO silver.trade_thread_lots VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT DO NOTHING
+            """, [thread_id, lot_id, 1, payload["opened_at"], payload.get("linkage_quality", "explicit")])
+        return thread_id
+
+    def append_journal(self, payload: dict[str, Any]) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.trade_journal_revisions VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT DO NOTHING
+        """, [payload["journal_id"], payload["revision"], payload.get("thread_id"),
+              payload.get("trade_event_id"), payload["body"], payload.get("authored_by", "owner"),
+              payload["authored_at"], payload.get("expected_prior_revision")])
+
+    def upsert_price_bar(self, payload: dict[str, Any], observation_id: str) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.price_bars_daily VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(instrument_id, session_date, price_basis) DO UPDATE SET
+                open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close,
+                volume=excluded.volume, source_observation_id=excluded.source_observation_id,
+                quality_status=excluded.quality_status
+        """, [payload["instrument_id"], payload["session_date"], payload.get("price_basis", "raw"),
+              payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
+              payload.get("volume"), observation_id, payload.get("quality_status", "pass")])
+
+    def upsert_fx_rate(self, payload: dict[str, Any], observation_id: str) -> None:
+        self.connection.execute("""
+            INSERT INTO silver.fx_rates_daily VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(base_currency, quote_currency, rate_date, rate_type) DO UPDATE SET
+                rate=excluded.rate, source_observation_id=excluded.source_observation_id,
+                quality_status=excluded.quality_status
+        """, [payload["base_currency"], payload["quote_currency"], payload["rate_date"],
+              payload.get("rate_type", "close"), payload["rate"], observation_id,
+              payload.get("quality_status", "pass")])
+
+    def materialize_daily_state(self, *, evaluation_date: date, slot: str, as_of: datetime) -> int:
+        self.connection.execute("""
+            INSERT INTO gold.portfolio_daily_state
+            SELECT
+                ?, ?, p.account_id, p.instrument_id, 'position', p.quantity,
+                round(p.quantity * b.close * CASE WHEN i.currency = 'KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
+                round(p.quantity * p.average_cost * CASE WHEN i.currency = 'KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
+                round(p.quantity * (b.close - p.average_cost) * CASE WHEN i.currency = 'KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
+                NULL, NULL, ?,
+                json_object('position_as_of', p.as_of, 'price_date', b.session_date, 'fx_date', f.rate_date),
+                CASE WHEN p.quality_status = 'pass' AND b.quality_status = 'pass' THEN 'pass' ELSE 'degraded' END,
+                sha256(concat(p.source_observation_id, '|', b.source_observation_id, '|', coalesce(f.source_observation_id, 'KRW')))
+            FROM silver.position_snapshots p
+            JOIN silver.instruments i ON i.instrument_id = p.instrument_id
+            JOIN silver.price_bars_daily b ON b.instrument_id = p.instrument_id AND b.session_date = ? AND b.price_basis = 'raw'
+            LEFT JOIN silver.fx_rates_daily f ON f.base_currency = i.currency AND f.quote_currency = 'KRW' AND f.rate_date = ? AND f.rate_type = 'close'
+            WHERE CAST(p.as_of AS DATE) = ?
+            ON CONFLICT DO NOTHING
+        """, [evaluation_date, slot, as_of, evaluation_date, evaluation_date, evaluation_date])
+        return self.connection.execute(
+            "SELECT count(*) FROM gold.portfolio_daily_state WHERE evaluation_date=? AND evaluation_slot=?",
+            [evaluation_date, slot],
+        ).fetchone()[0]
+
+    def table_count(self, qualified_name: str) -> int:
+        allowed = {
+            "bronze.source_observations", "silver.accounts", "silver.instruments",
+            "silver.position_snapshots", "silver.cash_snapshots", "silver.trade_events",
+            "silver.purchase_lots", "silver.trade_threads", "silver.trade_journal_revisions",
+            "silver.price_bars_daily", "silver.fx_rates_daily", "gold.portfolio_daily_state",
+        }
+        if qualified_name not in allowed:
+            raise ValueError("table is not in the repository count allowlist")
+        return self.connection.execute(f"SELECT count(*) FROM {qualified_name}").fetchone()[0]

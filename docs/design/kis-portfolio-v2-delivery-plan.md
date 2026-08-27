@@ -19,6 +19,11 @@ test와 migration dry-run은 Work Item별 사용자 재승인 없이 진행한�
 infrastructure provisioning, production 배포·cutover, live migration, 대량 backfill, 삭제와 외부 알림은
 각 절의 release/operation gate와 별도 사용자 권한을 계속 요구한다.
 
+2026-08-28 DEC-045는 위 infrastructure 경계 중 기존 합의 범위의 Secret Manager API·엔터티와 Seoul
+Firestore Standard operational-state database provisioning을 명시적으로 승인했다. 실제 provisioning 전
+read-only inventory와 비용·region 확인, non-destructive create-or-verify를 수행한다. production traffic
+cutover, 기존 MotherDuck writer 중지와 대량 backfill은 여전히 별도 gate다.
+
 ## 1. 계획 운영 방식
 
 V2는 장기 branch에서 한 번에 교체하지 않는다. 작은 vertical release를 mainline에 통합하되 V1 제품표면과
@@ -106,8 +111,9 @@ requirement / ADR
 
 ### Work items
 
-- `V2-W0201` Seoul의 Firestore Standard database 하나에 대한 region, free quota, IAM, application collection
-  allowlist, index, TTL schema 설계·provisioning plan.
+- `V2-W0201` **기반 완료 (2026-08-28)** — 기존 free-tier `(default)` Datastore Mode를 보존하고 Seoul의
+  named Firestore Native Standard `kis-portfolio-state`를 delete-protection과 함께 생성했다. named DB는
+  free quota가 없으므로 usage 비용을 추적하며 PITR/TTL managed delete는 비활성이다.
 - `V2-W0202` `StateStorePort`와 local in-memory/emulator adapter, Firestore adapter.
 - `V2-W0203` OAuth client/grant/code/token repository를 port로 전환하고 atomic refresh rotation을 test한다.
 - `V2-W0204` KIS token ciphertext, refresh lease와 fencing token을 Firestore로 이전한다.

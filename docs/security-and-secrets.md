@@ -46,6 +46,23 @@ Firestore 활성화 또는 token migration을 수행하지 않았다.
 실제 secret payload를 bundle로 옮기는 작업은 별도 security/provisioning Work Item과 rollback rehearsal 뒤에
 수행한다. 그 전에는 아래 V1 inventory와 rotation runbook이 현재 운영 절차다.
 
+### 2026-08-28 V2 state foundation inventory
+
+- project `grand-forge-279904`에는 기존 `(default)` `DATASTORE_MODE` database가
+  `asia-northeast3`에 있고 free tier를 사용한다. 이 database는 변경·삭제하지 않는다.
+- 합의한 Firestore Native state plane은 named database `kis-portfolio-state`로 같은 서울 region에 생성했다.
+  Standard edition, delete protection enabled, PITR/managed backup/TTL deletes disabled다.
+- named database는 free quota 대상이 아니지만 생성 고정비는 없고 read/write/storage 실제 사용량만
+  과금된다. 1인 앱의 token·lease·run request만 저장하고 월 50,000원 비용 gate를 적용한다.
+- `scripts/bootstrap_firestore_state.py`가 non-secret `system_config/state-schema-v1` marker와 transactional
+  lease fencing을 검증했다. collection allowlist는 `auth_users`, `auth_identities`, `oauth_clients`,
+  `oauth_grants`, `oauth_codes`, `oauth_tokens`, `kis_token_cache`, `leases`, `run_requests`, `system_config`다.
+- Secret Manager API와 기존 KIS Portfolio secret entity는 이미 존재하므로 중복 생성하거나 secret 값을
+  읽지 않았다.
+
+근거: [Firestore database 관리](https://cloud.google.com/firestore/docs/manage-databases),
+[Firestore 가격과 named database](https://cloud.google.com/firestore/pricing).
+
 ## Trust Boundaries
 
 - Local developer machine: `.env`, local DuckDB, legacy `var/tokens/token_{CANO}.json` migration input을 가진다.

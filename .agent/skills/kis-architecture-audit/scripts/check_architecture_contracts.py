@@ -47,6 +47,7 @@ def main() -> int:
         "kis-portfolio-auth",
         "kis-portfolio-batch",
         "kis-portfolio-mcp",
+        "kis-portfolio-migrate",
         "kis-portfolio-remote",
     }
     if scripts != expected_scripts:

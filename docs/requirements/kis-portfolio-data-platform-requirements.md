@@ -58,7 +58,7 @@ schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이
 | C | DEC-020~DEC-025 | OpenDART·SEC actual, point-in-time consensus, 배당 3상태, 표준 macro profile, licensed report gate |
 | D | DEC-026~DEC-032 | replay 기반 경보, Bollinger 보조지표, 2% risk cap, Telegram, consensus 위험 신호, journal review |
 | E | DEC-033~DEC-041 | Remote MCP SSOT, scale-to-zero·batch-first, 월 5만원 상한, versioned schema, off-site recovery |
-| F | DEC-042~DEC-044 | owner PDF 수동 반입, consensus 진입조건, 승인 범위 내 턴키 구현 권한 |
+| F | DEC-042~DEC-045 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현과 합의된 GCP provisioning 권한 |
 
 이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. DEC-044에 따라 승인 계약 안의 저장소 로컬
 구현과 검증은 진행할 수 있지만, 실제 적재·배포·provisioning과 외부 알림은 별도 gate를 유지한다.
@@ -378,6 +378,18 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   배포·cutover, live DB migration, 대량 backfill, 데이터 삭제와 외부 알림 전송 권한을 포함하지 않는다.
 - 구현 중 기존 결정과 충돌하거나 provider·비용·보안·SSOT가 바뀌면 자동으로 범위를 넓히지 않고 새
   approval gate에서 멈춘다.
+
+### DEC-045: 기존 운영 DB를 보존하고 합의된 GCP state·secret 기반을 프로비저닝한다
+
+- 운영 MotherDuck의 기존 `main` 객체와 데이터는 유지한다. V2 `bronze/silver/gold/control` 객체를 병렬로
+  추가하고, 과거 데이터는 source grain·quality·reconciliation을 검증할 수 있는 범위만 explicit migration한다.
+- 사용자는 기존 합의 설계의 Google Cloud 엔터티와 API를 현재 계정·프로젝트 권한으로 생성·활성화하도록
+  승인했다. 기존 free-tier `(default)` Datastore Mode는 보존하고, Seoul의 named Firestore Native Standard
+  `kis-portfolio-state`를 operational-state database로 추가한다.
+- provisioning 전에는 project, region, 기존 database/API/resource와 예상 비용을 read-only로 확인하며,
+  기존 resource를 덮어쓰거나 삭제하지 않는다.
+- 이 승인은 production traffic cutover, 기존 MotherDuck writer 중지, 대량 historical backfill, 외부 알림과
+  유료 data provider 가입을 포함하지 않는다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
@@ -938,6 +950,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-28 | provisioning 권한 승인 | DEC-045로 기존 MotherDuck 보존·병렬 V2 객체와 Secret Manager·Seoul Firestore 기반 provisioning 권한을 확정함 |
 | 2026-08-28 | 구현 권한 승인 | DEC-042 owner PDF 수동 반입, DEC-043 consensus later 진입조건, DEC-044 승인 범위의 repository-local 턴키 구현 권한을 확정함 |
 | 2026-08-27 | V2 설계 검토 대기 | 현행 코드·운영 DB·Cloud Run·비용 구성을 재조사하고 serverless modular monolith, stateless Remote MCP, Firestore state plane, parallel schema와 Wave 0~8 전환 설계안을 작성함. 구현과 provisioning은 미승인 |
 | 2026-08-27 | 요구 승인 | 패키지 C·D·E를 피드백과 함께 승인함. point-in-time consensus 위험 신호, 표준 macro profile v1, Bollinger 보조 context, 월 5만원 상한과 scale-to-zero·batch-first를 DEC-020~DEC-041로 확정함 |

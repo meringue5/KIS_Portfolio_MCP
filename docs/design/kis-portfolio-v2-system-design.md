@@ -232,7 +232,7 @@ src/kis_portfolio/
 
 | 저장소 | SSOT 책임 | 넣지 않는 것 |
 | --- | --- | --- |
-| Firestore Standard 1 DB | OAuth current state, encrypted KIS token cache, refresh lease, run request, idempotency claim | 장기 분석 fact, 대량 raw payload |
+| Firestore Standard `kis-portfolio-state` | OAuth current state, encrypted KIS token cache, refresh lease, run request, idempotency claim | 장기 분석 fact, 대량 raw payload |
 | GCS raw | immutable source bundle, filing/PDF/XLSX/ZIP, content hash object | credential, 평문 token |
 | MotherDuck Bronze | observation envelope, raw object reference, 작은 replay metadata | OAuth·KIS token |
 | MotherDuck Silver | normalized canonical facts, identity, reconciliation | LLM이 추측한 사실 |
@@ -240,10 +240,11 @@ src/kis_portfolio/
 | MotherDuck Control | dataset/metric/pipeline version, immutable run summary, watermark mirror, quality, lineage | active lease와 bearer token |
 | Secret Manager | long-lived provider credentials와 encryption key | 분석 데이터와 runtime event |
 
-Firestore 도입은 기존 DEC-036의 `security` MotherDuck physical schema 부분을 V2에서 대체한다. 한 database의
+Firestore 도입은 기존 DEC-036의 `security` MotherDuck physical schema 부분을 V2에서 대체한다. named database의
 database-level IAM과 application collection allowlist, Secret Manager encryption-key 격리를 함께 사용한다.
 collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위험은 negative test로 관리한다. Firestore API는
-현재 프로젝트에서 활성화돼 있지 않으므로 별도 provisioning Work Item으로 다룬다.
+2026-08-28 활성화했고, 기존 free-tier `(default)` Datastore Mode는 보존한 채 서울의
+`kis-portfolio-state` Firestore Native Standard DB를 delete-protection과 함께 생성했다.
 
 ### 6.2 Raw landing
 
@@ -485,9 +486,9 @@ Cloud Billing budget은 차단장치가 아니다. 실제 보호는 아래를 �
 - GCS lifecycle와 content deduplication
 - billing export 또는 월별 수동 report를 통한 서비스·SKU별 actual baseline
 
-Firestore 한 database는 현재 예상 규모에서 free quota보다 훨씬 작은 auth·lease 문서만 사용할 것으로
-추정한다. TTL delete와
-BigQuery billing export에는 free quota 밖 비용 가능성이 있으므로 정상월 비용표에 포함한다.
+`kis-portfolio-state`는 named database라 free quota 대상이 아니다. 현재 예상 auth·lease 문서량의
+operation/storage 비용은 작지만 실제 SKU 사용량을 정상월 비용표에 포함한다. TTL delete, PITR와 managed
+backup은 비용 검토 전 활성화하지 않는다.
 
 ### 12.2 기본적으로 도입하지 않는 구성
 
@@ -506,7 +507,7 @@ BigQuery billing export에는 free quota 밖 비용 가능성이 있으므로 �
 | V2-ADR-002 | Remote MCP만 제품표면 | 기존 승인 재확인 | local stdio는 harness로만 유지 |
 | V2-ADR-003 | auth/resource 두 service + 한 image digest | 2026-08-28 승인 | secret 격리와 release 일관성 동시 확보 |
 | V2-ADR-004 | stateless Streamable HTTP | 2026-08-28 조건부 승인 | actual client compatibility gate 뒤 전환 |
-| V2-ADR-005 | Firestore operational state plane | 2026-08-28 승인 | 한 DB + application allowlist·key 격리 |
+| V2-ADR-005 | Firestore operational state plane | 2026-08-28 승인 | application allowlist·key 격리 |
 | V2-ADR-006 | MotherDuck은 bronze/silver/gold/control | 2026-08-28 승인 | V2 Security는 warehouse 밖으로 이동 |
 | V2-ADR-007 | GCS immutable raw + off-vendor Parquet | 기존 승인 구체화 | replay·restore와 warehouse 용량 분리 |
 | V2-ADR-008 | explicit migration, runtime DDL 금지 | 설계 채택 | startup conflict와 silent drift 방지 |
@@ -518,6 +519,7 @@ BigQuery billing export에는 free quota 밖 비용 가능성이 있으므로 �
 | V2-ADR-014 | V2 초기 REST snapshot, WebSocket 보류 | 설계 채택 | KIS rate/resilience 자산 재사용 |
 | V2-ADR-015 | 주문 기능은 V2 public surface에서 제거 | 2026-08-28 승인 | disabled stub보다 명확한 권한 경계 |
 | V2-ADR-016 | parallel schema + dual-run cutover | 설계 채택 | 재개발 중에도 V1 데이터 보존과 rollback 가능 |
+| V2-ADR-017 | 기존 default Datastore 보존 + named Native state DB | 2026-08-28 적용 | `kis-portfolio-state`, Seoul, delete protection, usage 과금 |
 
 ## 14. 선택한 대안의 비교
 

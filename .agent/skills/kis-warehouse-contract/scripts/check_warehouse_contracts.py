@@ -21,7 +21,12 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from kis_portfolio.db.catalog import DATA_OBJECTS, backup_table_names  # noqa: E402
+from kis_portfolio.db.catalog import (  # noqa: E402
+    DATA_OBJECTS,
+    V2_DATA_OBJECTS,
+    backup_table_names,
+    v2_backup_table_names,
+)
 
 
 def text(path: str) -> str:
@@ -45,6 +50,10 @@ def main() -> int:
     backup = text("scripts/backup_motherduck.py")
     docs = text("docs/data-pipeline.md") + "\n" + text("docs/backup.md")
     catalog_doc = text("docs/data-catalog.md")
+    v2_migrations = "\n".join(
+        path.read_text()
+        for path in sorted((ROOT / "src/kis_portfolio/platform/sql").glob("*.sql"))
+    )
 
     schema_tables = set(re.findall(
         r"CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+([a-zA-Z_][a-zA-Z0-9_]*)",
@@ -73,6 +82,20 @@ def main() -> int:
             f"schema_only={sorted(schema_views - catalog_views)}, "
             f"catalog_only={sorted(catalog_views - schema_views)}"
         )
+
+    if len(V2_DATA_OBJECTS) != len({item.qualified_name for item in V2_DATA_OBJECTS}):
+        failures.append("V2 catalog registry contains duplicate qualified object names")
+    for item in V2_DATA_OBJECTS:
+        if item.physical_schema != item.layer or item.target_schema != item.layer:
+            failures.append(f"invalid V2 physical/layer schema for {item.qualified_name}")
+        if item.object_type == "table":
+            marker = f"CREATE TABLE IF NOT EXISTS {item.qualified_name}"
+        else:
+            marker = f"CREATE OR REPLACE VIEW {item.qualified_name}"
+        if marker.lower() not in v2_migrations.lower():
+            failures.append(f"V2 migration missing catalog object: {item.qualified_name}")
+        if f"`{item.qualified_name}`" not in catalog_doc:
+            failures.append(f"data catalog document missing V2 object: {item.qualified_name}")
 
     valid_layers = {"bronze", "silver", "gold", "control", "security"}
     valid_sensitivity = {"internal", "confidential", "restricted"}
@@ -108,6 +131,9 @@ def main() -> int:
     for table in backup_table_names():
         if table not in backup_doc:
             failures.append(f"backup docs missing catalog-approved table: {table}")
+    for table in v2_backup_table_names():
+        if table not in backup_doc:
+            failures.append(f"backup docs missing V2 catalog-approved object: {table}")
 
     if "CREATE OR REPLACE VIEW portfolio_daily_snapshots" not in schema:
         failures.append("schema must define portfolio_daily_snapshots curated view")

@@ -1,0 +1,85 @@
+{
+  "source_id": "source.kis-open-api",
+  "records": [
+    {
+      "source_record_id": "fixture-account-ria",
+      "observed_at": "2026-08-28T07:00:00+00:00",
+      "fetched_at": "2026-08-28T07:00:01+00:00",
+      "payload": {
+        "type": "account",
+        "account_id": "fixture-ria",
+        "account_label": "ria",
+        "account_type": "managed",
+        "base_currency": "KRW",
+        "as_of": "2026-08-28T07:00:00+00:00"
+      }
+    },
+    {
+      "source_record_id": "fixture-instrument-005930",
+      "observed_at": "2026-08-28T07:00:00+00:00",
+      "fetched_at": "2026-08-28T07:00:01+00:00",
+      "payload": {
+        "type": "instrument",
+        "instrument_id": "KRX:005930",
+        "market": "KRX",
+        "symbol": "005930",
+        "name": "Synthetic Electronics",
+        "asset_type": "stock",
+        "currency": "KRW",
+        "issuer_id": "fixture-issuer-kr",
+        "as_of": "2026-08-28T07:00:00+00:00",
+        "classification_quality": "fixture"
+      }
+    },
+    {
+      "source_record_id": "fixture-position-005930",
+      "observed_at": "2026-08-28T07:00:00+00:00",
+      "fetched_at": "2026-08-28T07:00:01+00:00",
+      "payload": {
+        "type": "position",
+        "account_id": "fixture-ria",
+        "instrument_id": "KRX:005930",
+        "as_of": "2026-08-28T07:00:00+00:00",
+        "quantity": "10",
+        "average_cost": "70000",
+        "cost_currency": "KRW",
+        "quality_status": "pass"
+      }
+    },
+    {
+      "source_record_id": "fixture-buy-order-1",
+      "observed_at": "2026-08-01T01:15:00+00:00",
+      "fetched_at": "2026-08-28T07:00:01+00:00",
+      "payload": {
+        "type": "trade",
+        "account_id": "fixture-ria",
+        "instrument_id": "KRX:005930",
+        "side": "buy",
+        "executed_at": "2026-08-01T01:15:00+00:00",
+        "quantity": "10",
+        "price": "70000",
+        "currency": "KRW",
+        "broker_order_id": "fixture-order-1",
+        "event_version": 1,
+        "quality_status": "pass"
+      }
+    },
+    {
+      "source_record_id": "fixture-price-005930-20260828",
+      "observed_at": "2026-08-28T06:30:00+00:00",
+      "fetched_at": "2026-08-28T07:00:01+00:00",
+      "payload": {
+        "type": "price",
+        "instrument_id": "KRX:005930",
+        "session_date": "2026-08-28",
+        "price_basis": "raw",
+        "open": "71000",
+        "high": "73500",
+        "low": "70500",
+        "close": "73000",
+        "volume": 1000000,
+        "quality_status": "pass"
+      }
+    }
+  ]
+}

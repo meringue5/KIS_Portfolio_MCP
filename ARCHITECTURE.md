@@ -81,6 +81,7 @@ KIS_Portfolio_MCP/
 - remote MCP는 `kis-portfolio-remote`가 제공한다.
 - batch CLI는 `kis-portfolio-batch`가 제공한다.
 - OAuth auth server는 `kis-portfolio-auth`가 제공한다.
+- V2 schema 변경은 runtime startup이 아니라 administrative `kis-portfolio-migrate`가 checksum migration으로 수행한다.
 - cross-cutting 보안 primitive는 `src/kis_portfolio/security/` 아래에 둔다.
 - side effect 없는 공통 값 변환 helper는 `src/kis_portfolio/common/` 아래에 둔다.
 
@@ -184,7 +185,7 @@ security encrypted or hashed auth/token state
 ```
 
 위 `security` schema는 현재 V1 목표 계약이다. 승인된 V2 목표는 OAuth/KIS token·lease·run request를
-Seoul의 Firestore Standard database 하나로 옮기고 장기 credential과 encryption key를 Secret Manager에
+Seoul의 named Firestore Standard `kis-portfolio-state` database로 옮기고 장기 credential과 encryption key를 Secret Manager에
 두며, MotherDuck을 `bronze/silver/gold/control` 분석 plane으로 제한한다. Firestore collection allowlist와
 trust-boundary별 key 격리를 적용하며, 별도 Work Item의 provisioning·migration·reconnect rehearsal과
 cutover 승인 전에는 현재 runtime에 적용하지 않는다.

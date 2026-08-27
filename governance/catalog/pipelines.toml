@@ -1,1 +1,116 @@
 schema_version = 1
+
+[[contracts]]
+id = "pipeline.owned-portfolio-core-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 보유 국내·미국 계좌·거래·가격·환율을 immutable observation과 canonical ledger·daily state로 만드는 managed pipeline."
+decision_refs = ["DEC-003", "DEC-005", "DEC-010", "DEC-015", "DEC-030", "DEC-044"]
+source_ids = ["source.kis-open-api", "source.portfolio-owner", "source.us-exchange-calendars"]
+input_dataset_ids = []
+output_dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.cash-transaction-event", "dataset.instrument-master", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-journal", "dataset.portfolio-daily-state"]
+stages = ["collect", "land", "normalize", "reconcile", "quality", "publish"]
+schedule_policy = "KR 10:00, 14:30 and 16:00 KST slots plus next Korean-morning U.S. close; local fixture rehearsal has no schedule"
+calendar_gate = "approved KR/US market calendar and explicit closed/early-close state"
+idempotency_key = "pipeline id, version, logical date, slot and account or instrument partition"
+timeout_policy = "bounded per stage and run; no request-scoped long execution"
+retry_policy = "resume failed stage; idempotent source reads only; no live order retry"
+source_call_budget = "bounded by configured account and held-instrument count before each run"
+freshness_gates = ["position and cash as-of recorded", "price session and FX date match the evaluation slot"]
+quality_gates = ["pagination and account coverage complete or explicit degraded", "daily state reconciles to positions, price, cash and FX"]
+secret_profile = "KIS account runtime only in production; synthetic fixture has none"
+cost_class = "routine"
+trigger_policy = "Scheduler primary; allowlisted Remote MCP may request the same logical run without arbitrary args"
+
+[[contracts]]
+id = "pipeline.etf-lookthrough-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유 ETF의 공식 issuer/KRX 파일을 content-addressed observation과 구성 snapshot으로 정규화한다."
+decision_refs = ["DEC-018", "DEC-019", "DEC-041", "DEC-044"]
+source_ids = ["source.krx-market-data", "source.kr-etf-issuers", "source.us-etf-issuers"]
+input_dataset_ids = ["dataset.instrument-master"]
+output_dataset_ids = ["dataset.etf-constituent-snapshot"]
+stages = ["collect", "land", "parse", "normalize", "quality", "publish"]
+schedule_policy = "one retrieval per held ETF per applicable market day after issuer publication"
+calendar_gate = "relevant exchange session and issuer publication date"
+idempotency_key = "pipeline id, version, source date, ETF instrument and issuer partition"
+timeout_policy = "bounded file download and parser timeout"
+retry_policy = "conditional idempotent download retry with backoff; parser resumes from landed hash"
+source_call_budget = "one conditional request per held ETF and allowlisted issuer per session"
+freshness_gates = ["source date and prior snapshot age recorded"]
+quality_gates = ["official issuer allowlist", "weights plus residual reconcile", "nested ETF depth and cycles bounded"]
+secret_profile = "KRX API key only when an approved endpoint is activated"
+cost_class = "routine"
+trigger_policy = "Scheduler primary; declared ETF/date gap replay only"
+
+[[contracts]]
+id = "pipeline.fundamentals-dividends-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유 issuer의 OpenDART·SEC filing actual과 dividend state를 point-in-time ledger로 만든다."
+decision_refs = ["DEC-020", "DEC-023", "DEC-025", "DEC-044"]
+source_ids = ["source.opendart", "source.sec-edgar", "source.kis-open-api", "source.portfolio-owner"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.trade-event", "dataset.cash-transaction-event"]
+output_dataset_ids = ["dataset.filing-event", "dataset.financial-fact", "dataset.dividend-event"]
+stages = ["collect", "land", "parse", "normalize", "reconcile", "quality", "publish"]
+schedule_policy = "daily incremental filing check and post-account-history dividend receipt reconciliation"
+calendar_gate = "source publication cadence; no fabricated daily observations"
+idempotency_key = "pipeline id, version, filing or event identity and issuer partition"
+timeout_policy = "bounded issuer and filing shards"
+retry_policy = "fair-access backoff and resume from landed immutable object"
+source_call_budget = "held issuer allowlist with source-specific daily cap"
+freshness_gates = ["next daily run after filing or account event"]
+quality_gates = ["corrections preserve knowledge time", "taxonomy source concept retained", "dividend state gaps explicit"]
+secret_profile = "OpenDART API key and existing KIS account profile; SEC none"
+cost_class = "routine"
+trigger_policy = "Scheduler primary; allowlisted issuer refresh or gap reconciliation"
+
+[[contracts]]
+id = "pipeline.macro-profile-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "ECOS·FRED/ALFRED·Cboe의 allowlisted macro_profile_v1 observation과 vintage를 수집한다."
+decision_refs = ["DEC-024", "DEC-026", "DEC-041", "DEC-044"]
+source_ids = ["source.bok-ecos", "source.fred-alfred", "source.cboe-vix"]
+input_dataset_ids = []
+output_dataset_ids = ["dataset.macro-observation"]
+stages = ["collect", "normalize", "quality", "publish"]
+schedule_policy = "daily check while fetching each series only at its native publication cadence"
+calendar_gate = "series-specific publication calendar and vintage availability"
+idempotency_key = "pipeline id, version, series, observation period and vintage partition"
+timeout_policy = "bounded allowlisted-series shards"
+retry_policy = "idempotent official API/download retry with cached metadata and backoff"
+source_call_budget = "small versioned series allowlist and per-source cap"
+freshness_gates = ["next scheduled run after source publication"]
+quality_gates = ["series unit and frequency present", "future revisions excluded", "license allowlist passes"]
+secret_profile = "ECOS and FRED API keys; Cboe none"
+cost_class = "routine"
+trigger_policy = "Scheduler primary; refresh only after the expected publication window"
+
+[[contracts]]
+id = "pipeline.owner-research-pdf-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "owner-selected PDF를 signature·rights·hash 검증 후 private object와 versioned extraction으로 반입한다."
+decision_refs = ["DEC-025", "DEC-042", "DEC-044"]
+source_ids = ["source.owner-provided-research-document"]
+input_dataset_ids = []
+output_dataset_ids = ["dataset.owner-research-document", "dataset.owner-research-extraction"]
+stages = ["validate", "hash", "land-private", "extract", "quality", "publish-metadata"]
+schedule_policy = "none; authenticated owner manual intake only"
+calendar_gate = "not applicable"
+idempotency_key = "pipeline id, version, document SHA-256 and extractor version"
+timeout_policy = "bounded upload size and extraction timeout"
+retry_policy = "landed hash is reused; failed extraction resumes without copying the original again"
+source_call_budget = "zero autonomous source calls"
+freshness_gates = ["available after intake validation; extraction failure is explicit"]
+quality_gates = ["PDF signature and size", "owner rights assertion", "DRM or prohibited processing rejected", "page or section lineage", "restricted output"]
+secret_profile = "owner authentication only; no provider credential"
+cost_class = "routine"
+trigger_policy = "owner-authenticated explicit upload; no Scheduler, crawling or unattended LLM discovery"

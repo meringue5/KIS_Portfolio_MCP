@@ -1,0 +1,19 @@
+{
+  "source_id": "source.bok-ecos",
+  "records": [
+    {
+      "source_record_id": "fixture-usdkrw-20260828",
+      "observed_at": "2026-08-28T07:00:00+00:00",
+      "fetched_at": "2026-08-28T07:00:02+00:00",
+      "payload": {
+        "type": "fx",
+        "base_currency": "USD",
+        "quote_currency": "KRW",
+        "rate_date": "2026-08-28",
+        "rate_type": "close",
+        "rate": "1325.50",
+        "quality_status": "pass"
+      }
+    }
+  ]
+}

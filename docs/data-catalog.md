@@ -58,6 +58,53 @@ Bronze/Silver/Gold는 데이터 품질과 소비 목적을 나타낸다. Control
 medallion 계층에 섞지 않는다. Gold는 반드시 Silver 또는 명시된 Control 기준정보에서 파생하며,
 Bronze를 임의로 직접 조인해 새로운 공식 지표를 만들지 않는다.
 
+## V2 Parallel Physical Catalog
+
+DEC-045에 따라 기존 `main` 객체는 그대로 보존하고 V2는 explicit migration
+`src/kis_portfolio/platform/sql/0001_v2_foundation.sql`과 `0002_v2_read_models.sql`로 병렬 생성한다.
+V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다. V1
+`get_connection()`의 `init_schema()`는 이 객체를 만들지 않는다.
+
+### V2 Bronze
+
+| Object | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `bronze.source_observations` | source record observation; content와 logical idempotency key로 append-only replay | Parquet / confidential |
+| `bronze.raw_object_manifest` | private object content hash와 rights metadata | private object / restricted |
+| `bronze.owner_research_documents` | owner PDF SHA-256별 immutable original identity | private object / restricted |
+
+### V2 Silver canonical ledger
+
+| Objects | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `silver.accounts`, `silver.instruments` | canonical account와 effective instrument identity | Parquet / confidential·internal |
+| `silver.position_snapshots`, `silver.cash_snapshots` | account/instrument 또는 currency/as-of 관측 | Parquet / confidential |
+| `silver.trade_events`, `silver.cash_flow_events` | broker order event version과 source cash event | Parquet / confidential |
+| `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots` | buy-order lot, investment thread와 versioned link | Parquet / confidential |
+| `silver.sell_allocation_revisions`, `silver.trade_journal_revisions` | sell-to-lot allocation 및 owner journal append-only revision | Parquet / confidential |
+| `silver.price_bars_daily`, `silver.fx_rates_daily` | instrument/session/basis와 currency pair/date/rate type | Parquet / internal |
+| `silver.etf_constituent_snapshots` | ETF/source date/file hash/constituent ordinal | Parquet / internal |
+| `silver.filing_events`, `silver.financial_facts` | filing document version과 point-in-time taxonomy fact | Parquet / internal |
+| `silver.dividend_events`, `silver.macro_observations` | dividend state event와 series/vintage/revision | Parquet / confidential·internal |
+| `silver.owner_research_extractions` | document/extractor/version/revision/page·section locator | private object / restricted |
+
+### V2 Gold and Control
+
+| Object | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
+| `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
+| `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
+| `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
+| `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence | Parquet / internal |
+| `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
+| `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
+
+총 32개 V2 object는 30 tables + 2 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
+사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
+evidence 없이는 실행하지 않는다.
+
 ## Bronze Catalog
 
 | Object | Purpose and grain | Key and write contract | Producer | Backup / sensitivity |
