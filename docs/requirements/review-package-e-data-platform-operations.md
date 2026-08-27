@@ -1,6 +1,6 @@
 # 검토 패키지 E — 데이터 플랫폼과 운영
 
-> 상태: 조사 완료, 통합 승인 대기
+> 상태: 사용자 승인 완료, 구현 미승인
 > 기준일: 2026-08-27
 > 범위: 논리·물리 경계, orchestration, 저장·보존, governance, backup·recovery 설계
 > 비범위: migration 실행, bucket 생성, Flights 구독, 배포, 기존 local MCP 제거
@@ -17,6 +17,7 @@
 | E-6 | source·object·metric catalog, run ledger, watermark와 quality result를 Remote MCP에 제공 | 대화형 분석이 table 의미와 freshness를 추측하지 않게 함 |
 | E-7 | 3년을 초기 적재·최소 hot history로 보고 canonical 사실은 삭제 기한 없이 누적 | 3년이 지나면 오래된 투자기억을 지우는 결과를 피함 |
 | E-8 | 매일 off-site Parquet backup, 월별 장기본, 분기 복원 rehearsal과 RPO 24h/RTO 4h를 사용 | Lite snapshot 1일에만 의존하지 않고 실제 복원 가능성을 검증 |
+| E-9 | 월 총비용 5만원을 상한으로 scale-to-zero 서비스와 실행 후 종료하는 batch job만 기본 채택 | 상시 실행 인프라 비용을 피하고 자산관리 서비스의 지속 가능성을 보장 |
 
 ## 2. 확인된 현황
 
@@ -69,6 +70,19 @@ clients → services/analytics → db repositories → MotherDuck
 승인된 보유범위의 3년 price/ETF typed data는 약 1 GB 안쪽 목표다. Package C의 재무 fact, 배당, 매크로와
 Package D의 signal/run row는 같은 범위에서 수십~수백 MB 수준으로 예상한다. 원본 보고서 binary를
 MotherDuck BLOB으로 중복 저장하지 않으면 10 GB의 즉각적인 제약은 아니다.
+
+### 2.4 현재 비용 구조 적합성
+
+- 현재 배포 문서는 auth·remote Cloud Run service를 `min-instances=0`, `max-instances=1`로 두고 request가
+  없을 때 scale-to-zero하도록 정의한다.
+- Cloud Run Jobs는 실행 중인 instance 시간에만 과금되고, Scheduler는 job 수 기반의 소액 과금 구조다.
+- Google Cloud budget은 경보이지 지출 차단장치가 아니므로 budget alert만으로 5만원 상한을 보장할 수 없다.
+- MotherDuck Business의 월 $250 기본료는 환율·부가세를 고려하기 전에도 월 5만원 상한을 넘는다. 따라서
+  Flights는 현 예산에서 선택할 수 없다.
+
+현재 구성은 비용 목표와 가까우며, 검증된 KIS·OAuth·Remote MCP 경계를 버리고 다시 만들 근거는 없다.
+권고는 **기존 shared-core 구조를 점진적으로 고치는 것**이다. 새 platform 또는 상시 worker를 추가하는
+재작성은 비용뿐 아니라 이미 검증한 인증·토큰·계좌 API 동작의 회귀 위험을 키운다.
 
 ## 3. 권고 계약
 
@@ -183,19 +197,42 @@ Remote MCP는 raw SQL을 대신 추측하지 않고 catalog, metric, freshness, 
    조정한다.
 7. MotherDuck snapshot retention은 편의 기능이며 Parquet backup을 대체하지 않는다.
 
+### E-9. 비용 상한과 scale-to-zero 계약
+
+1. 운영 인프라·데이터·네트워크·저장·외부 데이터 provider를 합친 **월 실제 지출 상한은 한화
+   50,000원**이다. 원화 청구액이 있으면 이를 우선하고, 외화 비용은 결제 환율·세금·수수료를 포함한다.
+2. Remote MCP와 OAuth는 request-based billing, `min-instances=0`을 유지한다. 비용·DB 연결 보호를 위해
+   `max-instances`도 명시하며, cold start는 허용되는 제품 특성이다.
+3. 필수 수집·정제·경보는 예약 또는 on-demand Cloud Run Job으로 실행하고 완료 즉시 종료한다. 상시 worker,
+   항상 켜진 ETL server, dedicated warehouse compute는 기본 아키텍처로 채택하지 않는다.
+4. MotherDuck은 Lite grant와 capacity contract 안에서 사용한다. Flights·Business 또는 다른 유료 데이터
+   플랫폼은 월간 총비용 추정과 대체안 비교 뒤 별도 사용자 승인이 없으면 도입하지 않는다.
+5. 신규 구성요소·provider·수집주기를 제안할 때 정상월, backfill 월, 장애 재시도 월의 원화 비용 추정과
+   5만원 내 잔여 예산을 함께 제시한다.
+6. 비용 관측은 월 5만원의 70%(35,000원)에서 예측 주의, 85%(42,500원)에서 경고·신규 고비용 작업 gate,
+   100%에서 비필수 수집·backfill 중지 후보로 둔다. 필수 보안·백업·복구를 무조건 중단하거나 데이터를
+   삭제하지 않으며 사용자에게 우선순위를 요청한다.
+7. Google Cloud budget alert는 비용을 자동 차단하지 않는다는 제약을 문서화한다. 실제 보호는 service별
+   max instances, job timeout·retry 제한, source call budget, MotherDuck compute/storage 관측과 관리된
+   kill switch를 함께 사용한다.
+8. 예산을 맞추기 위해 데이터 품질 실패를 숨기거나 canonical history를 삭제하지 않는다. 품질·보존 목표를
+   낮춰야 한다면 비용 추정과 영향을 제시하고 별도 승인을 받는다.
+
 ## 4. 구현 순서 권고
 
 승인 후에도 다음 구현계획을 별도로 검토한다.
 
-1. drift 통합과 broken view 복구
-2. migration runner·schema version gate
-3. source registry·pipeline run/watermark·quality contracts
-4. price/ETF 3년 backfill과 dual price basis
-5. transaction/lot/cash flow/journal canonical model
-6. Package C의 filing·dividend·macro adapters
-7. Package D signal engine·shadow mode·Telegram
-8. Remote MCP catalog와 fine-grained scope
-9. physical schema 이동과 restore rehearsal
+1. 현재 월 청구 baseline, service별 비용 attribution과 5만원 budget guardrail 확인
+2. auth·remote의 scale-to-zero/max instance와 모든 job의 timeout·retry·동시성 상한 검증
+3. drift 통합과 broken view 복구
+4. migration runner·schema version gate
+5. source registry·pipeline run/watermark·quality contracts
+6. price/ETF 3년 backfill과 dual price basis
+7. transaction/lot/cash flow/journal canonical model
+8. Package C의 filing·dividend·macro adapters
+9. Package D signal engine·shadow mode·Telegram
+10. Remote MCP catalog와 fine-grained scope
+11. physical schema 이동과 restore rehearsal
 
 이 순서는 “분석 기능부터 빠르게 보이게 하기”보다 원천·identity·quality·복구 근거를 먼저 갖추도록 한다.
 
@@ -208,25 +245,32 @@ Remote MCP는 raw SQL을 대신 추측하지 않고 catalog, metric, freshness, 
 | 모든 BLOB을 MotherDuck 저장 | 한곳에서 조회 | 용량·중복·backup 비용 증가 | 비권고 |
 | 3년 후 자동 삭제 | 용량 예측이 쉬움 | 장기 투자기억·수정공시 비교 손실 | 비권고 |
 | snapshot만 backup으로 사용 | 운영이 단순 | Lite는 1일, vendor 독립 복구 불가 | 금지 |
+| 기존 구조를 버리고 플랫폼 재작성 | 구조를 처음부터 정리 가능 | 인증·KIS 회귀, migration, 개발·운영비 증가 | 비권고 |
+| shared core를 비용 gate와 함께 점진 개선 | 검증 자산과 scale-to-zero 구조 재사용 | drift·migration 부채를 순서대로 해결해야 함 | **권고** |
 
 ## 6. 승인할 결정
 
 | ID | 결정 | 승인 상태 |
 | --- | --- | --- |
-| E-1 | 현재 shared-core architecture와 필요 기반 HTTP adapter | 대기 |
-| E-2 | Remote MCP user-facing SSOT와 local 제품표면 퇴역 | 대기 |
-| E-3 | Cloud Run Jobs/Scheduler 유지, Flights 보류 | 대기 |
-| E-4 | drift-first versioned physical schema migration | 대기 |
-| E-5 | MotherDuck typed rows + content-addressed object storage | 대기 |
-| E-6 | catalog·run·watermark·quality·metric·lineage 계약 | 대기 |
-| E-7 | 3년 minimum hot history와 canonical indefinite accumulation | 대기 |
-| E-8 | off-site Parquet, 분기 restore, RPO 24h/RTO 4h | 대기 |
+| E-1 | 현재 shared-core architecture와 필요 기반 HTTP adapter | 승인 (`DEC-033`) |
+| E-2 | Remote MCP user-facing SSOT와 local 제품표면 퇴역 | 승인 (`DEC-034`) |
+| E-3 | Cloud Run Jobs/Scheduler 유지, Flights 보류 | 승인 (`DEC-035`) |
+| E-4 | drift-first versioned physical schema migration | 승인 (`DEC-036`) |
+| E-5 | MotherDuck typed rows + content-addressed object storage | 승인 (`DEC-037`) |
+| E-6 | catalog·run·watermark·quality·metric·lineage 계약 | 승인 (`DEC-038`) |
+| E-7 | 3년 minimum hot history와 canonical indefinite accumulation | 승인 (`DEC-039`) |
+| E-8 | off-site Parquet, 분기 restore, RPO 24h/RTO 4h | 승인 (`DEC-040`) |
+| E-9 | 월 5만원 총비용 상한, scale-to-zero·batch-first와 비용 guardrail | 승인 (`DEC-041`) |
 
-승인해도 코드·DB·Cloud Run·MotherDuck plan·bucket·Telegram을 변경하지 않는다.
+2026-08-27 사용자 피드백을 포함해 모두 승인했다. 코드·DB·Cloud Run·MotherDuck plan·bucket·Telegram은
+아직 변경하지 않는다.
 
 ## 7. 공식 근거
 
 - [MotherDuck pricing](https://motherduck.com/product/pricing/)
 - [MotherDuck Flights](https://motherduck.com/product/flights/)
 - [Cloud Run Jobs](https://cloud.google.com/run/docs/create-jobs)
+- [Cloud Run pricing](https://cloud.google.com/run/pricing)
+- [Cloud Scheduler pricing](https://cloud.google.com/scheduler/pricing)
+- [Google Cloud budget alerts](https://cloud.google.com/billing/docs/how-to/budgets)
 - [Google Cloud Storage pricing](https://cloud.google.com/storage/pricing)

@@ -400,6 +400,10 @@ OpenDART는 공시 원문 XML과 구조화된 주요·전체 재무정보를 제
 최소 3개 종목·3개 metric을 독립 자료와 대조하기 전에는 canonical consensus로 선정하지 않는다. SEC와
 OpenDART actuals에서 LLM이 만든 전망을 이 원천의 consensus와 섞지 않는다.
 
+승인된 consensus 계약은 provider·as-of·회계기간·metric·unit·analyst count와 mean·median·high·low를
+요구한다. 실적 surprise에는 발표 직전 snapshot만 사용하고, 발표 뒤 NTM revision은 별도 시계열로
+보존한다. KIS semantic 검증 또는 licensed provider가 확보되지 않은 시장은 `source_gap`으로 유지한다.
+
 공식 근거:
 [KIS 공식 종목추정실적 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/estimate_perform/estimate_perform.py)
 
@@ -432,6 +436,10 @@ OpenDART actuals에서 LLM이 만든 전망을 이 원천의 consensus와 섞지
 뉴스 전문을 매크로 사건의 canonical source로 자동 채택하지 않는다. 정책·통계 release와 기업 filing을
 원천 사건으로 두고, 종목 영향은 direct·rule-based·analyst hypothesis·validated 상태를 구분한다.
 
+초기 `macro_profile_v1`은 한국 기준금리·원/달러·물가·산업생산·수출과 미국 정책금리·국채 2년/10년·
+장단기차·물가·고용·실질 GDP·광의 달러·WTI·VIX를 대상으로 승인했다. 정확한 series ID, release lag와
+versioned 해석 규칙은 구현계획의 source/metric contract에서 확정한다.
+
 공식 근거:
 [한국은행 ECOS Open API](https://ecos.bok.or.kr/api/),
 [FRED API](https://fred.stlouisfed.org/docs/api/fred/fred/),
@@ -439,18 +447,19 @@ OpenDART actuals에서 LLM이 만든 전망을 이 원천의 consensus와 섞지
 
 ## 8. 다음 검증 게이트
 
-패키지 C·D·E의 조사를 완료했다. 다음 단계는 사용자 통합 승인 후 구현계획을 작성하는 것이다.
+패키지 C·D·E의 조사와 사용자 승인을 완료했다. 다음 단계는 비용 baseline을 포함한 구현계획을 작성하고
+별도 승인을 받는 것이다.
 
-1. C의 실제 실적·forward·배당·매크로 원천 계약을 승인한다.
-2. D의 bootstrap signal, Telegram, Remote MCP scope와 LLM review 계약을 승인한다.
-3. E의 orchestration, schema migration, retention과 backup·restore 계약을 승인한다.
-4. KRX PDF 자동 접근 방식과 이용조건은 Package B 구현계획의 acceptance gate로 유지한다.
-5. 미국 consensus와 해외·IRP 실수령 배당 source gap은 승인된 provider/import가 생길 때까지 숨기지 않는다.
+1. 실제 GCP·MotherDuck·provider 월 비용을 측정하고 5만원 상한의 guardrail을 구현계획에 포함한다.
+2. KRX PDF 자동 접근 방식과 이용조건은 Package B 구현계획의 acceptance gate로 유지한다.
+3. 미국 consensus와 해외·IRP 실수령 배당 source gap은 승인된 provider/import가 생길 때까지 숨기지 않는다.
+4. consensus point-in-time snapshot, macro series ID와 signal replay의 acceptance criteria를 구체화한다.
 
 ## 9. 조사 이력
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 C·D·E 승인 | point-in-time consensus와 revision 위험 신호, macro profile v1, Bollinger 보조 context, Remote MCP·저비용 batch 운영과 월 5만원 상한을 `selected` 요구로 확정함 |
 | 2026-08-27 | 패키지 C 조사 완료 | OpenDART·SEC actual, KIS 국내 재무·추정, 국내·미국 배당·권리와 ECOS·FRED·Cboe 원천을 조사하고 live coverage와 source gap을 기록함 |
 | 2026-08-27 | 패키지 B 승인 | dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 `selected`로 확정함 |
 | 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 100행·조정 옵션, KIS ETF 구성 30행 제한, KRX/운용사 PDF와 지표 계약을 조사함 |

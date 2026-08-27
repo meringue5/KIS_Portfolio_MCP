@@ -45,22 +45,22 @@
 트랙으로 제공하는 방향을 승인했다. 이 승인은 논리적 요구와 개념 모델을 확정한 것이며, 물리 DB
 schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이스 구현을 승인한 것은 아니다.
 
-## 통합 승인 대기: 패키지 C·D·E
+## 통합 승인 완료: 패키지 C·D·E
 
-사용자 요청에 따라 남은 조사를 먼저 완료하고 다음 세 패키지를 한 번에 검토할 수 있게 묶었다.
+사용자 요청에 따라 남은 조사를 먼저 완료한 뒤 다음 세 패키지를 피드백과 함께 일괄 승인했다.
 
 - [패키지 C — 실적·가치·배당·매크로](./review-package-c-fundamentals-dividend-macro.md)
 - [패키지 D — 감시·신호·대화 workflow](./review-package-d-monitoring-conversation.md)
 - [패키지 E — 데이터 플랫폼과 운영](./review-package-e-data-platform-operations.md)
 
-| 패키지 | 승인 대기 결정 | 핵심 권고 |
+| 패키지 | 승인된 결정 | 핵심 권고 |
 | --- | ---: | --- |
-| C | C-1~C-6 | OpenDART·SEC actual, source-separated forward, 배당 3상태, 공식 매크로, licensed report gate |
-| D | D-1~D-6 | replay 기반 경보, 2% risk cap, outbound Telegram, fine-grained MCP scope, journal review |
-| E | E-1~E-8 | Remote MCP SSOT, Cloud Run 유지, versioned schema, object storage, indefinite canonical history, off-site recovery |
+| C | DEC-020~DEC-025 | OpenDART·SEC actual, point-in-time consensus, 배당 3상태, 표준 macro profile, licensed report gate |
+| D | DEC-026~DEC-032 | replay 기반 경보, Bollinger 보조지표, 2% risk cap, Telegram, consensus 위험 신호, journal review |
+| E | DEC-033~DEC-041 | Remote MCP SSOT, scale-to-zero·batch-first, 월 5만원 상한, versioned schema, off-site recovery |
 
-이 표의 권고는 조사 완료 상태이며 아직 DEC로 승격되지 않았다. 일괄 승인해도 구현·적재·배포는 시작하지
-않고 다음 단계의 구현계획과 migration 순서를 별도로 검토한다.
+이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. 구현·적재·배포는 시작하지 않고 다음 단계의
+구현계획, 비용 baseline과 migration 순서를 별도로 검토한다.
 
 ## 1. 문서 목적
 
@@ -300,6 +300,53 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
 - 원본 binary의 물리 보존 위치와 change-only 최적화는 패키지 E에서 결정한다.
 - 이 결정은 논리 수집 계약이며 실제 자동수집, schema, backfill 또는 배포를 승인하지 않는다.
 
+### DEC-020~DEC-025: 실적·가치·배당·매크로 계약
+
+- `DEC-020`: 국내 actual은 OpenDART, 미국 actual은 SEC EDGAR를 canonical source로 하고 5년·8분기를
+  최초 적재 목표로 한다.
+- `DEC-021`: consensus, 사용자 시나리오와 model 시나리오를 분리하고 발표 직전 consensus 분포·analyst
+  count·revision을 point-in-time snapshot으로 보존한다. 미국 licensed consensus gap을 숨기지 않는다.
+- `DEC-022`: fundamental valuation band와 trade thread의 risk/reward band를 별도 데이터 제품으로 둔다.
+- `DEC-023`: 배당을 declared·entitled·received·corrected 상태로 보존하고 해외·IRP 실수령 gap에는
+  provenance가 있는 manual import를 허용한다.
+- `DEC-024`: ECOS·FRED/ALFRED·Cboe 기반 `macro_profile_v1`과 versioned regime 해석을 사용하고, 신규
+  지표는 source·metric contract 승인으로 확장한다.
+- `DEC-025`: 리서치는 이용권한 확인 전 metadata·link·허용된 구조화 사실만 보존한다.
+
+### DEC-026~DEC-032: 감시·신호·대화 계약
+
+- `DEC-026`: 가격 충격·변동성·기여도·추세를 결합하고 3년 replay와 2주 shadow를 통과한 rule version만
+  실제 경보에 사용한다. 볼린저 `SMA20 ± 2σ`, `%B`, bandwidth는 단독 신호가 아닌 보조 context다.
+- `DEC-027`: thread stop을 우선하는 Turtle-inspired 2% portfolio risk cap을 사용하고 ATR20 `2N`은
+  stop이 없을 때의 제안값으로만 사용한다.
+- `DEC-028`: Telegram은 outbound-only, `주의` 이상, 최소 민감정보와 상태 기반 de-duplication으로 운영한다.
+- `DEC-029`: Remote MCP 권한을 `mcp:read`, `mcp:collect`, `mcp:journal.write`로 분리하고 주문 scope는 두지 않는다.
+- `DEC-030`: 플랫폼 Scheduler가 필수 수집의 SSOT이며 LLM 예약 작업은 allowlisted 보조 trigger다.
+- `DEC-031`: 누락 journal·thread·sell allocation은 review queue로 만들고 사용자 답변만 투자 의도의
+  권위 원천으로 기록한다.
+- `DEC-032`: 발표 직전 consensus miss, 회사 guidance 하향과 발표 후 NTM consensus 하향 revision을
+  point-in-time 위험 신호로 관리한다.
+
+### DEC-033~DEC-041: 데이터 플랫폼·운영·비용 계약
+
+- `DEC-033`: source client, shared core, Remote MCP, batch runner, data plane 경계를 유지하고 별도 REST
+  microservice는 실제 consumer 요구가 생길 때만 추가한다.
+- `DEC-034`: Remote MCP만 사용자-facing MCP SSOT로 두고 local stdio는 제품표면에서 단계적으로 퇴역한다.
+- `DEC-035`: Cloud Run Jobs와 Scheduler를 primary orchestrator로 유지하고 MotherDuck Flights는 보류한다.
+- `DEC-036`: live drift를 먼저 통합한 뒤 versioned migration과 검증을 통해 Bronze·Silver·Gold·Control·
+  Security를 물리 분리한다.
+- `DEC-037`: typed row는 MotherDuck, content-addressed 원문은 private object storage, 복구본은 off-site
+  Parquet에 둔다.
+- `DEC-038`: source·pipeline·run·watermark·quality·metric·lineage catalog를 Remote MCP와 직접 SQL이
+  공유한다.
+- `DEC-039`: 3년은 최소 hot history와 초도 적재 범위이며 canonical 사실은 자동 삭제하지 않는다.
+- `DEC-040`: 매일 off-site Parquet, 분기 복원 rehearsal, RPO 24시간·RTO 4시간을 목표로 한다.
+- `DEC-041`: 전체 월 실제 지출 상한은 50,000원이다. request-based `min-instances=0`, 명시적 max instances,
+  실행 후 종료하는 batch job을 기본으로 하며 상시 worker·dedicated compute를 채택하지 않는다. 비용은
+  70%·85%·100% 단계로 관측·gate하고 신규 구성은 정상월·backfill월·장애월 비용을 먼저 제시한다.
+
+DEC-020~DEC-041도 구현 승인이 아니다. 상세 grain, 품질 gate와 대안은 각 검토 패키지가 소유한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -500,7 +547,7 @@ Billing 화면에서 별도로 확인해야 한다.
 
 공식 원천과 live coverage, 실제 실적·consensus·사용자/모델 시나리오 분리 및 valuation 계약 권고는
 `docs/requirements/review-package-c-fundamentals-dividend-macro.md`에 기록했다. C-1~C-3과 C-6은
-통합 승인 대기 상태다.
+DEC-020~DEC-022·DEC-025로 승인됐다. 실제 provider 선정과 구현은 미승인이다.
 
 ### 8.3 배당 원장
 
@@ -509,7 +556,7 @@ Billing 화면에서 별도로 확인해야 한다.
 
 KIS KSD·국내 계좌권리·미국 ICE 권리의 live 검증과 `declared → entitled → received` 계약은 Package C에
 기록했다. 해외와 IRP 실제 입금 원천 gap을 일정×수량으로 채우지 않고 statement/manual provenance를
-허용하는 C-4 권고가 승인 대기 상태다.
+허용하는 C-4 권고는 DEC-023으로 승인됐다.
 
 ### 8.4 매수 lot·투자 thread 분석과 매매일지
 
@@ -614,7 +661,8 @@ DEC-015~DEC-019로 승인됐으며 이 승인은 구현 승인이 아니다.
 
 경보 bootstrap boundary, 3년 replay·shadow gate, 2% risk cap, Telegram delivery, Remote MCP scope와
 LLM 예약·매매일지 review 계약은 `docs/requirements/review-package-d-monitoring-conversation.md`에
-기록했다. D-1~D-6은 통합 승인 대기 상태다.
+기록했다. Bollinger 보조 context와 consensus miss·guidance·forward revision 신호를 포함한 D-1~D-7은
+DEC-026~DEC-032로 승인됐다.
 
 ### 8.6 매크로 및 사건 맥락
 
@@ -624,7 +672,8 @@ LLM 예약·매매일지 review 계약은 `docs/requirements/review-package-d-mo
 - 시간적 연관성, 모델 추론 및 검증된 인과관계를 구분한다.
 
 ECOS·FRED/ALFRED·Cboe VIX와 OpenDART·SEC 사건의 source contract 및 direct·rule-based·hypothesis·
-validated 관계 구분은 Package C의 C-5 권고로 기록했다.
+validated 관계 구분은 Package C에 기록했다. 일반적으로 알려진 금리·환율·물가·성장·고용·달러·유가·
+VIX를 `macro_profile_v1`으로 시작하고 이후 versioned contract로 확장한다.
 
 ## 9. 데이터 거버넌스 요구사항
 
@@ -747,6 +796,15 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 - 재처리에 필요한 raw 관측은 승인된 retention·backup 정책에 따라 보존한다.
 - 신규 원천이나 신호는 source catalog, target mapping, 품질 계약 및 acceptance review를 우회하지 않는다.
 
+### 11.5 비용과 실행 형태
+
+- 운영 인프라, 저장소, 네트워크와 외부 데이터 provider를 합친 월 실제 지출은 50,000원 이하여야 한다.
+- 사용자-facing 서비스는 cold start를 허용하고 request 기반으로 scale-to-zero해야 한다.
+- 정기 수집·정제·경보는 실행 후 종료하는 저비용 batch job을 기본으로 하며 상시 worker를 요구하지 않는다.
+- 신규 구성요소와 수집주기는 정상월·초도적재월·장애 재시도월 비용을 비교한 뒤 채택한다.
+- 예산 경보만으로 지출이 차단된다고 가정하지 않고 max instances, timeout·retry·source call budget과
+  관리된 중지 경로를 함께 설계한다.
+
 ## 12. 요구사항과 관련된 현재 상태 관찰
 
 - 프로젝트에는 Bronze, Silver, Gold, Control, Security 논리 계층이 이미 정의되어 있다.
@@ -769,7 +827,9 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 - live MotherDuck은 49.0 MiB이며 27 tables + 3 views가 있다. `cash_flow`, `trade_journal`,
   `asset_return_daily`와 총자산 품질 컬럼은 현 checkout과 drift 상태이고 `asset_return_daily`는 broken이다.
 - MotherDuck Flights는 현재 Business plan 기능이다. Lite 10 GB 범위에서 Cloud Run Jobs/Scheduler를
-  유지하고 typed data와 object storage를 분리하는 쪽을 Package E에서 권고한다.
+  유지하고 typed data와 object storage를 분리하는 쪽을 Package E에서 승인했다. 기존 Cloud Run 배포
+  문서도 auth·remote `min-instances=0`을 사용하므로 전면 재작성보다 비용 guardrail을 보강하는 점진
+  개선이 적합하다.
 - 운영 DB drift 문서에는 초기 `cash_flow`, `trade_journal`, `asset_return_daily` 객체가 기록되어 있지만,
   그 존재만으로 현재 계약이나 구현을 승인하지 않는다.
 - 이 관찰은 후속 구현 계획 전에 다시 검증해야 한다.
@@ -778,7 +838,6 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 다음은 아직 선택하지 않았다.
 
-- Package C·D·E 권고안의 사용자 승인
 - 실제 Bronze/Silver/Gold schema 이동
 - Telegram bot·destination의 실제 생성과 배포 환경
 - 미국 licensed consensus provider와 해외·IRP 실제 배당 입금 원천
@@ -789,19 +848,20 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 - dashboard 및 시각화 기술
 - trade execution, purchase lot, trade thread의 물리 schema와 저장 계층
 - 주문 분할체결을 purchase lot으로 묶는 규칙과 기본 매도 배분 구현
+- 실제 월 청구 baseline, 서비스별 비용 attribution과 5만원 예산의 비필수 작업 중지 정책
 
 ## 14. 미결정 사항
 
-1. Package C·D·E 권고를 통합 승인할지 검토한다.
-2. KIS 국내 종목추정실적의 metric·unit·revision mapping을 독립 자료와 대조한다.
-3. 미국 consensus가 필요할 때 licensed provider와 비용·보존권한을 선택한다.
-4. 해외와 IRP의 실제 배당 입금·세금 원천 또는 statement import 형식을 선택한다.
-5. KRX·운용사 PDF의 자동 접근 방식, 이용조건과 과거 날짜 coverage를 검증한다.
-6. Telegram destination owner, test message 승인과 장애 escalation을 구현계획에서 확정한다.
-7. 3년 replay와 2주 shadow 결과로 주식·ETF·REIT·레버리지 threshold를 보정한다.
-8. live drift 객체를 현재 branch에 통합할지 migration 전 확정한다.
-9. private object storage의 region, encryption, lifecycle과 backup destination을 선택한다.
-10. 거래·lot·thread·배당·fundamental·signal의 물리 schema와 migration을 설계한다.
+1. KIS 국내 종목추정실적의 metric·unit·revision mapping을 독립 자료와 대조한다.
+2. 미국 consensus가 필요할 때 licensed provider와 비용·보존권한을 선택한다.
+3. 해외와 IRP의 실제 배당 입금·세금 원천 또는 statement import 형식을 선택한다.
+4. KRX·운용사 PDF의 자동 접근 방식, 이용조건과 과거 날짜 coverage를 검증한다.
+5. Telegram destination owner, test message 승인과 장애 escalation을 구현계획에서 확정한다.
+6. 3년 replay와 2주 shadow 결과로 주식·ETF·REIT·레버리지 threshold를 보정한다.
+7. live drift 객체를 현재 branch에 통합할지 migration 전 확정한다.
+8. private object storage의 region, encryption, lifecycle과 backup destination을 선택한다.
+9. 거래·lot·thread·배당·fundamental·signal의 물리 schema와 migration을 설계한다.
+10. 현재 GCP·MotherDuck·provider 실제 월 비용을 측정하고 35,000·42,500·50,000원 gate의 운영 동작을 확정한다.
 
 ## 15. 요구사항 분석 진행 순서
 
@@ -828,9 +888,9 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 | --- | --- | --- | --- |
 | A | 거래 원장과 과거 복원 | lot grain, IRP 원천·fallback, backfill 깊이, 해외 비용·환율 결합, 매도 임시 배분 | 완료; DEC-010~DEC-014 승인 |
 | B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 완료; DEC-015~DEC-019 승인 |
-| C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 조사 완료; C-1~C-6 통합 승인 대기 |
-| D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 조사 완료; D-1~D-6 통합 승인 대기 |
-| E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 조사 완료; E-1~E-8 통합 승인 대기 |
+| C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 완료; DEC-020~DEC-025 승인 |
+| D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 완료; DEC-026~DEC-032 승인 |
+| E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 완료; DEC-033~DEC-041 승인 |
 
 각 패키지가 너무 크면 독립적으로 승인 가능한 소단위로 나누되, 다음 패키지 전체의 미리보기를 함께
 제공한다. 사용자가 명시적으로 요청하지 않는 한 단순 필드 하나마다 승인을 반복해서 요구하지 않는다.
@@ -839,6 +899,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 요구 승인 | 패키지 C·D·E를 피드백과 함께 승인함. point-in-time consensus 위험 신호, 표준 macro profile v1, Bollinger 보조 context, 월 5만원 상한과 scale-to-zero·batch-first를 DEC-020~DEC-041로 확정함 |
 | 2026-08-27 | 패키지 C·D·E 승인 대기 | 공식 원천·live coverage, 경보·Telegram·scope, orchestration·retention·recovery 조사를 끝내고 20개 권고를 통합 검토 문서로 묶음 |
 | 2026-08-27 | 요구 승인 | 패키지 B의 dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 모두 승인함 |
 | 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 조정 옵션·100행 제한, KIS ETF 30행 제한, KRX/운용사 PDF, RSI·보유기간 고점과 3년 용량 권고안을 문서화함 |

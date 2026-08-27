@@ -68,6 +68,11 @@ KIS_Portfolio_MCP/
 
 MCP adapter는 tool 등록만 담당하고, 장기적으로 KIS 호출은 client/service로 계속 얇게 분리한다.
 
+사용자-facing 제품표면은 OAuth Remote MCP 하나로 수렴한다. local stdio entrypoint는 remote parity와
+운영 복구경로를 검증하는 동안 개발·test harness로 남을 수 있지만 사용자 제품 SSOT가 아니다. 현재
+코드베이스의 shared core를 점진적으로 개선하며, 별도 REST microservice는 dashboard·mobile app 등 실제
+consumer가 MCP와 다른 안정 계약을 요구할 때만 추가한다.
+
 ```text
 src/kis_portfolio/
 ├── config.py
@@ -116,6 +121,21 @@ analytics service를 내부 코어로 두고, MCP와 batch, 향후 HTTP/Web API�
 
 `common`은 env, DB connection, HTTP client, KIS 도메인 판단 로직을 import하지 않는다. `security`는
 보안 primitive만 제공하며 OAuth auth server 자체는 `adapters/auth`에 둔다.
+
+## 비용과 실행 수명
+
+운영 architecture의 월 실제 총비용 상한은 50,000원이다. 이 상한에는 Cloud Run, Scheduler, 저장·네트워크,
+MotherDuck과 유료 데이터 provider를 포함한다.
+
+- Remote MCP와 auth는 request-based billing, `min-instances=0`과 제한된 `max-instances`를 사용한다.
+- 수집·정제·품질·signal은 예약 또는 on-demand batch job으로 실행하고 완료 즉시 종료한다.
+- 상시 worker, 항상 켜진 ETL server와 dedicated warehouse compute는 기본 구성에 두지 않는다.
+- MotherDuck Lite와 Cloud Run Jobs/Scheduler를 우선 사용하고 Flights·Business는 예산 내 효과를 입증해
+  별도 승인받기 전까지 보류한다.
+- 비용 경보는 지출 차단을 보장하지 않으므로 max instances, job timeout·retry, source call budget과
+  관리된 비필수 작업 중지 경로를 함께 둔다.
+- 기존 shared-core 구조를 우선 개선한다. 재작성은 비용 또는 제품 경계를 충족할 수 없다는 근거가 생길
+  때만 대안으로 재검토한다.
 
 OAuth token 발급을 제외한 KIS 업무 REST 호출은 `clients.kis.request_kis` 단일 경로를 사용한다.
 token 발급은 auth keyed lock과 전용 pacing/retry를 유지한다. `clients.kis_resilience`가 process-local

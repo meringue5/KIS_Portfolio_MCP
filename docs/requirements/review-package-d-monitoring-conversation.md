@@ -1,6 +1,6 @@
 # 검토 패키지 D — 감시·신호·대화 workflow
 
-> 상태: 조사 완료, 통합 승인 대기
+> 상태: 사용자 승인 완료, 구현 미승인
 > 기준일: 2026-08-27
 > 범위: 경보 계산·전송·권한·대화 workflow의 논리 계약
 > 비범위: Telegram bot 생성, OAuth 변경, 신호 코드, scheduler, DB·배포 변경
@@ -15,6 +15,7 @@
 | D-4 | Remote MCP OAuth scope를 읽기·수집 trigger·일지 쓰기로 분리 | 예약 작업과 journal write가 조회 권한을 자동 상속하지 않게 함 |
 | D-5 | LLM 예약 작업은 보조 trigger·reviewer이며 필수 수집의 SSOT가 아님 | LLM을 사용하지 않아도 데이터가 쌓여야 함 |
 | D-6 | 누락 일지·미지정 매도를 review queue로 만들고 사용자 답변만 투자 의도의 권위 원천으로 사용 | LLM이 거래 이유를 사후 창작하는 것을 방지 |
+| D-7 | 발표 직전 consensus miss, 회사 guidance 하향과 발표 후 forward 하향 revision을 별도 위험 신호로 운영 | 실적 숫자뿐 아니라 시장 기대의 변화와 전망이 꺾이는 시점을 감지해야 함 |
 
 ## 2. 확인된 현황
 
@@ -32,6 +33,10 @@
 기존 `get-portfolio-anomalies`는 한 계좌의 국내/연금 feeder 총평가액에 단일 z-score를 적용한다. 글로벌
 canonical 총자산, 종목 기여도, 보유 에피소드 고점, 자산유형 및 signal state를 합친 새 엔진을 대체하지
 못한다.
+
+기존 `get-bollinger-bands`는 cached `close`에 window 20·2σ를 계산하지만 현재 price basis를 명시하지 않고
+band 밖을 곧바로 `과매수/과매도`로 표시한다. 이는 승인된 수정주가·보조 context 계약과 다르므로 그대로
+운영 경보에 재사용하지 않고 구현 단계에서 metric version과 표현을 교정한다.
 
 ### 2.2 현재 인증과 예약 실행
 
@@ -72,6 +77,9 @@ bootstrap 절대 floor는 3년 replay에서 asset class별로 조정한다. 데�
 - 수정종가가 `SMA50` 아래이고 `SMA20 < SMA50`, 낙폭 조건이 함께 있으면 `경고` 후보로 강화한다.
 - `SMA120` 이탈은 장기 위험 맥락이며 단독 `긴급`이 아니다.
 - RSI14의 30/70 이탈은 context다. 가격·거래량·추세 확인 없이 단독 Telegram 신호로 사용하지 않는다.
+- 볼린저 밴드는 수정종가 기준 `SMA20 ± 2σ`를 기본으로 계산하고 `%B`, bandwidth와 squeeze/band expansion을
+  함께 보존한다. 상·하단 접촉만으로 과매수·과매도 또는 매수·매도를 단정하지 않고, 가격 충격·거래량·
+  SMA·RSI와 결합되는 보조 context로만 사용한다.
 - VIX 20/30/40은 시장 regime tag 후보이며 개별종목 방향 신호가 아니다. 종목 충격 threshold를
   완화하거나 설명 context를 추가할 수 있지만 VIX만으로 매수·매도 경보를 만들지 않는다.
 
@@ -155,6 +163,19 @@ Telegram Bot API는 HTTPS 기반 `sendMessage`를 사용한다. destination은 �
 5. 사용자가 답하지 않으면 원천 거래는 유지하고 queue를 snooze할 수 있다. LLM이 이유를 생성해 채우지 않는다.
 6. 동일 질문의 반복은 `last_asked_at`, snooze와 completion 상태로 억제한다.
 
+### D-7. Consensus surprise와 전망 하향 위험 신호
+
+1. `earnings_consensus_miss`는 C-2의 발표 직전 consensus snapshot과 공식 actual을 비교한다. 매출,
+   영업이익·EBIT, EPS 등 metric별 결과를 섞지 않는다.
+2. `company_guidance_cut`은 회사가 제시한 guidance의 신규·하향·철회 상태를 원문 사건과 연결한다.
+3. `forward_consensus_down_revision`은 발표 뒤 NTM 매출·영업이익·EPS의 7·30·90일 변화를 추적한다.
+4. analyst count가 너무 적거나 snapshot이 오래됐거나 provider coverage가 불완전하면 경보를 억제하고
+   `insufficient_consensus`로 표시한다.
+5. 5%·10% 같은 초기 surprise/revision 구간은 bootstrap 후보일 뿐이다. 종목·업종별 과거 분포와 3년
+   replay를 거쳐 severity를 확정한다.
+6. Telegram에는 actual, consensus, surprise, analyst count, consensus as-of, forward revision과 source
+   quality를 설명하고 매수·매도 지시로 표현하지 않는다.
+
 ## 4. 대안과 영향
 
 | 선택 | 장점 | 단점 | 판정 |
@@ -164,20 +185,23 @@ Telegram Bot API는 HTTPS 기반 `sendMessage`를 사용한다. destination은 �
 | 절대+변동성+기여 결합 | 해석성과 자산별 적응을 함께 확보 | replay·버전 관리 필요 | **권고** |
 | Telegram inbound command | 편리함 | 권한·오입력·감사 범위 급증 | v1 비권고 |
 | 단일 OAuth scope | 구현이 단순 | 조회 client가 write·trigger 권한까지 가질 수 있음 | 비권고 |
+| 볼린저 상·하단 접촉 단독 경보 | 익숙하고 계산이 간단 | 추세장에서 band walk와 반복 오탐이 많음 | 비권고 |
+| consensus surprise·revision 분리 | 기대치 충족과 전망 변화의 시점을 재현 | licensed provider와 point-in-time snapshot 필요 | **권고** |
 
 ## 5. 승인할 결정
 
 | ID | 결정 | 승인 상태 |
 | --- | --- | --- |
-| D-1 | bootstrap 경보식, 3년 replay, 2주 shadow calibration gate | 대기 |
-| D-2 | Turtle-inspired 2% risk cap과 ATR20 제안값 | 대기 |
-| D-3 | outbound-only Telegram, 최소 payload와 state de-duplication | 대기 |
-| D-4 | `mcp:read`·`mcp:collect`·`mcp:journal.write` 분리 | 대기 |
-| D-5 | platform SSOT + LLM 예약 작업 보조 trigger | 대기 |
-| D-6 | 사용자 답변 중심 journal review queue | 대기 |
+| D-1 | bootstrap 경보식, Bollinger 보조 context, 3년 replay, 2주 shadow calibration gate | 승인 (`DEC-026`) |
+| D-2 | Turtle-inspired 2% risk cap과 ATR20 제안값 | 승인 (`DEC-027`) |
+| D-3 | outbound-only Telegram, 최소 payload와 state de-duplication | 승인 (`DEC-028`) |
+| D-4 | `mcp:read`·`mcp:collect`·`mcp:journal.write` 분리 | 승인 (`DEC-029`) |
+| D-5 | platform SSOT + LLM 예약 작업 보조 trigger | 승인 (`DEC-030`) |
+| D-6 | 사용자 답변 중심 journal review queue | 승인 (`DEC-031`) |
+| D-7 | point-in-time consensus miss·guidance cut·forward 하향 위험 신호 | 승인 (`DEC-032`) |
 
-승인해도 구현은 시작하지 않는다. bootstrap 숫자는 replay 결과가 아니라 활성화 전 검토 기준이며,
-운영 threshold 확정은 별도 구현·검증 단계의 acceptance gate다.
+2026-08-27 사용자 피드백을 포함해 모두 승인했다. 구현은 시작하지 않는다. bootstrap 숫자는 replay
+결과가 아니라 활성화 전 검토 기준이며, 운영 threshold 확정은 별도 구현·검증 단계의 acceptance gate다.
 
 ## 6. 공식 근거
 

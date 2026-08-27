@@ -1,6 +1,6 @@
 # 검토 패키지 C — 실적·가치·배당·매크로
 
-> 상태: 조사 완료, 통합 승인 대기
+> 상태: 사용자 승인 완료, 구현 미승인
 > 기준일: 2026-08-27
 > 범위: 요구사항 분석, 공식 원천 조사와 read-only source 검증
 > 비범위: API key 발급, schema, 수집 코드, backfill, DB 적재, 배포
@@ -10,10 +10,10 @@
 | ID | 승인할 권고 | 핵심 이유 |
 | --- | --- | --- |
 | C-1 | 국내 실제 실적·공시는 OpenDART, 미국은 SEC EDGAR를 canonical source로 사용 | 공시 원문과 XBRL 사실을 재현할 수 있고 KIS 재무 coverage만으로는 부족함 |
-| C-2 | forward 전망은 `consensus`, `user_scenario`, `model_scenario`를 분리하고 미국 consensus gap을 숨기지 않음 | 공시기관은 미래 consensus를 제공하지 않고 KIS 추정실적의 field 의미도 불완전함 |
+| C-2 | forward 전망은 `consensus`, `user_scenario`, `model_scenario`를 분리하고 발표 직전 consensus snapshot을 보존 | 애널리스트별 견해 차이를 분포로 보존해야 실적 surprise와 전망 하향을 재현할 수 있음 |
 | C-3 | valuation band와 trade thread의 risk/reward band를 서로 다른 데이터 제품으로 관리 | 기업가치 범위와 진입가·목표가·손절가의 손익비는 같은 개념이 아님 |
 | C-4 | 배당을 `declared → entitled → received` 세 상태로 보존하고 실수령이 확인되지 않으면 예상액으로 표시 | 일정·주당배당과 계좌 입금은 원천과 확정 시점이 다름 |
-| C-5 | 매크로 수치는 BOK ECOS, FRED/ALFRED, Cboe VIX를 사용하고 사건 연결은 관측·규칙·가설을 구분 | 재현 가능한 공식 시계열과 LLM의 해석을 섞지 않아야 함 |
+| C-5 | 일반적으로 쓰이는 매크로 profile v1을 공식 시계열로 시작하고 지표·해석 규칙을 versioning | 현재는 표준적인 해석을 제공하되 사용자의 투자 내공에 따라 안전하게 확장할 수 있어야 함 |
 | C-6 | 리서치 보고서는 라이선스가 확인될 때까지 원문 수집 대신 metadata·link·허용된 파생 사실만 저장 | 유료·저작권 자료의 무단 복제와 출처 없는 전망을 피함 |
 
 ## 2. 확인된 현황
@@ -87,8 +87,9 @@ SEC 공시와 XBRL은 실제 실적의 canonical source가 될 수 있지만 ana
 ### C-2. 12개월 forward와 시나리오
 
 1. `consensus_forward`, `user_scenario`, `model_scenario`를 source type으로 분리한다.
-2. consensus에는 provider, as-of, fiscal period, analyst count·coverage, metric, unit와 revision identity가
-   있어야 한다. 이 조건을 만족하지 못한 값은 canonical consensus가 아니다.
+2. consensus에는 provider, as-of, fiscal period, analyst count·coverage, metric, unit, mean·median·high·low와
+   revision identity가 있어야 한다. 개별 analyst 값은 라이선스가 허용할 때만 보존한다. 이 조건을
+   만족하지 못한 값은 canonical consensus가 아니다.
 3. KIS 국내 종목추정실적은 semantic mapping을 최소 3개 종목·3개 지표에서 독립 자료와 대조한 후에만
    `experimental_consensus`로 채택한다.
 4. 미국 consensus는 승인된 licensed provider가 생길 때까지 `source_gap`으로 표시한다. SEC 실제값에서
@@ -96,6 +97,13 @@ SEC 공시와 XBRL은 실제 실적의 canonical source가 될 수 있지만 ana
 5. NTM은 결산월이 다른 회사를 지원하도록 현재·다음 회계연도 추정치를 남은 기간으로 선형 가중하는
    versioned 계산을 기본으로 한다. 원천이 분기 추정을 제공하면 4개 forward quarter 합계를 우선한다.
 6. 실적 발표·추정치 revision마다 forward snapshot을 새로 만들고 과거 as-of 결과를 재작성하지 않는다.
+7. 실적 surprise는 공식 actual과 **발표 직전 사용 가능했던 consensus snapshot**을 비교한다. 발표 뒤
+   수정된 consensus를 소급 적용하지 않는다.
+8. 기본 surprise는 `(actual - consensus) / abs(consensus)`로 계산하되, consensus가 0에 가깝거나 음수여서
+   비율이 왜곡되는 지표는 절대차·별도 metric rule을 사용한다. actual, consensus, 차이, analyst count,
+   as-of와 계산 버전을 함께 노출한다.
+9. 전망 악화는 NTM 매출·영업이익·EPS consensus의 7·30·90일 revision, 상향·하향 analyst 수와 회사
+   guidance 변경을 가능한 범위에서 별도 사건으로 보존한다. 실제 경보 판정은 D-7이 소유한다.
 
 ### C-3. Valuation band와 risk/reward band
 
@@ -119,9 +127,17 @@ SEC 공시와 XBRL은 실제 실적의 canonical source가 될 수 있지만 ana
 
 ### C-5. 매크로·사건 context
 
-초기 관리 series는 한국 기준금리·원/달러·물가·산업/수출, 미국 정책금리·2년/10년 국채금리·물가·고용,
-VIX로 제한한다. 각 series는 provider series ID, frequency, unit, release/vintage, observed period와 fetched-at을
-보존한다.
+초기 `macro_profile_v1`은 일반적으로 널리 쓰이는 다음 범주로 제한한다.
+
+- 한국: 한국은행 기준금리, 원/달러 환율, 소비자물가, 산업생산, 수출
+- 미국·글로벌: 정책금리, 미국 국채 2년·10년 금리와 장단기차, 소비자·근원물가, 실업률·비농업고용,
+  실질 GDP, 광의 달러지수, WTI, VIX
+
+각 series는 provider series ID, frequency, unit, release/vintage, observed period와 fetched-at을 보존한다.
+정확한 series ID와 발표시차는 구현계획의 source contract에서 확정한다. 해석은 `긴축/완화`, `물가 압력`,
+`성장 둔화/회복`, `달러 강세/약세`, `위험회피` 같은 versioned regime tag와 설명 규칙으로 제공하며,
+단일 지표를 인과관계나 매수·매도 결론으로 만들지 않는다. 이후 지표는 source catalog, metric 정의와
+사용자 승인을 거쳐 profile version을 올리는 방식으로 추가한다.
 
 사건과 종목의 연결은 다음 근거를 구분한다.
 
@@ -154,14 +170,15 @@ VIX로 제한한다. 각 series는 provider series ID, frequency, unit, release/
 
 | ID | 결정 | 승인 상태 |
 | --- | --- | --- |
-| C-1 | OpenDART·SEC actual fundamentals와 5년/8분기 최초 적재 | 대기 |
-| C-2 | source-separated forward와 미국 consensus gap 유지 | 대기 |
-| C-3 | valuation band와 risk/reward band 분리 | 대기 |
-| C-4 | declared·entitled·received 배당 원장과 해외/IRP manual fallback | 대기 |
-| C-5 | ECOS·FRED/ALFRED·Cboe 및 evidence-typed 사건 연결 | 대기 |
-| C-6 | 리서치 metadata-first와 licensed-source gate | 대기 |
+| C-1 | OpenDART·SEC actual fundamentals와 5년/8분기 최초 적재 | 승인 (`DEC-020`) |
+| C-2 | source-separated forward, 발표 직전 consensus와 revision 이력 | 승인 (`DEC-021`) |
+| C-3 | valuation band와 risk/reward band 분리 | 승인 (`DEC-022`) |
+| C-4 | declared·entitled·received 배당 원장과 해외/IRP manual fallback | 승인 (`DEC-023`) |
+| C-5 | 공식 표준 macro profile v1과 versioned 해석·확장 | 승인 (`DEC-024`) |
+| C-6 | 리서치 metadata-first와 licensed-source gate | 승인 (`DEC-025`) |
 
-승인해도 구현은 시작하지 않는다. 승인 결과만 통합 요구사항의 다음 DEC 번호로 승격한다.
+2026-08-27 사용자 피드백을 포함해 모두 승인했다. 이 승인은 논리 요구사항 승인이고 API 계약, provider
+구독, schema, backfill 또는 배포 구현 승인이 아니다.
 
 ## 6. 공식 근거
 

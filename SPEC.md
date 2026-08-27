@@ -479,6 +479,32 @@ circuit breaker를 적용한다. 상세 운영 계약은 `docs/kis-api-resilienc
 
 ---
 
+### ADR-020: Remote-only 제품표면과 월 5만원 serverless 비용 상한
+
+**결정**: 사용자-facing MCP는 OAuth Remote MCP 하나를 SSOT로 둔다. 운영 architecture는 검증된 shared
+core를 유지하면서 request-based scale-to-zero Cloud Run service와 실행 후 종료하는 Cloud Run Job을
+기본으로 한다. 운영 인프라·저장·네트워크·외부 데이터 provider를 합친 월 실제 지출 상한은 50,000원이다.
+
+**이유**:
+- local MCP 안내는 iPhone 등 원격 client에서 로컬 Mac 실행이 필요하다는 혼선을 만든다.
+- 현재 core·Remote MCP·OAuth·batch 경계는 이미 목표 책임을 표현하며 별도 REST microservice나 전면
+  재작성은 비용과 검증 회귀를 늘린다.
+- 상시 worker와 dedicated warehouse compute는 개인 자산관리 서비스의 사용 패턴과 비용 상한에 맞지 않는다.
+- MotherDuck Flights가 포함된 Business 기본료는 현재 예산을 초과하므로 기능 편의만으로 채택할 수 없다.
+
+**계약**:
+- 제품 문서와 connector 안내는 Remote MCP만 가리킨다. local entrypoint는 구현·test harness로 한시 유지할
+  수 있으나 지원되는 제품 표면으로 부르지 않는다.
+- auth·remote는 `min-instances=0`과 명시적인 `max-instances`를 사용하고 cold start를 허용한다.
+- 필수 수집·정제·품질·경보는 예약 또는 on-demand job으로 실행하고 완료 후 종료한다.
+- 신규 서비스·provider·수집주기는 정상월·backfill월·장애 재시도월의 원화 비용과 잔여 예산을 먼저 제시한다.
+- 35,000원·42,500원·50,000원 비용 단계와 max instances, timeout·retry, source call budget을 함께 사용한다.
+  budget alert 자체가 지출을 차단한다고 가정하지 않는다.
+- 세부 데이터·신호 요구와 구현 미승인 경계는
+  `docs/requirements/kis-portfolio-data-platform-requirements.md`의 DEC-020~DEC-041이 소유한다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유
