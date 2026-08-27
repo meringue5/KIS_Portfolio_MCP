@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 import duckdb
 
+from kis_portfolio.db.catalog import DATA_OBJECTS, backup_table_names, managed_object_names
+
 
 def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("KIS_DB_MODE", "local")
@@ -20,30 +22,21 @@ def test_db_schema_initializes_with_configured_data_dir(tmp_path, monkeypatch):
     finally:
         kisdb.close_connection()
 
-    assert {
-        "asset_holding_snapshots",
-        "asset_overview_daily_snapshots",
-        "asset_overview_snapshots",
-        "domestic_orders",
-        "exchange_rate_history",
-        "instrument_classification_overrides",
-        "instrument_master",
-        "kis_api_access_tokens",
-        "market_calendar",
-        "order_history",
-        "overseas_order_history",
-        "overseas_orders",
-        "overseas_asset_snapshots",
-        "overseas_settlement_balance_snapshots",
-        "overseas_transaction_history",
-        "overseas_transactions",
-        "portfolio_daily_snapshots",
-        "portfolio_snapshots",
-        "price_history",
-        "schema_migrations",
-        "trade_profit_history",
-    }.issubset(tables)
+    assert tables == set(managed_object_names())
     assert (tmp_path / "local" / "kis_portfolio.duckdb").exists()
+
+
+def test_data_catalog_declares_governed_layers_and_unique_objects():
+    assert len(DATA_OBJECTS) == 27
+    assert len({item.name for item in DATA_OBJECTS}) == len(DATA_OBJECTS)
+    assert {item.target_schema for item in DATA_OBJECTS} == {
+        "bronze",
+        "silver",
+        "gold",
+        "control",
+        "security",
+    }
+    assert all(item.physical_schema == "main" for item in DATA_OBJECTS)
 
 
 def test_db_schema_initialization_retries_write_conflict(tmp_path, monkeypatch):
@@ -112,6 +105,8 @@ def test_backup_script_requires_motherduck_token(monkeypatch):
     script = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(script)
+
+    assert script.TABLES == backup_table_names()
 
     monkeypatch.delenv("MOTHERDUCK_TOKEN", raising=False)
     monkeypatch.setattr(script, "load_dotenv", lambda *args, **kwargs: None)

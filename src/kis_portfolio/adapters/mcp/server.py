@@ -31,13 +31,14 @@ from kis_portfolio.analytics.portfolio import (
     get_portfolio_trend as analyze_portfolio_trend,
 )
 from kis_portfolio.auth import get_token_status as inspect_token_status
+from kis_portfolio.clients.kis import KISApiError
 from kis_portfolio.observability import (
     current_or_new_operation_id,
     log_event,
     operation_context,
 )
 from kis_portfolio.services import kis_api
-from kis_portfolio.services.account import fetch_balance_snapshot
+from kis_portfolio.services.account import fetch_balance_snapshot, get_latest_balance_fallback
 from kis_portfolio.services.overview import build_total_asset_overview
 from kis_portfolio.services.order_history import get_domestic_order_history
 from kis_portfolio.services.overseas_history import (
@@ -207,7 +208,13 @@ async def get_all_token_statuses():
     description="Use this when you need the latest balance for one configured account and want to save a fresh snapshot. 단일 계좌 조회용이며, 전체 자산현황이나 전 계좌 새로고침에는 refresh-all-account-snapshots를 우선 사용하세요.",
     annotations=SAFE_LOCAL_WRITE_TOOL,
 )
-async def get_account_balance(account_label: ConfiguredAccountLabel):
+async def get_account_balance(
+    account_label: ConfiguredAccountLabel,
+    allow_stale_on_error: Annotated[
+        bool,
+        Field(description="Return the latest saved balance with status=stale when KIS is temporarily unavailable."),
+    ] = False,
+):
     operation_id = current_or_new_operation_id("mcp")
     started = time.perf_counter()
     with operation_context(operation_id):
@@ -219,7 +226,11 @@ async def get_account_balance(account_label: ConfiguredAccountLabel):
             account_label=_account_label(account_label),
         )
         try:
-            result = await _get_account_balance_impl(account_label, operation_id)
+            result = await _get_account_balance_impl(
+                account_label,
+                operation_id,
+                allow_stale_on_error=allow_stale_on_error,
+            )
         except Exception as error:
             log_event(
                 logger,
@@ -245,10 +256,35 @@ async def get_account_balance(account_label: ConfiguredAccountLabel):
         return result
 
 
-async def _get_account_balance_impl(account_label: ConfiguredAccountLabel, operation_id: str):
+async def _get_account_balance_impl(
+    account_label: ConfiguredAccountLabel,
+    operation_id: str,
+    *,
+    allow_stale_on_error: bool = False,
+):
     account = get_account(account_label)
-    with scoped_account_env(account):
-        result = await fetch_balance_snapshot(save_snapshot=True, return_metadata=True)
+    try:
+        with scoped_account_env(account):
+            result = await fetch_balance_snapshot(save_snapshot=True, return_metadata=True)
+    except KISApiError as exc:
+        if not allow_stale_on_error:
+            raise
+        fallback = get_latest_balance_fallback(account.cano)
+        if fallback is None:
+            raise
+        payload = _wrap_raw(
+            fallback.pop("raw"),
+            account=account,
+            source=fallback.pop("source"),
+            snapshot_status="not_saved",
+        )
+        payload.update(fallback)
+        payload["upstream"] = {
+            "status": "unavailable",
+            "error_type": type(exc).__name__,
+        }
+        payload["diagnostics"] = _diagnostics(operation_id)
+        return payload
     saved_snapshot_id = result.get("saved_snapshot_id")
     payload = _wrap_raw(
         result["raw"],
@@ -335,12 +371,18 @@ async def _refresh_all_account_snapshots_impl(operation_id: str):
                 error_type=type(e).__name__,
                 error=safe_error,
             )
-            results.append({
+            failed_row = {
                 "source": "kis_api",
                 "status": "error",
                 "account": account.public_dict(),
                 "error": safe_error,
-            })
+            }
+            if isinstance(e, KISApiError):
+                fallback = get_latest_balance_fallback(account.cano)
+                if fallback is not None:
+                    fallback.pop("raw", None)
+                    failed_row["fallback"] = fallback
+            results.append(failed_row)
     return {
         "source": "kis_api",
         "count": len(results),

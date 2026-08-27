@@ -33,7 +33,7 @@
 
 - 등록된 계좌 목록 조회
 - 전체 계좌 국내/연금 스냅샷 갱신
-- 특정 계좌 잔고 조회
+- 특정 계좌 잔고 조회 (`allow_stale_on_error=true`일 때만 장애 시 저장된 잔고를 stale로 반환)
 - 전체 자산현황 요약
   - 국내 자산
   - 해외 주식 평가액
@@ -63,19 +63,14 @@
 
 ### 4. 데이터 저장
 
-- `portfolio_snapshots`: 국내/연금 raw 스냅샷
-- `overseas_asset_snapshots`: 해외 자산 raw/aggregate 스냅샷
-- `asset_overview_snapshots`: canonical 총자산 스냅샷
-- `asset_holding_snapshots`: 총자산 스냅샷 기준 정규화 보유 row
-- `order_history`: 국내 주문/체결 raw observation
-- `domestic_orders`: 국내 주문/체결 canonical upsert 저장소
-- `overseas_order_history`: 해외 주문/체결 raw observation
-- `overseas_orders`: 해외 주문/체결 canonical upsert 저장소
-- `overseas_transaction_history`: 해외 일별거래내역 raw observation
-- `overseas_transactions`: 해외 일별거래내역 canonical upsert 저장소
-- `overseas_settlement_balance_snapshots`: 해외 결제기준잔고 raw 스냅샷
-- `instrument_master`: KIS 종목마스터 적재 결과
-- `instrument_classification_overrides`: 로컬 수동 분류 override
+- Bronze: KIS 잔고·주문·거래·손익 raw observation
+- Silver: 정규화 시세/환율, canonical 총자산·보유종목·주문/거래
+- Gold: 일별 대표 스냅샷과 분석용 view
+- Control: migration, 시장 달력, 종목마스터, 분류 override
+- Security: 암호화/해시된 KIS token과 MCP OAuth state
+
+현재 관리하는 25개 table과 2개 view의 grain, key, 적재 방식, 민감도와 백업 정책은
+[데이터 저장소 거버넌스와 카탈로그](./docs/data-catalog.md)에 정리되어 있습니다.
 
 ## 중요한 현재 상태
 
@@ -169,14 +164,14 @@ KIS_DATA_DIR=var
 KIS_ACCOUNT_TYPE=REAL
 KIS_ENABLE_ORDER_TOOLS=false
 KIS_REAL_API_MIN_INTERVAL_SECONDS=0.15
-KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS=1.0
-KIS_TOKEN_MIN_INTERVAL_SECONDS=1.0
-KIS_RATE_LIMIT_RETRY_DELAY_SECONDS=1.0
+KIS_REAL_API_MAX_IN_FLIGHT=3
+KIS_API_MAX_QUEUE_SIZE=50
 ```
 
 전체 예시는 [.env.example](./.env.example)를 참고하세요. 각 시크릿의 source of truth, DB 저장 여부,
 회전 절차는 [docs/security-and-secrets.md](./docs/security-and-secrets.md)에 정리되어 있습니다.
-KIS 호출 유량 제한과 재시도 정책은 [docs/kis-api-rate-limits.md](./docs/kis-api-rate-limits.md)를 따릅니다.
+KIS 호출 간격은 [docs/kis-api-rate-limits.md](./docs/kis-api-rate-limits.md), timeout·재시도·bulkhead·circuit
+breaker·stale fallback 계약은 [docs/kis-api-resilience.md](./docs/kis-api-resilience.md)를 따릅니다.
 
 ## 실행 방법
 
@@ -404,6 +399,9 @@ KIS_DB_MODE=local
 
 상대경로 `KIS_DATA_DIR=var`는 프로젝트 루트 기준으로 해석됩니다.
 
+데이터 계층, 전체 객체 카탈로그와 `main`에서 Bronze/Silver/Gold schema로 이행하는 계획은
+[docs/data-catalog.md](./docs/data-catalog.md)를 참고하세요.
+
 ## 배포
 
 - 로컬 stdio MCP: 가능
@@ -434,3 +432,4 @@ KIS_DB_MODE=local
 MIT License
 
 이 프로젝트는 `migusdn/KIS_MCP_Server` 포크에서 출발했으며, 원본 역시 MIT License를 사용합니다.
+

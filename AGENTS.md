@@ -80,6 +80,11 @@ native skill discovery를 지원하지 않는 환경에서도 관련 작업 전�
 - `.agent/skills/kis-warehouse-contract/SKILL.md`: MotherDuck/DuckDB schema, repository, backup 계약 점검
 - `.agent/skills/kis-release-ops/SKILL.md`: CI/CD, Secret Manager, GitHub Actions, Cloud Run 릴리즈 절차
 
+DB 작업에서는 `docs/data-catalog.md`를 가장 먼저 읽는다. 이 문서가 객체 목적, grain, logical layer,
+민감도, 백업 정책과 schema migration 계획의 canonical governance 문서다. `schema.py` 또는 live DB에만
+객체를 추가하지 말고 `src/kis_portfolio/db/catalog.py`, DDL/migration, repository test, catalog 문서를
+같은 변경에서 갱신한다.
+
 ### KIS access token DB cache
 KIS access token은 `kis_api_access_tokens` 테이블에 **암호화 저장**한다.
 cache key는 `sha256("{KIS_ACCOUNT_TYPE}:{KIS_CANO}:{KIS_APP_KEY}")` 규칙을 사용한다.
@@ -118,6 +123,17 @@ API 키와 계좌정보는 `claude_desktop_config.json`의 `env` 블록에서 �
 ### 주문 tool stub
 `submit-stock-order`, `submit-overseas-stock-order`는 disabled stub이다.
 실제 KIS 주문 API를 호출하지 않는다. 주문 기능은 audit/confirmation 설계 전까지 구현하지 않는다.
+
+### KIS REST resilience
+OAuth token 발급을 제외한 KIS 업무 REST 호출은 `kis_portfolio.clients.kis.request_kis`를 통과한다.
+`clients/kis_resilience.py`가 process-local rate interval, shared adaptive cooldown, bounded queue/in-flight
+bulkhead, policy deadline, idempotent retry와 endpoint circuit breaker를 담당한다.
+
+- live order POST는 자동 재시도하지 않는다.
+- `quote`, `account`, `history`, `batch` 정책을 호출 성격에 맞게 선택한다.
+- live balance의 stale fallback은 호출자가 명시적으로 허용한 경우에만 반환한다.
+- stale/partial 응답은 source, as-of, age와 upstream 상태를 표시한다.
+- 설정과 운영 계약은 `docs/kis-api-rate-limits.md`, `docs/kis-api-resilience.md`가 canonical이다.
 
 ### Remote MCP 인증
 원격 Streamable HTTP MCP는 `kis-portfolio-remote` 엔트리포인트로 실행한다.
@@ -178,26 +194,19 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 
 상대경로 `KIS_DATA_DIR=var`는 현재 작업 디렉터리가 아니라 프로젝트 루트 기준으로 해석.
 
-**테이블 요약:**
+**데이터 거버넌스:**
 
-| 테이블 | 저장 방식 | 트리거 |
-|--------|----------|--------|
-| `price_history` | INSERT OR IGNORE | `get-stock-history`, `get-overseas-stock-history` 호출 시 |
-| `exchange_rate_history` | INSERT OR IGNORE | `get-exchange-rate-history` 호출 시 |
-| `portfolio_snapshots` | append-only INSERT | `get-account-balance`, `refresh-all-account-snapshots` 호출 시 |
-| `overseas_asset_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
-| `asset_overview_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
-| `asset_holding_snapshots` | append-only INSERT | `get-total-asset-overview(save_snapshot=True)` 호출 시 |
-| `market_calendar` | upsert | `kis-portfolio-batch sync-market-calendar 2026 2027` 실행 시 |
-| `order_history` | append-only INSERT | `kis-portfolio-batch collect-domestic-order-history --date today` 실행 시 |
-| `overseas_order_history` | append-only INSERT | `get-overseas-order-history` 호출 시 |
-| `overseas_orders` | upsert | `get-overseas-order-history` 호출 시 |
-| `overseas_transaction_history` | append-only INSERT | `get-overseas-transaction-history`, `kis-portfolio-batch collect-overseas-transaction-history --date today` 실행 시 |
-| `overseas_transactions` | upsert | `get-overseas-transaction-history`, `kis-portfolio-batch collect-overseas-transaction-history --date today` 실행 시 |
-| `overseas_settlement_balance_snapshots` | append-only INSERT | `get-overseas-settlement-balance` 호출 시 |
-| `instrument_master` | upsert | `scripts/sync_instrument_master.py` 실행 시 |
-| `instrument_classification_overrides` | upsert | 로컬 override 등록 시 |
-| `trade_profit_history` | append-only INSERT | `get-period-trade-profit`, `get-overseas-period-profit` 호출 시 |
+- 전체 관리 객체: `docs/data-catalog.md` (25 tables + 2 views)
+- machine-readable allowlist: `src/kis_portfolio/db/catalog.py`
+- 현재 물리 schema: `kis_portfolio.main`
+- 목표 logical/physical schemas: `bronze`, `silver`, `gold`, `control`, `security`
+- 실제 DDL: `src/kis_portfolio/db/schema.py`
+- live inventory/drift 검사:
+  `uv run python .agent/skills/kis-warehouse-contract/scripts/inspect_portfolio_db.py --inventory`
+- live DB에만 있는 객체는 자동 채택·백업·삭제하지 않고 drift로 보고한다.
+- 현재 운영 DB에는 분기된 `codex/portfolio-pipeline-reliability`의 `cash_flow`, `trade_journal`,
+  `asset_return_daily`와 총자산 품질 컬럼이 적용돼 있다. 통합 상태와 계약은 `docs/data-catalog.md`의
+  Branch and Live Drift Register를 따른다.
 
 **DB 전용 조회 툴 (API 호출 없음):**
 - `get-portfolio-history` — 계좌 잔고 스냅샷 이력
@@ -216,15 +225,16 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 - 기본 백업 위치: `var/backup/parquet/YYYYMMDD_HHMMSS/`
 
 **정제/분석 방향:**
-- `portfolio_snapshots`는 raw append-only로 유지
-- `overseas_asset_snapshots`는 해외계좌 raw/aggregate feeder로 유지
-- `asset_overview_snapshots`는 canonical 총자산 aggregate 저장소로 사용
-- `asset_holding_snapshots`는 canonical snapshot 기준 정규화 보유 row를 저장
+- Bronze는 KIS 관측을 append-only로 보존
+- Silver는 정규화/dedup/canonical 총자산을 소유
+- Gold는 Silver에서 재생성 가능한 일별 대표값과 분석용 view/table을 소유
+- Control은 migration/reference/override, Security는 auth/token 상태를 소유
 - 분/일 단위 중복 제거는 저장 시점이 아니라 curated view/pipeline에서 처리
 - 현재 일별 대표값 view: `portfolio_daily_snapshots`
 - 현재 canonical 일별 대표값 view: `asset_overview_daily_snapshots`
 - 국내 상장 해외 ETF/REIT 분류는 `override > KIS master group code > 이름 heuristic > unknown`
-- 상세 문서: `docs/data-pipeline.md`
+- 객체 계약/스키마 계획: `docs/data-catalog.md`
+- 데이터 흐름: `docs/data-pipeline.md`
 
 ## KIS Portfolio MCP
 

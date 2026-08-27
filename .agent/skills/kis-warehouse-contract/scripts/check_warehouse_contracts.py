@@ -17,6 +17,11 @@ def repo_root() -> Path:
 
 
 ROOT = repo_root()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from kis_portfolio.db.catalog import DATA_OBJECTS, backup_table_names  # noqa: E402
 
 
 def text(path: str) -> str:
@@ -39,6 +44,45 @@ def main() -> int:
     repo = text("src/kis_portfolio/db/repository.py")
     backup = text("scripts/backup_motherduck.py")
     docs = text("docs/data-pipeline.md") + "\n" + text("docs/backup.md")
+    catalog_doc = text("docs/data-catalog.md")
+
+    schema_tables = set(re.findall(
+        r"CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+        schema,
+        flags=re.IGNORECASE,
+    ))
+    schema_views = set(re.findall(
+        r"CREATE\s+OR\s+REPLACE\s+VIEW\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+        schema,
+        flags=re.IGNORECASE,
+    ))
+    catalog_tables = {item.name for item in DATA_OBJECTS if item.object_type == "table"}
+    catalog_views = {item.name for item in DATA_OBJECTS if item.object_type == "view"}
+
+    if len(DATA_OBJECTS) != len({item.name for item in DATA_OBJECTS}):
+        failures.append("catalog registry contains duplicate object names")
+    if schema_tables != catalog_tables:
+        failures.append(
+            "schema/catalog table mismatch: "
+            f"schema_only={sorted(schema_tables - catalog_tables)}, "
+            f"catalog_only={sorted(catalog_tables - schema_tables)}"
+        )
+    if schema_views != catalog_views:
+        failures.append(
+            "schema/catalog view mismatch: "
+            f"schema_only={sorted(schema_views - catalog_views)}, "
+            f"catalog_only={sorted(catalog_views - schema_views)}"
+        )
+
+    valid_layers = {"bronze", "silver", "gold", "control", "security"}
+    valid_sensitivity = {"internal", "confidential", "restricted"}
+    for item in DATA_OBJECTS:
+        if item.layer not in valid_layers or item.target_schema != item.layer:
+            failures.append(f"invalid layer/target schema for catalog object: {item.name}")
+        if item.sensitivity not in valid_sensitivity:
+            failures.append(f"invalid sensitivity for catalog object: {item.name}")
+        if f"`{item.name}`" not in catalog_doc:
+            failures.append(f"data catalog document missing managed object: {item.name}")
 
     for table in [
         "portfolio_snapshots",
@@ -55,10 +99,15 @@ def main() -> int:
     ]:
         if table not in schema:
             failures.append(f"schema missing table/view reference: {table}")
-        if table not in backup:
-            failures.append(f"backup script missing table: {table}")
         if table not in docs:
             failures.append(f"pipeline/backup docs missing table: {table}")
+
+    if "TABLES = backup_table_names()" not in backup:
+        failures.append("backup script must derive TABLES from the governed data catalog")
+    backup_doc = text("docs/backup.md")
+    for table in backup_table_names():
+        if table not in backup_doc:
+            failures.append(f"backup docs missing catalog-approved table: {table}")
 
     if "CREATE OR REPLACE VIEW portfolio_daily_snapshots" not in schema:
         failures.append("schema must define portfolio_daily_snapshots curated view")

@@ -13,41 +13,27 @@ OLTP 성격이 강하다. 하지만 장기 목표는 포트폴리오 분석, 시
 
 ## 계층
 
-엄격한 medallion architecture를 지금 당장 도입하지는 않는다. 다만 같은 사고방식으로 계층을 둔다.
+논리 계층은 Bronze/Silver/Gold와 별도 Control/Security 영역으로 고정한다. 현재 물리 객체는 모두
+`kis_portfolio.main`에 있지만, 객체마다 목표 schema가 지정되어 있다.
 
 ```text
-raw tables
-  price_history
-  exchange_rate_history
-  portfolio_snapshots
-  overseas_asset_snapshots
-  asset_overview_snapshots
-  asset_holding_snapshots
-  market_calendar
-  order_history
-  overseas_order_history
-  overseas_transaction_history
-  overseas_settlement_balance_snapshots
-  instrument_master
-  instrument_classification_overrides
-  trade_profit_history
+KIS API observations -> Bronze -> Silver -> Gold -> MCP / analytics / dashboard
+                                  ^
+                                  |
+                               Control
 
-canonical / curated tables
-  domestic_orders
-  overseas_orders
-  overseas_transactions
-
-curated views / future tables
-  portfolio_daily_snapshots
-  asset_overview_daily_snapshots
-  future: portfolio_minute_snapshots
-  future: account_nav_daily
-
-analytics functions
-  bollinger bands
-  portfolio anomalies
-  portfolio trend
+Security -> auth/token repositories only
 ```
+
+- Bronze: append-only KIS 관측과 replay 가능한 raw JSON
+- Silver: 정규화 시계열, deduplicated order/transaction, canonical total assets
+- Gold: 일별 대표값과 재생성 가능한 분석 view/table
+- Control: migration, 시장 달력, 종목마스터, classification override
+- Security: 암호화/해시된 token과 OAuth state; 분석/기본 백업에서 격리
+
+전체 객체 목록, grain, key, 민감도, 백업 정책과 물리 schema 전환 계획은
+[Data Store Governance and Catalog](./data-catalog.md)가 관리한다. 이 문서에서는 객체 목록을
+중복 관리하지 않고 데이터가 계층 사이를 이동하는 방식만 설명한다.
 
 ## 스냅샷 중복 처리
 
@@ -58,13 +44,13 @@ analytics functions
 - API 응답 구조 변경이나 파싱 오류를 나중에 재처리할 수 있다.
 - 분 단위/일 단위 대표값 정책을 나중에 바꿔도 raw를 잃지 않는다.
 
-분석에서는 raw table을 직접 쓰지 않고 curated view를 먼저 사용한다.
+분석에서는 Bronze table을 직접 쓰지 않고 Silver canonical table 또는 Gold view를 먼저 사용한다.
 
 `order_history`도 같은 원칙을 따른다. 같은 계좌와 같은 기간을 같은 날 여러 번 조회하거나,
 오전 수동 조회 뒤 장마감 배치가 다시 적재하더라도 raw row는 보존한다. 이 테이블은 이제
 주문조회 coverage와 raw audit 목적의 snapshot 저장소로 본다.
 
-중복집계 방지를 위한 serving/analytics 기준 저장소는 `domestic_orders`다. 이 테이블은 append-only가 아니라
+중복집계 방지를 위한 Silver serving 기준 저장소는 `domestic_orders`다. 이 테이블은 append-only가 아니라
 KIS 주문 식별자 기준 upsert를 사용한다. 현재 국내주식 주문의 canonical key는 다음과 같다.
 
 - 계좌 식별: `(account_id, account_product_code)`
@@ -86,7 +72,7 @@ KIS 주문 식별자 기준 upsert를 사용한다. 현재 국내주식 주문�
 - `overseas_transactions`: raw row hash 기준 canonical upsert
 - `overseas_settlement_balance_snapshots`: 해외주식 결제기준잔고 raw snapshot
 
-현재 제공하는 view:
+현재 제공하는 Gold view:
 
 ```sql
 portfolio_daily_snapshots
@@ -108,8 +94,11 @@ asset_overview_daily_snapshots
 
 ## 구현 위치
 
-- raw schema: `src/kis_portfolio/db/schema.py`
-- raw repository: `src/kis_portfolio/db/repository.py`
-- curated view DDL: `src/kis_portfolio/db/schema.py`
+- object governance registry: `src/kis_portfolio/db/catalog.py`
+- current physical DDL and Gold view SQL: `src/kis_portfolio/db/schema.py`
+- Bronze/Silver/Control repositories: `src/kis_portfolio/db/repository.py`
 - analytics SQL: `src/kis_portfolio/analytics/`
 - backup: `scripts/backup_motherduck.py`
+
+새 객체는 catalog에 layer/grain/key/backup/sensitivity를 먼저 선언한다. 물리 schema 분리 전까지도 이
+논리 계약은 즉시 적용되며, `main`에 코드 밖 객체를 임의 생성하지 않는다.

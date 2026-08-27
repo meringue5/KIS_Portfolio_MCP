@@ -137,6 +137,7 @@ async def _get_paginated_kis_json(
                 client,
                 "GET",
                 f"{domain}{path}",
+                policy="history",
                 headers=headers,
                 params=next_params,
             )
@@ -297,6 +298,7 @@ async def inquery_stock_price(symbol: str):
             client,
             "GET",
             f"{TrIdManager.get_domain('price')}{STOCK_PRICE_PATH}",
+            policy="quote",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -422,6 +424,7 @@ async def inquery_order_list(
             client,
             "GET",
             f"{TrIdManager.get_domain('order_list')}{ORDER_LIST_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -498,6 +501,7 @@ async def inquery_order_detail(order_no: str, order_date: str):
             client,
             "GET",
             f"{TrIdManager.get_domain('order_detail')}{ORDER_DETAIL_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -542,6 +546,7 @@ async def inquery_stock_info(symbol: str, start_date: str, end_date: str):
             client,
             "GET",
             f"{TrIdManager.get_domain('stock_info')}{STOCK_INFO_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -586,6 +591,7 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
             client,
             "GET",
             f"{TrIdManager.get_domain('stock_history')}{STOCK_HISTORY_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -647,6 +653,7 @@ async def inquery_stock_ask(symbol: str):
             client,
             "GET",
             f"{TrIdManager.get_domain('stock_ask')}{STOCK_ASK_PATH}",
+            policy="quote",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -763,6 +770,7 @@ async def inquery_overseas_stock_price(symbol: str, market: str):
             client,
             "GET",
             f"{TrIdManager.get_domain('buy')}{OVERSEAS_STOCK_PRICE_PATH}",
+            policy="quote",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -823,6 +831,7 @@ async def inquery_overseas_balance(exchange: str = "ALL"):
                     client,
                     "GET",
                     f"{DOMAIN}{OVERSEAS_BALANCE_PATH}",
+                    policy="account",
                     headers={
                         "content-type": CONTENT_TYPE,
                         "authorization": f"{AUTH_TYPE} {token}",
@@ -877,6 +886,7 @@ async def inquery_overseas_deposit(
             client,
             "GET",
             f"{DOMAIN}{OVERSEAS_PRESENT_BALANCE_PATH}",
+            policy="account",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -1164,6 +1174,7 @@ async def inquery_exchange_rate_history(
             client,
             "GET",
             f"{DOMAIN}{OVERSEAS_CHARTPRICE_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -1226,6 +1237,7 @@ async def inquery_overseas_stock_history(
             client,
             "GET",
             f"{DOMAIN}{OVERSEAS_DAILYPRICE_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -1288,6 +1300,7 @@ async def inquery_period_trade_profit(
             client,
             "GET",
             f"{DOMAIN}{PERIOD_TRADE_PROFIT_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -1340,6 +1353,7 @@ async def inquery_overseas_period_profit(
             client,
             "GET",
             f"{DOMAIN}{OVERSEAS_PERIOD_PROFIT_PATH}",
+            policy="history",
             headers={
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",

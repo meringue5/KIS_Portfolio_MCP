@@ -211,6 +211,13 @@ def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
         "KIS_TOKEN_MIN_INTERVAL_SECONDS",
         "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS",
+        "KIS_RATE_LIMIT_MAX_COOLDOWN_SECONDS",
+        "KIS_REAL_API_MAX_IN_FLIGHT",
+        "KIS_VIRTUAL_API_MAX_IN_FLIGHT",
+        "KIS_API_MAX_QUEUE_SIZE",
+        "KIS_CIRCUIT_FAILURE_THRESHOLD",
+        "KIS_CIRCUIT_WINDOW_SECONDS",
+        "KIS_CIRCUIT_OPEN_SECONDS",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload["KIS_REMOTE_AUTH_MODE"] = _effective_remote_auth_mode(env)
@@ -234,6 +241,13 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
         "KIS_TOKEN_MIN_INTERVAL_SECONDS",
         "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS",
+        "KIS_RATE_LIMIT_MAX_COOLDOWN_SECONDS",
+        "KIS_REAL_API_MAX_IN_FLIGHT",
+        "KIS_VIRTUAL_API_MAX_IN_FLIGHT",
+        "KIS_API_MAX_QUEUE_SIZE",
+        "KIS_CIRCUIT_FAILURE_THRESHOLD",
+        "KIS_CIRCUIT_WINDOW_SECONDS",
+        "KIS_CIRCUIT_OPEN_SECONDS",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload.update(_build_account_env(env))
@@ -991,3 +1005,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -3,6 +3,7 @@ import json
 import os
 
 from kis_portfolio.adapters.mcp import server as portfolio_mcp
+from kis_portfolio.clients.kis import KISRateLimitError
 
 
 def apply_account_env(monkeypatch):
@@ -187,6 +188,59 @@ def test_get_account_balance_reports_snapshot_not_saved(monkeypatch):
     assert result["status"] == "ok"
     assert result["snapshot_status"] == "not_saved"
     assert "saved_snapshot_id" not in result
+
+
+def test_get_account_balance_can_return_explicit_stale_fallback(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    async def fail_fetch(*args, **kwargs):
+        raise KISRateLimitError("limited")
+
+    monkeypatch.setattr(portfolio_mcp, "fetch_balance_snapshot", fail_fetch)
+    monkeypatch.setattr(
+        portfolio_mcp,
+        "get_latest_balance_fallback",
+        lambda account_id: {
+            "status": "stale",
+            "source": "motherduck_cache",
+            "as_of": "2026-08-27T09:00:00+09:00",
+            "stale_age_seconds": 120,
+            "snapshot_id": "snapshot-old",
+            "total_eval_amt": 123,
+            "raw": {"output1": [{"pdno": "005930"}]},
+        },
+    )
+
+    result = asyncio.run(portfolio_mcp.get_account_balance("isa", True))
+
+    assert result["status"] == "stale"
+    assert result["source"] == "motherduck_cache"
+    assert result["as_of"] == "2026-08-27T09:00:00+09:00"
+    assert result["stale_age_seconds"] == 120
+    assert result["upstream"]["error_type"] == "KISRateLimitError"
+    assert result["snapshot_status"] == "not_saved"
+    assert result["account"]["label"] == "isa"
+
+
+def test_get_account_balance_does_not_silently_fallback(monkeypatch):
+    apply_account_env(monkeypatch)
+
+    async def fail_fetch(*args, **kwargs):
+        raise KISRateLimitError("limited")
+
+    monkeypatch.setattr(portfolio_mcp, "fetch_balance_snapshot", fail_fetch)
+    monkeypatch.setattr(
+        portfolio_mcp,
+        "get_latest_balance_fallback",
+        lambda account_id: {"status": "stale", "raw": {}},
+    )
+
+    try:
+        asyncio.run(portfolio_mcp.get_account_balance("isa"))
+    except KISRateLimitError:
+        pass
+    else:
+        raise AssertionError("live balance must fail unless stale fallback is explicitly allowed")
 
 
 def test_get_total_asset_overview_precomputes_allocation(monkeypatch):

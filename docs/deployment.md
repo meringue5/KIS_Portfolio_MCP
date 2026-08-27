@@ -314,6 +314,13 @@ Deploy workflow:
   - `KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS` (선택, 기본값 `1.0`)
   - `KIS_TOKEN_MIN_INTERVAL_SECONDS` (선택, 기본값 `1.0`)
   - `KIS_RATE_LIMIT_RETRY_DELAY_SECONDS` (선택, 기본값 `1.0`)
+  - `KIS_RATE_LIMIT_MAX_COOLDOWN_SECONDS` (선택, 기본값 `10.0`)
+  - `KIS_REAL_API_MAX_IN_FLIGHT` (선택, 기본값 `3`)
+  - `KIS_VIRTUAL_API_MAX_IN_FLIGHT` (선택, 기본값 `1`)
+  - `KIS_API_MAX_QUEUE_SIZE` (선택, 기본값 `50`)
+  - `KIS_CIRCUIT_FAILURE_THRESHOLD` (선택, 기본값 `5`)
+  - `KIS_CIRCUIT_WINDOW_SECONDS` (선택, 기본값 `30.0`)
+  - `KIS_CIRCUIT_OPEN_SECONDS` (선택, 기본값 `20.0`)
   - `KIS_BATCH_JOB_NAME` (선택)
   - `KIS_BATCH_SCHEDULER_NAME` (선택)
   - `KIS_CLOUD_SCHEDULER_REGION` (선택)
@@ -354,3 +361,4 @@ Google Cloud 권장 인증 방식:
 - read-only mode 기본값 추가
 - 주문 tool은 disabled stub으로 유지
 - MCP inspector로 remote endpoint 검증
+

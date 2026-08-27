@@ -782,6 +782,7 @@ async def get_hashkey(
         "POST",
         f"{domain}{HASHKEY_PATH}",
         domain=domain,
+        retry_safe=True,
         headers={
             "content-type": CONTENT_TYPE,
             "authorization": f"{AUTH_TYPE} {token}",
@@ -795,3 +796,4 @@ async def get_hashkey(
         raise Exception(f"Failed to get hash key: {response.text}")
 
     return response.json()["HASH"]
+

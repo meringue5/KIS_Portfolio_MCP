@@ -3,6 +3,8 @@
 이 문서는 KIS Portfolio Service의 인증, 시크릿, 토큰 관리 원칙과 현재 source of truth를 한곳에 모은다.
 배포 절차는 `docs/deployment.md`, DB/백업 절차는 `docs/backup.md`, 장기 아키텍처 결정은 `SPEC.md`와
 `ARCHITECTURE.md`를 참고한다.
+DB 객체의 전체 목록, logical layer, grain과 sensitivity 등급은 `docs/data-catalog.md`가 관리한다.
+이 문서는 그중 Security schema 대상 객체의 암호화·회전·접근 경계를 소유한다.
 
 ## 기본 원칙
 
