@@ -162,7 +162,8 @@ requirement / ADR
 - `V2-W0305` purchase lot, trade thread, sell allocation revision과 inferred/manual quality.
 - `V2-W0306` journal revision과 review queue.
 - `V2-W0307` price bar dual basis, FX와 corporate action identity.
-- `V2-W0308` V1→V2 historical copy/rebuild migration과 reconciliation report.
+- `V2-W0308` V1→V2 historical transition은 `WI-006` executable mapping → `WI-007` isolated reconciliation
+  dry-run → `WI-008` owner-approved bounded live backfill의 세 gate로 수행한다.
 
 ### Acceptance gate
 
