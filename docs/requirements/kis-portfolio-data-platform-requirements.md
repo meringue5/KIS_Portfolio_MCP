@@ -45,6 +45,23 @@
 트랙으로 제공하는 방향을 승인했다. 이 승인은 논리적 요구와 개념 모델을 확정한 것이며, 물리 DB
 schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이스 구현을 승인한 것은 아니다.
 
+## 통합 승인 대기: 패키지 C·D·E
+
+사용자 요청에 따라 남은 조사를 먼저 완료하고 다음 세 패키지를 한 번에 검토할 수 있게 묶었다.
+
+- [패키지 C — 실적·가치·배당·매크로](./review-package-c-fundamentals-dividend-macro.md)
+- [패키지 D — 감시·신호·대화 workflow](./review-package-d-monitoring-conversation.md)
+- [패키지 E — 데이터 플랫폼과 운영](./review-package-e-data-platform-operations.md)
+
+| 패키지 | 승인 대기 결정 | 핵심 권고 |
+| --- | ---: | --- |
+| C | C-1~C-6 | OpenDART·SEC actual, source-separated forward, 배당 3상태, 공식 매크로, licensed report gate |
+| D | D-1~D-6 | replay 기반 경보, 2% risk cap, outbound Telegram, fine-grained MCP scope, journal review |
+| E | E-1~E-8 | Remote MCP SSOT, Cloud Run 유지, versioned schema, object storage, indefinite canonical history, off-site recovery |
+
+이 표의 권고는 조사 완료 상태이며 아직 DEC로 승격되지 않았다. 일괄 승인해도 구현·적재·배포는 시작하지
+않고 다음 단계의 구현계획과 migration 순서를 별도로 검토한다.
+
 ## 1. 문서 목적
 
 이 문서는 KIS Portfolio를 포트폴리오 조회 중심 MCP에서 지속적으로 데이터를 수집하고 관리하는
@@ -481,10 +498,18 @@ Billing 화면에서 별도로 확인해야 한다.
 - 원하는 band가 PER/PBR 등 valuation band인지, 전망 범위인지, risk/reward band인지 구분한다.
 - 전망 또는 리서치 원천을 선정하기 전에 이용 권한, 라이선스, 수정 이력과 as-of 의미를 검증한다.
 
+공식 원천과 live coverage, 실제 실적·consensus·사용자/모델 시나리오 분리 및 valuation 계약 권고는
+`docs/requirements/review-package-c-fundamentals-dividend-macro.md`에 기록했다. C-1~C-3과 C-6은
+통합 승인 대기 상태다.
+
 ### 8.3 배당 원장
 
 - 가능한 범위에서 선언일, 배당락일, 기준일, 지급일, 실제 수령액, 세금, 통화, 계좌를 보존한다.
 - 월별 수익, 전년 대비 증감, 종목별 기여 및 예상·실수령 reconciliation을 제공한다.
+
+KIS KSD·국내 계좌권리·미국 ICE 권리의 live 검증과 `declared → entitled → received` 계약은 Package C에
+기록했다. 해외와 IRP 실제 입금 원천 gap을 일정×수량으로 채우지 않고 statement/manual provenance를
+허용하는 C-4 권고가 승인 대기 상태다.
 
 ### 8.4 매수 lot·투자 thread 분석과 매매일지
 
@@ -587,12 +612,19 @@ DEC-011~DEC-014로 승인했다.
 `docs/requirements/review-package-b-price-trend-etf.md`에서 함께 검토했다. B-1~B-5는
 DEC-015~DEC-019로 승인됐으며 이 승인은 구현 승인이 아니다.
 
+경보 bootstrap boundary, 3년 replay·shadow gate, 2% risk cap, Telegram delivery, Remote MCP scope와
+LLM 예약·매매일지 review 계약은 `docs/requirements/review-package-d-monitoring-conversation.md`에
+기록했다. D-1~D-6은 통합 승인 대기 상태다.
+
 ### 8.6 매크로 및 사건 맥락
 
 - 매크로, 정책, 산업 및 기업 사건을 날짜와 원천 provenance와 함께 보존한다.
 - 사건을 영향을 받을 수 있는 보유종목 및 ETF 구성종목과 연결한다.
 - 사건 전후의 관찰 가능한 수익률을 측정한다.
 - 시간적 연관성, 모델 추론 및 검증된 인과관계를 구분한다.
+
+ECOS·FRED/ALFRED·Cboe VIX와 OpenDART·SEC 사건의 source contract 및 direct·rule-based·hypothesis·
+validated 관계 구분은 Package C의 C-5 권고로 기록했다.
 
 ## 9. 데이터 거버넌스 요구사항
 
@@ -727,6 +759,17 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
   못한다.
 - KIS ETF 구성종목시세는 현재 보유 국내 ETF 14종 모두 응답했지만 선언 642행 중 286행만 반환해
   완전한 look-through 원천으로 사용할 수 없다. KRX/운용사 일별 PDF가 canonical source 후보이다.
+- KIS 국내 재무비율은 최신 국내 6자리 후보 8개 중 3개에 row가 있었고 종목추정실적은 8개 모두
+  응답했지만 `DATA1`~`DATA5` semantic mapping이 불완전하다. 실제 실적은 OpenDART·SEC를 canonical로,
+  KIS는 보조·experimental source로 쓰는 권고를 Package C에 기록했다.
+- 국내 배당일정은 후보 8개 중 5개, 미국 ICE 권리일정은 직접보유 4개 모두 응답했다. 국내 계좌권리는
+  IRP만 0 row였고 미국 실제 계좌 입금 identity는 확인되지 않아 예상·권리·실수령 분리가 필요하다.
+- 현재 `price_history`의 KRX 이력은 1종목 53일, canonical 총자산은 27일뿐이므로 운영 경보 threshold를
+  지금 확정할 수 없다. Package D는 3년 replay와 2주 shadow 검증을 활성화 gate로 둔다.
+- live MotherDuck은 49.0 MiB이며 27 tables + 3 views가 있다. `cash_flow`, `trade_journal`,
+  `asset_return_daily`와 총자산 품질 컬럼은 현 checkout과 drift 상태이고 `asset_return_daily`는 broken이다.
+- MotherDuck Flights는 현재 Business plan 기능이다. Lite 10 GB 범위에서 Cloud Run Jobs/Scheduler를
+  유지하고 typed data와 object storage를 분리하는 쪽을 Package E에서 권고한다.
 - 운영 DB drift 문서에는 초기 `cash_flow`, `trade_journal`, `asset_return_daily` 객체가 기록되어 있지만,
   그 존재만으로 현재 계약이나 구현을 승인하지 않는다.
 - 이 관찰은 후속 구현 계획 전에 다시 검증해야 한다.
@@ -735,35 +778,30 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 다음은 아직 선택하지 않았다.
 
-- Cloud Run Jobs, MotherDuck Flights 또는 다른 orchestrator
-- 구체적인 Remote MCP 인터페이스와 권한 scope
+- Package C·D·E 권고안의 사용자 승인
 - 실제 Bronze/Silver/Gold schema 이동
-- Telegram bot 및 실행 환경
-- 정확한 KIS endpoint와 TR_ID
-- 리서치, 공시, consensus, 배당, 매크로, VIX, ETF 구성종목의 외부 제공자
-- 신호 계산식과 수치 임계치
+- Telegram bot·destination의 실제 생성과 배포 환경
+- 미국 licensed consensus provider와 해외·IRP 실제 배당 입금 원천
+- KIS 종목추정실적 `DATA1`~`DATA5` semantic mapping
+- 운영 signal threshold의 replay·shadow 보정 결과
 - realtime REST polling과 WebSocket 적용 범위
-- retention 기간과 backup 주기
+- object storage bucket·region·lifecycle와 backup destination
 - dashboard 및 시각화 기술
 - trade execution, purchase lot, trade thread의 물리 schema와 저장 계층
 - 주문 분할체결을 purchase lot으로 묶는 규칙과 기본 매도 배분 구현
 
 ## 14. 미결정 사항
 
-1. 낙폭 계산에 사용할 최근 고점 기간을 정의한다.
-2. 단기·중기 추세 계산식을 정의한다.
-3. 주식, ETF, REIT별 균형형 경보 임계치를 보정한다.
-4. 각 평가 시각의 휴장일 동작을 정의한다.
-5. Telegram 목적지 소유권, 확인 및 escalation 정책을 정의한다.
-6. 선택된 논리 데이터셋별 정확한 원천 가용성과 누락을 조사한다.
-7. 직접 보유, 국내 ETF, 미국 ETF 사이의 issuer identity 연결 규칙을 정의한다.
-8. 12개월 forward의 의미와 원천을 정의한다.
-9. valuation band와 risk/reward band 요구를 구분한다.
-10. 배당 원천 coverage와 예상·실수령 reconciliation을 정의한다.
-11. IRP 최근 주문·체결의 전용 또는 대체 원천과 국내·해외 거래의 최대 과거 제공 범위를 조사한다.
-12. 매도 thread 지정 질문, 임시 배분 수정 및 review workflow를 구체화한다.
-13. Turtle, RSI, 거래량, VIX 및 매크로 사건 분석 계약을 정의한다.
-14. 허용 가능한 알림 잡음과 중요한 사건 누락 허용 수준을 포함한 성공 기준을 정의한다.
+1. Package C·D·E 권고를 통합 승인할지 검토한다.
+2. KIS 국내 종목추정실적의 metric·unit·revision mapping을 독립 자료와 대조한다.
+3. 미국 consensus가 필요할 때 licensed provider와 비용·보존권한을 선택한다.
+4. 해외와 IRP의 실제 배당 입금·세금 원천 또는 statement import 형식을 선택한다.
+5. KRX·운용사 PDF의 자동 접근 방식, 이용조건과 과거 날짜 coverage를 검증한다.
+6. Telegram destination owner, test message 승인과 장애 escalation을 구현계획에서 확정한다.
+7. 3년 replay와 2주 shadow 결과로 주식·ETF·REIT·레버리지 threshold를 보정한다.
+8. live drift 객체를 현재 branch에 통합할지 migration 전 확정한다.
+9. private object storage의 region, encryption, lifecycle과 backup destination을 선택한다.
+10. 거래·lot·thread·배당·fundamental·signal의 물리 schema와 migration을 설계한다.
 
 ## 15. 요구사항 분석 진행 순서
 
@@ -790,9 +828,9 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 | --- | --- | --- | --- |
 | A | 거래 원장과 과거 복원 | lot grain, IRP 원천·fallback, backfill 깊이, 해외 비용·환율 결합, 매도 임시 배분 | 완료; DEC-010~DEC-014 승인 |
 | B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 완료; DEC-015~DEC-019 승인 |
-| C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 예정 |
-| D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 일부 요구 승인; 계약 보완 예정 |
-| E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 개념 승인; 물리 설계 예정 |
+| C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 조사 완료; C-1~C-6 통합 승인 대기 |
+| D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 조사 완료; D-1~D-6 통합 승인 대기 |
+| E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 조사 완료; E-1~E-8 통합 승인 대기 |
 
 각 패키지가 너무 크면 독립적으로 승인 가능한 소단위로 나누되, 다음 패키지 전체의 미리보기를 함께
 제공한다. 사용자가 명시적으로 요청하지 않는 한 단순 필드 하나마다 승인을 반복해서 요구하지 않는다.
@@ -801,6 +839,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 C·D·E 승인 대기 | 공식 원천·live coverage, 경보·Telegram·scope, orchestration·retention·recovery 조사를 끝내고 20개 권고를 통합 검토 문서로 묶음 |
 | 2026-08-27 | 요구 승인 | 패키지 B의 dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 모두 승인함 |
 | 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 조정 옵션·100행 제한, KIS ETF 30행 제한, KRX/운용사 PDF, RSI·보유기간 고점과 3년 용량 권고안을 문서화함 |
 | 2026-08-27 | 요구 승인 | 패키지 A의 IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link, 미지정 매도 FIFO inferred 배분을 모두 승인함 |

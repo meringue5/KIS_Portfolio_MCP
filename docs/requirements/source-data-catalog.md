@@ -328,18 +328,130 @@ RSI, 이동평균, rolling high와 ETF look-through는 외부 원천 dataset이 
 Gold 지표다. B-1~B-5 승인으로 수정주가, SMA20·50·120, 거래량 20일 비율, Wilder RSI14, 보유 에피소드
 고점과 ETF look-through 계약을 `selected`로 확정했다.
 
-## 7. 다음 검증 게이트
+## 7. 3차 조사 범위: 실적·가치·배당·매크로
 
-다음 단계는 패키지 C의 read-only source 조사다. 승인 전에는 구현하지 않는다.
+### SRC-OPENDART-FILING-FUNDAMENTALS: 국내 공시·실제 실적
 
-1. 실적·공시·forward 전망·배당·매크로 원천의 가격, 라이선스, coverage를 조사한다.
-2. KRX PDF 자동 접근 방식과 이용조건은 패키지 B 구현 계획 전에 별도 검증한다.
-3. 패키지 A 구현 계획에서 국내 100건 초과 pagination 검증과 sanitized fixture를 인수조건으로 둔다.
+| 항목 | 조사 결과 |
+| --- | --- |
+| Provider | 금융감독원 OpenDART |
+| Dataset/API | 공시검색, 공시서류 원문, 고유번호, 단일회사 전체 재무제표, 배당사항 |
+| Identity | `stock_code ↔ corp_code`, 접수번호, 보고서코드, 사업연도, 연결/별도 |
+| 반환 grain | filing revision 또는 회사·보고기간·재무제표·계정 |
+| revision | 수정공시와 접수번호를 별도 보존 가능 |
+| 요구 연결 | actual fundamentals, 실적발표, 배당 선언, 기업 사건 |
+| 현재 상태 | `official-confirmed`; API key·보유종목 live coverage는 구현 전 검증 필요 |
 
-## 8. 조사 이력
+OpenDART는 공시 원문 XML과 구조화된 주요·전체 재무정보를 제공한다. 국내 실제 실적의 canonical source로
+권고한다. KIS 재무 endpoint는 더 빠른 cross-check가 가능하지만 공시 identity와 수정공시 원장을
+대체하지 않는다.
+
+공식 근거:
+[OpenDART OpenAPI 소개](https://opendart.fss.or.kr/intro/main.do),
+[OpenDART 공시검색](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS001&apiId=2019001),
+[OpenDART 배당사항](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DE002&apiId=AE00006)
+
+### SRC-SEC-EDGAR-FUNDAMENTALS: 미국 공시·실제 실적
+
+| 항목 | 조사 결과 |
+| --- | --- |
+| Provider | U.S. SEC EDGAR |
+| Dataset/API | submissions, XBRL `companyfacts`, filing archives, nightly bulk ZIP |
+| Identity | CIK, accession number, form, filed-at, fiscal period, XBRL concept·unit |
+| 인증 | public data API는 API key 불필요; 식별 가능한 User-Agent와 공정접근 준수 필요 |
+| 요구 연결 | 미국 actual fundamentals, filing event, revision history |
+| 한계 | analyst consensus·목표주가를 제공하지 않음; ticker/CIK mapping은 보조자료 |
+| 현재 상태 | `official-confirmed`; 현재 보유 CIK mapping과 concept normalization은 구현 전 검증 필요 |
+
+공식 근거:
+[SEC EDGAR data APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces),
+[SEC EDGAR data access](https://www.sec.gov/search-filings/edgar-search-assistance/accessing-edgar-data)
+
+### SRC-KIS-DOM-FINANCE: 국내 재무비율
+
+| 항목 | 조사 결과 |
+| --- | --- |
+| Provider | 한국투자증권 Open API |
+| Endpoint / TR ID | `/uapi/domestic-stock/v1/finance/financial-ratio` / `FHKST66430300` |
+| 요청 축 | 종목, 연간/분기, KRX 시장 |
+| 확인 필드 | 결산년월, EPS, BPS, SPS, ROE, 영업이익률, 순이익률, 부채·유보율 |
+| live probe | 국내 6자리 보유 후보 8개 모두 호출 성공, 3개에서 row 반환 |
+| 요구 연결 | actual ratio fast path·OpenDART cross-check |
+| 현재 상태 | `official-confirmed`, `live-verified`; canonical actual source로는 `gap` |
+
+재무상태표·손익계산서·성장성·수익성·안정성 API도 공식 예제에 있으나 현재 코드에는 구현돼 있지 않다.
+보유 ETF는 회사 재무제표 대상이 아니므로 상품 전체 coverage 지표와 기업 coverage를 구분해야 한다.
+
+공식 근거:
+[KIS 공식 국내주식 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_user/domestic_stock/domestic_stock_examples.py)
+
+### SRC-KIS-DOM-ESTIMATE: 국내 종목추정실적
+
+| 항목 | 조사 결과 |
+| --- | --- |
+| Provider | 한국투자증권 Open API |
+| Endpoint / TR ID | `/uapi/domestic-stock/v1/quotations/estimate-perform` / `HHKST668300C0` |
+| live probe | 국내 6자리 보유 후보 8/8 성공, 모두 row 반환 |
+| 확인 metadata | analyst·추천의견과 추정연도 `E` label |
+| 한계 | 공식 field mapping이 `DATA1`~`DATA5`로 남아 metric·unit·revision 의미 불명확 |
+| 요구 연결 | 국내 consensus·forward 후보 |
+| 현재 상태 | `official-confirmed`, `live-verified`, semantic contract는 `gap` |
+
+최소 3개 종목·3개 metric을 독립 자료와 대조하기 전에는 canonical consensus로 선정하지 않는다. SEC와
+OpenDART actuals에서 LLM이 만든 전망을 이 원천의 consensus와 섞지 않는다.
+
+공식 근거:
+[KIS 공식 종목추정실적 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/estimate_perform/estimate_perform.py)
+
+### SRC-KIS-DIVIDEND-RIGHTS: 국내·미국 배당과 권리
+
+| Dataset | Endpoint / TR ID | live 결과 | 적합성 |
+| --- | --- | --- | --- |
+| 국내 KSD 배당일정 | `/uapi/domestic-stock/v1/ksdinfo/dividend` / `HHKDB669102C0` | 후보 8개 중 5개 row | 선언·기준일·지급일·주당배당 일정 |
+| 국내 계좌권리 | `/uapi/domestic-stock/v1/trading/period-rights` / `CTRGA011R` | RIA·ISA·일반·연금저축 row, IRP 0 row | entitled·배정·세금 후보, IRP gap |
+| 미국 ICE 권리종합 | `/uapi/overseas-price/v1/quotations/rights-by-ice` / `HHDFS78330900` | 미국 직접보유 4/4 row | 공시·배당락·기준·지급일 일정 |
+| 해외 기간별권리 | `/uapi/overseas-price/v1/quotations/period-rights` / `CTRGT011R` | 후보 13개 중 4개 row | 주당 외화배당·확정여부, actual receipt 아님 |
+
+국내 계좌권리에는 최종배정액·세금 field가 있었지만 IRP에는 row가 없었다. 해외 권리 API는 계좌별 실제
+입금액·원천징수세 identity를 제공하지 않는다. 따라서 선언·예상·권리·실수령을 별도 상태로 보존하고,
+실수령 원천이 없는 해외/IRP는 statement 또는 manual provenance가 필요하다.
+
+공식 근거:
+[KIS 공식 국내 배당일정 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/ksdinfo_dividend/ksdinfo_dividend.py),
+[KIS 공식 국내 계좌권리 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/period_rights/period_rights.py),
+[KIS 공식 미국 ICE 권리 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/overseas_stock/rights_by_ice/rights_by_ice.py)
+
+### SRC-MACRO-OFFICIAL: 매크로·VIX 시계열
+
+| Provider | Dataset | 계약과 한계 | 상태 |
+| --- | --- | --- | --- |
+| 한국은행 | ECOS Open API | 한국 금리·환율·물가·실물지표; series metadata와 관측시점 보존 | `official-confirmed` |
+| Federal Reserve Bank of St. Louis | FRED/ALFRED API | series observation·release·vintage; 원 제공기관과 이용조건도 보존 | `official-confirmed` |
+| Cboe | VIX Index | 향후 약 30일 S&P 500 옵션 내재변동성; 개별종목 방향·실현변동성 아님 | `official-confirmed` |
+
+뉴스 전문을 매크로 사건의 canonical source로 자동 채택하지 않는다. 정책·통계 release와 기업 filing을
+원천 사건으로 두고, 종목 영향은 direct·rule-based·analyst hypothesis·validated 상태를 구분한다.
+
+공식 근거:
+[한국은행 ECOS Open API](https://ecos.bok.or.kr/api/),
+[FRED API](https://fred.stlouisfed.org/docs/api/fred/fred/),
+[Cboe VIX](https://www.cboe.com/tradable-products/vix)
+
+## 8. 다음 검증 게이트
+
+패키지 C·D·E의 조사를 완료했다. 다음 단계는 사용자 통합 승인 후 구현계획을 작성하는 것이다.
+
+1. C의 실제 실적·forward·배당·매크로 원천 계약을 승인한다.
+2. D의 bootstrap signal, Telegram, Remote MCP scope와 LLM review 계약을 승인한다.
+3. E의 orchestration, schema migration, retention과 backup·restore 계약을 승인한다.
+4. KRX PDF 자동 접근 방식과 이용조건은 Package B 구현계획의 acceptance gate로 유지한다.
+5. 미국 consensus와 해외·IRP 실수령 배당 source gap은 승인된 provider/import가 생길 때까지 숨기지 않는다.
+
+## 9. 조사 이력
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 C 조사 완료 | OpenDART·SEC actual, KIS 국내 재무·추정, 국내·미국 배당·권리와 ECOS·FRED·Cboe 원천을 조사하고 live coverage와 source gap을 기록함 |
 | 2026-08-27 | 패키지 B 승인 | dual price basis, SMA20·50·120·RSI14, 보유 에피소드 고점, KRX/운용사 PDF와 ETF 일별 3년 보존을 `selected`로 확정함 |
 | 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 100행·조정 옵션, KIS ETF 구성 30행 제한, KRX/운용사 PDF와 지표 계약을 조사함 |
 | 2026-08-27 | 패키지 A 승인 | IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link와 미지정 매도 FIFO inferred 배분을 `selected`로 확정함 |
