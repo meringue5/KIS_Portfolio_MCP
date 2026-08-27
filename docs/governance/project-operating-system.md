@@ -24,6 +24,7 @@ KIS Portfolio 전체 시스템
     ├── governance and decision authority
     ├── issue/work-item lifecycle
     ├── skills and shared check harness
+    ├── Data Governance Harness and specialized contract gates
     ├── local hooks, CI and release gates
     └── operational evidence and feedback
 ```
@@ -55,6 +56,7 @@ Project OS는 제품의 자동 주문 권한, 운영 secret 접근 또는 배포
 | 장기 architecture decision | `SPEC.md`의 승인 ADR | 사용자 승인 |
 | 현재·목표 코드/신뢰 경계 | `ARCHITECTURE.md`와 승인된 design 문서 | ADR/Work Item에 따라 변경 |
 | 데이터 객체·grain·key·민감도 | `docs/data-catalog.md` + `db/catalog.py` | warehouse change contract |
+| source·collection·dataset·metric·pipeline 계약 | `docs/governance/data-governance-harness.md` + `governance/catalog/` | Data Governance Harness |
 | 보안·secret·token | `docs/security-and-secrets.md` | security review |
 | 배포·rollback | `docs/deployment.md` + versioned manifest | release approval |
 | Project OS 정책 | 이 문서 | 사용자 승인 또는 비의미적 정비 |
@@ -134,8 +136,9 @@ feedback
 6. 자동 테스트와 실제 운영 증거
 7. traceability와 종료 조건
 
-영향이 없다는 결론도 Work Item/PR에 `none`과 이유를 남긴다. DB 변경은
-`docs/data-catalog.md`의 Change Contract를 추가로 따른다.
+영향이 없다는 결론도 Work Item/PR에 `none`과 이유를 남긴다. source, collection basket, dataset, metric,
+pipeline 또는 DB 변경은 `docs/governance/data-governance-harness.md`를 먼저 적용하고, 물리 DB 변경은
+`docs/data-catalog.md`의 Change Contract도 따른다.
 
 ## 8. 공통 하네스와 Gate
 
@@ -143,8 +146,8 @@ feedback
 
 | Mode | 용도 | 기본 검사 |
 | --- | --- | --- |
-| `staged` | commit 직전 | staged whitespace, Project OS, architecture, warehouse contract |
-| `quick` | 작업 중 | Project OS, architecture, warehouse, MCP surface, shell/JSON |
+| `staged` | commit 직전 | staged whitespace, Project OS, data governance, architecture, warehouse contract |
+| `quick` | 작업 중 | Project OS, data governance, architecture, warehouse, MCP surface, shell/JSON |
 | `full` | push/PR | quick + 전체 pytest + tracked diff check |
 
 - `.githooks/pre-commit`은 `staged`, `.githooks/pre-push`는 `full`을 실행한다.
@@ -155,8 +158,9 @@ feedback
 ## 9. Agent/Skill 계약
 
 repository 변경이나 비사소한 triage를 시작하는 agent는 `.agent/skills/kis-project-os/SKILL.md`를 먼저
-읽는다. 해당 Skill은 이 문서를 정책 SSOT로 사용하고 작업 성격에 따라 architecture, warehouse, MCP,
-API capability 또는 release Skill을 추가로 읽는다.
+읽는다. 해당 Skill은 이 문서를 정책 SSOT로 사용하고 작업 성격에 따라 data governance, architecture,
+warehouse, MCP, API capability 또는 release Skill을 추가로 읽는다. source·collection·dataset·metric·pipeline
+변경은 `.agent/skills/kis-data-governance/SKILL.md`와 그 canonical 정책을 먼저 적용한다.
 
 Skill은 사용자 승인 없이 다음을 하지 않는다.
 
@@ -169,7 +173,7 @@ Skill은 사용자 승인 없이 다음을 하지 않는다.
 
 - 운영 실패는 로그·run id·dataset freshness를 먼저 보존하고 추측보다 증거를 우선한다.
 - incident 완화와 영구 수정은 별도 Work Item이 될 수 있다.
-- 월간: 비용·capacity·unmanaged drift·오래된 Work Item 검토
+- 월간: 비용·capacity·unmanaged drift·data contract lifecycle·오래된 Work Item 검토
 - 분기: backup restore rehearsal, source/API/license와 권한 검토
 - release 후: smoke와 관찰기간을 거쳐 acceptance evidence 기록
 - 반복되는 결함은 단순 패치로 끝내지 않고 contract/harness 누락 여부를 재분류한다.

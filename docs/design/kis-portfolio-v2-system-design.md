@@ -295,7 +295,9 @@ collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위�
 
 ### 7.1 Pipeline specification
 
-각 pipeline은 code-reviewed manifest와 application registry를 함께 가진다.
+각 pipeline은 `docs/governance/data-governance-harness.md`의 승인된 source·collection·dataset 계약을 참조하는
+code-reviewed manifest와 application registry를 함께 가진다. 수집 장바구니는 pipeline TODO가 아니라
+versioned collection contract다.
 
 ```text
 pipeline_id

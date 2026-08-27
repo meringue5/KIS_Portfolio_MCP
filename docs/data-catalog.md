@@ -7,6 +7,11 @@
 DB 객체를 추가하거나 의미를 바꿀 때는 이 문서를 먼저 또는 같은 변경에서 갱신해야 한다.
 단순한 테이블 목록은 다른 문서에 복제하지 않고 이 문서를 참조한다.
 
+이 문서는 더 넓은 [Data Governance Harness](./governance/data-governance-harness.md) 아래에서 물리 object
+계약을 담당한다. source, collection basket, logical dataset, metric과 pipeline 계약은
+`governance/catalog/`가 소유한다. 물리 object가 새 dataset을 구현하거나 기존 dataset의 의미를 바꾸면
+`governance/catalog/datasets.toml`과 이 문서를 같은 변경에서 갱신한다.
+
 ## Authority and Scope
 
 각 책임의 source of truth는 다음과 같다.
@@ -202,16 +207,18 @@ view를 재생성한다.
 
 DB 객체 변경 PR 또는 작업은 다음을 모두 만족해야 한다.
 
-1. `catalog.py`에 객체와 계약을 등록한다.
-2. 이 문서의 해당 layer catalog와 필요하면 column convention을 갱신한다.
-3. versioned migration 또는 현재 단계의 `schema.py` DDL을 추가한다.
-4. repository write mode와 natural key를 테스트한다.
-5. Parquet 포함/제외를 명시하고 `docs/backup.md`를 맞춘다.
-6. Security/PII 영향이 있으면 `docs/security-and-secrets.md`를 갱신한다.
-7. warehouse contract 검사와 live inventory를 실행한다.
+1. 관련 source/dataset/metric/pipeline manifest를 확인하고 새 의미면 proposed contract를 먼저 등록한다.
+2. `catalog.py`에 물리 객체와 계약을 등록한다.
+3. 이 문서의 해당 layer catalog와 필요하면 column convention을 갱신한다.
+4. versioned migration 또는 현재 단계의 `schema.py` DDL을 추가한다.
+5. repository write mode와 natural key를 테스트한다.
+6. Parquet 포함/제외를 명시하고 `docs/backup.md`를 맞춘다.
+7. Security/PII 영향이 있으면 `docs/security-and-secrets.md`를 갱신한다.
+8. DGH·warehouse contract 검사와 live inventory를 실행한다.
 
 ```bash
 uv run python .agent/skills/kis-warehouse-contract/scripts/check_warehouse_contracts.py
+python3 .agent/skills/kis-data-governance/scripts/check_data_governance.py
 uv run python .agent/skills/kis-warehouse-contract/scripts/inspect_portfolio_db.py --inventory
 ```
 

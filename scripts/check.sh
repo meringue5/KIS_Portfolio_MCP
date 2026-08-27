@@ -9,6 +9,10 @@ run_project_os() {
   python3 .agent/skills/kis-project-os/scripts/check_project_os.py
 }
 
+run_data_governance() {
+  python3 .agent/skills/kis-data-governance/scripts/check_data_governance.py
+}
+
 run_architecture() {
   uv run python .agent/skills/kis-architecture-audit/scripts/check_architecture_contracts.py
 }
@@ -32,11 +36,13 @@ case "$MODE" in
   staged)
     git diff --cached --check
     run_project_os
+    run_data_governance
     run_architecture
     run_warehouse
     ;;
   quick)
     run_project_os
+    run_data_governance
     run_architecture
     run_warehouse
     run_mcp_surface
@@ -45,6 +51,7 @@ case "$MODE" in
     ;;
   full)
     run_project_os
+    run_data_governance
     run_architecture
     run_warehouse
     run_mcp_surface

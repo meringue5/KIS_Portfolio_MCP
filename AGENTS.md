@@ -98,8 +98,16 @@ native skill discovery를 지원하지 않는 환경에서도 관련 작업 전�
 - `.agent/skills/kis-warehouse-contract/SKILL.md`: MotherDuck/DuckDB schema, repository, backup 계약 점검
 - `.agent/skills/kis-release-ops/SKILL.md`: CI/CD, Secret Manager, GitHub Actions, Cloud Run 릴리즈 절차
 - `.agent/skills/kis-project-os/SKILL.md`: 변경 분류, Work Item, traceability와 공통 gate 절차
+- `.agent/skills/kis-data-governance/SKILL.md`: source, 수집 장바구니, dataset, metric, pipeline과 데이터 수명주기 계약 절차
 
-DB 작업에서는 `docs/data-catalog.md`를 가장 먼저 읽는다. 이 문서가 객체 목적, grain, logical layer,
+### Data Governance Harness
+
+source, 수집 장바구니, dataset, metric, pipeline, quality, lineage, retention을 변경할 때는
+`docs/governance/data-governance-harness.md`와 `.agent/skills/kis-data-governance/SKILL.md`를 먼저 읽는다.
+계약 형식은 `governance/contract-schema.toml`, 개별 계약 SSOT는 `governance/catalog/`이다. 승인·활성 계약
+없이는 production 수집, publish, metric, MCP 노출을 구현하지 않는다.
+
+DB 작업에서는 이어서 `docs/data-catalog.md`를 읽는다. 이 문서가 객체 목적, grain, logical layer,
 민감도, 백업 정책과 schema migration 계획의 canonical governance 문서다. `schema.py` 또는 live DB에만
 객체를 추가하지 말고 `src/kis_portfolio/db/catalog.py`, DDL/migration, repository test, catalog 문서를
 같은 변경에서 갱신한다.

@@ -1,0 +1,84 @@
+schema_version = 1
+
+[common]
+required = ["id", "version", "status", "owner", "description", "decision_refs"]
+list_fields = ["decision_refs"]
+statuses = ["proposed", "approved", "active", "deprecated", "retired"]
+version_pattern = "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+[types.source]
+file = "governance/catalog/sources.toml"
+id_prefix = "source."
+required = ["provider", "canonical_role", "access_method", "auth_class", "license_class", "sensitivity", "region", "cost_class", "rate_limit_policy", "availability_slo"]
+list_fields = []
+non_empty_list_fields = []
+
+[types.source.enums]
+canonical_role = ["canonical", "secondary", "fallback", "reference"]
+auth_class = ["none", "api-key", "oauth", "service-account", "manual"]
+license_class = ["public", "account-private", "licensed", "restricted", "unknown"]
+sensitivity = ["public", "internal", "confidential", "restricted"]
+cost_class = ["free", "routine", "backfill", "exceptional", "unknown"]
+
+[types.source.forbidden_when_governed]
+license_class = ["unknown"]
+cost_class = ["unknown"]
+
+[types.collection]
+file = "governance/catalog/collections.toml"
+id_prefix = "collection."
+required = ["scope", "source_ids", "dataset_ids", "priority", "history_policy", "schedule_policy", "trigger_policy", "cost_budget", "acceptance_rules"]
+list_fields = ["source_ids", "dataset_ids", "acceptance_rules"]
+non_empty_list_fields = ["source_ids", "dataset_ids", "acceptance_rules"]
+
+[types.collection.enums]
+priority = ["required", "recommended", "later", "excluded"]
+
+[types.collection.references]
+source_ids = "source"
+dataset_ids = "dataset"
+
+[types.dataset]
+file = "governance/catalog/datasets.toml"
+id_prefix = "dataset."
+required = ["layer", "source_ids", "input_dataset_ids", "purpose", "grain", "natural_key", "time_semantics", "write_mode", "schema_contract", "sensitivity", "retention_policy", "backup_policy", "freshness_slo", "quality_rules", "producer_pipeline_ids", "consumer_ids"]
+list_fields = ["source_ids", "input_dataset_ids", "natural_key", "quality_rules", "producer_pipeline_ids", "consumer_ids"]
+non_empty_list_fields = ["natural_key", "quality_rules", "consumer_ids"]
+one_of_non_empty = ["source_ids", "input_dataset_ids"]
+
+[types.dataset.enums]
+layer = ["bronze", "silver", "gold", "control"]
+sensitivity = ["public", "internal", "confidential", "restricted"]
+backup_policy = ["parquet", "object", "rebuild", "excluded"]
+
+[types.dataset.references]
+source_ids = "source"
+input_dataset_ids = "dataset"
+producer_pipeline_ids = "pipeline"
+
+[types.metric]
+file = "governance/catalog/metrics.toml"
+id_prefix = "metric."
+required = ["input_dataset_ids", "grain", "formula_ref", "unit", "point_in_time", "quality_gate", "validation_policy", "consumer_ids"]
+list_fields = ["input_dataset_ids", "consumer_ids"]
+bool_fields = ["point_in_time"]
+non_empty_list_fields = ["input_dataset_ids", "consumer_ids"]
+
+[types.metric.references]
+input_dataset_ids = "dataset"
+
+[types.pipeline]
+file = "governance/catalog/pipelines.toml"
+id_prefix = "pipeline."
+required = ["source_ids", "input_dataset_ids", "output_dataset_ids", "stages", "schedule_policy", "calendar_gate", "idempotency_key", "timeout_policy", "retry_policy", "source_call_budget", "freshness_gates", "quality_gates", "secret_profile", "cost_class", "trigger_policy"]
+list_fields = ["source_ids", "input_dataset_ids", "output_dataset_ids", "stages", "freshness_gates", "quality_gates"]
+non_empty_list_fields = ["output_dataset_ids", "stages", "quality_gates"]
+one_of_non_empty = ["source_ids", "input_dataset_ids"]
+
+[types.pipeline.enums]
+cost_class = ["routine", "backfill", "exceptional"]
+
+[types.pipeline.references]
+source_ids = "source"
+input_dataset_ids = "dataset"
+output_dataset_ids = "dataset"

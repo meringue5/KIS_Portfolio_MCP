@@ -87,9 +87,11 @@ def check(root: Path) -> list[str]:
     errors: list[str] = []
     required_files = [
         "docs/governance/project-operating-system.md",
+        "docs/governance/data-governance-harness.md",
         "docs/traceability.md",
         "docs/work-items/TEMPLATE.md",
         ".agent/skills/kis-project-os/SKILL.md",
+        ".agent/skills/kis-data-governance/SKILL.md",
         "scripts/check.sh",
         ".githooks/pre-commit",
         ".githooks/pre-push",
@@ -105,12 +107,17 @@ def check(root: Path) -> list[str]:
 
     require_text(
         root / "docs/governance/project-operating-system.md",
-        ["Project Operating System", "Project Governance", "scripts/check.sh"],
+        ["Project Operating System", "Project Governance", "Data Governance Harness", "scripts/check.sh"],
         errors,
     )
     require_text(
         root / "AGENTS.md",
-        ["Project Operating System", ".agent/skills/kis-project-os/SKILL.md"],
+        ["Project Operating System", "Data Governance Harness", ".agent/skills/kis-project-os/SKILL.md"],
+        errors,
+    )
+    require_text(
+        root / "scripts/check.sh",
+        ["run_data_governance", "check_data_governance.py"],
         errors,
     )
     require_text(

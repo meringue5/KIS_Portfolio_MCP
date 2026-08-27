@@ -565,6 +565,35 @@ Project OS는 제품 application/data/runtime architecture와 병립하면서 �
 
 ---
 
+### ADR-023: Data Governance Harness를 Project OS의 데이터 전용 집행 계층으로 채택
+
+**결정**: **Data Governance Harness(DGH, 데이터 거버넌스 하네스)**를 Project OS 아래에서 product data
+architecture를 집행하는 전문 control system으로 둔다. source, collection basket, dataset, metric과
+pipeline은 implementation 전에 versioned machine-readable contract를 가져야 하며, 이후 원천 데이터
+카탈로그와 수집 장바구니는 반드시 이 형식을 사용한다.
+
+**상태**: 2026-08-28 사용자 승인, 즉시 적용. canonical policy는
+`docs/governance/data-governance-harness.md`, 계약 형식은 `governance/contract-schema.toml`, 개별 계약은
+`governance/catalog/`가 소유한다. 이 승인은 source 선정, provider 가입, production migration, schedule,
+backfill 또는 deployment 권한이 아니다.
+
+**이유**:
+- 물리 DB 객체, 코드와 대화형 요구만으로는 source 권리, collection 범위, 의미, 품질, lineage와 보존 책임을
+  일관되게 강제할 수 없다.
+- 별도 대형 governance SaaS는 현재 1인 운영·scale-to-zero·월 50,000원 상한에 비해 운영면과 비용을 늘린다.
+- Git 기반 계약과 deterministic checker는 결정·코드·증거를 같은 review 경계에 두고, 추후 catalog 제품이나
+  dbt를 도입해도 정책 SSOT를 보존한다.
+
+**계약**:
+- approved/active contract만 production 수집·publish·공식 분석의 근거가 된다.
+- grain, key, time semantics, freshness, quality, lineage, sensitivity, retention, backup과 cost 책임을 명시한다.
+- Git hook과 CI는 Project OS의 `scripts/check.sh`를 통해 동일한 DGH checker를 실행한다.
+- runtime은 run/stage/watermark/quality/lineage evidence를 남기고 partial·stale 결과를 성공으로 숨기지 않는다.
+- Gold, metric, signal과 Telegram은 선언된 quality publish gate를 통과해야 한다.
+- 예외와 destructive change는 범위·만료·보완통제·사용자 승인을 가진 Work Item 없이 우회할 수 없다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

@@ -14,6 +14,11 @@ Project OS는 runtime component가 아니며 제품 code에 포함되지 않는�
 변경은 관련 ADR과 Work Item뿐 아니라 이를 검증하는 contract checker와 release evidence까지 함께
 완료돼야 한다.
 
+Project OS 아래의 **Data Governance Harness**는 source, collection basket, dataset, metric과 pipeline의
+계약을 `docs/governance/data-governance-harness.md`와 `governance/catalog/`에서 관리한다. 이 하네스는
+runtime component나 별도 warehouse가 아니며, data architecture가 승인된 grain·quality·lineage·retention
+계약을 따르도록 hook·CI·release gate에서 집행한다.
+
 ## 구조 원칙
 
 루트 디렉터리는 프로젝트를 이해하고 운영하는 데 필요한 문서와 설정 진입점만 둔다.
@@ -36,6 +41,9 @@ KIS_Portfolio_MCP/
 ├── server.py                  # 기존 MCP 설정 호환용 thin entrypoint
 ├── .agent/
 │   └── skills/                # 에이전트 공통 운용 runbook
+├── governance/
+│   ├── contract-schema.toml   # source/dataset/metric/pipeline 계약 형식
+│   └── catalog/               # versioned governance manifest
 ├── src/
 │   └── kis_portfolio/
 │       ├── __init__.py

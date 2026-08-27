@@ -37,10 +37,12 @@ def test_project_os_rejects_two_in_progress_work_items(tmp_path: Path):
     required_paths = [
         "AGENTS.md",
         "docs/governance/project-operating-system.md",
+        "docs/governance/data-governance-harness.md",
         "docs/traceability.md",
         "docs/work-items/TEMPLATE.md",
         "docs/work-items/WI-000-project-operating-system.md",
         ".agent/skills/kis-project-os/SKILL.md",
+        ".agent/skills/kis-data-governance/SKILL.md",
         "scripts/check.sh",
         ".githooks/pre-commit",
         ".githooks/pre-push",

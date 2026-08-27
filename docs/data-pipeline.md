@@ -101,10 +101,13 @@ asset_overview_daily_snapshots
 ## 구현 위치
 
 - object governance registry: `src/kis_portfolio/db/catalog.py`
+- source/dataset/collection/metric/pipeline registry: `governance/catalog/`
+- data governance policy and gates: `docs/governance/data-governance-harness.md`
 - current physical DDL and Gold view SQL: `src/kis_portfolio/db/schema.py`
 - Bronze/Silver/Control repositories: `src/kis_portfolio/db/repository.py`
 - analytics SQL: `src/kis_portfolio/analytics/`
 - backup: `scripts/backup_motherduck.py`
 
-새 객체는 catalog에 layer/grain/key/backup/sensitivity를 먼저 선언한다. 물리 schema 분리 전까지도 이
-논리 계약은 즉시 적용되며, `main`에 코드 밖 객체를 임의 생성하지 않는다.
+새 수집·dataset·metric·pipeline은 DGH manifest를 proposed로 먼저 등록한다. 새 물리 객체는 data catalog에
+layer/grain/key/backup/sensitivity를 선언한다. 물리 schema 분리 전까지도 이 논리 계약은 즉시 적용되며,
+`main`에 코드 밖 객체를 임의 생성하지 않는다.

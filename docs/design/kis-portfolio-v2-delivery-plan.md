@@ -10,6 +10,9 @@
 V2 제품 구현에 앞서 `docs/governance/project-operating-system.md`의 변경 분류, Work Item, traceability,
 공통 check harness와 CI gate를 활성화한다. 각 V2 Work Item은 이 운영체계를 사용하며, 제품 구현을 위해
 Project OS gate를 임시 우회하지 않는다. Package F의 bootstrap 작업은 `WI-000`이 소유한다.
+source catalog, collection basket, dataset, metric과 pipeline 작업은
+`docs/governance/data-governance-harness.md`의 contract-first gate를 선행한다. `WI-003`은 하네스 정의만
+소유하며 실제 source 선정·수집·migration은 각 Wave Work Item이 소유한다.
 
 ## 1. 계획 운영 방식
 
@@ -166,6 +169,9 @@ V1 `main` writer와 reader를 유지한다. V2 schema를 consumer가 사용하�
 version으로 표시한 뒤 새 migration으로 교정한다.
 
 ## 7. Wave 4 — Source pipeline과 backfill
+
+Wave 4에 들어가기 전에 source inventory와 collection basket을 DGH manifest로 검토·승인한다. 승인되지
+않은 source나 dataset을 adapter, schedule 또는 backfill 대상으로 만들지 않는다.
 
 ### Work items
 

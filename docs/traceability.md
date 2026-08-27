@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DGOV-001..DGOV-010: Data Governance Harness | ADR-023 | WI-003 | `docs/governance/data-governance-harness.md`, governed TOML registry, Skill/checker | full gate 193 passed; positive/negative contract tests; production 변경 없음 | verified, acceptance pending |
 | DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; MotherDuck Lite 0원; `my_db` empty legacy 확인; 운영 변경 없음 | verified, acceptance pending |
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
@@ -24,6 +25,21 @@
 | GOV-006 | 동시에 하나의 구현 Work Item만 `in_progress`로 둔다. | maintainer |
 | GOV-007 | 계약 변경은 사용자 승인 뒤 반영하고, 구현에 맞춘 silent widening을 금지한다. | owner |
 | GOV-008 | Project OS 자체 변경도 Work Item과 dogfood 검증을 거친다. | owner / maintainer |
+
+## Data Governance Requirements
+
+| ID | Requirement | Acceptance owner |
+| --- | --- | --- |
+| DGOV-001 | Data Governance Harness는 Project OS 아래에서 data architecture를 집행하는 전문 control system이다. | owner |
+| DGOV-002 | 정책은 canonical 문서, 계약 형식은 machine schema, 인스턴스는 registry, 검사는 단일 checker가 소유한다. | owner / maintainer |
+| DGOV-003 | source, dataset, collection basket, metric과 pipeline은 구현 전에 versioned contract를 가진다. | data owner |
+| DGOV-004 | 승인·활성 계약만 production 수집·publish·분석의 근거가 될 수 있다. | owner / pipeline runner |
+| DGOV-005 | grain, key, time semantics, freshness, quality, lineage, sensitivity, retention과 cost 책임을 누락할 수 없다. | data owner |
+| DGOV-006 | 미등록 객체·참조, schema drift와 승인 없는 breaking change는 hook·CI·release gate에서 실패한다. | maintainer / CI |
+| DGOV-007 | runtime은 run, stage, watermark, quality result와 lineage evidence를 남기고 품질 미달을 성공으로 숨기지 않는다. | pipeline owner |
+| DGOV-008 | Gold, metric, signal과 Telegram은 선언된 quality publish gate를 통과한 입력만 공식 결과로 사용한다. | analytics owner |
+| DGOV-009 | 예외는 사유·범위·만료·승인자를 가진 Work Item으로만 허용하며 silent bypass를 금지한다. | owner |
+| DGOV-010 | 원천 데이터 카탈로그와 수집 장바구니는 이 하네스의 source·collection·dataset 계약 형식을 따른다. | owner / data architect |
 
 ## Update Rules
 
