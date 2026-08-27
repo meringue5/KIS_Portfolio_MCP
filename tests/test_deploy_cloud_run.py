@@ -20,6 +20,10 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
         "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
         "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
         "KIS_AUTH_TOKEN_PEPPER": "pepper",
+        "KIS_REAL_API_MIN_INTERVAL_SECONDS": "0.15",
+        "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS": "1.0",
+        "KIS_TOKEN_MIN_INTERVAL_SECONDS": "1.0",
+        "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS": "1.0",
     }
 
     required = deploy_cloud_run._required_keys_for_remote(env)
@@ -28,6 +32,10 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     assert deploy_cloud_run._effective_remote_auth_mode(env) == "oauth"
     assert "KIS_REMOTE_AUTH_TOKEN" not in required
     assert payload["KIS_REMOTE_AUTH_MODE"] == "oauth"
+    assert payload["KIS_REAL_API_MIN_INTERVAL_SECONDS"] == "0.15"
+    assert payload["KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS"] == "1.0"
+    assert payload["KIS_TOKEN_MIN_INTERVAL_SECONDS"] == "1.0"
+    assert payload["KIS_RATE_LIMIT_RETRY_DELAY_SECONDS"] == "1.0"
 
 
 def test_secret_manager_uses_deterministic_secret_ids():
@@ -158,6 +166,8 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
         "KIS_ACNT_PRDT_CD_RIA": "01",
         "KIS_REMOTE_AUTH_MODE": "oauth",
         "KIS_RESOURCE_SERVER_URL": "https://remote.example.com/mcp",
+        "KIS_REAL_API_MIN_INTERVAL_SECONDS": "0.15",
+        "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS": "1.0",
     }
 
     required = deploy_cloud_run._required_keys_for_batch(env)
@@ -168,6 +178,8 @@ def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
     assert payload["KIS_APP_KEY_RIA"] == "app-key"
     assert payload["KIS_ACNT_PRDT_CD_RIA"] == "01"
     assert payload["KIS_RESOURCE_SERVER_URL"] == "https://remote.example.com/mcp"
+    assert payload["KIS_REAL_API_MIN_INTERVAL_SECONDS"] == "0.15"
+    assert payload["KIS_RATE_LIMIT_RETRY_DELAY_SECONDS"] == "1.0"
     assert "KIS_REMOTE_AUTH_MODE" not in payload
 
 

@@ -168,10 +168,15 @@ MOTHERDUCK_TOKEN=
 KIS_DATA_DIR=var
 KIS_ACCOUNT_TYPE=REAL
 KIS_ENABLE_ORDER_TOOLS=false
+KIS_REAL_API_MIN_INTERVAL_SECONDS=0.15
+KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS=1.0
+KIS_TOKEN_MIN_INTERVAL_SECONDS=1.0
+KIS_RATE_LIMIT_RETRY_DELAY_SECONDS=1.0
 ```
 
 전체 예시는 [.env.example](./.env.example)를 참고하세요. 각 시크릿의 source of truth, DB 저장 여부,
 회전 절차는 [docs/security-and-secrets.md](./docs/security-and-secrets.md)에 정리되어 있습니다.
+KIS 호출 유량 제한과 재시도 정책은 [docs/kis-api-rate-limits.md](./docs/kis-api-rate-limits.md)를 따릅니다.
 
 ## 실행 방법
 

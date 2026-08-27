@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from .config import get_token_dir
+from .clients.kis import request_kis, wait_for_kis_slot
 from .db.kis_token_repository import get_kis_api_access_token, upsert_kis_api_access_token
 from .observability import current_or_new_operation_id, log_event
 from .security.redaction import mask_account_id
@@ -240,6 +241,7 @@ async def _request_new_token_with_retry(
             attempt=attempt + 1,
         )
         try:
+            await wait_for_kis_slot(domain, request_kind="token")
             response = await client.post(
                 f"{domain}{TOKEN_PATH}",
                 headers={"content-type": CONTENT_TYPE},
@@ -775,8 +777,11 @@ async def get_hashkey(
     body: dict[str, Any],
 ) -> str:
     """Get hash key for order request."""
-    response = await client.post(
+    response = await request_kis(
+        client,
+        "POST",
         f"{domain}{HASHKEY_PATH}",
+        domain=domain,
         headers={
             "content-type": CONTENT_TYPE,
             "authorization": f"{AUTH_TYPE} {token}",

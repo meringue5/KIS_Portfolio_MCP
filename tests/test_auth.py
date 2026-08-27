@@ -36,6 +36,11 @@ def local_token_cache_env(tmp_path, monkeypatch):
     monkeypatch.setenv("KIS_APP_KEY", "app-key-1")
     monkeypatch.setenv("KIS_APP_SECRET", "app-secret-1")
     monkeypatch.setenv("KIS_TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode("utf-8"))
+
+    async def no_rate_limit_wait(*args, **kwargs):
+        return 0.0
+
+    monkeypatch.setattr(auth, "wait_for_kis_slot", no_rate_limit_wait)
     yield tmp_path
     auth.clear_process_token_cache()
     close_connection()
