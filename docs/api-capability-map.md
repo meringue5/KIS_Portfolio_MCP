@@ -11,6 +11,7 @@ core service 함수와 저장 정책을 설계한다.
 - 한국투자 Open API 문서: https://apiportal.koreainvestment.com/apiservice-summary
 - 한국투자 공식 예제 저장소: https://github.com/koreainvestment/open-trading-api
 - 종목정보 예제: https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+- 호출 유량 계약: [kis-api-rate-limits.md](./kis-api-rate-limits.md)
 
 ## Capability Groups
 

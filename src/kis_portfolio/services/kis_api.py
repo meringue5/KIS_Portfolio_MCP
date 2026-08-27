@@ -13,7 +13,7 @@ from ..analytics.portfolio import (
     get_portfolio_trend as analyze_portfolio_trend,
 )
 from ..auth import get_access_token, get_hashkey, get_token_status as inspect_token_status
-from ..clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN
+from ..clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN, request_kis
 from .account import fetch_balance_snapshot
 from .. import db as kisdb
 
@@ -133,7 +133,9 @@ async def _get_paginated_kis_json(
             if tr_cont:
                 headers["tr_cont"] = tr_cont
 
-            response = await client.get(
+            response = await request_kis(
+                client,
+                "GET",
                 f"{domain}{path}",
                 headers=headers,
                 params=next_params,
@@ -291,7 +293,9 @@ async def inquery_stock_price(symbol: str):
     """
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('price')}{STOCK_PRICE_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -356,7 +360,9 @@ async def order_stock(symbol: str, quantity: int, price: int, order_type: str):
         # Get hashkey
         hashkey = await get_hashkey(client, TrIdManager.get_domain(order_type), token, request_data)
         
-        response = await client.post(
+        response = await request_kis(
+            client,
+            "POST",
             f"{TrIdManager.get_domain(order_type)}{ORDER_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -412,7 +418,9 @@ async def inquery_order_list(
             "CTX_AREA_NK100": "",  # 연속조회키100
         }
         
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('order_list')}{ORDER_LIST_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -486,7 +494,9 @@ async def inquery_order_detail(order_no: str, order_date: str):
             "CTX_AREA_NK100": "",  # 연속조회키100
         }
         
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('order_detail')}{ORDER_DETAIL_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -528,7 +538,9 @@ async def inquery_stock_info(symbol: str, start_date: str, end_date: str):
             "FID_ORG_ADJ_PRC": "0",  # 수정주가원구분
         }
         
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('stock_info')}{STOCK_INFO_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -570,7 +582,9 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
             "FID_ORG_ADJ_PRC": "0",  # 수정주가원구분
         }
         
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('stock_history')}{STOCK_HISTORY_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -629,7 +643,9 @@ async def inquery_stock_ask(symbol: str):
             "FID_INPUT_ISCD": symbol,  # 종목코드
         }
         
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('stock_ask')}{STOCK_ASK_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -710,7 +726,9 @@ async def order_overseas_stock(symbol: str, quantity: int, price: float, order_t
             "ORD_DVSN": "00" if price > 0 else "01"  # 주문구분 (00: 지정가, 01: 시장가)
         }
         
-        response = await client.post(
+        response = await request_kis(
+            client,
+            "POST",
             f"{TrIdManager.get_domain(order_type)}{OVERSEAS_ORDER_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -741,7 +759,9 @@ async def inquery_overseas_stock_price(symbol: str, market: str):
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
         
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{TrIdManager.get_domain('buy')}{OVERSEAS_STOCK_PRICE_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -799,7 +819,9 @@ async def inquery_overseas_balance(exchange: str = "ALL"):
 
         for excg_cd, crcy_cd in targets:
             try:
-                response = await client.get(
+                response = await request_kis(
+                    client,
+                    "GET",
                     f"{DOMAIN}{OVERSEAS_BALANCE_PATH}",
                     headers={
                         "content-type": CONTENT_TYPE,
@@ -851,7 +873,9 @@ async def inquery_overseas_deposit(
 
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{DOMAIN}{OVERSEAS_PRESENT_BALANCE_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -1136,7 +1160,9 @@ async def inquery_exchange_rate_history(
 
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{DOMAIN}{OVERSEAS_CHARTPRICE_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -1196,7 +1222,9 @@ async def inquery_overseas_stock_history(
 
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{DOMAIN}{OVERSEAS_DAILYPRICE_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -1256,7 +1284,9 @@ async def inquery_period_trade_profit(
 
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{DOMAIN}{PERIOD_TRADE_PROFIT_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,
@@ -1306,7 +1336,9 @@ async def inquery_overseas_period_profit(
 
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, DOMAIN)
-        response = await client.get(
+        response = await request_kis(
+            client,
+            "GET",
             f"{DOMAIN}{OVERSEAS_PERIOD_PROFIT_PATH}",
             headers={
                 "content-type": CONTENT_TYPE,

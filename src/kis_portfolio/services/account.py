@@ -10,7 +10,13 @@ import httpx
 from kis_portfolio import db as kisdb
 from kis_portfolio.accounts import extract_total_eval_amt, infer_account_type, is_irp_account
 from kis_portfolio.auth import get_access_token, is_kis_expired_token_response
-from kis_portfolio.clients.kis import AUTH_TYPE, CONTENT_TYPE, DOMAIN, VIRTUAL_DOMAIN
+from kis_portfolio.clients.kis import (
+    AUTH_TYPE,
+    CONTENT_TYPE,
+    DOMAIN,
+    VIRTUAL_DOMAIN,
+    request_kis,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -66,8 +72,11 @@ async def fetch_balance_snapshot(
                     "CTX_AREA_FK100": "",
                     "CTX_AREA_NK100": "",
                 }
-                return await client.get(
+                return await request_kis(
+                    client,
+                    "GET",
                     f"{DOMAIN}{PENSION_BALANCE_PATH}",
+                    domain=DOMAIN,
                     headers={
                         "content-type": CONTENT_TYPE,
                         "authorization": f"{AUTH_TYPE} {access_token}",
@@ -91,8 +100,12 @@ async def fetch_balance_snapshot(
                 "CTX_AREA_NK100": "",
                 "OFL_YN": "",
             }
-            return await client.get(
-                f"{get_balance_domain()}{BALANCE_PATH}",
+            balance_domain = get_balance_domain()
+            return await request_kis(
+                client,
+                "GET",
+                f"{balance_domain}{BALANCE_PATH}",
+                domain=balance_domain,
                 headers={
                     "content-type": CONTENT_TYPE,
                     "authorization": f"{AUTH_TYPE} {access_token}",

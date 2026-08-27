@@ -207,6 +207,10 @@ def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_AUTH_REQUIRED_SCOPES",
         "KIS_AUTH_ALLOWED_SCOPES",
         "KIS_AUTH_TOKEN_PEPPER",
+        "KIS_REAL_API_MIN_INTERVAL_SECONDS",
+        "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
+        "KIS_TOKEN_MIN_INTERVAL_SECONDS",
+        "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload["KIS_REMOTE_AUTH_MODE"] = _effective_remote_auth_mode(env)
@@ -226,6 +230,10 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_AUTH_ISSUER_URL",
         "KIS_RESOURCE_SERVER_URL",
         "KIS_SERVICE_WARMUP_HEALTH_URLS",
+        "KIS_REAL_API_MIN_INTERVAL_SECONDS",
+        "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
+        "KIS_TOKEN_MIN_INTERVAL_SECONDS",
+        "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload.update(_build_account_env(env))
