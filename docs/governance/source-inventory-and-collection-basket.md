@@ -1,6 +1,6 @@
 # Source Inventory and Collection Basket Review
 
-> 상태: 사용자 검토용 proposed package
+> 상태: owner 승인 완료 — core·recommended approved, later·excluded proposed
 >
 > 기준일: 2026-08-28
 >
@@ -24,10 +24,13 @@ material trade-off를 승인한다.
 5. **국내 consensus**는 KIS 종목추정실적·투자의견을 먼저 표본검증하되 canonical로 승격하지 않는다.
    **미국 consensus**는 point-in-time 분포·analyst count·revision을 제공하는 licensed provider가 선정될
    때까지 명시적 gap으로 둔다.
-6. 권리 미확인 리서치 원문, 포털 consensus와 일반 웹 scraping은 제외한다.
+6. 사용자가 정당하게 입수한 리서치 PDF는 별도 `restricted` 수동 반입 경로로 허용한다. 자동 탐색과
+   scraping은 하지 않으며 private 원본·versioned 추출·lineage만 owner-authorized 분석에 사용한다.
+7. 권리 미확인 리서치 원문, 포털 consensus와 일반 웹 scraping은 제외한다.
 
-이 패키지는 계약만 `proposed`로 등록한다. provider 가입, API key 발급, 실제 호출, DDL, 수집, backfill,
-Scheduler, MotherDuck 변경과 비용 발생을 승인하지 않는다.
+2026-08-28 owner 승인에 따라 필수 core와 권장 장바구니의 의존 계약을 `approved`로 승격했다. 아직
+production producer/consumer가 없으므로 `active`는 아니다. provider 가입, API key 발급, production 호출,
+live DDL, backfill, Scheduler, MotherDuck 운영 변경과 비용 발생은 승인하지 않는다.
 
 ## 2. 선택 원칙
 
@@ -59,6 +62,7 @@ KIS는 보유수량·체결·실수령 현금의 canonical source지만, 국내 
 | macro context | 금리, curve, 물가, 유동성, 경기, FX, VIX와 vintage | ECOS; FRED/ALFRED; Cboe | macro-observation | recommended macro |
 | forward 전망 위험 | point-in-time consensus 분포·인원·revision | KIS sample; licensed provider TBD | consensus-snapshot | later |
 | 시장 리포트 | metadata, link, rights-approved facts | KIS sample; licensed provider TBD | research-reference | later |
+| owner 보유 리포트 PDF | private original, hash, rights, page/section extraction | owner-provided manual upload | owner-research-document, owner-research-extraction | recommended manual |
 | 권리 미확인 원문/포털 | 수집하지 않음 | unapproved web content | zero-row sentinel | excluded |
 
 ## 4. Source inventory와 판정
@@ -185,6 +189,22 @@ cross-check에만 사용한다.
 
 판정: `later`. 이번 승인 묶음에는 provider 계약이나 비용 지출을 포함하지 않는다.
 
+### 4.11 Owner-provided research PDF — 수동 반입 승인
+
+- 역할: 사용자가 정당하게 입수하고 개인 분석 권한을 확인한 PDF의 provenance anchor와 분석 입력.
+- 접근: owner-authenticated 단건 수동 반입만 허용한다. Scheduler, 폴더 자동탐색, web crawling과 bulk
+  import는 허용하지 않는다.
+- 보존: SHA-256 content-addressed private original과 문서 metadata를 Bronze에, extractor/version/page 또는
+  section lineage가 있는 추출 결과를 Silver에 append-only로 보존한다.
+- 제한: 원문·추출물은 `restricted`이며 외부 재배포, 공개 MCP 응답과 Telegram 원문 전송을 금지한다.
+  DRM 또는 이용조건이 처리·보존을 금지하면 반입을 거부하거나 metadata만 남긴다.
+
+`restricted`는 유료라는 뜻이 아니다. 이는 이용조건·저작권·재배포·처리 범위를 통제하는 legal/use
+분류이며, 비용은 별도 `cost_class`와 월비용 gate가 판단한다.
+
+판정: `source.owner-provided-research-document`, `dataset.owner-research-document`,
+`dataset.owner-research-extraction`과 `collection.owner-research-pdf-v1`을 `approved`로 등록한다.
+
 ## 5. 실제 수집 장바구니
 
 ### Required — `collection.owned-portfolio-core-v1`
@@ -235,11 +255,23 @@ metric contract에서 sample response와 함께 확정한다.
 이 profile은 “많이 모으기”가 목적이 아니다. 보유종목 impact와 regime 해석에 실제로 쓰이는 series만
 versioned allowlist로 추가한다.
 
+### Recommended manual — `collection.owner-research-pdf-v1`
+
+- owner가 선택한 PDF만 단건 반입한다.
+- PDF signature, byte-size limit, SHA-256와 권리 assertion을 통과해야 한다.
+- original은 private object, extraction은 versioned result로 분리하고 page/section lineage를 남긴다.
+- full text 재배포, Telegram 전송, 무인 재수집과 권리 미확인 파일 처리를 금지한다.
+
 ### Later — `collection.consensus-research-later`
 
 - KIS 국내 추정실적·투자의견 recorded sample
 - point-in-time coverage 검증
-- 필요할 때만 미국 licensed provider 비교
+- KIS 국내 sample은 bounded source-sampling Work Item에서 즉시 수행한다.
+- core actual·배당·macro가 구현되고 KIS sample이 knowledge time, coverage, analyst count와 revision 요구를
+  충족할 때 국내 production 채택을 검토한다.
+- 미국 licensed provider 비교는 DEC-032 실적·forward 위험신호 구현 직전에 시작한다.
+- provider는 point-in-time history, 분포/dispersion, analyst count, revision, 내부 저장·분석 권리와
+  정상·backfill·장애월 비용이 확인돼야 진입할 수 있다.
 - provider 계약 전 수집, backfill, schema와 경보 사용 금지
 
 ### Excluded — `collection.unlicensed-market-content-excluded`
@@ -251,7 +283,7 @@ versioned allowlist로 추가한다.
 
 ## 6. Dataset contract 요약
 
-이번 패키지는 17개 logical dataset을 등록한다.
+이번 패키지는 19개 logical dataset을 등록한다.
 
 | Layer | Dataset | 핵심 grain/역할 |
 | --- | --- | --- |
@@ -270,6 +302,8 @@ versioned allowlist로 추가한다.
 | Silver | dividend-event | instrument/account/state/date/source fact |
 | Silver | macro-observation | series/period/vintage/revision |
 | Silver | research-reference | provider record와 published revision |
+| Bronze | owner-research-document | SHA-256별 private immutable PDF와 권리 metadata |
+| Silver | owner-research-extraction | 문서/extractor/version/page·section별 추출과 lineage |
 | Gold | portfolio-daily-state | date/slot/account/instrument/aggregate level |
 | Control sentinel | unlicensed-market-content | zero rows; prohibited boundary |
 
@@ -303,22 +337,25 @@ design은 이 logical grain, natural key, time semantics, quality와 sensitivity
 | U.S. market calendar parse·교차검증 | NYSE/Nasdaq 공식 source 선정 | holiday·early-close golden fixture와 source disagreement rule |
 | DART/SEC taxonomy mapping | source actual 보존 우선 | representative KR/US issuer golden fixture |
 | 원문 storage size | estimate만 존재 | bounded sample byte size와 3년 projection |
+| owner PDF parser·권리 경계 | approved manual contract | PDF fixture, hash dedupe, DRM/rejection, page lineage와 restricted-output test |
 
-다음 Work Item은 owner 승인 뒤에도 곧바로 전체 구현하지 않는다. 먼저 **bounded source sampling and
-contract hardening**으로 source별 1~3개 보유상품, 짧은 기간과 비민감 fixture를 사용해 response shape,
-quota, rights, row/file size와 quality rule을 검증한다. 그 결과가 승인 계약과 다르면 contract review로
-되돌아온다.
+다음 Work Item은 **bounded source sampling and contract hardening**과 승인 범위의 V2 local 구현을 함께
+진행한다. source별 1~3개 보유상품, 짧은 기간과 비민감 fixture로 response shape, quota, rights,
+row/file size와 quality rule을 검증한다. 그 결과가 승인 계약과 다르면 contract review로 되돌아온다.
 
-## 9. Owner 승인 요청 묶음
+## 9. Owner 승인 기록
 
-권고 기본값은 세 항목 모두 승인이다.
+2026-08-28 owner가 다음 권고를 모두 승인했다.
 
 1. `required` core와 세 `recommended` basket을 source/dataset/collection **approved contract**로 승격한다.
-   이것은 구현·key 발급·수집·backfill 승인이 아니다.
+   이 승격은 production key 발급·수집·backfill 승인이 아니다.
 2. KRX/ETF issuer, FRED series와 Cboe는 공개 접근 가능하더라도 activation 전 terms review를 요구하는
    `restricted` 분류를 유지한다.
 3. consensus/research는 `later`, unlicensed scraping은 `excluded`로 유지하고 지금 유료 provider를
    선택하거나 결제하지 않는다.
+4. owner-provided PDF는 별도 restricted manual collection으로 승인하고 자동 web collection과 분리한다.
+5. DEC-044 범위의 repository-local 구현·fixture·test·migration dry-run은 추가 Work Item별 질문 없이
+   진행하되 production·외부·유료 gate는 유지한다.
 
-승인 뒤에는 이 manifest의 상태와 decision evidence를 갱신하고 WI-004를 닫은 다음, bounded sampling을
-새 Work Item으로 시작한다.
+manifest lifecycle과 decision evidence를 갱신하고 WI-004를 닫았다. consensus source/dataset/collection과
+unlicensed sentinel은 activation 조건을 충족하지 않았으므로 `proposed` 상태를 유지한다.

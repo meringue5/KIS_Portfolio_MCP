@@ -3,7 +3,7 @@ schema_version = 1
 [[contracts]]
 id = "dataset.portfolio-position-observation"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "계좌별 국내·연금·해외 보유수량, 증권사 평단가, 평가금액과 예수금의 관측 사실."
 decision_refs = ["DEC-003", "DEC-005", "DEC-009", "DEC-015"]
@@ -27,7 +27,7 @@ consumer_ids = ["portfolio reconciliation", "asset overview", "owned-instrument 
 [[contracts]]
 id = "dataset.trade-event"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "국내·IRP·해외 주문체결을 정규화한 immutable buy/sell 사건과 reconciliation 상태."
 decision_refs = ["DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014"]
@@ -51,7 +51,7 @@ consumer_ids = ["purchase lots", "trade threads", "trade journal review", "reali
 [[contracts]]
 id = "dataset.cash-transaction-event"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "입출금·수수료·세금·환전·배당 실수령 등 계좌 현금 사건의 정규화 원장."
 decision_refs = ["DEC-013", "DEC-023"]
@@ -75,7 +75,7 @@ consumer_ids = ["cash-flow analysis", "dividend ledger", "portfolio reconciliati
 [[contracts]]
 id = "dataset.instrument-master"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "국내·미국 보유상품의 코드, 거래소, 통화, 주식·ETF·REIT 유형과 issuer 식별자."
 decision_refs = ["DEC-005", "DEC-018", "DEC-020"]
@@ -99,7 +99,7 @@ consumer_ids = ["all governed portfolio datasets", "ETF issuer routing", "filing
 [[contracts]]
 id = "dataset.price-bar-daily"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "보유상품의 국내·미국 일봉 OHLCV와 수정·원주가 basis 및 수집 provenance."
 decision_refs = ["DEC-005", "DEC-015", "DEC-016", "DEC-017"]
@@ -123,7 +123,7 @@ consumer_ids = ["trend metrics", "portfolio valuation", "signal replay"]
 [[contracts]]
 id = "dataset.fx-rate-daily"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "외화 자산 평가와 거래사건 연결을 위한 통화쌍별 일별 환율 관측."
 decision_refs = ["DEC-013", "DEC-015"]
@@ -147,7 +147,7 @@ consumer_ids = ["total asset", "cash-flow analysis", "performance attribution"]
 [[contracts]]
 id = "dataset.market-calendar"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "국내·미국 시장의 거래일, 조기종료와 평가 가능 slot을 나타내는 calendar."
 decision_refs = ["DEC-003", "DEC-005", "DEC-006", "DEC-030"]
@@ -171,7 +171,7 @@ consumer_ids = ["all scheduled collections", "signal evaluation", "Telegram deli
 [[contracts]]
 id = "dataset.trade-journal"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "거래·lot·thread에 연결된 투자 이유, 가설, 계획, 회고와 수정 이력."
 decision_refs = ["DEC-009", "DEC-014", "DEC-029", "DEC-031"]
@@ -195,7 +195,7 @@ consumer_ids = ["journal MCP", "review queue", "trade-thread analysis"]
 [[contracts]]
 id = "dataset.etf-constituent-snapshot"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "보유 ETF별 공식 구성종목, 비중, 단위와 현금·채권·파생·nested ETF 유형을 보존한 일별 snapshot."
 decision_refs = ["DEC-018", "DEC-019"]
@@ -219,7 +219,7 @@ consumer_ids = ["ETF impact analysis", "portfolio exposure", "concentration aler
 [[contracts]]
 id = "dataset.filing-event"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "국내 OpenDART와 미국 SEC EDGAR의 filing metadata, correction relation and content-addressed document reference."
 decision_refs = ["DEC-020", "DEC-023", "DEC-025"]
@@ -243,7 +243,7 @@ consumer_ids = ["financial facts", "dividend events", "fundamental analysis"]
 [[contracts]]
 id = "dataset.financial-fact"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "공식 공시에서 추출한 기업별 재무 actual과 표준화 taxonomy mapping."
 decision_refs = ["DEC-020", "DEC-022", "DEC-032"]
@@ -291,7 +291,7 @@ consumer_ids = ["earnings risk signal", "forward valuation", "interactive analys
 [[contracts]]
 id = "dataset.dividend-event"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "종목·계좌별 declared, entitled, received and corrected dividend event ledger."
 decision_refs = ["DEC-023"]
@@ -315,7 +315,7 @@ consumer_ids = ["dividend history", "income trend", "portfolio cash-flow analysi
 [[contracts]]
 id = "dataset.macro-observation"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "macro_profile_v1의 ECOS·FRED/ALFRED·Cboe 관측과 vintage·revision metadata."
 decision_refs = ["DEC-024", "DEC-026"]
@@ -361,9 +361,57 @@ producer_pipeline_ids = []
 consumer_ids = ["interactive research", "earnings review", "risk explanation"]
 
 [[contracts]]
+id = "dataset.owner-research-document"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "사용자가 수동 반입한 리서치 PDF의 private content-addressed original과 문서 identity·권리·검증 metadata."
+decision_refs = ["DEC-025", "DEC-042"]
+layer = "bronze"
+source_ids = ["source.owner-provided-research-document"]
+input_dataset_ids = []
+purpose = "개인 분석이 허용된 원문을 변경 없이 보존하고 모든 추출·인용의 provenance anchor를 제공한다."
+grain = "one immutable PDF byte sequence identified by SHA-256 content hash"
+natural_key = ["sha256"]
+time_semantics = "owner-provided_at, document published_at when known and ingested_at retained separately"
+write_mode = "content-addressed immutable object with append-only metadata revisions"
+schema_contract = "logical owner research document v1 with hash, media type, byte size, private object URI, issuer links, published metadata, rights assertion and intake result"
+sensitivity = "restricted"
+retention_policy = "retain while owner authorization remains valid; deletion requires an explicit governed request and lineage impact review"
+backup_policy = "object"
+freshness_slo = "available after the synchronous intake validation completes; no scheduled discovery"
+quality_rules = ["PDF signature and SHA-256 verified", "duplicate bytes resolve to the existing object", "owner rights assertion and rights class recorded", "DRM or prohibited processing is rejected", "object URI is private and never returned as public content"]
+producer_pipeline_ids = []
+consumer_ids = ["owner research extraction", "interactive owner-authorized analysis", "lineage audit"]
+
+[[contracts]]
+id = "dataset.owner-research-extraction"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "owner research PDF에서 생성한 versioned text·section·table extraction과 page-level lineage. 원문 권리등급을 그대로 상속한다."
+decision_refs = ["DEC-025", "DEC-042"]
+layer = "silver"
+source_ids = []
+input_dataset_ids = ["dataset.owner-research-document"]
+purpose = "LLM과 사람이 원문 provenance를 잃지 않고 제한된 개인 분석을 수행하도록 재현 가능한 추출 결과를 제공한다."
+grain = "one document hash, extractor identity and version, extraction revision, page or section locator"
+natural_key = ["document_sha256", "extractor_id", "extractor_version", "extraction_revision", "locator"]
+time_semantics = "source document published/provided time and extraction created_at retained; later extraction creates a new revision"
+write_mode = "append-only versioned extraction; never overwrite the original or a prior extractor revision"
+schema_contract = "logical owner research extraction v1 with text or structured payload reference, page/section locator, extractor provenance, quality and rights inheritance"
+sensitivity = "restricted"
+retention_policy = "follow the source document authorization and retain version lineage while the corresponding original is retained"
+backup_policy = "object"
+freshness_slo = "best effort immediately after manual intake; extraction failure leaves the validated original and an explicit quality result"
+quality_rules = ["every unit references an existing document hash and locator", "extractor identity and version present", "rights and sensitivity cannot be downgraded", "extraction errors and unreadable pages are explicit", "no full text is emitted to Telegram or unauthorised MCP scopes"]
+producer_pipeline_ids = []
+consumer_ids = ["interactive owner-authorized analysis", "research comparison", "lineage audit"]
+
+[[contracts]]
 id = "dataset.portfolio-daily-state"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "보유수량·현금·가격·환율을 quality-gated로 결합한 계좌·종목·전체 포트폴리오 일별 대표 상태."
 decision_refs = ["DEC-003", "DEC-005", "DEC-006", "DEC-015", "DEC-030"]

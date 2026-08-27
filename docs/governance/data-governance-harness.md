@@ -164,6 +164,8 @@ read model과 allowlisted managed pipeline만 사용한다.
 
 - source credential과 bearer token은 manifest, catalog, logs, raw landing과 MCP 응답에 넣지 않는다.
 - sensitivity와 license class는 저장 위치, backup, MCP 노출과 외부 전송을 제한한다.
+- `restricted`는 유료 여부가 아니라 이용조건·저작권·재배포·처리 권한에 따른 법적/사용 제한이다.
+  무료 공개 다운로드도 `restricted`일 수 있고, 유료 여부는 별도 `cost_class`와 비용 gate가 판단한다.
 - current `main` schema 기간에는 application allowlist로 논리 통제한다. V2 schema 분리 뒤 runtime identity는
   필요한 schema의 DML만 받고 migration identity만 DDL을 가진다.
 - Security state는 V2 승인대로 Firestore/Secret Manager로 이동하며 일반 analytics catalog에서 제외한다.

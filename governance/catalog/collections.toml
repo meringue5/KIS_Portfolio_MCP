@@ -3,7 +3,7 @@ schema_version = 1
 [[contracts]]
 id = "collection.owned-portfolio-core-v1"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "현재 보유 국내·미국 주식·ETF·REIT의 계좌, 거래, 가격, 환율, calendar와 매매일지를 구성하는 v1 필수 장바구니."
 decision_refs = ["DEC-003", "DEC-005", "DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014", "DEC-015", "DEC-030", "DEC-041"]
@@ -20,7 +20,7 @@ acceptance_rules = ["all configured accounts and currently held instruments cove
 [[contracts]]
 id = "collection.etf-lookthrough-v1"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "현재 보유 ETF만 대상으로 공식 issuer/KRX 구성자료를 보존하고 look-through impact를 계산하기 위한 권장 장바구니."
 decision_refs = ["DEC-005", "DEC-018", "DEC-019", "DEC-041"]
@@ -37,7 +37,7 @@ acceptance_rules = ["each held ETF maps to an allowlisted official issuer or exp
 [[contracts]]
 id = "collection.fundamentals-dividends-v1"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "보유기업의 공식 공시·재무 actual과 declared/entitled/received/corrected 배당을 위한 권장 장바구니."
 decision_refs = ["DEC-005", "DEC-020", "DEC-022", "DEC-023", "DEC-025", "DEC-032", "DEC-041"]
@@ -54,7 +54,7 @@ acceptance_rules = ["Korean actuals originate from OpenDART and U.S. actuals fro
 [[contracts]]
 id = "collection.macro-profile-v1"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "ECOS·FRED/ALFRED·Cboe의 승인된 최소 series로 macro_profile_v1을 구성하는 권장 장바구니."
 decision_refs = ["DEC-024", "DEC-026", "DEC-041"]
@@ -67,6 +67,23 @@ schedule_policy = "daily incremental check, but each series is fetched and evalu
 trigger_policy = "platform Scheduler primary; allowlisted Remote MCP refresh only after the source publication window"
 cost_budget = "free official APIs/downloads only; small allowlisted series set and cached metadata; no paid macro terminal"
 acceptance_rules = ["every series has source, unit, frequency, interpretation and license metadata", "FRED third-party series rights are reviewed individually", "vintage-aware analysis cannot use future revisions", "missing releases and revisions remain explicit", "new series requires a source and metric contract change"]
+
+[[contracts]]
+id = "collection.owner-research-pdf-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "사용자가 정당하게 입수한 리서치 PDF를 선택적으로 검증·보존·추출하는 수동 권장 장바구니."
+decision_refs = ["DEC-025", "DEC-042", "DEC-044"]
+scope = "owner-selected PDF documents for held or explicitly reviewed issuers; no autonomous discovery, web crawling or bulk folder ingestion"
+source_ids = ["source.owner-provided-research-document"]
+dataset_ids = ["dataset.owner-research-document", "dataset.owner-research-extraction"]
+priority = "recommended"
+history_policy = "no automatic backfill; each owner-provided document begins at its manual intake and preserves immutable hash-based versions"
+schedule_policy = "none; human-initiated intake and explicit re-extraction only"
+trigger_policy = "authenticated local or future owner-authorized Remote MCP upload request; Scheduler and unattended LLM discovery are prohibited"
+cost_budget = "no paid provider and no autonomous network calls; bounded private object storage and extraction compute under the platform KRW 50000 ceiling"
+acceptance_rules = ["owner asserts lawful possession and personal processing rights", "PDF signature, size limit and SHA-256 pass", "DRM or prohibited terms cause rejection or metadata-only registration", "original and extraction remain restricted and private", "content is never redistributed or copied into Telegram", "every extraction unit links to document hash, page or section and extractor version"]
 
 [[contracts]]
 id = "collection.consensus-research-later"

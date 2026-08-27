@@ -1,13 +1,13 @@
 ---
 id: WI-004
 title: Select the governed source inventory and collection basket
-status: verified
+status: closed
 type: architecture
 owner: owner
 decision_refs: ADR-003, ADR-018, ADR-020, ADR-021, ADR-023
-requirement_refs: DEC-003, DEC-005, DEC-010..DEC-025, DEC-030, DEC-035..DEC-041, DGOV-010
+requirement_refs: DEC-003, DEC-005, DEC-010..DEC-025, DEC-030, DEC-035..DEC-044, DGOV-010
 architecture_impact: canonical and secondary data-source selection
-data_impact: proposed source, dataset and collection contracts only; no production writes
+data_impact: approved source, dataset and collection contracts only; no production writes
 security_impact: source authentication, license and sensitivity classification
 cost_impact: free-first selection under monthly KRW 50000 ceiling; no purchase
 ---
@@ -30,14 +30,14 @@ trade-off만 묶어서 사용자에게 승인 요청하는 방식으로 Phase 1�
   DGH source·collection·dataset contract
 - 계약 미달인지 계약 변경인지: 승인 요구를 실제 source와 collection contract로 구체화하는 architecture
   selection
-- 승인 필요 여부: 조사와 proposed manifest 작성은 승인됨. 유료 계약, license가 불명확한 원문 보존,
+- 승인 필요 여부: owner가 core·recommended 계약과 수동 PDF 반입 계약을 승인했다. 유료 계약,
   production 수집·backfill·schedule은 별도 승인 필요
 
 ## Scope
 
 - 포함: 현재 KIS capability 확인, 공식 원천 조사, source canonical/secondary/fallback 판정, v1 수집
   장바구니 required/recommended/later/excluded, 최소 dataset contract, 비용·license·freshness·gap 기록
-- 제외: provider 가입·결제, credential 발급, adapter/DDL/pipeline 구현, production 호출, backfill, Scheduler,
+- 제외: provider 가입·결제, credential 발급, production 호출, live DDL/backfill, Scheduler,
   MotherDuck 데이터 변경
 
 ## Acceptance criteria
@@ -50,12 +50,14 @@ trade-off만 묶어서 사용자에게 승인 요청하는 방식으로 Phase 1�
 - [x] 컨센서스·리서치처럼 권리·비용이 미확정인 항목은 공식 데이터로 가장하지 않는다.
 - [x] 사용자에게 일일이 선택시키지 않고 material approval 질문만 한 묶음으로 제시한다.
 - [x] production data, infrastructure, secret와 billing에는 변경이 없다.
+- [x] owner-provided PDF를 자동 scraping과 분리한 restricted 수동 반입 계약이 있다.
+- [x] consensus `later`의 표본검증·권리·비용 진입조건이 명시됐다.
 
 ## Change impact
 
-- Architecture: canonical/secondary source와 collection 우선순위를 제안한다. 사용자 인수 전 active로
-  승격하지 않는다.
-- Data/schema/backup: proposed manifest와 review 문서만 추가한다. DDL/backup 대상 변경 없음.
+- Architecture: canonical/secondary source와 collection 우선순위를 승인했다. 실제 producer/consumer가
+  배포되기 전까지 `approved`를 유지하고 `active`로 승격하지 않는다.
+- Data/schema/backup: approved manifest와 review 문서만 추가한다. DDL/backup 대상 변경 없음.
 - Security/privacy: account-private KIS와 public source를 분리하고 credential은 기록하지 않는다.
 - MCP/API compatibility: 없음. 미래 `get-data-catalog` 입력의 선행 계약이다.
 - Deployment/rollback: repository manifest와 문서 revert만 필요하다.
@@ -72,18 +74,20 @@ trade-off만 묶어서 사용자에게 승인 요청하는 방식으로 Phase 1�
 ## Evidence
 
 - `python3 .agent/skills/kis-data-governance/scripts/check_data_governance.py`: 통과,
-  `registered_contracts=36` — source 13, dataset 17, collection 6
+  `registered_contracts=40` — source 14, dataset 19, collection 7
 - `bash scripts/check.sh quick`: Project OS, DGH, architecture, warehouse와 MCP surface 통과
 - `bash scripts/check.sh full`: 193 passed, 1 기존 Authlib deprecation warning; 모든 공통 gate 통과
 - review package: `docs/governance/source-inventory-and-collection-basket.md`
+- owner acceptance: 2026-08-28 core·recommended 권고, 수동 PDF 반입, restricted 분류와 later gate 승인
 - 공식 evidence: KIS/OpenDART/SEC/KRX/NYSE/Nasdaq/ETF issuer/ECOS/FRED·ALFRED/Cboe 링크를 review package에 기록
 - 운영 증거: production API 호출, DB/DDL, service, Job, Scheduler, secret, provider signup과 billing 변경 없음
 
 ## Closeout
 
-- 결과: 승인 요구를 13개 source, 17개 logical dataset과 required/recommended/later/excluded 6개 collection
-  contract로 구체화했다. 모든 contract는 사용자 인수 전까지 `proposed`이며 상태는 검증 완료·인수 대기다.
+- 결과: 승인 요구를 14개 source, 19개 logical dataset과 required/recommended/later/excluded 7개 collection
+  contract로 구체화했다. core·recommended 의존 계약은 `approved`, consensus와 unlicensed 경계는
+  production 금지를 유지하도록 `proposed`다.
 - 남은 위험: KIS consensus coverage, issuer별 ETF terms/history, FRED series별 권리, DART/SEC taxonomy와
   실제 row/file size는 activation 전에 bounded recorded fixture/rehearsal이 필요하다.
-- 후속 Work Item: 승인된 basket의 bounded source sampling and contract hardening. adapter/DDL/backfill 구현은
-  그 이후 별도 승인과 Work Item으로 진행한다.
+- 후속 Work Item: 승인된 basket의 bounded source sampling, V2 Wave 1~4 local 구현과 contract hardening.
+  production adapter 호출·live DDL·backfill은 별도 승인 gate를 유지한다.

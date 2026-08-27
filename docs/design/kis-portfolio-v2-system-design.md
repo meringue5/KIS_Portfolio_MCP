@@ -1,6 +1,6 @@
 # KIS Portfolio V2 시스템 설계
 
-> 상태: 승인된 차세대 architecture 기준선 v0.2 — 구현은 Work Item별 승인
+> 상태: 승인된 차세대 architecture 기준선 v0.3 — 승인 범위의 repository-local 구현은 턴키 진행
 > 기준일: 2026-08-28
 > 소유 문서: 목표 구조, 배포 topology, 모듈 경계, 운영·데이터·보안 architecture와 V2 ADR
 > 연계 요구사항: `docs/requirements/kis-portfolio-data-platform-requirements.md`
@@ -546,8 +546,9 @@ BigQuery billing export에는 free quota 밖 비용 가능성이 있으므로 �
 - `docs/backup.md`: GCS raw/Parquet, restore rehearsal와 Firestore 재bootstrap
 - `docs/api-capability-map.md`: V2 source adapter와 public tool boundary
 
-이 설계 문서 자체는 Firestore API 활성화, bucket 생성, schema migration, connector 변경 또는 Cloud Run
-배포를 승인하지 않는다.
+DEC-044는 이 설계 안의 repository-local 구현, fixture, test와 local migration dry-run을 승인한다. 이 문서는
+Firestore API 활성화, bucket 생성, live schema migration, connector 변경 또는 Cloud Run 배포 권한을
+부여하지 않는다.
 
 ## 16. 외부 플랫폼 가정과 확인 출처
 

@@ -1,9 +1,9 @@
 # KIS Portfolio 데이터 플랫폼 요구사항
 
-> 상태: 요구사항 검토용 초안
+> 상태: 승인된 요구사항 기준선
 > 제품명: KIS Portfolio (`kis-portfolio`)
-> 문서 범위: 요구사항 분석만 포함
-> 구현 상태: 미승인. 이 초안은 코드, DB, 배포 또는 기존 아키텍처 변경을 승인하지 않는다.
+> 문서 범위: 승인된 요구사항과 구현 권한 경계
+> 구현 상태: DEC-044 범위의 repository-local 구현·fixture·test·migration dry-run 승인. 외부·운영 변경은 미승인.
 
 ## 최근 승인
 
@@ -58,9 +58,10 @@ schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이
 | C | DEC-020~DEC-025 | OpenDART·SEC actual, point-in-time consensus, 배당 3상태, 표준 macro profile, licensed report gate |
 | D | DEC-026~DEC-032 | replay 기반 경보, Bollinger 보조지표, 2% risk cap, Telegram, consensus 위험 신호, journal review |
 | E | DEC-033~DEC-041 | Remote MCP SSOT, scale-to-zero·batch-first, 월 5만원 상한, versioned schema, off-site recovery |
+| F | DEC-042~DEC-044 | owner PDF 수동 반입, consensus 진입조건, 승인 범위 내 턴키 구현 권한 |
 
-이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. 구현·적재·배포는 시작하지 않고 다음 단계의
-구현계획, 비용 baseline과 migration 순서를 별도로 검토한다.
+이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. DEC-044에 따라 승인 계약 안의 저장소 로컬
+구현과 검증은 진행할 수 있지만, 실제 적재·배포·provisioning과 외부 알림은 별도 gate를 유지한다.
 
 ## 1. 문서 목적
 
@@ -345,7 +346,38 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   실행 후 종료하는 batch job을 기본으로 하며 상시 worker·dedicated compute를 채택하지 않는다. 비용은
   70%·85%·100% 단계로 관측·gate하고 신규 구성은 정상월·backfill월·장애월 비용을 먼저 제시한다.
 
-DEC-020~DEC-041도 구현 승인이 아니다. 상세 grain, 품질 gate와 대안은 각 검토 패키지가 소유한다.
+DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범위 안의 repository-local 구현 권한을
+부여한다. 상세 grain, 품질 gate와 대안은 각 검토 패키지와 DGH contract가 소유한다.
+
+### DEC-042: 사용자가 제공한 리서치 PDF를 별도 수동 반입 경로로 허용한다
+
+- 사용자가 정당하게 입수해 개인 분석 권한을 가진 리포트 PDF를 선택적으로 반입할 수 있다.
+- 이는 필수 자동수집 core가 아니라 `recommended` 수동 collection이며 Scheduler가 임의로 파일을 찾거나
+  web scraping하지 않는다.
+- 원본은 private content-addressed object로 보존하고 MotherDuck에는 문서 identity, hash, issuer·published
+  metadata, 권리등급, 추출 결과와 lineage를 저장한다.
+- 원문과 추출물은 `restricted` sensitivity로 취급하고 Remote MCP의 owner-authorized 분석에서만 사용한다.
+  외부 재배포, 공개 응답과 Telegram 원문 전송을 금지한다.
+- DRM 또는 이용조건이 기계처리·보존을 금지하면 metadata만 기록하거나 반입을 거부한다.
+
+### DEC-043: consensus의 `later`를 단계와 진입조건으로 정의한다
+
+- KIS 국내 종목추정실적·투자의견의 bounded sample은 다음 source-sampling Work Item에서 즉시 수행한다.
+- 무료 KIS consensus의 production 채택은 actual·배당·macro 계약과 core 수집이 구현되고, sample이
+  knowledge time, coverage, analyst count와 revision 요구를 충족한 뒤 결정한다.
+- 미국 licensed consensus 비교는 DEC-032 실적·forward 전망 위험신호의 구현 직전에 시작한다.
+- provider activation은 point-in-time history, 분포 또는 dispersion, analyst count, revision, 개인 내부
+  저장·분석 권리와 정상·backfill·장애월 비용이 확인돼야 한다.
+- 유료 provider는 사용자의 명시적 구독·비용 승인 전에는 계약·호출·데이터 적재를 하지 않는다.
+
+### DEC-044: 승인된 설계 범위의 구현은 턴키로 진행할 수 있다
+
+- 2026-08-28 사용자는 승인된 requirements, ADR, DGH contract와 V2 delivery plan 안에서 repository-local
+  구현, fixture, test, migration dry-run과 문서화를 Work Item별 추가 질문 없이 진행하도록 승인했다.
+- 이 승인은 유료 provider 가입·결제, 외부 계정·credential 발급, infrastructure provisioning, production
+  배포·cutover, live DB migration, 대량 backfill, 데이터 삭제와 외부 알림 전송 권한을 포함하지 않는다.
+- 구현 중 기존 결정과 충돌하거나 provider·비용·보안·SSOT가 바뀌면 자동으로 범위를 넓히지 않고 새
+  approval gate에서 멈춘다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
@@ -839,7 +871,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 요구사항 분석 이후의 차세대 설계안은 `docs/design/kis-portfolio-v2-system-design.md`, 구현·전환 Wave는
 `docs/design/kis-portfolio-v2-delivery-plan.md`에 정리했다. 두 문서는 아래 미결정 사항에 대한 권고안을
-제시하지만 아직 구현이나 infrastructure 변경을 승인하지 않는다.
+제시하며 DEC-044 범위의 repository-local 구현은 승인됐다. infrastructure와 production 변경은 승인하지 않는다.
 
 다음은 요구사항 기준선에서 아직 구현 결정으로 승인하지 않았다. V2 설계 문서가 제안한 항목도
 Architecture delta 검토 전에는 선택된 구현으로 간주하지 않는다.
@@ -871,7 +903,7 @@ Architecture delta 검토 전에는 선택된 구현으로 간주하지 않는�
 
 ## 15. 요구사항 분석 진행 순서
 
-이 초안만으로 구현을 시작하지 않는다. 진행 순서는 다음과 같다.
+DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하며 repository-local 구현을 진행한다.
 
 1. 이 문서를 검토 가능한 요구사항 기준선으로 계속 관리한다.
 2. 보유종목 감시 v1의 결정과 인수 기준을 마무리한다.
@@ -881,8 +913,8 @@ Architecture delta 검토 전에는 선택된 구현으로 간주하지 않는�
 6. 데이터 제품, 지표, lineage 및 품질 규칙을 정의한다.
 7. 논리 데이터 아키텍처를 설계한다.
 8. 물리 파이프라인과 플랫폼 대안을 비교한다.
-9. 별도 승인을 위한 구현 계획을 작성한다.
-10. 승인 후에만 코드 또는 데이터를 변경한다.
+9. 승인된 구현 계획과 Work Item을 작성한다.
+10. DEC-044 범위 안에서 코드와 local fixture를 변경하고, 외부·운영 gate에서는 별도 승인을 받는다.
 
 ### 15.1 사용자 검토 패키지
 
@@ -906,6 +938,7 @@ Architecture delta 검토 전에는 선택된 구현으로 간주하지 않는�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-28 | 구현 권한 승인 | DEC-042 owner PDF 수동 반입, DEC-043 consensus later 진입조건, DEC-044 승인 범위의 repository-local 턴키 구현 권한을 확정함 |
 | 2026-08-27 | V2 설계 검토 대기 | 현행 코드·운영 DB·Cloud Run·비용 구성을 재조사하고 serverless modular monolith, stateless Remote MCP, Firestore state plane, parallel schema와 Wave 0~8 전환 설계안을 작성함. 구현과 provisioning은 미승인 |
 | 2026-08-27 | 요구 승인 | 패키지 C·D·E를 피드백과 함께 승인함. point-in-time consensus 위험 신호, 표준 macro profile v1, Bollinger 보조 context, 월 5만원 상한과 scale-to-zero·batch-first를 DEC-020~DEC-041로 확정함 |
 | 2026-08-27 | 패키지 C·D·E 승인 대기 | 공식 원천·live coverage, 경보·Telegram·scope, orchestration·retention·recovery 조사를 끝내고 20개 권고를 통합 검토 문서로 묶음 |

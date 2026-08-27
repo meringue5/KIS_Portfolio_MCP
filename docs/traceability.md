@@ -7,12 +7,12 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEC-003/005/010..025/030/035..041 + DGOV-010: source inventory와 수집 장바구니 | ADR-023 source selection gate | WI-004 | 13 source, 17 dataset, 6 collection proposed contracts; source inventory review package | full gate 193 passed; production 변경 없음 | verified, acceptance pending |
+| DEC-003/005/010..025/030/035..044 + DGOV-010: source inventory와 수집 장바구니 | ADR-023 source selection gate | WI-004 | 14 source, 19 dataset, 7 collection contracts; owner PDF 수동 반입 포함 | DGH/full gate; approved core·recommended와 proposed later·excluded 분리; production 변경 없음 | closed |
 | DGOV-001..DGOV-010: Data Governance Harness | ADR-023 | WI-003 | `docs/governance/data-governance-harness.md`, governed TOML registry, Skill/checker | full gate 193 passed; positive/negative contract tests; production 변경 없음 | verified, acceptance pending |
 | DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; MotherDuck Lite 0원; `my_db` empty legacy 확인; 운영 변경 없음 | verified, acceptance pending |
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
-| DEC-001..DEC-041: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | Wave별 acceptance/rollback gate; 구현 미착수 | design_approved |
+| DEC-001..DEC-044: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | Wave별 acceptance/rollback gate; repository-local Wave 1~4 구현 진행 | in_progress |
 
 ## Governance Requirements
 

@@ -501,13 +501,13 @@ core를 유지하면서 request-based scale-to-zero Cloud Run service와 실행 
 - 35,000원·42,500원·50,000원 비용 단계와 max instances, timeout·retry, source call budget을 함께 사용한다.
   budget alert 자체가 지출을 차단한다고 가정하지 않는다.
 - 세부 데이터·신호 요구와 구현 미승인 경계는
-  `docs/requirements/kis-portfolio-data-platform-requirements.md`의 DEC-020~DEC-041이 소유한다.
+  `docs/requirements/kis-portfolio-data-platform-requirements.md`의 DEC-020~DEC-044가 소유한다.
 
 ---
 
 ### ADR-021: KIS Portfolio V2 재개발 기준선
 
-**결정**: 승인된 DEC-001~DEC-041을 구현하는 다음 버전은 serverless modular monolith로 재개발한다.
+**결정**: 승인된 DEC-001~DEC-044를 구현하는 다음 버전은 serverless modular monolith로 재개발한다.
 하나의 versioned application core와 여러 adapter를 같은 immutable image digest로 배포하고, 사용자-facing
 표면은 stateless OAuth Remote MCP 하나로 제한한다. 분석·장기 이력은 MotherDuck, 원문·복구본은 private
 GCS, OAuth/KIS token·lease·run request 같은 operational state는 Firestore와 Secret Manager에 둔다.

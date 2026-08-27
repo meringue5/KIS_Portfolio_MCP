@@ -1,6 +1,6 @@
 # KIS Portfolio V2 구현 설계와 전환 계획
 
-> 상태: 승인 architecture 구현 계획 v0.2 — Work Item별 실행 승인 필요
+> 상태: 승인 architecture 구현 계획 v0.3 — 승인 범위 내 Work Item은 턴키 실행, 외부·운영 gate는 별도 승인
 > 기준일: 2026-08-28
 > 상위 설계: `docs/design/kis-portfolio-v2-system-design.md`
 > 원칙: 각 Wave는 산출물·자동검증·운영증거·rollback gate가 모두 충족돼야 완료된다.
@@ -13,6 +13,11 @@ Project OS gate를 임시 우회하지 않는다. Package F의 bootstrap 작업�
 source catalog, collection basket, dataset, metric과 pipeline 작업은
 `docs/governance/data-governance-harness.md`의 contract-first gate를 선행한다. `WI-003`은 하네스 정의만
 소유하며 실제 source 선정·수집·migration은 각 Wave Work Item이 소유한다.
+
+2026-08-28 DEC-044에 따라 승인된 requirements·ADR·DGH contract 안의 repository-local 구현, fixture,
+test와 migration dry-run은 Work Item별 사용자 재승인 없이 진행한다. 유료 provider, credential·계정 발급,
+infrastructure provisioning, production 배포·cutover, live migration, 대량 backfill, 삭제와 외부 알림은
+각 절의 release/operation gate와 별도 사용자 권한을 계속 요구한다.
 
 ## 1. 계획 운영 방식
 
