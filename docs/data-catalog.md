@@ -23,8 +23,11 @@ DB 객체를 추가하거나 의미를 바꿀 때는 이 문서를 먼저 또는
 
 관리 범위는 `table_catalog = current_database() = 'kis_portfolio'`인 객체다. MotherDuck 연결에
 함께 보이는 `sample_data`, `md_information_schema`, 과거 로컬/원격 database인 `my_db` 등은 이
-서비스의 관리 대상이 아니다. `schema = main`만으로 필터링하면 다른 catalog의 동명 객체가
-섞이므로 운영 검사에서는 항상 catalog와 schema를 함께 제한한다.
+서비스의 관리 대상이 아니다. 2026-08-28 확인한 `my_db`는 5 tables + 1 view를 가진 약 256 KiB의 초기
+legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 repository code는 모두
+`kis_portfolio`만 사용한다. `my_db`는 운영 SSOT가 아니지만 사용자 승인과 cleanup Work Item 전에는
+자동 삭제하지 않는다. `schema = main`만으로 필터링하면 다른 catalog의 동명 객체가 섞이므로 운영
+검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout이 관리하는 객체는 **25 tables + 2 views = 27 objects**다. 운영 DB에는 분기된
 `codex/portfolio-pipeline-reliability`의 객체까지 적용되어 **27 tables + 3 views = 30 objects**가 있다.

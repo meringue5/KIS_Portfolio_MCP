@@ -16,8 +16,8 @@
 - 월 50,000원 ceiling 대비 headroom: 약 44,900원, 90%
 - 8월 월말 forecast 9,980원은 8월 1~11일의 warm-instance 잔여 비용을 포함하므로 정상월 기준선으로
   사용하지 않는다.
-- MotherDuck은 현재 49 MiB이고 Lite 포함량 10 GB보다 충분히 작다. plan console 청구액과 월 compute
-  시간은 이 조사에서 직접 확인하지 못했으므로 **0원 예상치**이지 actual 증거는 아니다.
+- MotherDuck console에서 현재 **Lite Plan (with limits), $0/month**와 미등록 결제수단을 확인했다.
+  현재 49 MiB이며 Lite 포함량 10 GB보다 충분히 작아 MotherDuck 비용 baseline은 **월 0원**이다.
 
 ## GCP 실제 비용
 
@@ -98,6 +98,11 @@ Scheduler·Cloud Build·Cloud Storage는 현재 report에서 없거나 월 1원 
 
 ## MotherDuck과 외부 provider
 
+로그인된 MotherDuck Billing/Plans 화면에서 현재 plan은 `Lite Plan (with limits)`, platform access는
+`$0/month`, storage 10 GB와 Pulse 10 CU-hours 포함으로 확인됐다. 화면에는 “Add a credit card to remove
+limits”가 표시되어 결제수단도 등록되지 않은 상태다. 따라서 포함 한도 안에서의 현재 MotherDuck actual
+baseline은 월 0원이다.
+
 MotherDuck live metadata는 다음 사용량을 보였다.
 
 - `PRAGMA database_size`: `kis_portfolio` 49.0 MiB
@@ -107,10 +112,27 @@ MotherDuck live metadata는 다음 사용량을 보였다.
 - 합계 약 188.4 MiB, Lite 10 GB 포함량의 약 1.8%
 
 현재 계정에서 query history 조회는 “이 plan에서 제공되지 않으며 Business upgrade가 필요”하다는 응답을
-반환해 non-Business plan임은 확인했다. 공식 Lite plan은 월 10 GB storage와 Pulse compute 10 CU-hours를
-포함하지만, 로그인된 MotherDuck billing console이나 compute usage counter는 확인하지 못했다. 따라서 현재
-storage는 포함량 안이라는 사실과 **MotherDuck 월비용 0원 예상**을 분리하며, compute actual은 미확인으로
-남긴다.
+반환한다. compute 사용시간의 세부 counter는 Lite 화면에서 제공되지 않지만, 결제수단 없이 한도형 Lite를
+사용하므로 비용 baseline에는 0원으로 반영한다.
+
+### 보이는 두 user database 판정
+
+MotherDuck Home에는 `kis_portfolio`, `my_db`, provider sample인 `sample_data`가 보인다. `sample_data`는
+사용자 소유 운영 DB가 아니다. 두 user database를 실제 runtime과 비교한 결과는 다음과 같다.
+
+| Database | 생성 시각 | 객체·row | Runtime reference | 판정 |
+| --- | --- | --- | --- | --- |
+| `kis_portfolio` | 2026-04-19 | live 27 tables + 3 views, 약 49 MiB | MCP, auth, 세 batch Job 모두 사용 | 유일한 운영 SSOT |
+| `my_db` | 2026-04-16 | 5 tables + 1 view, 모든 table 0 rows, 약 256 KiB | code, deploy env, 운영 view reference 없음 | 초기 실험에서 남은 empty legacy database |
+
+`my_db`의 table은 `portfolio_snapshots`, `price_history`, `exchange_rate_history`, `trade_profit_history`,
+`schema_migrations`이며 모두 0행이다. 현재 code default와 모든 Cloud Run service/Job의
+`MOTHERDUCK_DATABASE`는 `kis_portfolio`다. 따라서 MCP와 batch가 서로 다른 DB에 쓰는 상태가 아니라,
+**빈 legacy database가 UI에 남아 분리된 것처럼 보이는 상태**다.
+
+`my_db`는 제거 후보지만 database 삭제는 별도 destructive maintenance Work Item과 사용자 승인을 받아야
+한다. 삭제 전 schema-only manifest와 0-row evidence를 보존하고, 삭제 후 MCP·batch smoke와 live inventory를
+다시 확인한다.
 
 현재 runtime 환경에는 KIS와 MotherDuck 외 유료 market-data provider가 연결되어 있지 않다. Telegram과
 FRED/OpenDART/SEC 등은 V2 source 계획일 뿐 현재 비용에 포함되지 않는다.
@@ -126,15 +148,18 @@ FRED/OpenDART/SEC 등은 V2 source 계획일 뿐 현재 비용에 포함되지 �
 4. project가 늘어나거나 월 서비스/SKU 수가 수동 검토 범위를 넘으면 BigQuery detailed export를 다시
    검토한다.
 5. 다음 cost review에서는 완전한 scale-to-zero 월 1개를 확보해 5,100원 보수 baseline을 실제 월말 값으로
-   교체하고 MotherDuck console의 plan·compute·invoice를 확인한다.
+   교체하고 MotherDuck Lite 한도 도달 여부를 확인한다.
 
 ## 증거와 한계
 
 - Cloud Billing Reports: 월별 net cost, credit, service/SKU attribution, forecast
 - `gcloud`: budget 7,500원, service/revision scaling, Job/Scheduler, secret count, registry size
-- MotherDuck read-only metadata: database/storage bytes, non-Business query-history restriction
+- MotherDuck Billing/Plans: Lite Plan with limits, $0/month, 결제수단 미등록
+- MotherDuck read-only metadata: database/storage bytes, non-Business query-history restriction,
+  `my_db` 5 tables 모두 0 rows
+- Cloud Run live env: MCP·auth·세 batch Job 모두 `MOTHERDUCK_DATABASE=kis_portfolio`
 - repository: 추가 유료 provider runtime 설정 없음
-- 확인하지 않은 것: MotherDuck billing console, 카드 청구·세금, 미래 데이터 provider 가격
+- 확인하지 않은 것: MotherDuck Lite compute 세부 counter, GCP 카드 청구·세금, 미래 데이터 provider 가격
 
 공식 가격 근거:
 

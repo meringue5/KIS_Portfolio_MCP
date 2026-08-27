@@ -60,7 +60,8 @@ Streamable HTTP와 JSON response로 전환할 수 있다. 이 전환은 Claude·
 
 | 항목 | 확인 결과 | 판단 |
 | --- | --- | --- |
-| MotherDuck 크기 | 약 49 MiB | 현재 용량은 Lite 10 GB의 병목이 아님 |
+| MotherDuck plan·크기 | Lite with limits, $0/month; `kis_portfolio` 약 49 MiB | 현재 비용·용량 병목이 아님 |
+| legacy `my_db` | 5 tables + 1 view, 모든 table 0 rows, runtime reference 없음 | 별도 승인 cleanup 전까지 보존; 운영 SSOT가 아님 |
 | 현재 계약 | 25 tables + 2 views | V2 논리 모델에 필요한 객체가 대부분 없음 |
 | live 상태 | 27 tables + 3 views | branch/live drift가 존재함 |
 | unmanaged | `cash_flow`, `trade_journal`, `asset_return_daily` | 자동 채택·삭제 금지; V2 계약으로 재설계 |
@@ -79,6 +80,7 @@ Streamable HTTP와 JSON response로 전환할 수 있다. 이 전환은 Claude·
 | cleanup policy | 없음 | 최근 release·rollback digest 보존 규칙 필요 |
 | Scheduler | 현재 3개 | billing account free quota와 별개로 추가 job 비용은 작지만 월 비용표에 포함 |
 | 실제 월 비용 | 7월 49,473원; 8/12~26 환산 정상월 약 3,700원, 보수 baseline 5,100원 | `docs/operations/cost-baseline-2026-08.md`를 기준으로 완전한 scale-to-zero 월 재측정 |
+| MotherDuck 비용 | Lite Plan with limits, 결제수단 미등록, 현재 baseline 0원 | storage·compute 포함 한도 월간 확인 |
 | billing export | BigQuery export 없음, billing account 내 project 1개 | 현재는 월간 Console snapshot, project/복잡도 증가 시 detailed export 재검토 |
 
 현재 7,500원 budget은 **실제 비용이 7,500원이라는 뜻이 아니며** alert도 지출을 차단하지 않는다.

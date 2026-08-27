@@ -67,7 +67,10 @@ batch-first 구성에서는 훨씬 적게 청구되는 것으로 관찰됐다. �
 - scale-to-zero 이후 8월 12~26일: 1,835원, 월 환산 3,724원; 최근 6일 보수 환산 5,093원
 - GCP metadata: auth/remote min 0·max 1, Jobs 3, Scheduler 3, secrets 23, registry 2,652.602 MB,
   cleanup policy 없음, BigQuery billing export 없음
-- MotherDuck: `kis_portfolio` 49.0 MiB, active+history+failsafe 약 188.4 MiB; compute actual 미확인
+- MotherDuck console: Lite Plan with limits, $0/month, 결제수단 미등록; `kis_portfolio` 49.0 MiB,
+  active+history+failsafe 약 188.4 MiB
+- DB routing: MCP·auth·세 batch Job 모두 `kis_portfolio`; `my_db`는 5 tables + 1 view, 모든 table 0 rows,
+  code/deploy/view reference 없음
 - `bash scripts/check.sh quick`: 통과
 - `bash scripts/check.sh full`: 190 passed, Project OS/architecture/warehouse/MCP surface 통과
 - 운영 변경 증거: budget, export, service, Job, Scheduler, secret, database와 deployment 변경 없음
@@ -77,7 +80,7 @@ batch-first 구성에서는 훨씬 적게 청구되는 것으로 관찰됐다. �
 - 결과: 보수 정상월 GCP baseline을 5,100원으로 설정했다. 7,500원 budget과 50,000원 ceiling은 유지하며,
   7월 49,473원은 warm minimum-instance transition 비용으로 분리했다.
 - 사용자 인수: 검토 대기
-- 남은 위험: MotherDuck billing console의 plan·compute·invoice actual, 세금/카드 청구, 완전한
-  scale-to-zero 월말 값은 아직 확인하지 않았다.
+- 남은 위험: MotherDuck Lite compute 세부 counter, GCP 세금/카드 청구, 완전한 scale-to-zero 월말 값은
+  아직 확인하지 않았다. 빈 legacy `my_db` 삭제는 destructive maintenance 승인 전까지 보류한다.
 - 후속 Work Item: 다음 완전월 cost review, Secret Manager bundle migration, build-once/registry cleanup은
   각각 별도 승인·작업으로 수행한다.
