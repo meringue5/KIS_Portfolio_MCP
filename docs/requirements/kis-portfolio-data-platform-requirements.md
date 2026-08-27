@@ -539,6 +539,10 @@ DEC-011~DEC-014로 승인했다.
 - 모든 신호 정의를 버전 관리하고 계산에 사용된 입력 스냅샷을 보존한다.
 - 신호는 정보 제공용이며 주문을 실행하지 않는다.
 
+가격·추세·ETF 노출의 실제 원천 검증과 계산 권고안은
+`docs/requirements/review-package-b-price-trend-etf.md`에 기록한다. 현재 B-1~B-5는 사용자 승인
+대기이며 이 참조는 구현 승인이 아니다.
+
 ### 8.6 매크로 및 사건 맥락
 
 - 매크로, 정책, 산업 및 기업 사건을 날짜와 원천 provenance와 함께 보존한다.
@@ -674,6 +678,11 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
   관리 파이프라인으로 정립되지는 않았다.
 - 현재 warehouse catalog는 기존 DB 객체를 관리하지만 KIS 및 외부 제공자가 제공할 수 있는 원천 데이터
   전체를 관리하지 않는다.
+- KIS 가격 API는 국내·미국 일봉 OHLCV를 제공하지만 100행 단위 호출과 조정주가 의미를 명시적으로
+  관리해야 한다. 현재 가격 캐시는 조정주가 metadata와 값이 어긋날 수 있고 dual price basis를 표현하지
+  못한다.
+- KIS ETF 구성종목시세는 현재 보유 국내 ETF 14종 모두 응답했지만 선언 642행 중 286행만 반환해
+  완전한 look-through 원천으로 사용할 수 없다. KRX/운용사 일별 PDF가 canonical source 후보이다.
 - 운영 DB drift 문서에는 초기 `cash_flow`, `trade_journal`, `asset_return_daily` 객체가 기록되어 있지만,
   그 존재만으로 현재 계약이나 구현을 승인하지 않는다.
 - 이 관찰은 후속 구현 계획 전에 다시 검증해야 한다.
@@ -736,7 +745,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 | 순서 | 검토 패키지 | 함께 승인할 주요 항목 | 상태 |
 | --- | --- | --- | --- |
 | A | 거래 원장과 과거 복원 | lot grain, IRP 원천·fallback, backfill 깊이, 해외 비용·환율 결합, 매도 임시 배분 | 완료; DEC-010~DEC-014 승인 |
-| B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 예정 |
+| B | 가격·추세·ETF 노출 | 조정/비조정 가격, 일봉·거래량, 이동평균·RSI, 보유기간 ATH, ETF 구성종목과 갱신주기 | 조사 완료; B-1~B-5 승인 대기 |
 | C | 실적·가치·배당·매크로 | 공시·실적·forward 전망, valuation/risk-reward band, 배당 원장, 사건·매크로 원천 | 예정 |
 | D | 감시·신호·대화 workflow | 경보 임계치, 설명 payload, Telegram, Remote MCP, LLM 예약 작업, 매매일지 질문 | 일부 요구 승인; 계약 보완 예정 |
 | E | 데이터 플랫폼과 운영 | Bronze/Silver/Gold, 카탈로그·lineage·품질, MotherDuck 용량·보존, orchestration·복구 | 개념 승인; 물리 설계 예정 |
@@ -748,6 +757,7 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-27 | 패키지 B 승인 대기 | 국내·미국 일봉의 조정 옵션·100행 제한, KIS ETF 30행 제한, KRX/운용사 PDF, RSI·보유기간 고점과 3년 용량 권고안을 문서화함 |
 | 2026-08-27 | 요구 승인 | 패키지 A의 IRP provisional·지연 reconciliation, 거래 3년 backfill, 해외 derived candidate link, 미지정 매도 FIFO inferred 배분을 모두 승인함 |
 | 2026-08-27 | 분석 결과 | 패키지 A read-only 조사에서 비IRP 국내 15개 보유종목은 3년 거래와 수량 일치 후보, IRP 7개와 미국주식 4개는 opening/reconciliation 필요로 판정함 |
 | 2026-08-27 | 요구 승인 | v1 purchase lot을 체결된 매수 주문 단위로 확정하고 fill grain은 신뢰 가능한 원천 확보 후 확장하기로 함 |
