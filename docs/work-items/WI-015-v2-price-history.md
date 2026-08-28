@@ -67,6 +67,8 @@ instrument/session/basis, so historical evaluation cannot select the revision kn
 - Synthetic page tests cover domestic 100/101-row sharding, overseas `tr_cont=N`, endpoint-specific options,
   cursor stall, physical-call exhaustion and managed run/quality/lineage/watermark evidence.
 - V1 migration test proves ambiguous KRX `adjusted=false` cache rows remain Bronze quarantine and are not promoted.
+- First production dry-run failed closed at 480/400 and exposed stale sold holdings in the planner; account-level latest
+  snapshot scoping plus a regression fixture now exclude instruments absent from the current snapshot.
 - Production migration, dry-run and bounded backfill evidence: pending.
 
 ## Closeout

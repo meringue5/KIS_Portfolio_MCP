@@ -123,6 +123,8 @@ def test_planner_reserves_held_dual_basis_and_rejects_over_budget(repository):
     con, _ = repository
     observed = datetime(2026, 8, 28, tzinfo=UTC)
     con.execute("INSERT INTO silver.instruments VALUES ('v1|KRX|005930','KRX','005930','Synthetic','stock','KRW',NULL,?,NULL,'source','{}')", [observed])
+    con.execute("INSERT INTO silver.instruments VALUES ('v1|KRX|000660','KRX','000660','Stale','stock','KRW',NULL,?,NULL,'source','{}')", [observed])
+    con.execute("INSERT INTO silver.position_snapshots VALUES ('a','v1|KRX|000660',?,1,1,'KRW','old','pass')", [observed - timedelta(days=1)])
     con.execute("INSERT INTO silver.position_snapshots VALUES ('a','v1|KRX|005930',?,1,1,'KRW','obs','pass')", [observed])
     partitions, plan = plan_held_price_backfill(
         con, start_date=date(2025, 8, 28), end_date=date(2026, 8, 28), max_physical_calls=10,

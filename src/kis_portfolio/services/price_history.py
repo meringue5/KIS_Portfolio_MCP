@@ -322,12 +322,13 @@ def plan_held_price_backfill(
     if start_date > end_date:
         raise ValueError("start_date must not be after end_date")
     rows = connection.execute("""
-        WITH latest AS (
-            SELECT account_id, instrument_id, quantity
-            FROM silver.position_snapshots
-            QUALIFY row_number() OVER (
-                PARTITION BY account_id, instrument_id ORDER BY as_of DESC, source_observation_id DESC
-            ) = 1
+        WITH latest_account_snapshot AS (
+            SELECT account_id, max(as_of) AS as_of
+            FROM silver.position_snapshots GROUP BY account_id
+        ), latest AS (
+            SELECT p.account_id, p.instrument_id, p.quantity
+            FROM silver.position_snapshots p
+            JOIN latest_account_snapshot a USING(account_id, as_of)
         ), held AS (
             SELECT instrument_id, sum(quantity) AS quantity FROM latest
             GROUP BY instrument_id HAVING sum(quantity) > 0
