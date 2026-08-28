@@ -7,12 +7,12 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEC-009..014 production trade/cash history | V2-ADR-006/010/012 | WI-021 / WI-021-S06 | fixed-hash one-off Cloud Run Job; pre/post V2 backup, private GCS recovery and restored aggregate reconciliation | zero-source-call before verified pre-recovery; one task/parallelism one/retry zero tests; live execution pending reviewed master release | in_progress |
-| DEC-009..014 bounded physical broker history | V2-ADR-006/010/012 | WI-021 / WI-021-S05 | per-page KIS adapter and hash/backup-gated production command | 131 partitions, 6 gaps, 374/400 preflight; physical-page and negative CLI tests; full 303 passed | S05 closed; parent in_progress |
-| DEC-009..014 governed trade/cash normalization | V2-ADR-006/010/012 | WI-021 / WI-021-S04 | guarded fixture pages, immutable observations, trade/cash facts and reconciliation report | incomplete pagination blocks Silver/watermark; replay no-op; full 297 passed | S04 closed; parent in_progress |
-| DEC-009..014 resumable backfill control | V2-ADR-006/010/012 | WI-021 / WI-021-S03 | governed backfill pipeline identity, partition logical runs, pre-I/O persisted call usage and monotonic watermark | failure/resume, completed reuse, gap/no-regression tests; full 295 passed | S03 closed; parent in_progress |
-| DEC-009..014 bounded source-call execution | V2-ADR-006/010/012 | WI-021 / WI-021-S02 | 3/3/2 page policy, 400-call preflight and guarded physical-call wrapper | 374/400 reservation, exhaustion/no-invocation tests; full 290 passed | S02 closed; parent in_progress |
-| DEC-009..014 bounded three-year trade/cash planning | V2-ADR-006/010/012 | WI-021 / WI-021-S01 | deterministic 60-day source-boundary planner and read-only CLI | exact coverage/gap/secret tests; full 278 passed | S01 closed; parent in_progress |
+| DEC-009..014 production trade/cash history | V2-ADR-006/010/012 | WI-021 / WI-021-S06 | fixed-hash migration/recovery Cloud Run Jobs; pre/post V2 backup, private GCS recovery and restored aggregate reconciliation | run 33145645614 / execution `8q7q6`: 131/131 partitions, 131 calls, 393 stages, 262 quality, 150 lineage, 11 watermarks; private restore pass | closed |
+| DEC-009..014 bounded physical broker history | V2-ADR-006/010/012 | WI-021 / WI-021-S05 | per-page KIS adapter and hash/backup-gated production command | 131 partitions, 6 gaps, 374/400 preflight; physical-page and negative CLI tests; full 303 passed | closed |
+| DEC-009..014 governed trade/cash normalization | V2-ADR-006/010/012 | WI-021 / WI-021-S04 | guarded fixture pages, immutable observations, trade/cash facts and reconciliation report | incomplete pagination blocks Silver/watermark; replay no-op; full 297 passed | closed |
+| DEC-009..014 resumable backfill control | V2-ADR-006/010/012 | WI-021 / WI-021-S03 | governed backfill pipeline identity, partition logical runs, pre-I/O persisted call usage and monotonic watermark | failure/resume, completed reuse, gap/no-regression tests; full 295 passed | closed |
+| DEC-009..014 bounded source-call execution | V2-ADR-006/010/012 | WI-021 / WI-021-S02 | 3/3/2 page policy, 400-call preflight and guarded physical-call wrapper | 374/400 reservation, exhaustion/no-invocation tests; full 290 passed | closed |
+| DEC-009..014 bounded three-year trade/cash planning | V2-ADR-006/010/012 | WI-021 / WI-021-S01 | deterministic 60-day source-boundary planner and read-only CLI | exact coverage/gap/secret tests; full 278 passed | closed |
 | DEC-015..017/026 replay-safe trend and volatility metrics | V2-ADR-006/010/012 | WI-019 | 11 metric contracts, Decimal formulas and strict PIT evaluator | independent SQL/Python goldens, null quality and future-revision exclusion; full 262 passed | closed |
 | DEC-009..014 canonical cash-event identity, revisions and PIT provenance | V2-ADR-006/010/012 | WI-020 | migration 0008, event/revision/current objects and PIT repository | category separation, immutable conflict and full backup/restore; full 257 passed | closed |
 | complete remaining V2 delivery ownership before WI-020 and WI-019 execution | ADR-021/022 | WI-034 | historical disposition, WI-035~051 append-only baseline, MS-002~004 and completeness checker | all 69 delivery IDs owned; 8 focused and full 254 tests passed | closed |
@@ -47,7 +47,7 @@
 | --- | --- | --- | --- | --- |
 | DEC-015..017/026 trend and volatility | V2-W0503 | WI-019 | WI-013, WI-015 | closed |
 | DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | closed |
-| DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | in_progress; S01 planner/partition only |
+| DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | closed; live recovery evidence recorded |
 | DEC-015..017 corporate actions | V2-W0307 | WI-036 | WI-015 | proposed |
 | DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | proposed |
 | DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | proposed |

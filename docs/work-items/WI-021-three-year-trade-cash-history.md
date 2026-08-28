@@ -1,7 +1,7 @@
 ---
 id: WI-021
 title: Collect bounded three-year trade and cash history
-status: in_progress
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -37,7 +37,7 @@ reconstruction and return analysis has not been collected or reconciled.
 
 - [x] call/page budgets fail closed and resumable partitions are idempotent.
 - [x] known source gaps remain explicit.
-- [ ] approved live backfill, restore and aggregate reconciliation evidence exist before closeout.
+- [x] approved live backfill, restore and aggregate reconciliation evidence exist before closeout.
 
 ## Change impact
 
@@ -75,11 +75,11 @@ reconstruction and return analysis has not been collected or reconciled.
   - [x] each HTTP page is reserved before I/O and uses the approved route/TR/continuation contract.
   - [x] production execution requires an exact approved plan hash, account scope, database mode and explicit apply flag.
   - [x] preview and failure output contain no credential or raw account number.
-- `WI-021-S06` — bounded production execution, reconciliation and recovery evidence (`in_progress`).
-  - [ ] pre-backfill V2 backup exists before the first source call.
-  - [ ] all callable partitions terminate or retain an explicit resumable failure/known gap.
-  - [ ] aggregate reconciliation, private GCS upload and isolated restore pass before parent closeout.
-  - [ ] actual call, row, storage and elapsed-cost evidence remains within the approved bounds.
+- `WI-021-S06` — bounded production execution, reconciliation and recovery evidence (`closed`).
+  - [x] pre-backfill V2 backup exists before the first source call.
+  - [x] all callable partitions terminate or retain an explicit resumable failure/known gap.
+  - [x] aggregate reconciliation, private GCS upload and isolated restore pass before parent closeout.
+  - [x] actual call, row, storage and elapsed-cost evidence remains within the approved bounds.
 
 ## Evidence
 
@@ -133,9 +133,21 @@ reconstruction and return analysis has not been collected or reconciled.
   account and Secret Manager references without exposing values. `bash scripts/check.sh full`: 310 tests passed; all
   common gates passed with the existing Authlib warning.
 - Operational runbook: `docs/design/wi-021-s06-production-execution.md`.
+- GitHub Actions run `33145645614` completed from reviewed `master` commit `224913c8a273de4c4b5871a86c7c4b819f939b08`
+  and immutable image `sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863`.
+  The explicit migration execution `kis-portfolio-wi021-s06-migration-gpzc6` applied only `0008`; recovery/backfill
+  execution `kis-portfolio-wi021-s06-8q7q6` then completed in 1,036.614 seconds.
+- Live reconciliation passed with 131/131 partitions, zero failures, 131/400 physical calls, 393 successful stages,
+  262 passing quality rows, 150 valid lineage rows and 11 valid watermark streams. It reconciled 340 raw rows to
+  263 trade events and 49 explicit cash events, with zero purchase lots and zero evidence failures.
+- The verified private pre/post recovery points each contain 37 objects and total 7,756,343 / 8,115,216 bytes.
+  Exact-hash download, fresh isolated restore and live/restored aggregate equality passed; the aggregate-only evidence
+  object hash is `3015cab1bcf46130ecf68880ecc349088011d459ecc7fe8947596a187023a2ba`.
+- Full operational evidence and the two fail-closed precursor attempts are recorded in
+  `docs/operations/milestone-2-trade-cash-backfill-2026-08.md`.
 
 ## Closeout
 
-- Result: WI-021-S01 through S05 closed; S06 and the parent remain active for bounded production execution and recovery.
-- Remaining risk: broker retention and historical gaps.
-- Follow-up: S06 approved live recovery evidence remains inside WI-021 before WI-022 can start.
+- Result: WI-021-S01 through S06 and the parent are closed with live recovery evidence.
+- Remaining risk: six approved broker-retention/source gaps remain explicit and no inferred lot allocation was created.
+- Follow-up: WI-021 dependency is satisfied; lot reconstruction remains gated by WI-036, and dividend work by WI-037.
