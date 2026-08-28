@@ -86,14 +86,14 @@ class CorporateActionWarehouseRepository:
     ) -> tuple[str, str]:
         observation = self.connection.execute(
             """
-            SELECT dataset_id, source_id, source_record_id, fetched_at
+            SELECT dataset_id, source_id, source_record_id, fetched_at, pipeline_run_id
             FROM bronze.source_observations WHERE observation_id=?
             """,
             [source_observation_id],
         ).fetchone()
         if not observation or observation[0] != "dataset.corporate-action-event":
             raise ValueError("corporate action requires a governed corporate-action observation")
-        dataset_id, source_id, source_record_id, fetched_at = observation
+        _dataset_id, source_id, source_record_id, fetched_at, pipeline_run_id = observation
         value = _revision(payload | {"knowledge_at": payload.get("knowledge_at") or fetched_at})
         validate_corporate_action(value)
         action_id = hashlib.sha256(
@@ -159,13 +159,14 @@ class CorporateActionWarehouseRepository:
              value.knowledge_at, source_observation_id, value.quality_status,
              _json(value.provenance or {})],
         )
-        self._record_safe_effects(revision_id, value)
+        self._record_safe_effects(revision_id, value, pipeline_run_id)
         return action_id, revision_id
 
     def _record_safe_effects(
         self,
         revision_id: str,
         value: CorporateActionRevision,
+        pipeline_run_id: str | None,
     ) -> None:
         if value.action_status != "confirmed" or value.quality_status != "pass":
             return
@@ -206,6 +207,31 @@ class CorporateActionWarehouseRepository:
                      else "identity_successor",
                  })],
             )
+            if pipeline_run_id:
+                evidence_hash = hashlib.sha256(_json({
+                    "revision_id": revision_id,
+                    "effect_id": effect_id,
+                    "effect_type": effect_type,
+                    "numerator": numerator,
+                    "denominator": denominator,
+                }).encode()).hexdigest()
+                lineage_id = hashlib.sha256(
+                    f"corporate-action-lineage|{pipeline_run_id}|{effect_id}".encode()
+                ).hexdigest()
+                self.connection.execute(
+                    """
+                    INSERT INTO control.lineage_edges(
+                        lineage_edge_id,run_id,input_ref,output_ref,transform_id,
+                        transform_version,evidence_hash,created_at
+                    ) VALUES (?,?,?,?,?,?,?,?)
+                    ON CONFLICT(lineage_edge_id) DO NOTHING
+                    """,
+                    [lineage_id, pipeline_run_id,
+                     f"silver.corporate_action_revisions:{revision_id}",
+                     f"silver.corporate_action_adjustment_effects:{effect_id}",
+                     "corporate-action-safe-effect", "1.0.0", evidence_hash,
+                     value.knowledge_at],
+                )
 
     def actions_as_of(
         self,
@@ -262,6 +288,7 @@ class CorporateActionWarehouseRepository:
         start_date: date,
         end_date: date,
         knowledge_cutoff_at: datetime,
+        coverage_quality_result_id: str | None = None,
     ) -> dict[str, Any]:
         actions = self.actions_as_of(
             instrument_id=instrument_id,
@@ -269,12 +296,28 @@ class CorporateActionWarehouseRepository:
             end_date=end_date,
             knowledge_cutoff_at=knowledge_cutoff_at,
         )
-        if not actions:
+        coverage = self._coverage_evidence(
+            coverage_quality_result_id=coverage_quality_result_id,
+            instrument_id=instrument_id,
+            start_date=start_date,
+            end_date=end_date,
+            knowledge_cutoff_at=knowledge_cutoff_at,
+        )
+        if not coverage:
             return {
                 "status": "not_assessed",
                 "can_compute_returns": False,
                 "reason": "no_governed_corporate_action_coverage",
+                "action_count": len(actions),
+            }
+        if not actions:
+            return {
+                "status": "pass",
+                "can_compute_returns": True,
+                "reason": "no_corporate_action_in_covered_period",
                 "action_count": 0,
+                "coverage_quality_result_id": coverage_quality_result_id,
+                "blockers": [],
             }
         blockers: list[dict[str, str]] = []
         for action in actions:
@@ -305,5 +348,42 @@ class CorporateActionWarehouseRepository:
             "can_compute_returns": not blockers,
             "reason": None if not blockers else "corporate_action_adjustment_incomplete",
             "action_count": len(actions),
+            "coverage_quality_result_id": coverage_quality_result_id,
             "blockers": blockers,
         }
+
+    def _coverage_evidence(
+        self,
+        *,
+        coverage_quality_result_id: str | None,
+        instrument_id: str,
+        start_date: date,
+        end_date: date,
+        knowledge_cutoff_at: datetime,
+    ) -> bool:
+        if not coverage_quality_result_id:
+            return False
+        row = self.connection.execute(
+            """
+            SELECT dataset_id,rule_id,status,details,evaluated_at
+            FROM control.quality_results WHERE quality_result_id=?
+            """,
+            [coverage_quality_result_id],
+        ).fetchone()
+        if not row or row[0:3] != (
+            "dataset.corporate-action-event",
+            "held_instrument_date_range_coverage",
+            "pass",
+        ) or row[4] > knowledge_cutoff_at:
+            return False
+        details = json.loads(row[3]) if isinstance(row[3], str) else dict(row[3])
+        try:
+            covered_start = date.fromisoformat(str(details["start_date"]))
+            covered_end = date.fromisoformat(str(details["end_date"]))
+        except (KeyError, TypeError, ValueError):
+            return False
+        return (
+            details.get("instrument_id") == instrument_id
+            and covered_start <= start_date
+            and covered_end >= end_date
+        )

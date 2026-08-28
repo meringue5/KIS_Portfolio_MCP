@@ -140,7 +140,7 @@ sensitivity = "internal"
 retention_policy = "canonical action identities, revisions and effects retained indefinitely"
 backup_policy = "parquet"
 freshness_slo = "held-instrument actions checked after each applicable market close; provisional or changed terms remain explicit revisions"
-quality_rules = ["source identity and provenance are immutable", "confirmed split ratios require positive pre and post units", "price and quantity effects are reciprocal and cite one action revision", "unknown, provisional or incomplete terms fail closed for return and lot adjustment", "future-known revisions are excluded from point-in-time reads"]
+quality_rules = ["source identity and provenance are immutable", "confirmed split ratios require positive pre and post units", "price and quantity effects are reciprocal and cite one action revision", "a no-action claim requires passing held-instrument date-range coverage evidence", "unknown, provisional or incomplete terms fail closed for return and lot adjustment", "future-known revisions are excluded from point-in-time reads"]
 producer_pipeline_ids = ["pipeline.corporate-actions-v2"]
 consumer_ids = ["price and volume quality", "position and lot reconstruction", "portfolio and lot performance"]
 

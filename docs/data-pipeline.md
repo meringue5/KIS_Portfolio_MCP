@@ -99,6 +99,8 @@ WI-036의 `pipeline.corporate-actions-v2`는 승인된 KIS 원천의 국내 예�
 확정되고 positive pre/post units가 있는 분할만 reciprocal quantity/price effect를 만들며, 종목변경은 결과
 instrument가 확인된 경우에만 identity effect를 만든다. action이 없다는 관측 coverage와 action 조건을 모른다는
 상태를 구분하고, unknown·provisional·incomplete terms는 lot/return 계산 가능 판정을 fail-closed로 유지한다.
+action이 없다는 판정도 `control.quality_results`의 종목·기간 coverage가 `pass`일 때만 허용하며, 생성한
+price·quantity·instrument effect는 공통 `control.lineage_edges`에서 원 action revision을 인용한다.
 WI-036은 offline fixture와 local backup/restore까지만 수행하며 production source call과 schedule은 별도 gate다.
 
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
