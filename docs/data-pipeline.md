@@ -150,6 +150,13 @@ cash classification만 읽는다. `main.market_calendar`의 KRX 날짜 coverage,
 public MCP 또는 production schedule을 추가하지 않는다. 상세 계약은
 [WI-023 portfolio performance](./design/wi-023-portfolio-performance-contract.md)에 둔다.
 
+WI-024의 owner-review workflow는 새 source call 없이 기존 thread, journal과 sell-allocation projection을
+읽어 누락 항목의 stable review identity와 `open` revision만 만든다. Typed reference/stop/risk budget은 owner
+actor가 optimistic revision으로 별도 Silver plan revision에 기록할 때만 권위 입력이 된다. system 또는 LLM
+제안은 `advice_metadata`로만 남고, review 답변은 authoritative revision reference를 가리킨다. 운영 migration,
+public MCP write와 자동 review schedule은 이번 단계에서 활성화하지 않는다. 상세 계약은
+[WI-024 thread risk review](./design/wi-024-thread-risk-review-contract.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는

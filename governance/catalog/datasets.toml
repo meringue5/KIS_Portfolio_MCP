@@ -217,6 +217,54 @@ producer_pipeline_ids = []
 consumer_ids = ["journal MCP", "review queue", "trade-thread analysis"]
 
 [[contracts]]
+id = "dataset.trade-thread-risk-plan"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "투자 thread별 owner-authoritative reference price, stop, risk budget와 point-in-time revision."
+decision_refs = ["DEC-012", "DEC-014", "DEC-027", "DEC-031", "DEC-038", "DEC-044"]
+layer = "silver"
+source_ids = ["source.portfolio-owner"]
+input_dataset_ids = []
+purpose = "일지 prose나 model 제안을 투자 의도로 오인하지 않고 lot/thread 위험 계산의 typed 권위 입력을 제공한다."
+grain = "one immutable owner risk-plan revision for one investment thread"
+natural_key = ["risk_plan_id", "revision"]
+time_semantics = "effective_at and knowledge_at retained separately; point-in-time reads require both no later than evaluation cutoff"
+write_mode = "append-only owner-authoritative revisions with optimistic expected-prior-revision control"
+schema_contract = "thread risk plan v1 for long held positions with positive reference and lower stop, currency, risk budget at most 2%, owner authority and separate advice metadata"
+sensitivity = "confidential"
+retention_policy = "all owner plan revisions retained with the investment thread; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "on owner response; missing plan remains an open review item and official planned-risk metrics stay unavailable"
+quality_rules = ["only owner can author authoritative fields", "journal prose and model advice never become stop or reference price", "changed knowledge time advances", "optimistic revision conflicts fail closed"]
+producer_pipeline_ids = []
+consumer_ids = ["lot and thread risk metrics", "owner review queue", "risk explanation"]
+
+[[contracts]]
+id = "dataset.owner-review-item"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "누락 thread plan/journal과 미확정 sell allocation을 owner에게 묻고 답변 상태를 append-only로 보존하는 review queue."
+decision_refs = ["DEC-012", "DEC-013", "DEC-014", "DEC-027", "DEC-031", "DEC-038", "DEC-044"]
+layer = "control"
+source_ids = ["source.portfolio-owner"]
+input_dataset_ids = ["dataset.trade-event", "dataset.trade-journal", "dataset.position-episode", "dataset.sell-allocation", "dataset.trade-thread-risk-plan"]
+purpose = "누락 의도를 zero나 default로 대체하지 않고 owner answer가 올 때까지 명시적인 작업 상태로 유지한다."
+grain = "one immutable state revision for one stable review subject and review type"
+natural_key = ["review_item_id", "revision"]
+time_semantics = "first_seen_at, answer knowledge_at and recorded_at retained; historical reads select only revisions known by cutoff"
+write_mode = "append-only identity and state revisions; system may open, only owner may answer or dismiss"
+schema_contract = "owner review v1 with typed subject, open/answered/dismissed state, question, actor, expected prior revision and separate authoritative resolution reference"
+sensitivity = "confidential"
+retention_policy = "review identities and all state revisions retained with their governed target; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "discovered after governed thread/reconstruction publish and resolved on owner response"
+quality_rules = ["unanswered items remain open", "system discovery never invents owner intent", "answer or dismissal requires owner actor and resolution reference", "optimistic revision conflicts fail closed"]
+producer_pipeline_ids = []
+consumer_ids = ["owner review workflow", "journal MCP", "lot and thread risk quality gate"]
+
+[[contracts]]
 id = "dataset.etf-constituent-snapshot"
 version = "1.0.0"
 status = "approved"
