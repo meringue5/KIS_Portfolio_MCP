@@ -13,7 +13,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner = MigrationRunner(con)
     assert runner.apply() == [
         "0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-        "0011",
+        "0011", "0012",
     ]
     assert runner.apply() == []
     runner.require("0006")
@@ -22,9 +22,10 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner.require("0009")
     runner.require("0010")
     runner.require("0011")
+    runner.require("0012")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 11
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 12
     con.close()
 
 

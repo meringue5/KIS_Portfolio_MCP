@@ -1,7 +1,7 @@
 ---
 id: WI-028
 title: Implement alert state and delivery ledger
-status: proposed
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, ADR-024, V2-ADR-007, V2-ADR-010, V2-ADR-012
@@ -38,9 +38,9 @@ Metrics do not yet produce governed alert candidates or stateful de-duplication,
 
 ## Acceptance criteria
 
-- [ ] identical state is not redelivered; escalation/re-entry rules are deterministic.
-- [ ] 10:00, 14:30 and 16:00 slots plus the US close summary have stable identity.
-- [ ] partial/stale inputs and sensitive fields fail closed.
+- [x] identical state is not redelivered; escalation/re-entry rules are deterministic.
+- [x] 10:00, 14:30 and 16:00 slots plus the US close summary have stable identity.
+- [x] partial/stale inputs and sensitive fields fail closed.
 
 ## Change impact
 
@@ -58,10 +58,18 @@ Metrics do not yet produce governed alert candidates or stateful de-duplication,
 
 ## Evidence
 
-- Pending.
+- Activated on 2026-08-28 after WI-052 removed the deferred ETF look-through dependency from the initial V2 alert chain.
+- Contract: `docs/design/wi-028-alert-state-delivery-ledger-contract.md`.
+- Migration `0012` adds immutable rule/candidate/outcome/state, leased dispatch claim and redacted attempt objects.
+- `tests/test_v2_alert_state.py`: stable slot/session identity, de-duplication, escalation, recovery, re-entry,
+  quality and out-of-order suppression, sensitive-context rejection, conflict detection, retry/terminal unknown and
+  complete Parquet restore.
+- `bash scripts/check.sh quick`: pass after contract and implementation changes.
+- `bash scripts/check.sh full`: pass; 392 tests passed on 2026-08-28.
 
 ## Closeout
 
-- Result: proposed; metric dependencies incomplete.
+- Result: closed; governed DB-only candidate/state/claim ledger is implemented with delivery mode constrained to
+  `shadow` and no Telegram network call.
 - Remaining risk: threshold calibration and delivery destination approval.
 - Follow-up Work Item: WI-029.

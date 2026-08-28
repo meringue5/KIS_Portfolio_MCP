@@ -103,10 +103,15 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | --- | --- | --- |
 | `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
 | `gold.metric_values` | metric/version/subject/evaluation-at point-in-time value, quality and lineage; approved definitions include portfolio value, Modified Dietz return/component contribution/residual, chain-linked wealth/drawdown, instrument-level KRW valuation-change contribution, lot MFE/MAE, position-episode high/drawdown, owner-stop thread/instrument planned loss and risk ratio, SMA20/50/120, volume SMA/ratio20, Wilder RSI14, Bollinger 20/2 context and Wilder ATR20 | Parquet / confidential |
+| `gold.alert_candidates` | rule/version/opaque subject/session/slot point-in-time state, severity, quality, lineage and allowlisted redacted context | Parquet / confidential |
 | `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
 | `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
 | `control.metric_definitions` | metric/version approved contract definition hash | Parquet / internal |
+| `control.alert_rule_versions` | immutable rule/version hash, validity, warning floor and off/shadow/external mode | Parquet / confidential |
+| `control.alert_state_revisions`, `control.alert_states_current` | alert identity별 episode, 진입·상향·회복·재진입 append-only transition과 latest projection | Parquet table + rebuild view / confidential |
+| `control.alert_candidate_outcomes` | candidate별 transition·no-change·quality/out-of-order suppression exactly-once 처리 결과 | Parquet / confidential |
+| `control.alert_dispatch_claims`, `control.alert_delivery_attempts` | candidate/channel/opaque destination leased claim과 redacted terminal/retry outcome | Parquet / confidential |
 | `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence | Parquet / internal |
 | `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
 | `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`, `control.reconstruction_exceptions_current` | 비식별 partition/episode 예외 identity, append-only 검토·해결 이력과 latest projection | Parquet tables + rebuild view / internal |
@@ -114,7 +119,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.etf_instrument_routes` | exact instrument→provider profile route; account·quantity·valuation fields prohibited | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
 
-총 64개 V2 object는 50 tables + 14 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 71개 V2 object는 56 tables + 15 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

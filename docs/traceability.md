@@ -69,7 +69,7 @@
 | DEC-018/019/025/049 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | rejected from initial V2; evidence retained, later collection v1.1.0 |
 | DEC-018/019/026/049 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | rejected from initial V2; no implementation claimed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-W0510 | WI-033 | WI-009, WI-013 | closed; production publish remains fail-closed on canonical quality |
-| DEC-026..028/049 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-033 | proposed; ETF treated as opaque security |
+| DEC-026..028/049 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-033 | closed; shadow-only ledger, ETF treated as opaque security |
 | DEC-026..028 replay and shadow | V2-W0509 | WI-029 | WI-028 | proposed |
 | DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030 | WI-029 | proposed; external-send gate |
 | DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 | WI-012 | proposed; MS-003 |
