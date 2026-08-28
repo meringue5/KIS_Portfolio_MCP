@@ -24,7 +24,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 5 | WI-017 held-instrument ETF routing | V2-W0405, V2-W0505 prerequisite | WI-014, WI-016 | closed; ID와 outcome 고정 |
 | 6 | WI-019 trend/volatility metrics | V2-W0503 | WI-013, WI-015 | closed |
 | 7 | WI-020 cash-event contract | V2-W0304 | WI-013, WI-016 | closed |
-| 8 | WI-021 three-year trade/cash history | V2-W0403 | WI-016, WI-020 | in_progress; S01 planner/partition |
+| 8 | WI-021 three-year trade/cash history | V2-W0403 | WI-016, WI-020 | in_progress; S01 planner and S02 budget closed |
 | 9 | WI-036 corporate-action ledger | V2-W0307 | WI-015 | proposed |
 | 10 | WI-022 position/lot/sell reconstruction | V2-W0304, V2-W0305 | WI-010, WI-021, WI-036 | proposed |
 | 11 | WI-023 return/contribution/drawdown | V2-W0502 | WI-009, WI-015, WI-020..022 | proposed |

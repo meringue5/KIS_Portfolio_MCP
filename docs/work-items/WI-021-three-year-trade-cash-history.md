@@ -56,6 +56,11 @@ reconstruction and return analysis has not been collected or reconciled.
   - [x] domestic partitions never cross the KIS old/recent route boundary.
   - [x] unsupported IRP recent history and unavailable cash-history sources remain explicit gaps.
   - [x] the planner performs no source call, database write or inferred cash-event creation.
+- `WI-021-S02` — per-source page budget, global physical-call ceiling and fail-closed reservation (`closed`).
+  - [x] the complete default plan reserves within an explicit global ceiling before execution.
+  - [x] every physical call through the S02 guard requires a partition reservation and exhaustion raises first.
+  - [x] unknown partitions, known gaps and invalid/over-wide page policies fail closed.
+  - [x] budget identity and evidence contain no credential or account number.
 
 ## Evidence
 
@@ -68,10 +73,17 @@ reconstruction and return analysis has not been collected or reconciled.
 - `bash scripts/check.sh quick`: passed with 83 governed contracts.
 - `bash scripts/check.sh full`: 278 tests passed; all Project OS, data governance, architecture, warehouse and MCP
   surface gates passed. One existing Authlib deprecation warning remains.
+- WI-021-S02 default policy reserves domestic order `93×3`, overseas order `19×3` and overseas transaction `19×2`:
+  374 worst-case calls under the 400 global ceiling, leaving 26 calls of headroom.
+- Preflight rejects the complete plan at 373/374 and minimum partition coverage at 130/131 before a call gate exists.
+  The guarded async-call test proves page exhaustion does not invoke the physical callable; failed attempts consume
+  their reservation.
+- `bash scripts/check.sh quick`: passed after S02 code and contract documentation.
+- `bash scripts/check.sh full`: 290 tests passed; all common gates passed with the same existing Authlib warning.
 
 ## Closeout
 
-- Result: WI-021-S01 closed; parent WI-021 remains in progress and no production source or database was changed.
+- Result: WI-021-S01 and S02 closed; parent WI-021 remains in progress and no source or database was changed.
 - Remaining risk: broker retention and historical gaps.
-- Follow-up: call/page budget enforcement, resumable execution, reconciliation and separately approved live backfill
-  remain inside WI-021 before WI-022 can start.
+- Follow-up: resumable execution, reconciliation and separately approved live backfill remain inside WI-021 before
+  WI-022 can start.

@@ -13,14 +13,25 @@ from kis_portfolio.services.trade_cash_backfill import (
     OVERSEAS_ORDER_HISTORY,
     OVERSEAS_TRANSACTION_HISTORY,
     BackfillAccountScope,
+    BackfillBudgetError,
+    BackfillBudgetExceeded,
+    BackfillBudgetPolicy,
+    BackfillCallBudget,
     account_scopes_from_registry,
+    apply_call_budget,
     plan_trade_cash_backfill,
+    run_budgeted_physical_call,
     three_year_start,
 )
 
 
 END = date(2026, 8, 28)
 START = date(2023, 8, 28)
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
 
 
 def _ranges(partitions):
@@ -247,8 +258,199 @@ def test_batch_command_prints_public_read_only_plan(monkeypatch, capsys):
     assert batch_cli._run_trade_cash_backfill_plan(args) == 0
     output = capsys.readouterr().out
     result = json.loads(output)
-    assert result["status"] == "planned"
+    assert result["status"] == "budgeted"
     assert result["side_effects"] == "none"
-    assert result["budget_enforced"] is False
+    assert result["budget_enforced"] is True
+    assert result["reserved_call_ceiling"] == 152
+    assert result["call_headroom"] == 248
     assert "12345678" not in output
     assert "app-secret" not in output
+
+
+def test_batch_command_fails_before_output_when_global_budget_is_too_small(monkeypatch, capsys):
+    account = AccountConfig(
+        "brokerage", "BROKERAGE", "Brokerage", "app-key", "app-secret", "12345678", "01",
+    )
+    monkeypatch.setattr(batch_cli, "load_account_registry", lambda: [account])
+    args = batch_cli.build_parser().parse_args([
+        "plan-trade-cash-backfill-v2",
+        "--start-date", "20260828",
+        "--end-date", "20260828",
+        "--as-of-date", "20260828",
+        "--max-physical-calls", "7",
+    ])
+
+    with pytest.raises(BackfillBudgetExceeded, match="8/7"):
+        batch_cli._run_trade_cash_backfill_plan(args)
+    assert capsys.readouterr().out == ""
+
+
+def test_default_five_account_budget_reserves_under_global_ceiling():
+    scopes = [
+        BackfillAccountScope("ria", "01"),
+        BackfillAccountScope("isa", "01"),
+        BackfillAccountScope("brokerage", "01", overseas_exchanges=("NAS",)),
+        BackfillAccountScope("irp", "29"),
+        BackfillAccountScope("pension", "22"),
+    ]
+    source_plan = plan_trade_cash_backfill(
+        scopes, start_date=START, end_date=END, as_of_date=END,
+    )
+
+    budgeted = apply_call_budget(source_plan)
+    result = budgeted.public_dict()
+
+    assert len(budgeted.reservations) == 131
+    assert budgeted.reserved_call_ceiling == 374
+    assert budgeted.call_headroom == 26
+    assert result["budget_policy"]["max_physical_calls"] == 400
+    assert result["budget_policy"]["page_limits"] == {
+        DOMESTIC_ORDER_HISTORY: 3,
+        OVERSEAS_ORDER_HISTORY: 3,
+        OVERSEAS_TRANSACTION_HISTORY: 2,
+    }
+    assert sum(item["page_budget"] for item in result["partitions"]) == 374
+    assert all(
+        item["page_budget"] == 0
+        for item in result["partitions"] if item["disposition"] == KNOWN_GAP
+    )
+
+
+def test_preflight_rejects_plan_that_does_not_fit_complete_reservation():
+    scopes = [
+        BackfillAccountScope("ria", "01"),
+        BackfillAccountScope("isa", "01"),
+        BackfillAccountScope("brokerage", "01", overseas_exchanges=("NAS",)),
+        BackfillAccountScope("irp", "29"),
+        BackfillAccountScope("pension", "22"),
+    ]
+    source_plan = plan_trade_cash_backfill(
+        scopes, start_date=START, end_date=END, as_of_date=END,
+    )
+
+    with pytest.raises(BackfillBudgetExceeded, match="374/373"):
+        apply_call_budget(
+            source_plan,
+            policy=BackfillBudgetPolicy(max_physical_calls=373),
+        )
+    with pytest.raises(BackfillBudgetExceeded, match="131/130"):
+        apply_call_budget(
+            source_plan,
+            policy=BackfillBudgetPolicy(max_physical_calls=130),
+        )
+
+
+def test_physical_call_gate_fails_before_page_four_and_rejects_noncallable_keys():
+    source_plan = plan_trade_cash_backfill(
+        [BackfillAccountScope("ria", "01")],
+        start_date=END,
+        end_date=END,
+        as_of_date=END,
+    )
+    budgeted = apply_call_budget(source_plan)
+    gate = BackfillCallBudget(budgeted)
+    callable_key = source_plan.callable_partitions[0].key
+    gap_key = source_plan.known_gaps[0].key
+
+    receipts = [gate.reserve(callable_key) for _ in range(3)]
+    assert [item.page_number for item in receipts] == [1, 2, 3]
+    assert [item.global_call_number for item in receipts] == [1, 2, 3]
+    with pytest.raises(BackfillBudgetExceeded, match="page budget exhausted before physical call"):
+        gate.reserve(callable_key)
+    with pytest.raises(BackfillBudgetError, match="not callable"):
+        gate.reserve(gap_key)
+    with pytest.raises(BackfillBudgetError, match="not callable"):
+        gate.reserve("unknown-partition")
+    assert gate.total_used == 3
+    assert gate.public_snapshot()["partition_pages_used"] == {callable_key: 3}
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        BackfillBudgetPolicy(max_physical_calls=0),
+        BackfillBudgetPolicy(page_limits=((DOMESTIC_ORDER_HISTORY, 0),)),
+        BackfillBudgetPolicy(page_limits=((DOMESTIC_ORDER_HISTORY, 11),)),
+        BackfillBudgetPolicy(page_limits=((DOMESTIC_ORDER_HISTORY, 1), (DOMESTIC_ORDER_HISTORY, 2))),
+        BackfillBudgetPolicy(page_limits=((DOMESTIC_CASH_HISTORY, 1),)),
+    ],
+)
+def test_invalid_budget_policy_fails_closed(policy):
+    with pytest.raises(BackfillBudgetError):
+        policy.normalized()
+
+
+def test_missing_source_page_policy_fails_closed_and_hash_is_deterministic():
+    source_plan = plan_trade_cash_backfill(
+        [BackfillAccountScope("brokerage", "01", overseas_exchanges=("NAS",))],
+        start_date=END,
+        end_date=END,
+        as_of_date=END,
+    )
+    with pytest.raises(BackfillBudgetError, match="missing page budget"):
+        apply_call_budget(
+            source_plan,
+            policy=BackfillBudgetPolicy(page_limits=((DOMESTIC_ORDER_HISTORY, 3),)),
+        )
+
+    default = apply_call_budget(source_plan)
+    reordered = apply_call_budget(
+        source_plan,
+        policy=BackfillBudgetPolicy(page_limits=tuple(reversed(BackfillBudgetPolicy().page_limits))),
+    )
+    assert default.budget_hash == reordered.budget_hash
+    assert default.policy.policy_hash == reordered.policy.policy_hash
+
+
+@pytest.mark.anyio
+async def test_guard_reserves_before_call_and_never_invokes_after_exhaustion():
+    source_plan = plan_trade_cash_backfill(
+        [BackfillAccountScope("ria", "01")],
+        start_date=END,
+        end_date=END,
+        as_of_date=END,
+    )
+    budgeted = apply_call_budget(
+        source_plan,
+        policy=BackfillBudgetPolicy(page_limits=((DOMESTIC_ORDER_HISTORY, 1),)),
+    )
+    gate = BackfillCallBudget(budgeted)
+    key = source_plan.callable_partitions[0].key
+    invoked = 0
+
+    async def physical_call():
+        nonlocal invoked
+        invoked += 1
+        return {"status": "fixture"}
+
+    reservation, result = await run_budgeted_physical_call(gate, key, physical_call)
+    assert reservation.page_number == 1
+    assert result == {"status": "fixture"}
+    with pytest.raises(BackfillBudgetExceeded, match="before physical call"):
+        await run_budgeted_physical_call(gate, key, physical_call)
+    assert invoked == 1
+
+
+@pytest.mark.anyio
+async def test_failed_physical_attempt_still_consumes_its_reservation():
+    source_plan = plan_trade_cash_backfill(
+        [BackfillAccountScope("ria", "01")],
+        start_date=END,
+        end_date=END,
+        as_of_date=END,
+    )
+    budgeted = apply_call_budget(
+        source_plan,
+        policy=BackfillBudgetPolicy(page_limits=((DOMESTIC_ORDER_HISTORY, 1),)),
+    )
+    gate = BackfillCallBudget(budgeted)
+    key = source_plan.callable_partitions[0].key
+
+    async def failed_call():
+        raise RuntimeError("fixture upstream failure")
+
+    with pytest.raises(RuntimeError, match="fixture upstream failure"):
+        await run_budgeted_physical_call(gate, key, failed_call)
+    assert gate.total_used == 1
+    with pytest.raises(BackfillBudgetExceeded, match="before physical call"):
+        await run_budgeted_physical_call(gate, key, failed_call)

@@ -55,9 +55,9 @@ For `2023-08-28..2026-08-28`, as-of `2026-08-28`, five configured accounts and `
 | domestic cash-source gaps | 5 |
 | IRP recent-order gap | 1 |
 
-The plan reports 131 minimum physical calls and a deliberately pessimistic 1,310-call page-cap projection based on
-the existing ten-page source helper. These are planning facts, not an approved execution budget. A later sub-item must
-set per-source/page/global ceilings, reserve them before calls and fail closed when the approved budget is exceeded.
+The pure S01 plan reports 131 minimum physical calls and a deliberately pessimistic 1,310-call source-cap projection
+based on the existing ten-page helper. S02 now applies the separately hashed per-source/global execution budget
+described in [WI-021-S02 call budget](./wi-021-s02-call-budget.md); it does not change S01 partition identity.
 
 ## Invariants and next boundary
 
@@ -76,4 +76,5 @@ uv run kis-portfolio-batch plan-trade-cash-backfill-v2 \
   --start-date 20230828 --end-date 20260828 --as-of-date 20260828
 ```
 
-It prints the complete public partition manifest and performs no external request or database write.
+It prints the complete public partition manifest with the S02 budget preflight and performs no external request or
+database write.

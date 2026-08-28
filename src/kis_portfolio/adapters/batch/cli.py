@@ -18,7 +18,12 @@ from kis_portfolio.services.overseas_history import collect_overseas_transaction
 from kis_portfolio.services.price_history import run_held_price_backfill
 from kis_portfolio.services.trade_cash_backfill import (
     DEFAULT_PARTITION_DAYS,
+    DOMESTIC_ORDER_HISTORY,
+    OVERSEAS_ORDER_HISTORY,
+    OVERSEAS_TRANSACTION_HISTORY,
+    BackfillBudgetPolicy,
     account_scopes_from_registry,
+    apply_call_budget,
     plan_trade_cash_backfill,
 )
 from kis_portfolio.services.token_warmup import warm_token_cache
@@ -145,6 +150,16 @@ def build_parser() -> argparse.ArgumentParser:
         dest="overseas_exchanges",
         help="Repeat for each KIS overseas exchange code. Default: NAS",
     )
+    trade_cash_plan.add_argument("--max-physical-calls", type=int, default=400)
+    trade_cash_plan.add_argument(
+        "--domestic-order-pages", type=int, default=3, choices=range(1, 11),
+    )
+    trade_cash_plan.add_argument(
+        "--overseas-order-pages", type=int, default=3, choices=range(1, 11),
+    )
+    trade_cash_plan.add_argument(
+        "--overseas-transaction-pages", type=int, default=2, choices=range(1, 11),
+    )
     return parser
 
 
@@ -229,12 +244,23 @@ def _run_trade_cash_backfill_plan(args: argparse.Namespace) -> int:
         overseas_account_labels=args.overseas_account_labels or ("brokerage",),
         overseas_exchanges=args.overseas_exchanges or ("NAS",),
     )
-    plan = plan_trade_cash_backfill(
+    source_plan = plan_trade_cash_backfill(
         scopes,
         start_date=start_date,
         end_date=end_date,
         as_of_date=as_of_date,
         partition_days=args.partition_days,
+    )
+    plan = apply_call_budget(
+        source_plan,
+        policy=BackfillBudgetPolicy(
+            max_physical_calls=args.max_physical_calls,
+            page_limits=(
+                (DOMESTIC_ORDER_HISTORY, args.domestic_order_pages),
+                (OVERSEAS_ORDER_HISTORY, args.overseas_order_pages),
+                (OVERSEAS_TRANSACTION_HISTORY, args.overseas_transaction_pages),
+            ),
+        ),
     )
     print(json.dumps(plan.public_dict(), ensure_ascii=False, indent=2))
     return 0

@@ -11,9 +11,10 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import threading
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Any, Iterable
+from typing import Any, Awaitable, Callable, Iterable, TypeVar
 
 
 PLAN_ID = "plan.trade-cash-history-v2"
@@ -22,6 +23,7 @@ DEFAULT_PARTITION_DAYS = 60
 MAX_PARTITION_DAYS = 90
 DOMESTIC_RECENT_DAYS = 90
 SOURCE_PAGE_CAP = 10
+DEFAULT_MAX_PHYSICAL_CALLS = 400
 
 DATASET_TRADE_EVENT = "dataset.trade-event"
 DATASET_CASH_EVENT = "dataset.cash-transaction-event"
@@ -33,6 +35,24 @@ OVERSEAS_TRANSACTION_HISTORY = "overseas-transaction-history"
 
 CALLABLE = "callable"
 KNOWN_GAP = "known_gap"
+
+DEFAULT_PAGE_LIMITS = (
+    (DOMESTIC_ORDER_HISTORY, 3),
+    (OVERSEAS_ORDER_HISTORY, 3),
+    (OVERSEAS_TRANSACTION_HISTORY, 2),
+)
+CALLABLE_SOURCE_OPERATIONS = frozenset(item[0] for item in DEFAULT_PAGE_LIMITS)
+
+
+class BackfillBudgetError(RuntimeError):
+    """Raised before a physical call when a budget contract cannot be honored."""
+
+
+class BackfillBudgetExceeded(BackfillBudgetError):
+    """Raised when the requested reservation exceeds a page or global ceiling."""
+
+
+PhysicalCallResult = TypeVar("PhysicalCallResult")
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,6 +165,203 @@ class TradeCashBackfillPlan:
         if include_partitions:
             result["partitions"] = [item.public_dict() for item in self.partitions]
         return result
+
+
+@dataclass(frozen=True, slots=True)
+class BackfillBudgetPolicy:
+    """Versioned public budget limits; it never contains credentials."""
+
+    policy_id: str = "budget.trade-cash-history-v2"
+    policy_version: str = "1.0.0"
+    max_physical_calls: int = DEFAULT_MAX_PHYSICAL_CALLS
+    page_limits: tuple[tuple[str, int], ...] = DEFAULT_PAGE_LIMITS
+
+    def normalized(self) -> BackfillBudgetPolicy:
+        if not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", self.policy_id):
+            raise BackfillBudgetError(f"invalid budget policy id: {self.policy_id}")
+        if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", self.policy_version):
+            raise BackfillBudgetError(f"invalid budget policy version: {self.policy_version}")
+        if type(self.max_physical_calls) is not int or self.max_physical_calls < 1:
+            raise BackfillBudgetError("max_physical_calls must be a positive integer")
+
+        limits: dict[str, int] = {}
+        for source_operation, page_limit in self.page_limits:
+            if source_operation not in CALLABLE_SOURCE_OPERATIONS:
+                raise BackfillBudgetError(f"unsupported budget source operation: {source_operation}")
+            if source_operation in limits:
+                raise BackfillBudgetError(f"duplicate page budget: {source_operation}")
+            if type(page_limit) is not int or not 1 <= page_limit <= SOURCE_PAGE_CAP:
+                raise BackfillBudgetError(
+                    f"page budget for {source_operation} must be between 1 and {SOURCE_PAGE_CAP}"
+                )
+            limits[source_operation] = page_limit
+        if not limits:
+            raise BackfillBudgetError("at least one source page budget is required")
+        return BackfillBudgetPolicy(
+            policy_id=self.policy_id,
+            policy_version=self.policy_version,
+            max_physical_calls=self.max_physical_calls,
+            page_limits=tuple(sorted(limits.items())),
+        )
+
+    def page_limit_for(self, source_operation: str) -> int:
+        for operation, limit in self.page_limits:
+            if operation == source_operation:
+                return limit
+        raise BackfillBudgetError(f"missing page budget for source operation: {source_operation}")
+
+    @property
+    def policy_hash(self) -> str:
+        normalized = self.normalized()
+        canonical = json.dumps(
+            {
+                "policy_id": normalized.policy_id,
+                "policy_version": normalized.policy_version,
+                "max_physical_calls": normalized.max_physical_calls,
+                "page_limits": normalized.page_limits,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(canonical.encode()).hexdigest()[:16]
+
+    def public_dict(self) -> dict[str, Any]:
+        normalized = self.normalized()
+        return {
+            "policy_id": normalized.policy_id,
+            "policy_version": normalized.policy_version,
+            "policy_hash": normalized.policy_hash,
+            "max_physical_calls": normalized.max_physical_calls,
+            "page_limits": dict(normalized.page_limits),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class BudgetReservation:
+    partition_key: str
+    source_operation: str
+    page_limit: int
+
+    def public_dict(self) -> dict[str, Any]:
+        return {
+            "partition_key": self.partition_key,
+            "source_operation": self.source_operation,
+            "page_limit": self.page_limit,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class BudgetedTradeCashBackfillPlan:
+    source_plan: TradeCashBackfillPlan
+    policy: BackfillBudgetPolicy
+    budget_hash: str
+    reservations: tuple[BudgetReservation, ...]
+
+    @property
+    def reserved_call_ceiling(self) -> int:
+        return sum(item.page_limit for item in self.reservations)
+
+    @property
+    def call_headroom(self) -> int:
+        return self.policy.max_physical_calls - self.reserved_call_ceiling
+
+    def public_dict(self, *, include_partitions: bool = True) -> dict[str, Any]:
+        result = self.source_plan.public_dict(include_partitions=include_partitions)
+        result.update({
+            "status": "budgeted",
+            "budget_enforced": True,
+            "budget_hash": self.budget_hash,
+            "budget_policy": self.policy.public_dict(),
+            "reserved_call_ceiling": self.reserved_call_ceiling,
+            "call_headroom": self.call_headroom,
+        })
+        if include_partitions:
+            limits = {item.partition_key: item.page_limit for item in self.reservations}
+            for partition in result["partitions"]:
+                partition["page_budget"] = limits.get(partition["partition_key"], 0)
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class PhysicalCallReservation:
+    partition_key: str
+    page_number: int
+    global_call_number: int
+    partition_page_limit: int
+    global_call_limit: int
+
+
+class BackfillCallBudget:
+    """Thread-safe, in-memory reservation gate called immediately before I/O."""
+
+    def __init__(self, budgeted_plan: BudgetedTradeCashBackfillPlan):
+        self._budgeted_plan = budgeted_plan
+        self._limits = {
+            item.partition_key: item.page_limit for item in budgeted_plan.reservations
+        }
+        self._used = {key: 0 for key in self._limits}
+        self._total_used = 0
+        self._lock = threading.Lock()
+
+    @property
+    def total_used(self) -> int:
+        with self._lock:
+            return self._total_used
+
+    def reserve(self, partition_key: str) -> PhysicalCallReservation:
+        """Reserve one physical call or raise before the caller performs I/O."""
+
+        with self._lock:
+            if partition_key not in self._limits:
+                raise BackfillBudgetError(
+                    f"partition is not callable in the approved budget: {partition_key}"
+                )
+            page_limit = self._limits[partition_key]
+            used = self._used[partition_key]
+            if used >= page_limit:
+                raise BackfillBudgetExceeded(
+                    f"partition page budget exhausted before physical call: "
+                    f"{partition_key} {used}/{page_limit}"
+                )
+            global_limit = self._budgeted_plan.policy.max_physical_calls
+            if self._total_used >= global_limit:
+                raise BackfillBudgetExceeded(
+                    f"global physical call budget exhausted before physical call: "
+                    f"{self._total_used}/{global_limit}"
+                )
+            self._used[partition_key] = used + 1
+            self._total_used += 1
+            return PhysicalCallReservation(
+                partition_key=partition_key,
+                page_number=used + 1,
+                global_call_number=self._total_used,
+                partition_page_limit=page_limit,
+                global_call_limit=global_limit,
+            )
+
+    def public_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            used_partitions = {
+                key: used for key, used in sorted(self._used.items()) if used
+            }
+            return {
+                "budget_hash": self._budgeted_plan.budget_hash,
+                "total_used": self._total_used,
+                "global_call_limit": self._budgeted_plan.policy.max_physical_calls,
+                "partition_pages_used": used_partitions,
+            }
+
+
+async def run_budgeted_physical_call(
+    gate: BackfillCallBudget,
+    partition_key: str,
+    physical_call: Callable[[], Awaitable[PhysicalCallResult]],
+) -> tuple[PhysicalCallReservation, PhysicalCallResult]:
+    """Reserve first, then invoke exactly one physical source call."""
+
+    reservation = gate.reserve(partition_key)
+    result = await physical_call()
+    return reservation, result
 
 
 def three_year_start(end_date: date) -> date:
@@ -442,4 +659,62 @@ def plan_trade_cash_backfill(
         as_of_date=as_of_date,
         partition_days=partition_days,
         partitions=ordered,
+    )
+
+
+def apply_call_budget(
+    plan: TradeCashBackfillPlan,
+    *,
+    policy: BackfillBudgetPolicy | None = None,
+) -> BudgetedTradeCashBackfillPlan:
+    """Reserve worst-case page ceilings for every callable partition.
+
+    This is a preflight-only operation.  It raises before an executor can be
+    created when the complete plan does not fit within the global ceiling.
+    """
+
+    normalized = (policy or BackfillBudgetPolicy()).normalized()
+    reservations = []
+    for partition in plan.callable_partitions:
+        page_limit = normalized.page_limit_for(partition.source_operation)
+        if page_limit > partition.source_page_cap:
+            raise BackfillBudgetError(
+                f"page budget exceeds application source-helper cap for {partition.key}: "
+                f"{page_limit}/{partition.source_page_cap}"
+            )
+        reservations.append(
+            BudgetReservation(
+                partition_key=partition.key,
+                source_operation=partition.source_operation,
+                page_limit=page_limit,
+            )
+        )
+
+    ordered = tuple(sorted(reservations, key=lambda item: item.partition_key))
+    reserved_call_ceiling = sum(item.page_limit for item in ordered)
+    if len(ordered) > normalized.max_physical_calls:
+        raise BackfillBudgetExceeded(
+            "minimum one-call-per-partition reservation exceeds global budget: "
+            f"{len(ordered)}/{normalized.max_physical_calls}"
+        )
+    if reserved_call_ceiling > normalized.max_physical_calls:
+        raise BackfillBudgetExceeded(
+            "preflight physical call reservation exceeds global budget: "
+            f"{reserved_call_ceiling}/{normalized.max_physical_calls}"
+        )
+
+    canonical = json.dumps(
+        {
+            "source_plan_hash": plan.plan_hash,
+            "policy_hash": normalized.policy_hash,
+            "reservations": [item.public_dict() for item in ordered],
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return BudgetedTradeCashBackfillPlan(
+        source_plan=plan,
+        policy=normalized,
+        budget_hash=hashlib.sha256(canonical.encode()).hexdigest()[:16],
+        reservations=ordered,
     )

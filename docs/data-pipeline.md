@@ -58,6 +58,13 @@ WI-021-S01은 이 원천 경계를 3년 backfill의 결정적 60일 partition으
 resume을 수행하지 않는다. 상세 계약은
 [WI-021-S01 backfill partition plan](./design/wi-021-s01-backfill-partition-plan.md)에 둔다.
 
+WI-021-S02는 S01 partition을 바꾸지 않고 별도 budget hash로 source별 page와 전체 physical-call ceiling을
+적용한다. 기본값은 국내 주문 3 page, 해외 주문 3 page, 해외 기간거래 2 page, 전체 400 call이다. 전체
+partition의 최악 page 합계를 실행 전에 예약하지 못하면 call gate를 만들지 않으며, 각 실제 source
+request도 `run_budgeted_physical_call`이 partition/global quota를 먼저 원자적으로 예약한 뒤에만 수행한다.
+한도 소진, unknown partition과 known gap은 외부 호출 전에 실패한다. 상세 계약은
+[WI-021-S02 call budget](./design/wi-021-s02-call-budget.md)에 둔다.
+
 WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
 `silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
 유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은
