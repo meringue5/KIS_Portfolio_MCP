@@ -109,6 +109,78 @@ rate_limit_policy = "one file per held ETF per trading day; conditional retrieva
 availability_slo = "latest published portfolio composition before the 10:00 KST evaluation when available; otherwise previous snapshot with age and gap status"
 
 [[contracts]]
+id = "source.time-etf"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "TIME ETF official product and composition downloads; fixture-only until automation and retention rights are evidenced."
+decision_refs = ["DEC-018", "DEC-019", "DEC-041"]
+provider = "TIMEFOLIO Asset Management"
+canonical_role = "canonical"
+access_method = "Official timefolioetf.co.kr HTTPS product downloads"
+auth_class = "none"
+license_class = "restricted"
+sensitivity = "public"
+region = "KR"
+cost_class = "free"
+rate_limit_policy = "zero production calls while proposed; future one conditional file per routed held ETF and session"
+availability_slo = "fixture-only; no production freshness claim"
+
+[[contracts]]
+id = "source.koact-etf"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "KoAct official product and composition downloads; fixture-only until automation and retention rights are evidenced."
+decision_refs = ["DEC-018", "DEC-019", "DEC-041"]
+provider = "Samsung Active Asset Management"
+canonical_role = "canonical"
+access_method = "Official samsungactive.co.kr HTTPS product downloads"
+auth_class = "none"
+license_class = "restricted"
+sensitivity = "public"
+region = "KR"
+cost_class = "free"
+rate_limit_policy = "zero production calls while proposed; future one conditional file per routed held ETF and session"
+availability_slo = "fixture-only; no production freshness claim"
+
+[[contracts]]
+id = "source.rise-etf"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "RISE ETF official product and composition downloads; fixture-only until automation and retention rights are evidenced."
+decision_refs = ["DEC-018", "DEC-019", "DEC-041"]
+provider = "KB Asset Management"
+canonical_role = "canonical"
+access_method = "Official riseetf.co.kr HTTPS product downloads"
+auth_class = "none"
+license_class = "restricted"
+sensitivity = "public"
+region = "KR"
+cost_class = "free"
+rate_limit_policy = "zero production calls while proposed; future one conditional file per routed held ETF and session"
+availability_slo = "fixture-only; no production freshness claim"
+
+[[contracts]]
+id = "source.plus-etf"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "PLUS ETF official product and composition downloads; fixture-only until automation and retention rights are evidenced."
+decision_refs = ["DEC-018", "DEC-019", "DEC-041"]
+provider = "Hanwha Asset Management"
+canonical_role = "canonical"
+access_method = "Official plusetf.co.kr HTTPS product downloads"
+auth_class = "none"
+license_class = "restricted"
+sensitivity = "public"
+region = "KR"
+cost_class = "free"
+rate_limit_policy = "zero production calls while proposed; future one conditional file per routed held ETF and session"
+availability_slo = "fixture-only; no production freshness claim"
+
+[[contracts]]
 id = "source.us-exchange-calendars"
 version = "1.0.0"
 status = "approved"

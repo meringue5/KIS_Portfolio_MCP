@@ -17,7 +17,10 @@ import duckdb
 
 from kis_portfolio.account_registry import load_account_registry, scoped_account_env
 from kis_portfolio.adapters.outbound.gcs_object_store import GCSObjectStore
+from kis_portfolio.adapters.outbound.instrument_warehouse import InstrumentWarehouseRepository
 from kis_portfolio.adapters.outbound.v2_warehouse import V2WarehouseRepository
+from kis_portfolio.modules.exposure import canonical_instrument_id, resolve_instrument_classification
+from kis_portfolio.platform.etf_source_profiles import load_etf_instrument_routes
 from kis_portfolio.platform.pipeline import (
     LineageEvidence,
     ManagedPipelineRunner,
@@ -52,7 +55,27 @@ def _account_id(label: str) -> str:
 
 
 def _instrument_id(market: str, symbol: str) -> str:
-    return f"v1|{market}|{symbol}"
+    return canonical_instrument_id(market, symbol)
+
+
+def _reference_row(connection: duckdb.DuckDBPyConnection, table: str, symbol: str) -> dict[str, Any] | None:
+    exists = connection.execute("""
+        SELECT count(*) FROM information_schema.tables
+        WHERE table_schema='main' AND table_name=?
+    """, [table]).fetchone()[0]
+    if not exists:
+        return None
+    if table == "instrument_master":
+        row = connection.execute("""
+            SELECT group_code, standard_code, name, updated_at
+            FROM main.instrument_master WHERE market='KRX' AND symbol=?
+        """, [symbol]).fetchone()
+        return dict(zip(("group_code", "standard_code", "name", "updated_at"), row)) if row else None
+    row = connection.execute("""
+        SELECT exposure_type, exposure_region, asset_subtype, reason, updated_at
+        FROM main.instrument_classification_overrides WHERE market='KRX' AND symbol=?
+    """, [symbol]).fetchone()
+    return dict(zip(("exposure_type", "exposure_region", "asset_subtype", "reason", "updated_at"), row)) if row else None
 
 
 def _envelope(source_record_id: str, payload: dict[str, Any], observed_at: datetime) -> SourceEnvelope:
@@ -145,6 +168,8 @@ def build_owned_portfolio_pipeline(
     object_store: ObjectStorePort,
 ) -> PipelineDefinition:
     repository = V2WarehouseRepository(connection)
+    instrument_repository = InstrumentWarehouseRepository(connection)
+    etf_routes = load_etf_instrument_routes()
 
     def collect(context: StageContext) -> StageResult:
         collected = asyncio.run(_collect_sources(context.slot))
@@ -235,16 +260,30 @@ def build_owned_portfolio_pipeline(
                 quantity = _decimal(row.get("hldg_qty") or row.get("cblc_qty"))
                 if not symbol or quantity <= 0:
                     continue
+                instrument_id = _instrument_id("KRX", symbol)
+                route = etf_routes.get(instrument_id)
+                master = _reference_row(connection, "instrument_master", symbol)
+                override = _reference_row(connection, "instrument_classification_overrides", symbol)
+                classification = resolve_instrument_classification(
+                    market="KRX", name=row.get("prdt_name"), as_of=observed,
+                    master=master, override=override,
+                    exact_route_profile_id=route.profile_id if route else None,
+                )
                 instrument = {
-                    "instrument_id": _instrument_id("KRX", symbol), "market": "KRX", "symbol": symbol,
-                    "name": row.get("prdt_name"), "asset_type": "unknown", "currency": "KRW",
-                    "as_of": observed, "classification_quality": "kis-balance",
+                    "instrument_id": instrument_id, "market": "KRX", "symbol": symbol,
+                    "name": row.get("prdt_name"), "asset_type": classification.asset_type,
+                    "economic_exposure": classification.economic_exposure, "currency": "KRW",
+                    "as_of": observed, "valid_from": observed, "knowledge_at": observed,
+                    "classification_source": classification.source,
+                    "classification_quality": classification.quality,
+                    "metadata": classification.evidence,
                 }
                 instrument_obs = repository.record_observation(
                     "dataset.instrument-master",
                     _envelope(f"{context.run_id}:{label}:{symbol}:instrument", instrument, observed), context.run_id,
                 )
                 repository.upsert_instrument(instrument, instrument_obs)
+                instrument_repository.record_version(instrument, instrument_obs)
                 position = {
                     "account_id": account_payload["account_id"], "instrument_id": instrument["instrument_id"],
                     "as_of": observed, "quantity": quantity,
@@ -291,7 +330,9 @@ def build_owned_portfolio_pipeline(
                         "instrument_id": _instrument_id(normalized_market, symbol),
                         "market": normalized_market, "symbol": symbol, "name": row.get("ovrs_item_name"),
                         "asset_type": "unknown", "currency": currency, "as_of": observed,
-                        "classification_quality": "kis-overseas-balance",
+                        "economic_exposure": "unknown", "valid_from": observed, "knowledge_at": observed,
+                        "classification_source": "unresolved",
+                        "classification_quality": "unknown", "metadata": {"source": "kis-overseas-balance"},
                     }
                     instrument_obs = repository.record_observation(
                         "dataset.instrument-master",
@@ -299,6 +340,7 @@ def build_owned_portfolio_pipeline(
                         context.run_id,
                     )
                     repository.upsert_instrument(instrument, instrument_obs)
+                    instrument_repository.record_version(instrument, instrument_obs)
                     position = {
                         "account_id": account_id, "instrument_id": instrument["instrument_id"], "as_of": observed,
                         "quantity": quantity, "average_cost": _decimal(row.get("pchs_avg_pric")),

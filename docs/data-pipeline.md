@@ -51,6 +51,17 @@ V1의 all-buy 오염은 원행을 수정하거나 삭제하지 않고 `silver.tr
 `silver.purchase_lots_current`를 사용한다. 신규 canonical identity는 account, market, product code,
 instrument, broker order, executed time, execution sequence를 포함한다.
 
+WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
+`silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
+유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은
+구성종목 없이 이름만으로 canonical 값이 되지 않는다. ETF provider 선택은
+`governance/catalog/etf-instrument-routes.toml`의 exact route만 허용한다.
+
+TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
+profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
+Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는
+Silver publish를 차단한다. 실제 issuer 수집은 provider별 rights가 모두 allowed가 되는 별도 Work Item이다.
+
 `tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
 `src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
 lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.

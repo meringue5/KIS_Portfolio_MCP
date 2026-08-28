@@ -44,6 +44,8 @@ DGH는 product data plane을 대신하지 않는다. 정책과 계약은 DGH가 
 | dataset 계약 | `governance/catalog/datasets.toml` | DGH + warehouse checker |
 | metric 계약 | `governance/catalog/metrics.toml` | DGH + analytics tests |
 | pipeline 계약 | `governance/catalog/pipelines.toml` | DGH + pipeline runner |
+| ETF provider 실행 profile | `governance/catalog/etf-source-profiles.toml` | DGH rights/host gate |
+| ETF exact instrument route | `governance/catalog/etf-instrument-routes.toml` | DGH route/reference gate |
 | 물리 object·grain·key·backup | `docs/data-catalog.md` + `src/kis_portfolio/db/catalog.py` | warehouse checker |
 | DDL·migration | versioned migration; 전환 전에는 `db/schema.py` | migration/release gate |
 | run·watermark·quality·lineage | 목표 MotherDuck `control` schema | runtime/release gate |
@@ -69,6 +71,8 @@ Phase 1 source inventory에서 기존 V1 producer/consumer도 DGH contract로 �
 | `dataset` | 어떤 의미와 grain으로 보존·공개하는가? | source/input, key, 시간, schema, layer, 품질·보존·backup·consumer |
 | `metric` | 어떤 시점의 입력으로 무엇을 계산하는가? | formula version, unit, point-in-time, quality와 검증 계약 |
 | `pipeline` | 어떤 입력을 어떤 통제로 출력하는가? | stage, schedule, idempotency, retry, call budget, quality/publish gate |
+| `etf_profile` | 해당 provider를 어떤 형식·host·권리로 실행할 수 있는가? | parser/version, media type, host, history와 rights tri-state, activation |
+| `etf_route` | 어떤 ETF를 어느 provider product에 연결하는가? | exact canonical instrument, provider key와 유효시점; holding fact 금지 |
 
 수집 장바구니는 단순 TODO가 아니다. 승인된 `source`와 `dataset`만 참조하는 versioned `collection`
 contract다. 우선순위가 바뀌어도 과거 version을 덮어쓰지 않는다.
@@ -100,8 +104,14 @@ proposed → approved → active → deprecated → retired
 7. contract가 approved/active가 되기 전 production DDL, schedule, backfill과 public MCP 노출을 금지한다.
 8. 계약 변경은 새 version과 compatibility 판정을 남긴다. 과거 의미를 같은 version으로 바꾸지 않는다.
 
-필수 ID namespace는 `source.`, `collection.`, `dataset.`, `metric.`, `pipeline.`이다. version은 semantic
+필수 ID namespace는 `source.`, `collection.`, `dataset.`, `metric.`, `pipeline.`, `etf_profile.`,
+`etf_route.`이다. version은 semantic
 version 문자열을 사용한다. v1 manifest의 필수 필드와 enum은 `governance/contract-schema.toml`이 소유한다.
+
+ETF provider rights는 `allowed`, `prohibited`, `unknown`의 tri-state다. production profile은 automation,
+cloud processing, raw retention과 derived use가 모두 `allowed`여야 한다. exact route에는 계좌, 보유수량,
+평가액을 넣지 않으며 name/brand heuristic은 provider를 선택할 수 없다. fixture-only profile과 route는 합성
+payload parser 검증에만 사용할 수 있고 network registry에는 등록되지 않는다.
 
 ## 5. Gate architecture
 

@@ -226,6 +226,40 @@ def check(root: Path) -> list[str]:
                             f"{contract_id!r}: governed contract cannot reference {target_status} {reference!r}"
                         )
 
+    rights_fields = (
+        "automation_right", "cloud_processing_right", "raw_retention_right", "derived_use_right",
+    )
+    for profile in contracts_by_kind.get("etf_profile", []):
+        if profile.get("activation_state") == "production":
+            denied = [field for field in rights_fields if profile.get(field) != "allowed"]
+            if denied:
+                errors.append(
+                    f"{profile.get('id')!r}: production ETF profile requires allowed rights: {denied}"
+                )
+
+    route_keys: set[tuple[str, str]] = set()
+    sensitive_route_fields = {"account_id", "account_label", "quantity", "amount", "valuation", "cano"}
+    for route in contracts_by_kind.get("etf_route", []):
+        route_id = route.get("id", "etf_route[unknown]")
+        forbidden = sorted(sensitive_route_fields.intersection(route))
+        if forbidden:
+            errors.append(f"{route_id!r}: route contains prohibited holding fields {forbidden}")
+        instrument_id = route.get("instrument_id")
+        market = route.get("market")
+        symbol = route.get("symbol")
+        if instrument_id != f"v1|{market}|{symbol}":
+            errors.append(f"{route_id!r}: instrument_id must equal v1|market|symbol")
+        key = (str(instrument_id), str(route.get("valid_from")))
+        if key in route_keys:
+            errors.append(f"{route_id!r}: duplicate instrument route interval {key!r}")
+        route_keys.add(key)
+        for profile_id in route.get("profile_ids", []):
+            target = contracts_by_id.get(profile_id)
+            if target and route.get("product_key_kind") != target[1].get("product_key_kind"):
+                errors.append(f"{route_id!r}: product_key_kind does not match {profile_id!r}")
+            if target and route.get("activation_state") == "production" and target[1].get("activation_state") != "production":
+                errors.append(f"{route_id!r}: production route requires a production profile")
+
     return errors
 
 

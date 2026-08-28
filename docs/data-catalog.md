@@ -77,7 +77,8 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 
 | Objects | Grain / contract | Backup / sensitivity |
 | --- | --- | --- |
-| `silver.accounts`, `silver.instruments` | canonical account와 effective instrument identity | Parquet / confidential·internal |
+| `silver.accounts`, `silver.instruments` | account identity와 current instrument compatibility projection | Parquet / confidential·internal |
+| `silver.instrument_versions`, `silver.instrument_versions_effective`, `silver.instruments_current` | point-in-time classification versions, derived validity interval and current read model | Parquet table + rebuild views / internal |
 | `silver.position_snapshots`, `silver.cash_snapshots` | account/instrument 또는 currency/as-of 관측 | Parquet / confidential |
 | `silver.trade_events`, `silver.trade_event_revisions`, `silver.cash_flow_events` | 원천 broker event, append-only correction revision과 source cash event | Parquet / confidential |
 | `silver.trade_events_current`, `silver.purchase_lots_current` | latest trade revision과 corrected buy-only lot projection | Rebuild / confidential |
@@ -102,9 +103,10 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.metric_definitions` | metric/version approved contract definition hash | Parquet / internal |
 | `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence | Parquet / internal |
 | `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
+| `control.etf_instrument_routes` | exact instrument→provider profile route; account·quantity·valuation fields prohibited | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
 
-총 38개 V2 object는 34 tables + 4 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 42개 V2 object는 36 tables + 6 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

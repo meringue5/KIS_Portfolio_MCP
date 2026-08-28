@@ -80,7 +80,7 @@ owner = "owner"
 description = "국내·미국 보유상품의 코드, 거래소, 통화, 주식·ETF·REIT 유형과 issuer 식별자."
 decision_refs = ["DEC-005", "DEC-018", "DEC-020"]
 layer = "silver"
-source_ids = ["source.kis-open-api", "source.krx-market-data", "source.opendart", "source.sec-edgar"]
+source_ids = ["source.kis-open-api", "source.krx-market-data", "source.opendart", "source.sec-edgar", "source.portfolio-owner"]
 input_dataset_ids = []
 purpose = "모든 source의 security identity를 canonical instrument에 연결하고 자산유형별 정책을 적용한다."
 grain = "one instrument identity version per source-effective interval"
@@ -93,7 +93,7 @@ retention_policy = "identity history retained indefinitely"
 backup_policy = "parquet"
 freshness_slo = "held instruments resolved before their observations are published; official master refreshed each market day when available"
 quality_rules = ["canonical identity unique for each valid interval", "market, currency and asset type present for held instruments", "heuristic classification is labeled and cannot override explicit mappings"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2"]
 consumer_ids = ["all governed portfolio datasets", "ETF issuer routing", "filing entity mapping"]
 
 [[contracts]]
@@ -213,7 +213,7 @@ retention_policy = "minimum three years of trading-day snapshots; canonical sour
 backup_policy = "object"
 freshness_slo = "latest published snapshot before 10:00 KST for held KR ETFs and by the Korean-morning run for held US ETFs"
 quality_rules = ["source URL and hash present", "weights and unresolved residual reconcile within a declared tolerance", "non-equity and nested instruments preserve original type", "nested expansion is capped at three levels with cycle guard"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.etf-lookthrough-v2"]
 consumer_ids = ["ETF impact analysis", "portfolio exposure", "concentration alerts"]
 
 [[contracts]]

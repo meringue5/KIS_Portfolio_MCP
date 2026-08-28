@@ -72,6 +72,7 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
     assert con.execute("select count(*) from control.lineage_edges").fetchone()[0] == 3
     assert con.execute("select count(*) from control.watermarks").fetchone()[0] == 1
     assert con.execute("select count(*) from gold.portfolio_daily_state").fetchone()[0] == 2
+    assert con.execute("select count(*) from silver.instrument_versions").fetchone()[0] == 1
 
 
 def test_managed_collection_skips_declared_closed_day():

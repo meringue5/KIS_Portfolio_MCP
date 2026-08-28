@@ -363,12 +363,13 @@ class V2WarehouseRepository:
     def table_count(self, qualified_name: str) -> int:
         allowed = {
             "bronze.source_observations", "silver.accounts", "silver.instruments",
+            "silver.instrument_versions", "silver.instrument_versions_effective", "silver.instruments_current",
             "silver.position_snapshots", "silver.cash_snapshots", "silver.trade_events",
             "silver.trade_event_revisions", "silver.trade_events_current",
             "silver.purchase_lots", "silver.purchase_lots_current", "silver.trade_threads",
             "silver.trade_journal_revisions",
             "silver.price_bars_daily", "silver.price_bar_revisions_daily", "silver.fx_rates_daily",
-            "gold.portfolio_daily_state",
+            "gold.portfolio_daily_state", "control.etf_instrument_routes",
         }
         if qualified_name not in allowed:
             raise ValueError("table is not in the repository count allowlist")

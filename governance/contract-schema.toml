@@ -82,3 +82,35 @@ cost_class = ["routine", "backfill", "exceptional"]
 source_ids = "source"
 input_dataset_ids = "dataset"
 output_dataset_ids = "dataset"
+
+[types.etf_profile]
+file = "governance/catalog/etf-source-profiles.toml"
+id_prefix = "etf_profile."
+required = ["source_ids", "legal_entity", "brand", "allowed_hosts", "media_types", "parser_id", "parser_version", "product_key_kind", "history_capability", "automation_right", "cloud_processing_right", "raw_retention_right", "derived_use_right", "redistribution_right", "activation_state", "request_budget", "timeout_policy"]
+list_fields = ["source_ids", "allowed_hosts", "media_types"]
+non_empty_list_fields = ["source_ids", "allowed_hosts", "media_types"]
+
+[types.etf_profile.enums]
+history_capability = ["current_only", "exact_date", "unknown"]
+automation_right = ["allowed", "prohibited", "unknown"]
+cloud_processing_right = ["allowed", "prohibited", "unknown"]
+raw_retention_right = ["allowed", "prohibited", "unknown"]
+derived_use_right = ["allowed", "prohibited", "unknown"]
+redistribution_right = ["allowed", "prohibited", "unknown"]
+activation_state = ["fixture_only", "manual_only", "production"]
+
+[types.etf_profile.references]
+source_ids = "source"
+
+[types.etf_route]
+file = "governance/catalog/etf-instrument-routes.toml"
+id_prefix = "etf_route."
+required = ["instrument_id", "market", "symbol", "profile_ids", "provider_product_key", "product_key_kind", "activation_state", "valid_from"]
+list_fields = ["profile_ids"]
+non_empty_list_fields = ["profile_ids"]
+
+[types.etf_route.enums]
+activation_state = ["fixture_only", "manual_only", "production"]
+
+[types.etf_route.references]
+profile_ids = "etf_profile"

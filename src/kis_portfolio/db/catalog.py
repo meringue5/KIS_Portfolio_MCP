@@ -171,6 +171,9 @@ V2_DATA_OBJECTS = (
     DataObject("owner_research_documents", "table", "bronze", "bronze", "content-addressed", "object", "restricted", "Owner-provided PDF metadata and private object identity.", "one PDF content hash", "document_sha256", "bronze"),
     DataObject("accounts", "table", "silver", "silver", "versioned upsert", "parquet", "confidential", "Canonical account identities.", "one account identity", "account_id", "silver"),
     DataObject("instruments", "table", "silver", "silver", "versioned upsert", "parquet", "internal", "Canonical instrument identity versions.", "one instrument identity", "instrument_id", "silver"),
+    DataObject("instrument_versions", "table", "silver", "silver", "append-only versions", "parquet", "internal", "Point-in-time asset type and classification evidence.", "one instrument classification version", "instrument_id, valid_from", "silver"),
+    DataObject("instrument_versions_effective", "view", "silver", "silver", "derived validity intervals", "excluded", "internal", "Instrument versions with derived valid_to intervals.", "one instrument classification interval", "instrument_id, valid_from", "silver"),
+    DataObject("instruments_current", "view", "silver", "silver", "latest version projection", "excluded", "internal", "Latest governed classification for each instrument.", "one instrument", "instrument_id", "silver"),
     DataObject("position_snapshots", "table", "silver", "silver", "idempotent upsert", "parquet", "confidential", "Canonical position observations.", "one account instrument and as-of", "account_id, instrument_id, as_of", "silver"),
     DataObject("cash_snapshots", "table", "silver", "silver", "idempotent upsert", "parquet", "confidential", "Canonical cash observations.", "one account currency and as-of", "account_id, currency, as_of", "silver"),
     DataObject("trade_events", "table", "silver", "silver", "append-only versions", "parquet", "confidential", "Canonical executed-order events.", "one broker order event version", "trade_event_id", "silver"),
@@ -203,6 +206,7 @@ V2_DATA_OBJECTS = (
     DataObject("quality_results", "table", "control", "control", "append-only", "parquet", "internal", "Dataset quality rule evidence.", "one run dataset rule evaluation", "quality_result_id", "control"),
     DataObject("lineage_edges", "table", "control", "control", "append-only", "parquet", "internal", "Input-output transform lineage.", "one run lineage edge", "lineage_edge_id", "control"),
     DataObject("watermarks", "table", "control", "control", "upsert", "parquet", "internal", "Pipeline partition watermarks.", "one pipeline partition watermark type", "pipeline_id, partition_key, watermark_type", "control"),
+    DataObject("etf_instrument_routes", "table", "control", "control", "versioned exact allowlist", "parquet", "internal", "Exact instrument to fixture or approved ETF provider route projection.", "one instrument route interval", "instrument_id, valid_from", "control"),
     DataObject("pipeline_run_summary", "view", "control", "control", "derived view", "excluded", "internal", "Pipeline status read model.", "one pipeline run", "run_id", "control"),
 )
 

@@ -39,6 +39,8 @@ def _copy_harness(target: Path) -> None:
         "governance/catalog/datasets.toml",
         "governance/catalog/metrics.toml",
         "governance/catalog/pipelines.toml",
+        "governance/catalog/etf-source-profiles.toml",
+        "governance/catalog/etf-instrument-routes.toml",
         ".agent/skills/kis-data-governance/SKILL.md",
     ]
     for relative in required_paths:
@@ -51,6 +53,8 @@ def _copy_harness(target: Path) -> None:
     # leak unresolved references into these isolated positive/negative cases.
     (target / "governance/catalog/metrics.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/pipelines.toml").write_text("schema_version = 1\n", encoding="utf-8")
+    (target / "governance/catalog/etf-source-profiles.toml").write_text("schema_version = 1\n", encoding="utf-8")
+    (target / "governance/catalog/etf-instrument-routes.toml").write_text("schema_version = 1\n", encoding="utf-8")
 
 
 def test_current_repository_satisfies_data_governance_contract():
@@ -179,3 +183,43 @@ consumer_ids = ["fixture"]
 
     assert any("requires decision_refs" in error for error in errors)
     assert any("references unknown id 'source.missing'" in error for error in errors)
+
+
+def test_governance_rejects_production_etf_profile_with_unknown_rights(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_harness(target)
+    (target / "governance/catalog/etf-source-profiles.toml").write_text(
+        '''schema_version = 1
+
+[[contracts]]
+id = "etf_profile.unsafe-v1"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Unsafe production fixture."
+decision_refs = ["DEC-018"]
+source_ids = ["source.kr-etf-issuers"]
+legal_entity = "Fixture"
+brand = "Fixture"
+allowed_hosts = ["example.invalid"]
+media_types = ["application/json"]
+parser_id = "fixture-json"
+parser_version = "1.0.0"
+product_key_kind = "fixture"
+history_capability = "unknown"
+automation_right = "unknown"
+cloud_processing_right = "unknown"
+raw_retention_right = "unknown"
+derived_use_right = "unknown"
+redistribution_right = "prohibited"
+activation_state = "production"
+request_budget = "zero"
+timeout_policy = "offline"
+''',
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("production ETF profile requires allowed rights" in error for error in errors)
