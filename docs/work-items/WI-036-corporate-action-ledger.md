@@ -1,7 +1,7 @@
 ---
 id: WI-036
 title: Establish corporate-action identity and adjustment lineage
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023
@@ -53,10 +53,11 @@ yet a governed ledger that downstream lot and performance logic can cite.
 
 ## Evidence
 
-- Pending.
+- Source preflight found no new provider requirement: the approved `source.kis-open-api` exposes domestic KSD
+  merger/split and face-value replacement schedules plus overseas period-rights revisions for the held-instrument scope.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress.
 - Remaining risk: source coverage varies by market.
 - Follow-up Work Item: WI-022.
