@@ -43,8 +43,11 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.corporate_action_adjustment_effects`,
   `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
   `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
-  `gold.portfolio_daily_state`, `gold.metric_values`, `control.pipeline_definitions`,
-  `control.metric_definitions`, `control.pipeline_runs`,
+  `gold.portfolio_daily_state`, `gold.metric_values`, `gold.alert_candidates`,
+  `control.pipeline_definitions`, `control.metric_definitions`, `control.alert_rule_versions`,
+  `control.alert_state_revisions`, `control.alert_candidate_outcomes`,
+  `control.alert_dispatch_claims`, `control.alert_delivery_attempts`,
+  `control.pipeline_runs`,
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`,
   `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`,
   `control.owner_review_items`, `control.owner_review_item_revisions`,
@@ -61,6 +64,7 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.reconstruction_exceptions_current`,
   `control.owner_review_items_current`,
+  `control.alert_states_current`,
   `control.schema_migrations`.
 
 owner research 원문과 추출물은 restricted다. local rehearsal에서는 owner-only directory의 0600 file로

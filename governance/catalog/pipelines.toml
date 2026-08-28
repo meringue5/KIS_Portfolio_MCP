@@ -229,3 +229,26 @@ quality_gates = ["actual manual and inferred-opening provenance remain distinct"
 secret_profile = "MotherDuck runtime only after production approval; pure S01 contract has no secret"
 cost_class = "backfill"
 trigger_policy = "repository-local fixture in S01 through S04; S05 is read-only dry-run and S06 requires explicit bounded production approval"
+
+[[contracts]]
+id = "pipeline.alert-evaluation-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "승인 metric을 immutable rule version으로 평가하고 state transition과 transport-neutral shadow claim을 기록한다."
+decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-049"]
+source_ids = []
+input_dataset_ids = ["dataset.metric-value", "dataset.portfolio-daily-state"]
+output_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger"]
+stages = ["resolve-rule", "select-point-in-time-input", "evaluate", "quality", "transition", "claim-shadow"]
+schedule_policy = "evaluation contract follows 10:00, 14:30 and 16:00 KST plus one Korean-morning U.S. close slot; WI-028 creates no schedule"
+calendar_gate = "inherits the governed portfolio state market session and quality status; U.S. close uses its exact session key once"
+idempotency_key = "rule id/version, opaque subject, market session key and evaluation slot"
+timeout_policy = "bounded held-subject shards in an existing scale-to-zero job"
+retry_policy = "candidate replay is idempotent; state uses optimistic revision; expired or retryable shadow claims may be reacquired; unknown never auto-retries"
+source_call_budget = "zero direct source or network calls; consumes governed MotherDuck values only"
+freshness_gates = ["upstream metric and state cutoffs are terminal for the slot", "rule validity includes evaluation time"]
+quality_gates = ["pass input quality only mutates state", "warning or critical only creates a delivery-required transition", "public context allowlist and sensitive-value rejection", "ETF treated as opaque security with missing constituent coverage"]
+secret_profile = "MotherDuck runtime only; no Telegram token or chat identifier in WI-028"
+cost_class = "routine"
+trigger_policy = "DB-only fixture and shadow claim contract; production threshold, external destination and Telegram send remain gated by WI-029 and WI-030"

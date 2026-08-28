@@ -30,6 +30,7 @@ lineage는 `control.quality_results`, `control.lineage_edges`에 저장하고 DB
 - `pipeline.fundamentals-dividends-v2`
 - `pipeline.macro-profile-v2`
 - `pipeline.owner-research-pdf-v1`
+- `pipeline.alert-evaluation-v2`
 
 WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio-v2`다. 허용 slot은
 `kr-1000`, `kr-1430`, `kr-1600`, partition은 `all-accounts` 하나뿐이다. 각 slot은 별도 fixed-argument
@@ -169,6 +170,17 @@ reconcile될 때만 숫자를 발행한다. 누락 plan, partial reconstruction,
 0이 아니라 명시적 non-pass `NULL` metric으로 보존한다. 이 evaluator는 source call, 신규 schema, public MCP,
 Telegram 또는 주문 권한을 추가하지 않는다. 상세 계약은
 [WI-025 lot/thread risk metrics](./design/wi-025-lot-thread-risk-contract.md)에 둔다.
+
+WI-028의 `pipeline.alert-evaluation-v2`는 승인 rule version과 point-in-time metric만 읽어
+`gold.alert_candidates`와 append-only state revision을 만든다. alert identity는 rule/version과 opaque subject에
+안정적이며 slot을 가로질러 같은 fingerprint를 중복 전송하지 않는다. candidate identity는
+`kr-1000`·`kr-1430`·`kr-1600` 또는 exact `us-close` session/slot을 포함해 scheduler retry에는 같고 다른
+평가 기회에는 다르다. non-pass quality는 candidate로 감사 가능하게 남지만 이전 active state를 회복시키거나
+dispatch claim을 만들지 않는다. 진입·상향·회복·재진입만 warning floor에서 claim 가능하며 WI-028의 유일한
+mode/channel은 DB `shadow`다. claim lease token은 digest만 저장하고 `unknown` post-send outcome은 자동 재시도하지
+않는다. ETF는 자체 상장상품 metric만 사용하고 constituent exposure는 missing으로 유지한다. 실제 threshold
+calibration과 2주 shadow는 WI-029, Telegram API와 external mode는 WI-030이 담당한다. 상세 계약은
+[WI-028 alert state and delivery ledger](./design/wi-028-alert-state-delivery-ledger-contract.md)에 둔다.
 
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
