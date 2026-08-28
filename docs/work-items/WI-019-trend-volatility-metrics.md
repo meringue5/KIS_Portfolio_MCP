@@ -1,7 +1,7 @@
 ---
 id: WI-019
 title: Implement replay-safe trend and volatility metrics
-status: ready
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -36,9 +36,9 @@ ATR20 are not yet calculated by the governed metric engine.
 
 ## Acceptance criteria
 
-- [ ] SMA20/50/120, volume ratio, RSI14, Bollinger context and ATR20 match independent fixtures.
-- [ ] reconstructed history cannot impersonate strict historical knowledge.
-- [ ] quality, lineage, backup/restore and full gates pass.
+- [x] SMA20/50/120, volume ratio, RSI14, Bollinger context and ATR20 match independent fixtures.
+- [x] reconstructed history cannot impersonate strict historical knowledge.
+- [x] quality, lineage, backup/restore and full gates pass.
 
 ## Change impact
 
@@ -56,10 +56,19 @@ ATR20 are not yet calculated by the governed metric engine.
 
 ## Evidence
 
-- Pending.
+- Eleven approved metric contracts cover adjusted-close SMA20/50/120, vendor-volume SMA/ratio20, Wilder RSI14,
+  Bollinger lower/upper/percent-B/bandwidth with population standard deviation and Wilder ATR20.
+- The application evaluator selects revision-aware adjusted bars at the strict knowledge cutoff and writes the
+  existing versioned Gold metric ledger with exact input refs, definition/formula hashes and lineage.
+- Missing history/fields, non-pass inputs, zero denominators and retrospective reconstruction persist as null plus
+  explicit quality rather than zero or neutral official results.
+- Independent DuckDB `avg/stddev_pop` fixtures and independently coded Python Wilder recurrences match the Decimal
+  production formulas; a future revision cannot alter a past evaluation.
+- Focused tests: 14 passed. `bash scripts/check.sh quick`: passed. `bash scripts/check.sh full`: 262 passed with
+  one third-party Authlib deprecation warning. Existing metric-value/definition Parquet recovery coverage remains green.
 
 ## Closeout
 
-- Result: ready.
+- Result: closed; replay-safe trend and volatility metric calculation and persistence are implemented locally.
 - Remaining risk: production replay and threshold calibration belong to WI-029.
-- Follow-up Work Item: WI-020 unless dependency-safe ordering selects another ready item.
+- Follow-up Work Item: WI-021 is now dependency-ready; WI-029 remains downstream of alert-state work.

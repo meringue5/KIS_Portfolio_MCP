@@ -96,7 +96,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | Object | Grain / contract | Backup / sensitivity |
 | --- | --- | --- |
 | `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
-| `gold.metric_values` | metric/version/subject/evaluation-at point-in-time value, quality and lineage; approved definitions include portfolio value and instrument-level KRW valuation-change contribution | Parquet / confidential |
+| `gold.metric_values` | metric/version/subject/evaluation-at point-in-time value, quality and lineage; approved definitions include portfolio value, instrument-level KRW valuation-change contribution, SMA20/50/120, volume SMA/ratio20, Wilder RSI14, Bollinger 20/2 context and Wilder ATR20 | Parquet / confidential |
 | `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
 | `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |

@@ -109,10 +109,16 @@ class MetricFormulaRegistry:
     def __init__(self) -> None:
         self._formulas: dict[str, RegisteredMetricFormula] = {}
 
-    def register(self, formula_ref: str, formula: MetricFormula) -> None:
+    def register(
+        self,
+        formula_ref: str,
+        formula: MetricFormula,
+        *,
+        implementation_material: str | None = None,
+    ) -> None:
         if formula_ref in self._formulas:
             raise ValueError(f"formula already registered: {formula_ref}")
-        source = inspect.getsource(formula)
+        source = implementation_material or inspect.getsource(formula)
         self._formulas[formula_ref] = RegisteredMetricFormula(
             formula_ref=formula_ref,
             evaluate=formula,

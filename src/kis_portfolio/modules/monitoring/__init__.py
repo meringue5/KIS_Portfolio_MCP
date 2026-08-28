@@ -12,6 +12,7 @@ from .metrics import (
     RegisteredMetricFormula,
     sum_decimal_inputs,
 )
+from .trend_metrics import TREND_FORMULAS, register_trend_formulas
 
 __all__ = [
     "FutureMetricInputError",
@@ -24,4 +25,6 @@ __all__ = [
     "PointInTimeMetricEngine",
     "RegisteredMetricFormula",
     "sum_decimal_inputs",
+    "TREND_FORMULAS",
+    "register_trend_formulas",
 ]

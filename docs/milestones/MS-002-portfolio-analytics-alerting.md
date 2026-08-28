@@ -22,7 +22,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 3 | WI-015 dual-basis price history | V2-W0404 | WI-014 | closed |
 | 4 | WI-016 broker history correction | V2-W0304, V2-W0403 | WI-014, WI-015 | closed |
 | 5 | WI-017 held-instrument ETF routing | V2-W0405, V2-W0505 prerequisite | WI-014, WI-016 | closed; ID와 outcome 고정 |
-| 6 | WI-019 trend/volatility metrics | V2-W0503 | WI-013, WI-015 | ready |
+| 6 | WI-019 trend/volatility metrics | V2-W0503 | WI-013, WI-015 | closed |
 | 7 | WI-020 cash-event contract | V2-W0304 | WI-013, WI-016 | closed |
 | 8 | WI-021 three-year trade/cash history | V2-W0403 | WI-016, WI-020 | proposed |
 | 9 | WI-036 corporate-action ledger | V2-W0307 | WI-015 | proposed |
