@@ -1,7 +1,7 @@
 ---
 id: WI-015
 title: Build the V2 dual-basis revision-aware price ledger
-status: in_progress
+status: closed
 type: defect
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -35,14 +35,14 @@ instrument/session/basis, so historical evaluation cannot select the revision kn
 
 ## Acceptance criteria
 
-- [ ] domestic and overseas request options map to basis by endpoint and are tested independently.
-- [ ] raw response/page evidence and normalized revisions preserve effective, fetched/knowledge and basis provenance.
-- [ ] identical revision hashes are no-op; changed observations append and as-of reads exclude later knowledge.
-- [ ] raw/adjusted fallback is forbidden and retrospective history cannot pass strict replay.
-- [ ] backfill planning is bounded per instrument/basis with cursor-stall and physical-call ceilings.
-- [ ] current V2 collection no longer labels adjusted domestic history as raw.
-- [ ] migration, catalog, backup/restore and full Project OS gates pass.
-- [ ] production migration/backfill records coverage and reconciliation evidence before closeout.
+- [x] domestic and overseas request options map to basis by endpoint and are tested independently.
+- [x] raw response/page evidence and normalized revisions preserve effective, fetched/knowledge and basis provenance.
+- [x] identical revision hashes are no-op; changed observations append and as-of reads exclude later knowledge.
+- [x] raw/adjusted fallback is forbidden and retrospective history cannot pass strict replay.
+- [x] backfill planning is bounded per instrument/basis with cursor-stall and physical-call ceilings.
+- [x] current V2 collection no longer labels adjusted domestic history as raw.
+- [x] migration, catalog, backup/restore and full Project OS gates pass.
+- [x] production migration/backfill records coverage and reconciliation evidence before closeout.
 
 ## Change impact
 
@@ -72,10 +72,10 @@ instrument/session/basis, so historical evaluation cannot select the revision kn
 - Corrected production dry-run: 18 held instruments, 36 dual-basis partitions, 288 estimated calls under the 400 cap.
 - First execution was interrupted after observing row-at-a-time MotherDuck latency; page writes now use two bulk
   statements and the full 234-test gate passes after the optimization. The idempotent run is safe to resume.
-- Production migration, dry-run and bounded backfill evidence: pending.
+- Production run and recovery detail: `docs/operations/milestone-2-price-backfill-2026-08.md`.
 
 ## Closeout
 
-- Result: in progress.
+- Result: closed. Migration 0005, governed dual-basis ledger and bounded production backfill completed.
 - Remaining risk: production history is reconstructed at current knowledge time.
 - Follow-up Work Item: WI-016 broker history contract correction.
