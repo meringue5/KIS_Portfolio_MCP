@@ -6,6 +6,10 @@ type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-016
 requirement_refs: DEC-003, DEC-005, DEC-010, DEC-033, DEC-045, DEC-046
+milestone_ref: MS-001
+delivery_refs: V2-W0303
+parent_work_item: none
+depends_on: none
 architecture_impact: none; implements approved V2 canonical ledger
 data_impact: additive V2 account position cash and Gold daily state backfill
 security_impact: stable internal account ids; no raw account number in evidence
@@ -45,6 +49,10 @@ V1 총자산은 계산 가능했지만 account/position/cash grain의 V2 canonic
 1. mapping을 고정하고 isolated rehearsal을 수행한다.
 2. backup 후 live additive backfill과 reconciliation을 수행한다.
 3. no-op rerun과 fresh restore를 검증한다.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

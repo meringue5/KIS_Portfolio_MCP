@@ -6,6 +6,10 @@ type: change
 owner: owner
 decision_refs: none
 requirement_refs: none
+milestone_ref: none
+delivery_refs: none
+parent_work_item: none
+depends_on: none
 architecture_impact: unknown
 data_impact: unknown
 security_impact: unknown
@@ -48,6 +52,11 @@ cost_impact: unknown
 ## Plan
 
 1. 첫 단계
+
+## Sub-items
+
+- `none`. 기존 outcome 안에서 발견된 작업은 `WI-NNN-SNN`으로 append한다. 독립 outcome이면 새 Work Item을
+  발급하며 기존 index를 이동하지 않는다.
 
 ## Evidence
 

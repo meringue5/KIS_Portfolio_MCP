@@ -6,6 +6,10 @@ type: defect
 owner: owner
 decision_refs: ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
 requirement_refs: DEC-005, DEC-018, DEC-019, DEC-030, DEC-041, DEC-044
+milestone_ref: MS-002
+delivery_refs: V2-W0405, V2-W0505
+parent_work_item: none
+depends_on: WI-014, WI-016
 architecture_impact: adds point-in-time instrument versions and exact ETF provider routing without enabling external collection
 data_impact: additive classification/version and routing state; current compatibility table remains intact
 security_impact: route registry is public instrument metadata only; account and holding facts are prohibited
@@ -62,6 +66,10 @@ provider rights are not machine-gated, so a generic heuristic or network connect
 2. Add canonical identity, classification domain and point-in-time repositories.
 3. Add four provider parsers with synthetic fixtures and an offline-only pipeline.
 4. Apply the additive migration, reconcile held scope, verify backup/restore and close.
+
+## Sub-items
+
+- `none`. Follow-up rights activation is WI-026; WI-017 identity and outcome remain closed.
 
 ## Evidence
 

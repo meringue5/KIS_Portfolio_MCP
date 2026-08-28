@@ -6,6 +6,10 @@ type: architecture
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
 requirement_refs: DEC-015..017, DEC-026, DEC-038, DEC-041, DEC-044
+milestone_ref: MS-002
+delivery_refs: V2-W0501
+parent_work_item: none
+depends_on: WI-009, WI-012
 architecture_impact: implements the approved Gold metric boundary without adding a provider or runtime service
 data_impact: versioned metric contracts, Gold metric values and point-in-time lineage
 security_impact: derived confidential portfolio values remain in MotherDuck and are not externally delivered
@@ -59,6 +63,10 @@ lose formula version, knowledge-time, quality and lineage evidence.
 2. Add additive migration and repository with point-in-time/idempotency tests.
 3. Implement a deterministic evaluator fixture and quality/lineage evidence.
 4. Verify fresh migration, backup/restore coverage and full Project OS gate.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

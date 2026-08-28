@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| GOV-003/004/006/008 immutable milestone and Work Item control | ADR-022 | WI-018 | milestone registry, MS-002 baseline, stable relationships and checker | 5 focused tests; full gate 251 passed | closed |
 | DEC-005/018/019/030/041/044 held instrument and ETF routing | V2-ADR-006/010/012 | WI-017 | versioned classification, exact routes, rights-gated offline parsers | live 18 versions/14 routes, zero network profiles, private backup/restore, 248 tests | closed |
 | DEC-009..014/030/041/044 broker history correction | V2-ADR-006/010/012 | WI-016 | side/pagination/source-field correction and append-only revisions | live 19/19 revisions, zero unknown identity, private backup/restore, 239 tests | closed |
 | DEC-005/015..017/030/041/044 V2 dual-basis price history | V2-ADR-006/010/012 | WI-015 | price pipeline, revision ledger, bounded backfill | live 18 instruments, 15,152 dual-basis rows, 36/36 partitions, private backup/restore | closed |
@@ -26,6 +27,26 @@
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
 | DEC-001..DEC-044: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; delivery-plan Wave 1~4의 배포·cutover·3년 backfill은 후속 Work Item | in_progress |
+
+## Planned Milestone Work
+
+이 표의 Work Item ID는 예약된 불변 식별자다. 우선순위는 번호가 아니라
+`governance/project/milestones.toml`의 dependency와 sequence를 따른다.
+
+| Requirement | Design item | Work Item | Dependency | Status |
+| --- | --- | --- | --- | --- |
+| DEC-015..017/026 trend and volatility | V2-W0503 | WI-019 | WI-013, WI-015 | ready |
+| DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | ready |
+| DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | proposed |
+| DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021 | proposed |
+| DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | proposed |
+| DEC-012..014/027/031 thread risk plans | V2-W0305 | WI-024 | WI-010, WI-022 | proposed |
+| DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | proposed |
+| DEC-018/019/025 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | proposed; rights gate |
+| DEC-018/019/026 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | proposed |
+| DEC-026..028 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-027 | proposed |
+| DEC-026..028 replay and shadow | V2-W0509 | WI-029 | WI-028 | proposed |
+| DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030 | WI-029 | proposed; external-send gate |
 
 ## Governance Requirements
 
@@ -58,6 +79,7 @@
 ## Update Rules
 
 - Work Item을 시작·검증·종료할 때 해당 row의 artifact, evidence와 상태를 같은 변경에서 갱신한다.
+- Work Item ID를 발급하면 기존 row를 이동·재번호화하지 않는다. 새 발견은 sub-item 또는 다음 새 ID로 append한다.
 - 상세 로그나 긴 테스트 출력은 Work Item/CI artifact에 두고 이 표에는 링크나 명령 이름만 둔다.
 - closed row는 삭제하지 않는다. 오래된 항목은 별도 archive table/file로 이동할 수 있다.
 - 요구나 결정이 superseded되면 새 ID와 대체 관계를 기록하고 과거 연결을 덮어쓰지 않는다.

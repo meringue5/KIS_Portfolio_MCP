@@ -87,6 +87,11 @@ Issue/Work Item은 추적 레코드이며 결정 SSOT가 아니다. 승인된 �
 architecture decision은 `SPEC.md`, 데이터 계약은 `docs/data-catalog.md`가 소유한다. Skill, hook과 CI는
 정책을 복제하지 않고 공통 하네스를 호출한다. 구현에 맞춰 계약을 조용히 완화하지 않는다.
 
+마일스톤 기준선과 Work Item 불변 identity/dependency/sub-item 관계는
+`governance/project/milestones.toml`이 소유하고 사람이 검토하는 기준선은 `docs/milestones/`에 둔다.
+발급된 `WI-NNN`은 재사용·재번호화하지 않는다. 새 발견은 기존 outcome 안이면 `WI-NNN-SNN`, 독립
+outcome이면 현재 최댓값 다음 WI로 append한다.
+
 ### 공통 운용 스킬
 에이전트 공통 운용 절차는 `.agent/skills/` 아래에 둔다.
 native skill discovery를 지원하지 않는 환경에서도 관련 작업 전에는 해당 `SKILL.md`를 읽고 따른다.

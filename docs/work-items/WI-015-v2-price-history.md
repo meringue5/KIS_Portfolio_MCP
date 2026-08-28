@@ -6,6 +6,10 @@ type: defect
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
 requirement_refs: DEC-005, DEC-015..017, DEC-030, DEC-041, DEC-044
+milestone_ref: MS-002
+delivery_refs: V2-W0404
+parent_work_item: none
+depends_on: WI-014
 architecture_impact: implements the approved price dataset and managed backfill boundary without adding a provider
 data_impact: additive price revision ledger, corrected basis provenance and bounded reconstructed history
 security_impact: internal market data only; KIS credentials remain runtime-only
@@ -58,6 +62,10 @@ instrument/session/basis, so historical evaluation cannot select the revision kn
 3. Add bounded pagination/backfill adapter and synthetic fixtures.
 4. Run migration, backup/restore, full regression and production dry-run/reconciliation.
 5. Apply the additive production migration and bounded backfill only after preflight evidence passes.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

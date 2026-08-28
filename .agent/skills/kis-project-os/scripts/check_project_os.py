@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 
@@ -50,6 +51,12 @@ REQUIRED_WORK_ITEM_HEADINGS = {
     "## Evidence",
     "## Closeout",
 }
+RELATIONSHIP_FIELDS = {
+    "milestone_ref",
+    "delivery_refs",
+    "parent_work_item",
+    "depends_on",
+}
 
 
 def parse_frontmatter(path: Path) -> tuple[dict[str, str], str]:
@@ -83,13 +90,221 @@ def require_text(path: Path, needles: list[str], errors: list[str]) -> None:
             errors.append(f"{path}: missing required contract text {needle!r}")
 
 
+def split_refs(value: str) -> list[str]:
+    if not value or value.lower() == "none":
+        return []
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def check_delivery_item_ids(root: Path, errors: list[str]) -> None:
+    path = root / "docs/design/kis-portfolio-v2-delivery-plan.md"
+    if not path.is_file():
+        errors.append(f"missing required file: {path.relative_to(root)}")
+        return
+    item_ids = re.findall(
+        r"^\s*-\s+`(V2-W\d{4})`",
+        path.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+    duplicates = sorted({item_id for item_id in item_ids if item_ids.count(item_id) > 1})
+    if duplicates:
+        errors.append(
+            f"{path.relative_to(root)}: duplicate delivery item ids {', '.join(duplicates)}"
+        )
+
+
+def check_milestone_registry(
+    root: Path,
+    work_item_fields: dict[str, dict[str, str]],
+    work_item_texts: dict[str, str],
+    errors: list[str],
+) -> None:
+    path = root / "governance/project/milestones.toml"
+    if not path.is_file():
+        errors.append(f"missing required file: {path.relative_to(root)}")
+        return
+    try:
+        registry = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        errors.append(f"{path.relative_to(root)}: invalid TOML: {exc}")
+        return
+
+    if registry.get("schema_version") != 1:
+        errors.append(f"{path.relative_to(root)}: schema_version must be 1")
+    if registry.get("allocation_policy") != "append_only_max_plus_one":
+        errors.append(
+            f"{path.relative_to(root)}: allocation_policy must be append_only_max_plus_one"
+        )
+
+    milestones = registry.get("milestones", [])
+    registered_items = registry.get("work_items", [])
+    subitems = registry.get("subitems", [])
+    if not isinstance(milestones, list) or not isinstance(registered_items, list):
+        errors.append(f"{path.relative_to(root)}: milestones and work_items must be arrays")
+        return
+
+    milestone_by_id: dict[str, dict] = {}
+    for milestone in milestones:
+        milestone_id = milestone.get("id", "") if isinstance(milestone, dict) else ""
+        if not re.fullmatch(r"MS-(?:\d{3}|[A-Z][A-Z0-9-]*)", milestone_id):
+            errors.append(f"{path.relative_to(root)}: invalid milestone id {milestone_id!r}")
+            continue
+        if milestone_id in milestone_by_id:
+            errors.append(f"{path.relative_to(root)}: duplicate milestone id {milestone_id}")
+        milestone_by_id[milestone_id] = milestone
+
+    item_by_id: dict[str, dict] = {}
+    identity_owner: dict[str, str] = {}
+    sequence_owner: dict[tuple[str, int], str] = {}
+    for item in registered_items:
+        item_id = item.get("id", "") if isinstance(item, dict) else ""
+        if not re.fullmatch(r"WI-\d{3,}", item_id):
+            errors.append(f"{path.relative_to(root)}: invalid registered Work Item id {item_id!r}")
+            continue
+        if item_id in item_by_id:
+            errors.append(f"{path.relative_to(root)}: duplicate Work Item id {item_id}")
+        item_by_id[item_id] = item
+
+        identity = item.get("identity", "")
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", identity):
+            errors.append(f"{path.relative_to(root)}: {item_id} invalid identity {identity!r}")
+        elif identity in identity_owner:
+            errors.append(
+                f"{path.relative_to(root)}: duplicate identity {identity} for "
+                f"{identity_owner[identity]} and {item_id}"
+            )
+        else:
+            identity_owner[identity] = item_id
+
+        milestone_id = item.get("milestone_id", "")
+        if milestone_id not in milestone_by_id:
+            errors.append(f"{path.relative_to(root)}: {item_id} unknown milestone {milestone_id!r}")
+        sequence = item.get("sequence")
+        if not isinstance(sequence, int) or sequence < 1:
+            errors.append(f"{path.relative_to(root)}: {item_id} sequence must be a positive integer")
+        else:
+            sequence_key = (milestone_id, sequence)
+            if sequence_key in sequence_owner:
+                errors.append(
+                    f"{path.relative_to(root)}: duplicate sequence {sequence} in {milestone_id} "
+                    f"for {sequence_owner[sequence_key]} and {item_id}"
+                )
+            sequence_owner[sequence_key] = item_id
+
+    for milestone_id, milestone in milestone_by_id.items():
+        declared = milestone.get("work_item_ids", [])
+        actual = [
+            item["id"]
+            for item in sorted(
+                (
+                    item
+                    for item in registered_items
+                    if isinstance(item, dict) and item.get("milestone_id") == milestone_id
+                ),
+                key=lambda item: item.get("sequence", 0),
+            )
+        ]
+        if declared != actual:
+            errors.append(
+                f"{path.relative_to(root)}: {milestone_id} work_item_ids must match sequence order; "
+                f"declared={declared!r} actual={actual!r}"
+            )
+
+    for item_id, item in item_by_id.items():
+        fields = work_item_fields.get(item_id)
+        if fields is None:
+            errors.append(f"{path.relative_to(root)}: {item_id} has no Work Item file")
+            continue
+        missing_relationships = sorted(RELATIONSHIP_FIELDS - fields.keys())
+        if missing_relationships:
+            errors.append(
+                f"{item_id}: missing relationship fields {', '.join(missing_relationships)}"
+            )
+            continue
+        expected_parent = item.get("parent_id", "") or "none"
+        comparisons = {
+            "title": item.get("title", ""),
+            "milestone_ref": item.get("milestone_id", ""),
+            "parent_work_item": expected_parent,
+        }
+        for field, expected in comparisons.items():
+            if fields.get(field, "") != expected:
+                errors.append(
+                    f"{item_id}: {field} mismatch; file={fields.get(field, '')!r} "
+                    f"registry={expected!r}"
+                )
+        if split_refs(fields.get("delivery_refs", "")) != item.get("delivery_refs", []):
+            errors.append(f"{item_id}: delivery_refs mismatch with milestone registry")
+        if split_refs(fields.get("depends_on", "")) != item.get("depends_on", []):
+            errors.append(f"{item_id}: depends_on mismatch with milestone registry")
+        if "## Sub-items" not in work_item_texts.get(item_id, ""):
+            errors.append(f"{item_id}: missing heading ## Sub-items")
+
+        for dependency in item.get("depends_on", []):
+            if dependency not in item_by_id:
+                errors.append(f"{path.relative_to(root)}: {item_id} unknown dependency {dependency}")
+            if dependency == item_id:
+                errors.append(f"{path.relative_to(root)}: {item_id} cannot depend on itself")
+        parent_id = item.get("parent_id", "")
+        if parent_id and parent_id not in item_by_id:
+            errors.append(f"{path.relative_to(root)}: {item_id} unknown parent {parent_id}")
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(item_id: str, trail: list[str]) -> None:
+        if item_id in visited:
+            return
+        if item_id in visiting:
+            errors.append(
+                f"{path.relative_to(root)}: dependency cycle {' -> '.join(trail + [item_id])}"
+            )
+            return
+        visiting.add(item_id)
+        for dependency in item_by_id[item_id].get("depends_on", []):
+            if dependency in item_by_id:
+                visit(dependency, trail + [item_id])
+        visiting.remove(item_id)
+        visited.add(item_id)
+
+    for item_id in item_by_id:
+        visit(item_id, [])
+
+    subitem_ids: set[str] = set()
+    for subitem in subitems if isinstance(subitems, list) else []:
+        subitem_id = subitem.get("id", "") if isinstance(subitem, dict) else ""
+        parent_id = subitem.get("parent_id", "") if isinstance(subitem, dict) else ""
+        if subitem_id in subitem_ids:
+            errors.append(f"{path.relative_to(root)}: duplicate sub-item id {subitem_id}")
+        subitem_ids.add(subitem_id)
+        if parent_id not in item_by_id:
+            errors.append(f"{path.relative_to(root)}: {subitem_id} unknown parent {parent_id!r}")
+            continue
+        if not re.fullmatch(re.escape(parent_id) + r"-S\d{2,}", subitem_id):
+            errors.append(f"{path.relative_to(root)}: invalid sub-item id {subitem_id!r}")
+        if subitem.get("status") not in VALID_STATUSES:
+            errors.append(f"{path.relative_to(root)}: {subitem_id} invalid status")
+        if subitem_id not in work_item_texts.get(parent_id, ""):
+            errors.append(f"{path.relative_to(root)}: {subitem_id} missing from parent Work Item")
+
+    registered_numbers = [int(item_id.split("-")[1]) for item_id in item_by_id]
+    if registered_numbers:
+        registry_floor = min(registered_numbers)
+        for item_id in work_item_fields:
+            number = int(item_id.split("-")[1])
+            if number >= registry_floor and item_id not in item_by_id:
+                errors.append(f"{item_id}: missing from milestone registry")
+
+
 def check(root: Path) -> list[str]:
     errors: list[str] = []
     required_files = [
         "docs/governance/project-operating-system.md",
         "docs/governance/data-governance-harness.md",
         "docs/traceability.md",
+        "docs/milestones/README.md",
         "docs/work-items/TEMPLATE.md",
+        "governance/project/milestones.toml",
         ".agent/skills/kis-project-os/SKILL.md",
         ".agent/skills/kis-data-governance/SKILL.md",
         "scripts/check.sh",
@@ -112,7 +327,12 @@ def check(root: Path) -> list[str]:
     )
     require_text(
         root / "AGENTS.md",
-        ["Project Operating System", "Data Governance Harness", ".agent/skills/kis-project-os/SKILL.md"],
+        [
+            "Project Operating System",
+            "Data Governance Harness",
+            ".agent/skills/kis-project-os/SKILL.md",
+            "governance/project/milestones.toml",
+        ],
         errors,
     )
     require_text(
@@ -135,6 +355,8 @@ def check(root: Path) -> list[str]:
     work_items_dir = root / "docs/work-items"
     active: list[str] = []
     tracked = 0
+    work_item_fields: dict[str, dict[str, str]] = {}
+    work_item_texts: dict[str, str] = {}
     if work_items_dir.is_dir():
         for path in sorted(work_items_dir.glob("WI-*.md")):
             if path.name == "TEMPLATE.md":
@@ -163,6 +385,11 @@ def check(root: Path) -> list[str]:
                 errors.append(f"{path.relative_to(root)}: invalid status {status!r}")
             if status == "in_progress":
                 active.append(item_id or path.name)
+            if item_id:
+                if item_id in work_item_fields:
+                    errors.append(f"duplicate Work Item file for {item_id}")
+                work_item_fields[item_id] = fields
+                work_item_texts[item_id] = text
             item_type = fields.get("type", "")
             if item_type not in VALID_TYPES:
                 errors.append(f"{path.relative_to(root)}: invalid type {item_type!r}")
@@ -182,6 +409,9 @@ def check(root: Path) -> list[str]:
         errors.append(
             "only one Work Item may be in_progress; active=" + ", ".join(active)
         )
+
+    check_delivery_item_ids(root, errors)
+    check_milestone_registry(root, work_item_fields, work_item_texts, errors)
 
     if not errors:
         print(

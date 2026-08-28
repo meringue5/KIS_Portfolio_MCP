@@ -6,6 +6,10 @@ type: clarification
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
 requirement_refs: DEC-015..019, DEC-026, DEC-038, DEC-041, DEC-044
+milestone_ref: MS-002
+delivery_refs: none
+parent_work_item: none
+depends_on: WI-013
 architecture_impact: orders approved work by upstream data readiness without changing the target architecture
 data_impact: aggregate inventory audit only; no production row or schema mutation
 security_impact: only non-sensitive counts and contract states may be recorded
@@ -52,6 +56,10 @@ must therefore be selected from verified data readiness rather than the nominal 
 2. Separate fixture-ready from production-ready scope and document hard blockers.
 3. Order independent prerequisite Work Items and the metrics that consume them.
 4. Record Telegram safety research without crossing the external-send gate.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

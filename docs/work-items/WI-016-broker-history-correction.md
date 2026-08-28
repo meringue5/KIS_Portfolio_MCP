@@ -6,6 +6,10 @@ type: defect
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
 requirement_refs: DEC-009..014, DEC-030, DEC-041, DEC-044
+milestone_ref: MS-002
+delivery_refs: V2-W0304, V2-W0403
+parent_work_item: none
+depends_on: WI-014, WI-015
 architecture_impact: corrects source adapters and V2 event identity without changing approved ledger boundaries
 data_impact: additive correction evidence; polluted source rows are retained and never silently rewritten
 security_impact: confidential broker rows remain in governed Bronze and Silver; evidence is aggregate only
@@ -56,6 +60,10 @@ continuation keys; and the V1→V2 lot migration labels every filled domestic or
 2. Correct adapters and normalization with fail-closed side rules.
 3. Add correction/version schema and migration logic without rewriting source rows.
 4. Run local reconciliation, production dry-run, bounded correction and recovery gates.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

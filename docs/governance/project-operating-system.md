@@ -60,6 +60,7 @@ Project OS는 제품의 자동 주문 권한, 운영 secret 접근 또는 배포
 | 보안·secret·token | `docs/security-and-secrets.md` | security review |
 | 배포·rollback | `docs/deployment.md` + versioned manifest | release approval |
 | Project OS 정책 | 이 문서 | 사용자 승인 또는 비의미적 정비 |
+| 마일스톤 기준선·Work Item 불변 식별자·관계 | `governance/project/milestones.toml` + `docs/milestones/` | governance Work Item |
 | 변경 접수·진행 상태 | GitHub Issue; 로컬 bootstrap은 `docs/work-items/` | maintainer triage |
 | 요구→구현→증거 연결 | `docs/traceability.md` | Work Item과 같은 변경 |
 | 임시 우선순위 메모 | `TODO.md` | 편집 가능; 결정·상태 SSOT 금지 |
@@ -121,8 +122,34 @@ feedback
 - blocked 항목은 blocking condition과 재개 조건을 기록한다.
 - closed 항목은 acceptance, 테스트, 운영 증거와 남은 후속 작업을 명시한다.
 - 큰 작업은 `docs/work-items/WI-NNN-*.md`, 일반 작업은 GitHub Issue를 canonical tracker로 쓴다.
+- `WI-NNN`은 한 번 할당하면 완료 여부와 무관하게 삭제·재사용·재번호화하지 않는다. 다음 번호는 현재
+  최댓값 다음 번호이며 빈 번호를 메우지 않는다.
+- 실행 우선순위와 의존관계는 Work Item 번호가 아니라 milestone registry의 `sequence`와 `depends_on`으로
+  표현한다. 순서 변경은 milestone revision log에 남기며 ID를 바꾸지 않는다.
+- 기존 outcome 안에서 발견한 작업은 `WI-NNN-SNN` sub-item으로 추가한다. 독립적으로 승인·검증·rollback할
+  수 있거나 outcome을 넓히면 최댓값 다음의 새 Work Item을 할당하고 `parent_id` 또는 `discovered_from`으로
+  연결한다.
+- `ready`, `in_progress`, `verified`, `closed`가 된 Work Item의 identity와 outcome은 새 작업을 흡수하기 위해
+  바꾸지 않는다. 교정이 필요하면 새 Work Item과 `supersedes` 관계를 사용한다.
+- 계획된 Work Item도 `docs/work-items/` 파일과 milestone registry에 함께 등록한다. 요구·설계 항목이 아직
+  Work Item으로 기준선화되지 않았다면 delivery backlog로 남기고 번호를 선점하지 않는다.
 
 필수 Work Item 내용은 `docs/work-items/TEMPLATE.md`를 따른다.
+
+### 6.1 Milestone baseline
+
+`governance/project/milestones.toml`은 milestone, Work Item identity, design delivery ref, dependency와 sub-item
+관계의 machine-readable SSOT다. `docs/milestones/`는 같은 기준선의 목적, acceptance, 순서 변경 사유와
+남은 범위를 사람이 검토하는 문서다. Work Item 본문은 실행 상태와 증거의 SSOT이고
+`docs/traceability.md`는 요구→결정→작업→증거 연결을 제공한다.
+
+새 요구나 조사 결과가 생기면 다음 순서로 처리한다.
+
+1. 기존 Work Item outcome 안인지 판정한다.
+2. 안이면 다음 sub-item 번호를 append하고 parent acceptance에 미치는 영향을 기록한다.
+3. 아니면 가장 큰 Work Item 번호 다음 ID를 발급한다. 기존 계획 항목은 이동하거나 재번호화하지 않는다.
+4. dependency/sequence 변경은 milestone revision log에 이유와 영향을 남긴다.
+5. registry, Work Item, traceability를 같은 변경에서 갱신한다.
 
 ## 7. Change Set 계약
 

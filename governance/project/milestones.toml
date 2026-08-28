@@ -1,0 +1,276 @@
+schema_version = 1
+registry_id = "kis-portfolio-milestones"
+allocation_policy = "append_only_max_plus_one"
+status_owner = "docs/work-items"
+
+[[milestones]]
+id = "MS-001"
+title = "Canonical portfolio and managed collection foundation"
+status = "closed"
+work_item_ids = ["WI-009", "WI-010", "WI-011", "WI-012"]
+
+[[milestones]]
+id = "MS-002"
+title = "Portfolio analytics, risk signals and Telegram delivery"
+status = "in_progress"
+work_item_ids = [
+  "WI-013", "WI-014", "WI-015", "WI-016", "WI-017",
+  "WI-019", "WI-020", "WI-021", "WI-022", "WI-023", "WI-024",
+  "WI-025", "WI-026", "WI-027", "WI-028", "WI-029", "WI-030",
+]
+
+[[milestones]]
+id = "MS-GOV"
+title = "Project Operating System improvements"
+status = "closed"
+work_item_ids = ["WI-018"]
+
+[[work_items]]
+id = "WI-009"
+identity = "canonical-portfolio-ledger"
+title = "Build and reconcile the canonical account position cash and daily asset ledger"
+milestone_id = "MS-001"
+delivery_refs = ["V2-W0303"]
+depends_on = []
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-010"
+identity = "canonical-trade-lot-thread-ledger"
+title = "Build the canonical trade purchase-lot and trade-thread ledger"
+milestone_id = "MS-001"
+delivery_refs = ["V2-W0304", "V2-W0305"]
+depends_on = ["WI-009"]
+parent_id = ""
+sequence = 2
+
+[[work_items]]
+id = "WI-011"
+identity = "firestore-operational-state"
+title = "Move operational state behind Firestore ports and remove runtime DDL"
+milestone_id = "MS-001"
+delivery_refs = ["V2-W0202", "V2-W0203", "V2-W0204", "V2-W0205", "V2-W0206", "V2-W0207"]
+depends_on = ["WI-009", "WI-010"]
+parent_id = ""
+sequence = 3
+
+[[work_items]]
+id = "WI-012"
+identity = "managed-collection-pipeline"
+title = "Run the first production V2 managed collection pipeline"
+milestone_id = "MS-001"
+delivery_refs = ["V2-W0401", "V2-W0402", "V2-W0403", "V2-W0409"]
+depends_on = ["WI-009", "WI-010", "WI-011"]
+parent_id = ""
+sequence = 4
+
+[[work_items]]
+id = "WI-013"
+identity = "point-in-time-metric-foundation"
+title = "Establish the V2 point-in-time metric foundation"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0501"]
+depends_on = ["WI-009", "WI-012"]
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-014"
+identity = "milestone-2-data-readiness"
+title = "Re-sequence Milestone 2 from production data readiness"
+milestone_id = "MS-002"
+delivery_refs = []
+depends_on = ["WI-013"]
+parent_id = ""
+sequence = 2
+
+[[work_items]]
+id = "WI-015"
+identity = "dual-basis-price-history"
+title = "Build the V2 dual-basis revision-aware price ledger"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0404"]
+depends_on = ["WI-014"]
+parent_id = ""
+sequence = 3
+
+[[work_items]]
+id = "WI-016"
+identity = "broker-history-correction"
+title = "Correct broker history semantics and append reversible trade corrections"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0304", "V2-W0403"]
+depends_on = ["WI-014", "WI-015"]
+parent_id = ""
+sequence = 4
+
+[[work_items]]
+id = "WI-017"
+identity = "held-instrument-etf-routing"
+title = "Classify held instruments and establish rights-gated ETF routing"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0405", "V2-W0505"]
+depends_on = ["WI-014", "WI-016"]
+parent_id = ""
+sequence = 5
+
+[[work_items]]
+id = "WI-018"
+identity = "milestone-work-item-control"
+title = "Establish immutable milestone and Work Item control"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = []
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-019"
+identity = "trend-volatility-metrics"
+title = "Implement replay-safe trend and volatility metrics"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0503"]
+depends_on = ["WI-013", "WI-015"]
+parent_id = ""
+sequence = 6
+
+[[work_items]]
+id = "WI-020"
+identity = "canonical-cash-events"
+title = "Establish canonical cash events and classification revisions"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0304"]
+depends_on = ["WI-013", "WI-016"]
+parent_id = ""
+sequence = 7
+
+[[work_items]]
+id = "WI-021"
+identity = "three-year-trade-cash-history"
+title = "Collect bounded three-year trade and cash history"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0403"]
+depends_on = ["WI-016", "WI-020"]
+parent_id = ""
+sequence = 8
+
+[[work_items]]
+id = "WI-022"
+identity = "position-lot-sell-reconstruction"
+title = "Reconstruct positions lots and sell allocations"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0304", "V2-W0305"]
+depends_on = ["WI-010", "WI-021"]
+parent_id = ""
+sequence = 9
+
+[[work_items]]
+id = "WI-023"
+identity = "portfolio-return-contribution-drawdown"
+title = "Implement portfolio return contribution and drawdown"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0502"]
+depends_on = ["WI-009", "WI-015", "WI-020", "WI-021", "WI-022"]
+parent_id = ""
+sequence = 10
+
+[[work_items]]
+id = "WI-024"
+identity = "thread-risk-plan-review-state"
+title = "Add typed thread risk plans and review state"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0305"]
+depends_on = ["WI-010", "WI-022"]
+parent_id = ""
+sequence = 11
+
+[[work_items]]
+id = "WI-025"
+identity = "lot-thread-risk-metrics"
+title = "Implement lot and thread path and risk metrics"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0504"]
+depends_on = ["WI-015", "WI-019", "WI-022", "WI-024"]
+parent_id = ""
+sequence = 12
+
+[[work_items]]
+id = "WI-026"
+identity = "etf-constituent-forward-collection"
+title = "Activate rights-approved ETF constituent collection"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0405"]
+depends_on = ["WI-012", "WI-017"]
+parent_id = ""
+sequence = 13
+
+[[work_items]]
+id = "WI-027"
+identity = "nested-etf-look-through"
+title = "Implement nested ETF look-through and impact"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0505"]
+depends_on = ["WI-009", "WI-017", "WI-026"]
+parent_id = ""
+sequence = 14
+
+[[work_items]]
+id = "WI-028"
+identity = "alert-state-delivery-ledger"
+title = "Implement alert state and delivery ledger"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0507"]
+depends_on = ["WI-019", "WI-023", "WI-025", "WI-027"]
+parent_id = ""
+sequence = 15
+
+[[work_items]]
+id = "WI-029"
+identity = "signal-replay-shadow-calibration"
+title = "Calibrate signals with replay and shadow evaluation"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0509"]
+depends_on = ["WI-028"]
+parent_id = ""
+sequence = 16
+
+[[work_items]]
+id = "WI-030"
+identity = "outbound-telegram-delivery"
+title = "Enable approved outbound Telegram delivery"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0508"]
+depends_on = ["WI-029"]
+parent_id = ""
+sequence = 17
+
+[[subitems]]
+id = "WI-018-S01"
+parent_id = "WI-018"
+title = "Verify unique delivery-plan item IDs and enforce the check"
+status = "closed"
+
+[[subitems]]
+id = "WI-026-S01"
+parent_id = "WI-026"
+title = "Review and activate the TIME ETF source profile"
+status = "proposed"
+
+[[subitems]]
+id = "WI-026-S02"
+parent_id = "WI-026"
+title = "Review and activate the KoAct ETF source profile"
+status = "proposed"
+
+[[subitems]]
+id = "WI-026-S03"
+parent_id = "WI-026"
+title = "Review and activate the RISE ETF source profile"
+status = "proposed"
+
+[[subitems]]
+id = "WI-026-S04"
+parent_id = "WI-026"
+title = "Review and activate the PLUS ETF source profile"
+status = "proposed"
