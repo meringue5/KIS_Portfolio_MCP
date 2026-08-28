@@ -73,7 +73,10 @@ owner can approve external delivery.
   raw/adjusted bars and compose KR slots plus morning U.S. close shadow evaluation; the morning job resolves only
   current overseas unknown holdings through bounded KIS+SEC evidence. The `wi029-s04` target enforces migration 0013,
   one initial morning run, zero external transport and private GCS backup/download/fresh restore. Live execution
-  evidence is still required before S04 closes.
+  evidence is recorded in `docs/operations/wi-029-shadow-activation-2026-08.md`: PR #26 and deployment run
+  `33180964201` completed; the first shadow evaluation produced 18 quality-suppressed candidates, zero transitions
+  and zero external sends, while the recovery check restored all 58 governed tables. The final S04 closeout patch
+  makes calibration and shadow-window persistence repeatable before the elapsed S05 clock is accepted.
 
 ## Closeout
 

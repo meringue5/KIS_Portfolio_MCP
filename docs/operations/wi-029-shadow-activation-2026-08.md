@@ -1,0 +1,56 @@
+# WI-029 DB-only shadow activation evidence — 2026-08-28
+
+## Decision boundary
+
+- ETF constituent collection and look-through are deferred from initial V2 under DEC-049 / ADR-024. ETF holdings
+  remain opaque listed instruments during replay and shadow evaluation.
+- This activation cannot send Telegram messages. The deployed rule version is `shadow`, the runtime has no Telegram
+  adapter or secret, and the verification Job receives only the MotherDuck token plus private GCS access.
+- The three existing scale-to-zero portfolio Jobs are reused. No always-on service or additional scheduler was added.
+
+## Release and execution
+
+| Evidence | Result |
+| --- | --- |
+| merge | PR #26, merge commit `e9909220af9b8c43c27c06486c4396acf5a3d0ae` |
+| deployment | GitHub Actions run `33180964201`, success in 5m28s |
+| immutable image | `sha256:a766382c886614d628271ed9a9f995652d8658df0618f14d2e6f35c93ee23aba` |
+| initial morning execution | `kis-portfolio-owned-core-v2-1000-46dfx`, completed |
+| verification execution | `kis-portfolio-wi029-s04-verify-nqnl4`, completed |
+| schedules | 10:00, 14:30 and 16:00 KST weekdays, all enabled |
+
+The initial morning run reused the already completed governed core partition and performed only the newly needed
+classification and shadow composition. It made 36 core source calls and 8 bounded classification calls.
+
+## Aggregate live result
+
+| Check | Result |
+| --- | ---: |
+| held overseas instruments examined | 4 |
+| official-reference classifications resolved | 4 |
+| unresolved classifications | 0 |
+| evaluated slots | `kr-1000`, prior `us-close` |
+| candidates | 18 |
+| quality-suppressed candidates | 18 |
+| state transitions | 0 |
+| shadow dispatch claims | 0 |
+| external sends | 0 |
+
+No account number, holding symbol, absolute asset value or confidential source payload is copied into this evidence.
+
+## Recovery and transport proof
+
+- Migration `0013` was required before the three runtime Jobs were updated.
+- The post-migration backup exported 58 governed tables and one index object, uploaded and downloaded all 59 objects,
+  and restored all 58 tables into a fresh DuckDB database.
+- Backup index SHA-256:
+  `2d3f7ba00b4fbccf65f33cb3b2901395634c7cb746d8a46ad5241eb0b038b418`.
+- Verification found zero `external` alert rule versions and zero Telegram dispatch claims.
+
+## Observation window
+
+The immutable replay report hash remains
+`a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d` for the bounded
+2023-08-28 through 2026-08-27 reconstructed window. The S04 closeout patch persists that report and starts the
+collecting shadow window for 2026-08-28 through 2026-09-10 inclusive. S05 may not verify the window before 14 elapsed
+calendar days, governed-session reconciliation, zero-send proof and explicit owner false-positive/miss review.

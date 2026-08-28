@@ -27,6 +27,7 @@ from kis_portfolio.platform.migrations import MigrationRunner
 SEOUL = ZoneInfo("Asia/Seoul")
 RULE_ID = "rule-set.owned-portfolio-monitoring"
 RULE_VERSION = "bootstrap-1.0.0"
+CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
 THRESHOLD_MULTIPLIER = Decimal("0.75")
 US_MARKETS = frozenset({"NAS", "NYS", "AMS"})
 KR_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
@@ -45,8 +46,7 @@ def _rule() -> AlertRuleVersion:
         "thresholds": {
             "profile": "bootstrap-package-d",
             "absolute_boundary_multiplier": str(THRESHOLD_MULTIPLIER),
-            "calibration_report_hash":
-                "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d",
+            "calibration_report_hash": CALIBRATION_REPORT_HASH,
         },
         "limitations": ["ETF constituent exposure unavailable", "shadow only"],
     })
