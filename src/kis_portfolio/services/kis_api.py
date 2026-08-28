@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from datetime import date, datetime, timedelta
+from typing import Callable
 from dotenv import load_dotenv
 
 import httpx
@@ -114,16 +115,21 @@ async def _get_paginated_kis_json(
     domain: str = DOMAIN,
     context_size: str = "200",
     max_pages: int = 10,
+    before_request: Callable[[int], None] | None = None,
+    capture_pages: bool = False,
 ) -> dict:
     """Fetch a KIS GET endpoint and concatenate common output arrays across pages."""
     aggregate: dict = {key: [] for key in output_keys}
     page_count = 0
     tr_cont = ""
     next_params = dict(params)
+    captured_pages: list[dict] = []
 
     async with httpx.AsyncClient() as client:
         token = await get_access_token(client, domain)
         for page_index in range(max_pages):
+            if before_request is not None:
+                before_request(page_index + 1)
             headers = {
                 "content-type": CONTENT_TYPE,
                 "authorization": f"{AUTH_TYPE} {token}",
@@ -146,6 +152,8 @@ async def _get_paginated_kis_json(
                 raise Exception(f"Failed to fetch KIS endpoint {path}: {response.text}")
 
             data = response.json()
+            if capture_pages:
+                captured_pages.append(data)
             page_count += 1
             _merge_output(aggregate, data, output_keys)
             for key, value in data.items():
@@ -167,6 +175,8 @@ async def _get_paginated_kis_json(
                 aggregate["pagination_warning"] = f"max_pages {max_pages} reached"
 
     aggregate["pagination"] = {"page_count": page_count, "max_pages": max_pages}
+    if capture_pages:
+        aggregate["captured_pages"] = captured_pages
     return aggregate
 
 

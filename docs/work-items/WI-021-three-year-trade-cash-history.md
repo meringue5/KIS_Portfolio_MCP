@@ -71,10 +71,10 @@ reconstruction and return analysis has not been collected or reconciled.
   - [x] official side, quantity, price, fee, tax and settlement fields are preserved without inferred fills.
   - [x] source-row classification and canonical event counts reconcile; incomplete pagination fails closed.
   - [x] this sub-item creates no purchase lot, source network call or production warehouse mutation.
-- `WI-021-S05` — physical KIS page adapter and fixed-argument production preflight (`ready`).
-  - [ ] each HTTP page is reserved before I/O and uses the approved route/TR/continuation contract.
-  - [ ] production execution requires an exact approved plan hash, account scope, database mode and explicit apply flag.
-  - [ ] preview and failure output contain no credential or raw account number.
+- `WI-021-S05` — physical KIS page adapter and fixed-argument production preflight (`closed`).
+  - [x] each HTTP page is reserved before I/O and uses the approved route/TR/continuation contract.
+  - [x] production execution requires an exact approved plan hash, account scope, database mode and explicit apply flag.
+  - [x] preview and failure output contain no credential or raw account number.
 - `WI-021-S06` — bounded production execution, reconciliation and recovery evidence (`ready`).
   - [ ] pre-backfill V2 backup exists before the first source call.
   - [ ] all callable partitions terminate or retain an explicit resumable failure/known gap.
@@ -115,10 +115,18 @@ reconstruction and return analysis has not been collected or reconciled.
   watermark rows. The reconciled fixture creates two trades and three cash facts, zero purchase lots and is a no-op
   on replay.
 - `bash scripts/check.sh full`: 297 tests passed; all common gates passed with the existing Authlib warning.
+- WI-021-S05 adds a dedicated KIS page adapter using the common pagination engine's pre-request reservation hook.
+  Contract tests cover domestic recent, overseas order exchange mapping, overseas period transactions, two-page
+  continuation and page-limit incompleteness.
+- The fixed production command has no side effect without `--apply`; apply additionally requires exact plan/budget
+  hashes, MotherDuck mode and a complete pre-backup manifest before opening a database connection.
+- The reviewed `2023-08-28..2026-08-28` preflight produced plan `0755656ed8151a91`, budget
+  `0a4abf9b795f9d73`, 131 callable partitions, six gaps and a 374/400 worst-case reservation.
+- `bash scripts/check.sh full`: 303 tests passed; all common gates passed with the existing Authlib warning.
 
 ## Closeout
 
-- Result: WI-021-S01 through S04 closed; the parent remains active for physical adapter and approved execution.
+- Result: WI-021-S01 through S05 closed; the parent remains active for bounded production execution and recovery.
 - Remaining risk: broker retention and historical gaps.
 - Follow-up: S04 fixture reconciliation, S05 physical adapter/preflight and S06 approved live recovery evidence remain
   inside WI-021 before WI-022 can start.

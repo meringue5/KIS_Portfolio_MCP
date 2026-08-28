@@ -76,6 +76,11 @@ official side·체결수량·가격만 Silver trade fact로 만든다. 해외 pe
 pagination이 불완전하면 Bronze observation은 보존하지만 Silver publish와 watermark를 차단한다. 이 단계는
 purchase lot을 만들지 않으며 lot/position replay는 WI-022가 담당한다.
 
+WI-021-S05는 같은 pipeline에 실제 KIS page adapter를 연결한다. 공통 pagination engine은 각 business HTTP
+직전에 durable reservation hook을 호출하고, 승인된 page 한도에서 continuation이 남으면 partial page를
+Bronze에 보존한 뒤 publish를 차단한다. 운영 명령은 기본 preflight이며 exact date·plan hash·budget hash,
+MotherDuck mode, 영향 테이블을 포함한 pre-backup manifest와 `--apply`가 모두 맞아야 source/DB를 연다.
+
 WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
 `silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
 유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은

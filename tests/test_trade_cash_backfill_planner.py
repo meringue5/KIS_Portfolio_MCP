@@ -285,6 +285,73 @@ def test_batch_command_fails_before_output_when_global_budget_is_too_small(monke
     assert capsys.readouterr().out == ""
 
 
+def test_production_command_preflight_has_no_side_effect_or_secret(monkeypatch, capsys):
+    account = AccountConfig(
+        "brokerage", "BROKERAGE", "Brokerage", "app-key", "app-secret", "12345678", "01",
+    )
+    monkeypatch.setattr(batch_cli, "load_account_registry", lambda: [account])
+    monkeypatch.setattr(
+        batch_cli,
+        "get_connection",
+        lambda: (_ for _ in ()).throw(AssertionError("preflight must not connect")),
+    )
+    args = batch_cli.build_parser().parse_args([
+        "backfill-trade-cash-history-v2",
+        "--start-date", "20260828",
+        "--end-date", "20260828",
+        "--as-of-date", "20260828",
+    ])
+
+    assert batch_cli._run_trade_cash_backfill(args) == 0
+    output = capsys.readouterr().out
+    result = json.loads(output)
+    assert result["status"] == "preflight"
+    assert result["side_effects"] == "none"
+    assert result["callable_partition_count"] == 3
+    assert "plan_hash" in result and "budget_hash" in result
+    assert "12345678" not in output
+    assert "app-secret" not in output
+
+
+def test_production_command_apply_fails_before_connection_on_hash_or_mode_drift(
+    monkeypatch, capsys,
+):
+    account = AccountConfig(
+        "brokerage", "BROKERAGE", "Brokerage", "app-key", "app-secret", "12345678", "01",
+    )
+    monkeypatch.setattr(batch_cli, "load_account_registry", lambda: [account])
+    monkeypatch.setattr(
+        batch_cli,
+        "get_connection",
+        lambda: (_ for _ in ()).throw(AssertionError("guard must fail before connection")),
+    )
+    parser = batch_cli.build_parser()
+    base = [
+        "backfill-trade-cash-history-v2",
+        "--start-date", "20260828",
+        "--end-date", "20260828",
+        "--as-of-date", "20260828",
+    ]
+    preview = parser.parse_args(base)
+    plan = batch_cli._build_trade_cash_backfill_plan(preview)
+
+    wrong = parser.parse_args(base + [
+        "--apply", "--expected-plan-hash", "wrong",
+        "--expected-budget-hash", plan.budget_hash,
+    ])
+    with pytest.raises(RuntimeError, match="plan hash"):
+        batch_cli._run_trade_cash_backfill(wrong)
+
+    monkeypatch.setattr(batch_cli, "get_db_mode", lambda: "local")
+    local = parser.parse_args(base + [
+        "--apply", "--expected-plan-hash", plan.source_plan.plan_hash,
+        "--expected-budget-hash", plan.budget_hash,
+    ])
+    with pytest.raises(RuntimeError, match="KIS_DB_MODE=motherduck"):
+        batch_cli._run_trade_cash_backfill(local)
+    assert capsys.readouterr().out == ""
+
+
 def test_default_five_account_budget_reserves_under_global_ceiling():
     scopes = [
         BackfillAccountScope("ria", "01"),

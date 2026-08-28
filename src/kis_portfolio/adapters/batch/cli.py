@@ -6,12 +6,15 @@ import argparse
 import asyncio
 import json
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
 from kis_portfolio.account_registry import load_account_registry
+from kis_portfolio.config import get_db_mode
 from kis_portfolio.db.connection import get_connection
+from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
@@ -26,6 +29,9 @@ from kis_portfolio.services.trade_cash_backfill import (
     apply_call_budget,
     plan_trade_cash_backfill,
 )
+from kis_portfolio.services.trade_cash_backfill_pipeline import build_trade_cash_partition_handler
+from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
+from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 
@@ -160,6 +166,29 @@ def build_parser() -> argparse.ArgumentParser:
     trade_cash_plan.add_argument(
         "--overseas-transaction-pages", type=int, default=2, choices=range(1, 11),
     )
+
+    trade_cash_execute = subparsers.add_parser(
+        "backfill-trade-cash-history-v2",
+        help="Preflight or execute the fixed-scope governed trade/cash backfill.",
+    )
+    trade_cash_execute.add_argument("--start-date", required=True, help="Exact YYYYMMDD")
+    trade_cash_execute.add_argument("--end-date", required=True, help="Exact YYYYMMDD")
+    trade_cash_execute.add_argument("--as-of-date", required=True, help="Exact YYYYMMDD")
+    trade_cash_execute.add_argument("--partition-days", type=int, default=DEFAULT_PARTITION_DAYS, choices=range(1, 91))
+    trade_cash_execute.add_argument("--overseas-account-label", action="append", dest="overseas_account_labels")
+    trade_cash_execute.add_argument("--exchange", action="append", dest="overseas_exchanges")
+    trade_cash_execute.add_argument("--max-physical-calls", type=int, default=400)
+    trade_cash_execute.add_argument("--domestic-order-pages", type=int, default=3, choices=range(1, 11))
+    trade_cash_execute.add_argument("--overseas-order-pages", type=int, default=3, choices=range(1, 11))
+    trade_cash_execute.add_argument("--overseas-transaction-pages", type=int, default=2, choices=range(1, 11))
+    trade_cash_execute.add_argument("--expected-plan-hash")
+    trade_cash_execute.add_argument("--expected-budget-hash")
+    trade_cash_execute.add_argument("--pre-backup-manifest")
+    trade_cash_execute.add_argument(
+        "--apply",
+        action="store_true",
+        help="Perform guarded KIS reads and MotherDuck writes after all immutable preconditions match.",
+    )
     return parser
 
 
@@ -229,7 +258,7 @@ def _run_price_backfill(args: argparse.Namespace) -> int:
     return 0 if result["status"] in {"dry_run", "succeeded", "skipped"} else 1
 
 
-def _run_trade_cash_backfill_plan(args: argparse.Namespace) -> int:
+def _build_trade_cash_backfill_plan(args: argparse.Namespace):
     today = datetime.now(ZoneInfo("Asia/Seoul")).date()
     end_date = today if args.end_date == "today" else datetime.strptime(args.end_date, "%Y%m%d").date()
     as_of_date = (
@@ -262,7 +291,75 @@ def _run_trade_cash_backfill_plan(args: argparse.Namespace) -> int:
             ),
         ),
     )
+    return plan
+
+
+def _run_trade_cash_backfill_plan(args: argparse.Namespace) -> int:
+    plan = _build_trade_cash_backfill_plan(args)
     print(json.dumps(plan.public_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def _run_trade_cash_backfill(args: argparse.Namespace) -> int:
+    plan = _build_trade_cash_backfill_plan(args)
+    preflight = {
+        "status": "ready" if args.apply else "preflight",
+        "side_effects": "enabled" if args.apply else "none",
+        "plan_id": plan.source_plan.plan_id,
+        "plan_version": plan.source_plan.plan_version,
+        "plan_hash": plan.source_plan.plan_hash,
+        "budget_hash": plan.budget_hash,
+        "callable_partition_count": len(plan.source_plan.callable_partitions),
+        "known_gap_count": len(plan.source_plan.known_gaps),
+        "reserved_call_ceiling": plan.reserved_call_ceiling,
+        "max_physical_calls": plan.policy.max_physical_calls,
+        "database_mode": get_db_mode(),
+    }
+    if not args.apply:
+        print(json.dumps(preflight, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.expected_plan_hash != plan.source_plan.plan_hash:
+        raise RuntimeError("expected plan hash does not match the deterministic preflight")
+    if args.expected_budget_hash != plan.budget_hash:
+        raise RuntimeError("expected budget hash does not match the deterministic preflight")
+    if get_db_mode() != "motherduck":
+        raise RuntimeError("production trade/cash backfill requires KIS_DB_MODE=motherduck")
+    if not args.pre_backup_manifest:
+        raise RuntimeError("production trade/cash backfill requires --pre-backup-manifest")
+    manifest_path = Path(args.pre_backup_manifest).expanduser().resolve()
+    if not manifest_path.is_file():
+        raise RuntimeError("pre-backup manifest does not exist")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    required_backup_tables = {
+        "bronze.source_observations",
+        "silver.trade_events",
+        "silver.trade_event_revisions",
+        "silver.cash_flow_events",
+        "silver.cash_flow_event_revisions",
+        "control.pipeline_runs",
+        "control.pipeline_stage_runs",
+        "control.watermarks",
+    }
+    if not required_backup_tables.issubset(set(manifest.get("tables", {}))):
+        raise RuntimeError("pre-backup manifest is missing required trade/cash recovery tables")
+
+    accounts = load_account_registry()
+    connection = get_connection()
+    MigrationRunner(connection).require("0008")
+    source = KisTradeCashBackfillSource(accounts)
+    handler = build_trade_cash_partition_handler(connection, source.fetch)
+    outcome = execute_trade_cash_backfill(connection, plan, handler)
+    result = {
+        **preflight,
+        "status": "succeeded",
+        "partition_count": len(outcome.partition_outcomes),
+        "reused_partition_count": sum(1 for item in outcome.partition_outcomes if item.reused),
+        "source_calls": sum(item.source_calls for item in outcome.partition_outcomes),
+        "restored_source_calls": outcome.restored_source_calls,
+        "pre_backup_manifest": manifest_path.name,
+    }
+    print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -285,6 +382,8 @@ def main() -> None:
         raise SystemExit(_run_price_backfill(args))
     if args.command == "plan-trade-cash-backfill-v2":
         raise SystemExit(_run_trade_cash_backfill_plan(args))
+    if args.command == "backfill-trade-cash-history-v2":
+        raise SystemExit(_run_trade_cash_backfill(args))
 
     parser.print_help()
     raise SystemExit(2)

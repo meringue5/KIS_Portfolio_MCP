@@ -348,6 +348,14 @@ class BackfillCallBudget:
                 )
             return self._used[partition_key]
 
+    def limit_for(self, partition_key: str) -> int:
+        with self._lock:
+            if partition_key not in self._limits:
+                raise BackfillBudgetError(
+                    f"partition is not callable in the approved budget: {partition_key}"
+                )
+            return self._limits[partition_key]
+
     def reserve(self, partition_key: str) -> PhysicalCallReservation:
         """Reserve one physical call or raise before the caller performs I/O."""
 

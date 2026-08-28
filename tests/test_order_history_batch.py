@@ -99,12 +99,14 @@ async def test_domestic_order_history_uses_current_recent_route(monkeypatch):
 @pytest.mark.anyio
 async def test_paginated_kis_json_propagates_fk_nk_and_n_continuation(monkeypatch):
     calls = []
+    reservations = []
+    expected_pages = [
+        {"output1": [{"odno": "1"}], "ctx_area_fk100": "fk-1", "ctx_area_nk100": "nk-1"},
+        {"output1": [{"odno": "2"}]},
+    ]
     responses = [
-        PageResponse(
-            {"output1": [{"odno": "1"}], "ctx_area_fk100": "fk-1", "ctx_area_nk100": "nk-1"},
-            {"tr_cont": "F"},
-        ),
-        PageResponse({"output1": [{"odno": "2"}]}, {}),
+        PageResponse(expected_pages[0], {"tr_cont": "F"}),
+        PageResponse(expected_pages[1], {}),
     ]
     monkeypatch.setenv("KIS_APP_KEY", "key")
     monkeypatch.setenv("KIS_APP_SECRET", "secret")
@@ -117,6 +119,8 @@ async def test_paginated_kis_json_propagates_fk_nk_and_n_continuation(monkeypatc
         {"CTX_AREA_FK100": "", "CTX_AREA_NK100": ""},
         output_keys=("output1",),
         context_size="100",
+        before_request=lambda page: reservations.append(page),
+        capture_pages=True,
     )
 
     assert result["output1"] == [{"odno": "1"}, {"odno": "2"}]
@@ -124,6 +128,8 @@ async def test_paginated_kis_json_propagates_fk_nk_and_n_continuation(monkeypatc
     assert calls[1]["headers"]["tr_cont"] == "N"
     assert calls[1]["params"]["CTX_AREA_FK100"] == "fk-1"
     assert calls[1]["params"]["CTX_AREA_NK100"] == "nk-1"
+    assert reservations == [1, 2]
+    assert result["captured_pages"] == expected_pages
 
 
 def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(monkeypatch):

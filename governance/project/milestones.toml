@@ -574,7 +574,7 @@ status = "closed"
 id = "WI-021-S05"
 parent_id = "WI-021"
 title = "Add guarded KIS page adapter and fixed production preflight"
-status = "ready"
+status = "closed"
 
 [[subitems]]
 id = "WI-021-S06"

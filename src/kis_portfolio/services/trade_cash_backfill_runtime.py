@@ -108,6 +108,9 @@ class CheckpointingCallBudget:
     def used_for(self, partition_key: str) -> int:
         return self._gate.used_for(partition_key)
 
+    def limit_for(self, partition_key: str) -> int:
+        return self._gate.limit_for(partition_key)
+
 
 class _WatermarkStore:
     def __init__(
