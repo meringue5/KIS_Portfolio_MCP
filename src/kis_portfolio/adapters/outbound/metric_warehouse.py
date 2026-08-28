@@ -82,7 +82,8 @@ class MetricWarehouseRepository:
         )
         if prior:
             normalized = (
-                prior[0], prior[1], prior[2], Decimal(prior[3]), prior[4], prior[5],
+                prior[0], prior[1], prior[2], Decimal(prior[3]) if prior[3] is not None else None,
+                prior[4], prior[5],
                 str(prior[6]), prior[7], prior[8],
             )
             if normalized != expected:

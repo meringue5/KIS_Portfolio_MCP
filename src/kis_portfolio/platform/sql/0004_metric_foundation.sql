@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS gold.metric_values (
     evaluation_slot VARCHAR NOT NULL,
     effective_at TIMESTAMPTZ NOT NULL,
     knowledge_cutoff_at TIMESTAMPTZ NOT NULL,
-    value_decimal DECIMAL(38, 10) NOT NULL,
+    value_decimal DECIMAL(38, 10),
     unit VARCHAR NOT NULL,
     quality_status VARCHAR NOT NULL,
     input_refs JSON NOT NULL,

@@ -71,11 +71,14 @@ lose formula version, knowledge-time, quality and lineage evidence.
 - point-in-time fixtures independently reject future effective time and later knowledge/revision time.
 - disposable backup/restore fixture writes a real metric row, exports every governed V2 backup table to Parquet,
   restores into a new DuckDB and verifies the value and definition.
-- targeted tests: `9 passed`.
-- Project OS full gate: `226 passed`, with one existing Authlib deprecation warning.
+- targeted tests: `10 passed`.
+- Project OS full gate: `227 passed`, with one existing Authlib deprecation warning.
 
 ## Closeout
 
 - Result: governed V2 metric registry, point-in-time engine and Gold persistence foundation completed locally.
+- Review correction: parallel formula-fixture research found that an explicit `insufficient_history` evaluation could
+  not be persisted while `value_decimal` was non-nullable. The Work Item was reopened before deployment to preserve
+  unavailable/partial outcomes without inventing zero values, independently tested, and closed again.
 - Remaining risk: production migration and historical replay are later gates.
 - Follow-up Work Item: V2-W0502 cash-flow-adjusted return, contribution and drawdown metrics.

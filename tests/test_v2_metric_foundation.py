@@ -164,6 +164,30 @@ def test_metric_repository_rejects_conflicting_replay_and_in_place_definition_ch
     con.close()
 
 
+def test_metric_repository_preserves_unavailable_outcome_without_zero(tmp_path: Path) -> None:
+    _, engine = _engine()
+    evaluation_at = datetime(2026, 8, 28, 7, tzinfo=UTC)
+    unavailable = engine.unavailable(
+        metric_id="metric.portfolio-value-krw",
+        version="1.0.0",
+        subject_type="portfolio",
+        subject_id="owner",
+        evaluation_at=evaluation_at,
+        evaluation_slot="kr-1600",
+        quality_status="insufficient_history",
+        evaluation_run_id="unavailable-run",
+    )
+    assert unavailable.value is None
+    con = duckdb.connect(str(tmp_path / "unavailable.duckdb"))
+    MigrationRunner(con).apply()
+    repository = MetricWarehouseRepository(con)
+    assert repository.write_value(unavailable) is True
+    assert con.execute(
+        "SELECT value_decimal, quality_status FROM gold.metric_values"
+    ).fetchone() == (None, "insufficient_history")
+    con.close()
+
+
 def test_v2_metric_tables_are_in_a_complete_parquet_restore(tmp_path: Path) -> None:
     qualified_tables = v2_backup_table_names()
     assert "gold.metric_values" in qualified_tables

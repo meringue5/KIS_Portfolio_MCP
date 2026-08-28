@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEC-015..017/026/038/041/044 Milestone 2: point-in-time metric foundation | V2-ADR-006/010/012 | WI-013 | metric contracts, Gold value ledger, replay-safe evaluator | contract, migration, fixture, idempotency and restore gates; 226 tests pass | closed |
+| DEC-015..017/026/038/041/044 Milestone 2: point-in-time metric foundation | V2-ADR-006/010/012 | WI-013 | metric contracts, Gold value ledger, replay-safe evaluator | nullable unavailable outcome, idempotency, PIT and restore gates; 227 tests pass | closed |
 | DEC-046 Milestone 1: canonical portfolio ledger | V2-ADR-006/010/016 | WI-009 | account/position/cash/daily-state mapping and repositories | live 5 accounts, 1,357 positions, 232 cash; 27-day 0 KRW difference; restore | closed |
 | DEC-046 Milestone 1: trade/lot/thread ledger | V2-ADR-006/010/016 | WI-010 | trade events, purchase lots, thread links and quality | live 19 trade/lot/thread; 2 matched, 4 partial-history groups; restore | closed |
 | DEC-046 Milestone 1: Firestore operational state | V2-ADR-005/008/017 | WI-011 | OAuth/KIS/lease/run-request ports and runtime version gate | concurrency, reconnect/reissue and smoke | closed |

@@ -135,7 +135,7 @@ class MetricValue:
     evaluation_slot: str
     effective_at: datetime
     knowledge_cutoff_at: datetime
-    value: Decimal
+    value: Decimal | None
     quality_status: str
     inputs: tuple[MetricInput, ...]
     formula_hash: str
@@ -166,32 +166,13 @@ class PointInTimeMetricEngine:
         selected = tuple(inputs)
         if not selected:
             raise MetricQualityError("metric evaluation requires at least one input")
-        for item in selected:
-            if definition.point_in_time and item.effective_at > evaluation_at:
-                raise FutureMetricInputError(f"input effective_at exceeds evaluation cutoff: {item.ref}")
-            if definition.point_in_time and item.knowledge_at > evaluation_at:
-                raise FutureMetricInputError(f"input knowledge_at exceeds evaluation cutoff: {item.ref}")
+        self._validate_cutoff(definition, evaluation_at, selected)
         non_pass = sorted({item.quality_status for item in selected if item.quality_status != "pass"})
         if non_pass:
             raise MetricQualityError(f"metric input quality gate failed: {','.join(non_pass)}")
         formula = self.formulas.get(definition.formula_ref)
         value = formula.evaluate(selected)
-        lineage_payload = {
-            "definition_hash": definition.definition_hash,
-            "formula_hash": formula.implementation_hash,
-            "inputs": [
-                {
-                    "ref": item.ref,
-                    "effective_at": item.effective_at.isoformat(),
-                    "knowledge_at": item.knowledge_at.isoformat(),
-                    "lineage_hash": item.lineage_hash,
-                }
-                for item in sorted(selected, key=lambda candidate: candidate.ref)
-            ],
-        }
-        lineage_hash = hashlib.sha256(
-            json.dumps(lineage_payload, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        lineage_hash = self._lineage_hash(definition, formula, selected, "pass")
         return MetricValue(
             definition=definition,
             subject_type=subject_type,
@@ -207,6 +188,82 @@ class PointInTimeMetricEngine:
             lineage_hash=lineage_hash,
             evaluation_run_id=evaluation_run_id,
         )
+
+    def unavailable(
+        self,
+        *,
+        metric_id: str,
+        version: str,
+        subject_type: str,
+        subject_id: str,
+        evaluation_at: datetime,
+        evaluation_slot: str,
+        quality_status: str,
+        inputs: Iterable[MetricInput] = (),
+        evaluation_run_id: str,
+    ) -> MetricValue:
+        """Create a replayable evaluation outcome without inventing a numeric value."""
+        if evaluation_at.tzinfo is None:
+            raise ValueError("evaluation_at must be timezone-aware")
+        if not quality_status.strip() or quality_status == "pass":
+            raise ValueError("unavailable metric requires an explicit non-pass quality status")
+        definition = self.definitions.get(metric_id, version)
+        selected = tuple(inputs)
+        self._validate_cutoff(definition, evaluation_at, selected)
+        formula = self.formulas.get(definition.formula_ref)
+        lineage_hash = self._lineage_hash(definition, formula, selected, quality_status)
+        return MetricValue(
+            definition=definition,
+            subject_type=subject_type,
+            subject_id=subject_id,
+            evaluation_at=evaluation_at,
+            evaluation_slot=evaluation_slot,
+            effective_at=max((item.effective_at for item in selected), default=evaluation_at),
+            knowledge_cutoff_at=evaluation_at,
+            value=None,
+            quality_status=quality_status,
+            inputs=selected,
+            formula_hash=formula.implementation_hash,
+            lineage_hash=lineage_hash,
+            evaluation_run_id=evaluation_run_id,
+        )
+
+    @staticmethod
+    def _validate_cutoff(
+        definition: MetricDefinition,
+        evaluation_at: datetime,
+        inputs: tuple[MetricInput, ...],
+    ) -> None:
+        for item in inputs:
+            if definition.point_in_time and item.effective_at > evaluation_at:
+                raise FutureMetricInputError(f"input effective_at exceeds evaluation cutoff: {item.ref}")
+            if definition.point_in_time and item.knowledge_at > evaluation_at:
+                raise FutureMetricInputError(f"input knowledge_at exceeds evaluation cutoff: {item.ref}")
+
+    @staticmethod
+    def _lineage_hash(
+        definition: MetricDefinition,
+        formula: RegisteredMetricFormula,
+        inputs: tuple[MetricInput, ...],
+        quality_status: str,
+    ) -> str:
+        lineage_payload = {
+            "definition_hash": definition.definition_hash,
+            "formula_hash": formula.implementation_hash,
+            "quality_status": quality_status,
+            "inputs": [
+                {
+                    "ref": item.ref,
+                    "effective_at": item.effective_at.isoformat(),
+                    "knowledge_at": item.knowledge_at.isoformat(),
+                    "lineage_hash": item.lineage_hash,
+                }
+                for item in sorted(inputs, key=lambda candidate: candidate.ref)
+            ],
+        }
+        return hashlib.sha256(
+            json.dumps(lineage_payload, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
 
 
 def sum_decimal_inputs(inputs: tuple[MetricInput, ...]) -> Decimal:
