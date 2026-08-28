@@ -7,9 +7,13 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-046 Milestone 1: canonical portfolio ledger | V2-ADR-006/010/016 | WI-009 | account/position/cash/daily-state mapping and repositories | live 5 accounts, 1,357 positions, 232 cash; 27-day 0 KRW difference; restore | closed |
+| DEC-046 Milestone 1: trade/lot/thread ledger | V2-ADR-006/010/016 | WI-010 | trade events, purchase lots, thread links and quality | live 19 trade/lot/thread; 2 matched, 4 partial-history groups; restore | closed |
+| DEC-046 Milestone 1: Firestore operational state | V2-ADR-005/008/017 | WI-011 | OAuth/KIS/lease/run-request ports and runtime version gate | concurrency, reconnect/reissue and smoke | closed |
+| DEC-046 Milestone 1: managed collection | V2-ADR-007/009..011 | WI-012 | private GCS, fixed Jobs/Scheduler, V2 pipeline adapters | production run, quality/lineage, restore and observation start | in_progress |
 | DEC-045 / V2-W0308: V1→V2 historical transition | V2-ADR-006/008/016 | WI-006 | executable object/column/key/time/money mapping contract | 20 object disposition, transform allowlist and validator | closed |
 | DEC-045 / V2-W0308: isolated migration proof | V2-ADR-008/010/016 | WI-007 | disposable transform runner and reconciliation report | 5,378 observations; price 838, FX 100; idempotent rerun | closed |
-| DEC-045 / V2-W0308: reconciled live history | V2-ADR-008/010/016 | WI-008 | bounded allowlisted V2 backfill manifest | live 5,378 observations, no-op rerun, post-backup/restore; 1-day observation pending | verified |
+| DEC-045 / V2-W0308: reconciled live history | V2-ADR-008/010/016 | WI-008 | bounded allowlisted V2 backfill manifest | live 5,378 observations, no-op rerun, post-backup/restore | closed |
 | DEC-001..045 + DGOV-001..010: V2 Wave 1~4 foundation | ADR-021/023 + V2 ADR baseline | WI-005 | modular core, state port, explicit migrations, V2 warehouse, managed pipeline, PDF intake, approved GCP state/secret foundation, parallel MotherDuck schemas | fresh DuckDB and live restore, idempotency/resume/catalog-quality-lineage, GCP provision, 205 tests, full gate | closed |
 | DEC-003/005/010..025/030/035..044 + DGOV-010: source inventory와 수집 장바구니 | ADR-023 source selection gate | WI-004 | 14 source, 19 dataset, 7 collection contracts; owner PDF 수동 반입 포함 | DGH/full gate; approved core·recommended와 proposed later·excluded 분리; production 변경 없음 | closed |
 | DGOV-001..DGOV-010: Data Governance Harness | ADR-023 | WI-003 | `docs/governance/data-governance-harness.md`, governed TOML registry, Skill/checker | full gate 193 passed; positive/negative contract tests; production 변경 없음 | verified, acceptance pending |

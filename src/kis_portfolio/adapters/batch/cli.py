@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -12,6 +14,8 @@ from kis_portfolio.services.market_calendar import sync_krx_market_calendar_year
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.token_warmup import warm_token_cache
+from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
+from kis_portfolio.db.connection import get_connection
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -83,6 +87,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="Calendar years to generate, for example: 2026 2027",
     )
+
+    managed = subparsers.add_parser(
+        "collect-owned-portfolio-v2",
+        help="Run the approved governed V2 owned-portfolio pipeline with fixed slot/date arguments.",
+    )
+    managed.add_argument("--date", default="today", help="YYYYMMDD or today in Asia/Seoul")
+    managed.add_argument("--slot", required=True, choices=sorted(ALLOWED_SLOTS))
+    managed.add_argument("--partition-key", default="all-accounts", choices=("all-accounts",))
     return parser
 
 
@@ -119,6 +131,18 @@ def _run_sync_market_calendar(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
+    logical_date = (
+        datetime.now(ZoneInfo("Asia/Seoul")).date()
+        if args.date == "today" else datetime.strptime(args.date, "%Y%m%d").date()
+    )
+    result = run_owned_portfolio_pipeline(
+        get_connection(), logical_date=logical_date, slot=args.slot, partition_key=args.partition_key,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -132,6 +156,8 @@ def main() -> None:
         raise SystemExit(asyncio.run(_run_warm_token_cache(args)))
     if args.command == "sync-market-calendar":
         raise SystemExit(_run_sync_market_calendar(args))
+    if args.command == "collect-owned-portfolio-v2":
+        raise SystemExit(_run_owned_portfolio_v2(args))
 
     parser.print_help()
     raise SystemExit(2)

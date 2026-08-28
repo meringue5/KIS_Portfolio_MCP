@@ -1,0 +1,36 @@
+schema_version = 1
+mapping_id = "v1-v2-portfolio-v1"
+target_migration = "0003"
+
+[[objects]]
+source = "main.portfolio_snapshots"
+disposition = "land"
+targets = ["bronze.source_observations"]
+reason = "Preserve domestic and pension balance envelopes without guessing nested position grain."
+
+[[objects]]
+source = "main.overseas_asset_snapshots"
+disposition = "land"
+targets = ["bronze.source_observations"]
+reason = "Preserve overseas balance envelopes while canonical rows come from reconciled holdings."
+
+[[objects]]
+source = "main.asset_holding_snapshots"
+disposition = "transform"
+targets = ["bronze.source_observations", "silver.accounts", "silver.instruments", "silver.position_snapshots", "silver.cash_snapshots", "gold.portfolio_daily_state"]
+reason = "Normalized holding rows reconcile exactly to every canonical overview."
+
+[[objects]]
+source = "main.asset_overview_snapshots"
+disposition = "reconcile"
+targets = ["bronze.source_observations", "gold.portfolio_daily_state"]
+reason = "Canonical V1 total is the exact aggregate reconciliation control."
+
+[rules]
+account_id = "sha256(v1-account|account_label)"
+instrument_id = "v1|normalized_market|symbol"
+market_normalization = "NASD->NAS; otherwise preserve"
+holding_group = "overview_snapshot_id, account_label, normalized_market, symbol, currency, cash_or_position"
+cash_rule = "symbol is null; sum value_krw by account,currency,as_of"
+daily_rule = "latest canonical overview per KST date; include position and cash"
+money_tolerance_krw = 0

@@ -517,6 +517,10 @@ GCS, OAuth/KIS token·lease·run request 같은 operational state는 Firestore�
 `docs/design/v2-architecture-delta-review.md`가 소유한다. DEC-045가 Firestore API와 named state database
 provisioning을 후속 승인했으며, secret migration, 배포, connector cutover 또는 V1 제거 권한은 아니다.
 
+DEC-046는 private GCS를 포함한 합의된 GCP resource의 non-destructive provisioning과 Milestone 1
+WI-009~012 연속 실행을 추가 승인한다. Remote MCP traffic cutover, V1 중지·삭제, Telegram 외부 전송과
+유료 provider는 계속 별도 gate다.
+
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
 - ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는

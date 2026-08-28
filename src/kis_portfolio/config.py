@@ -51,6 +51,28 @@ def get_motherduck_token() -> str:
     return os.environ.get("MOTHERDUCK_TOKEN", "").strip()
 
 
+def get_state_backend() -> str:
+    """Return the explicit operational-state backend.
+
+    ``motherduck`` remains the compatibility/rollback default until the managed
+    runtime is deployed with ``KIS_STATE_BACKEND=firestore``.
+    """
+    return os.environ.get("KIS_STATE_BACKEND", "motherduck").strip().lower()
+
+
+def get_gcp_project() -> str:
+    return (
+        os.environ.get("KIS_GCP_PROJECT")
+        or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or os.environ.get("GCP_PROJECT")
+        or ""
+    ).strip()
+
+
+def get_firestore_database() -> str:
+    return os.environ.get("KIS_FIRESTORE_DATABASE", "kis-portfolio-state").strip()
+
+
 def get_remote_auth_mode() -> str:
     return os.environ.get("KIS_REMOTE_AUTH_MODE", "bearer").strip().lower()
 

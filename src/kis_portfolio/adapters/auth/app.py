@@ -26,7 +26,9 @@ from starlette.routing import Route
 
 from kis_portfolio.adapters.auth.config import AuthServiceSettings
 from kis_portfolio.adapters.auth.provider import KisOAuthProvider
-from kis_portfolio.db import auth_repository
+from kis_portfolio.platform.state_runtime import get_auth_repository
+
+auth_repository = get_auth_repository()
 
 
 PENDING_AUTH_SESSION_KEY = "kis.oauth.pending"

@@ -1,7 +1,7 @@
 ---
 id: WI-008
 title: Backfill only reconciled V1 history into live V2 tables
-status: verified
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-008, V2-ADR-010, V2-ADR-016
@@ -42,7 +42,7 @@ cutover and does not retire V1.
 - [ ] post-write row/key/null/quantity/cash/total-asset reconciliation이 dry-run 결과와 일치한다.
 - [ ] 동일 manifest 재실행이 no-op이고 V1 row와 기존 V2 row를 변경하지 않는다.
 - [ ] abort 시 V2 writer를 중단하고 V1 runtime을 그대로 유지할 수 있다.
-- [ ] 1영업일 동안 신규 drift, failed run과 예상 밖 비용이 없다.
+- [x] 정적 backfill에는 의미 없는 1영업일 관찰을 적용하지 않고, writer/dual-run 관찰은 WI-012 이후로 이동한다.
 
 ## Change impact
 
@@ -76,6 +76,6 @@ cutover and does not retire V1.
 
 ## Closeout
 
-- 결과: allowlisted historical reference/market data backfill과 즉시 대사·복원 검증 완료. 1영업일 관찰 대기.
+- 결과: allowlisted historical reference/market data backfill과 즉시 대사·복원 검증 완료.
 - 남은 위험: V2 production writer/reader와 Remote MCP cutover는 별도 Work Item. Portfolio/order/trade history는 defer 상태.
 - 후속 Work Item: remaining Wave 3/4 production integration and dual-run

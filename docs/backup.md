@@ -43,6 +43,19 @@ owner research 원문과 추출물은 restricted다. local rehearsal에서는 ow
 검증하며, production object destination과 lifecycle은 별도 GCS provisioning/restore Work Item 전에는
 활성화하지 않는다.
 
+## Private GCS recovery foundation
+
+WI-012에서 `gs://grand-forge-279904-kis-portfolio-private`를 Seoul regional Standard bucket으로
+create-or-verify했다. Uniform bucket-level access와 public-access prevention은 강제되고, Google-managed
+encryption, versioning, 7일 soft delete, noncurrent version 30일 삭제, incomplete multipart upload 7일
+중단 정책을 사용한다. Current immutable raw/recovery object에는 자동 만료를 적용하지 않는다. Dataset별
+retention 계약 없이 current object를 일괄 삭제하지 않기 위해서다.
+
+`scripts/sync_v2_backup_gcs.py`는 backup file별 SHA-256을 가진 content-addressed object와 복원 index를
+생성한다. Restore는 모든 파일 hash를 검증한 뒤 기존 `scripts/restore_v2_backup.py` gate로 이어간다.
+Portfolio backup은 confidential payload이므로 실제 최초 업로드는 해당 payload의 외부 GCS 전송 승인을
+확인한 뒤 수행한다. Firestore operational state는 이 경로에 포함하지 않는다.
+
 ## Parquet 백업
 
 기본 백업 포맷은 Parquet이다. 이유는 다음과 같다.

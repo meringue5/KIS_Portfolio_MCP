@@ -17,6 +17,7 @@ DEFAULT_SECRET_KEYS = frozenset({
     "access_token",
     "refresh_token",
 })
+DEFAULT_ACCOUNT_KEYS = frozenset({"cano", "account_id", "account_no", "account_number", "acnt_no"})
 
 
 def mask_account_id(account_id: str) -> str:
@@ -38,3 +39,23 @@ def redact_mapping(
         key: replacement if str(key).lower() in normalized_keys else item
         for key, item in value.items()
     }
+
+
+def redact_nested(value: Any) -> Any:
+    """Recursively redact credentials and mask account identifiers before landing."""
+    if isinstance(value, Mapping):
+        result = {}
+        for key, item in value.items():
+            normalized = str(key).lower()
+            if normalized in DEFAULT_SECRET_KEYS:
+                result[key] = "<redacted>"
+            elif normalized in DEFAULT_ACCOUNT_KEYS and isinstance(item, str):
+                result[key] = mask_account_id(item)
+            else:
+                result[key] = redact_nested(item)
+        return result
+    if isinstance(value, list):
+        return [redact_nested(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_nested(item) for item in value)
+    return value

@@ -31,6 +31,12 @@ lineage는 `control.quality_results`, `control.lineage_edges`에 저장하고 DB
 - `pipeline.macro-profile-v2`
 - `pipeline.owner-research-pdf-v1`
 
+WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio-v2`다. 허용 slot은
+`kr-1000`, `kr-1430`, `kr-1600`, partition은 `all-accounts` 하나뿐이다. 각 slot은 별도 fixed-argument
+Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미국 최근 마감 입력도 함께 읽고,
+최근 7일의 source history에서 latest applicable session을 선택해 주말·한국 휴일 gap을 메운다. 모든 raw
+bundle은 recursive secret redaction과 account masking 후 private GCS에 content hash로 랜딩한다.
+
 `tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
 `src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
 lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.

@@ -391,6 +391,15 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 이 승인은 production traffic cutover, 기존 MotherDuck writer 중지, 대량 historical backfill, 외부 알림과
   유료 data provider 가입을 포함하지 않는다.
 
+### DEC-046: Milestone 1과 합의된 GCS 기반을 턴키로 진행한다
+
+- 2026-08-28 사용자는 비용 기준선에서 이미 검토한 private GCS를 포함해 승인 architecture에 필요한 GCP
+  API·resource의 non-destructive create-or-verify와 provisioning을 사전 승인했다.
+- Milestone 1은 WI-009 canonical account/position/cash, WI-010 trade/lot/thread, WI-011 Firestore operational
+  state 전환, WI-012 V2 managed collection pipeline을 순서대로 연속 실행한다.
+- 각 Work Item이 자동·운영 gate를 통과하면 별도 중간 승인을 기다리지 않고 다음 Work Item을 시작한다.
+  기존 resource 삭제, V1 writer 중지, Remote MCP production cutover, 외부 Telegram 전송과 유료 provider는 제외한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -950,6 +959,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-28 | Milestone 1 실행 승인 | DEC-046으로 private GCS 등 합의된 GCP provisioning과 WI-009~012 연속 실행 권한을 확정함 |
 | 2026-08-28 | provisioning 권한 승인 | DEC-045로 기존 MotherDuck 보존·병렬 V2 객체와 Secret Manager·Seoul Firestore 기반 provisioning 권한을 확정함 |
 | 2026-08-28 | 구현 권한 승인 | DEC-042 owner PDF 수동 반입, DEC-043 consensus later 진입조건, DEC-044 승인 범위의 repository-local 턴키 구현 권한을 확정함 |
 | 2026-08-27 | V2 설계 검토 대기 | 현행 코드·운영 DB·Cloud Run·비용 구성을 재조사하고 serverless modular monolith, stateless Remote MCP, Firestore state plane, parallel schema와 Wave 0~8 전환 설계안을 작성함. 구현과 provisioning은 미승인 |

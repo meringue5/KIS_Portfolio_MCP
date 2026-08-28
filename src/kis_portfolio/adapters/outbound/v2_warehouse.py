@@ -151,6 +151,16 @@ class V2WarehouseRepository:
     def materialize_daily_state(self, *, evaluation_date: date, slot: str, as_of: datetime) -> int:
         self.connection.execute("""
             INSERT INTO gold.portfolio_daily_state
+            WITH latest_positions AS (
+                SELECT * FROM silver.position_snapshots
+                WHERE CAST(as_of AS DATE) = ?
+                QUALIFY row_number() OVER (
+                    PARTITION BY account_id, instrument_id ORDER BY as_of DESC, source_observation_id DESC
+                ) = 1
+            ), latest_bars AS (
+                SELECT * FROM silver.price_bars_daily WHERE session_date <= ? AND price_basis = 'raw'
+                QUALIFY row_number() OVER (PARTITION BY instrument_id ORDER BY session_date DESC) = 1
+            )
             SELECT
                 ?, ?, p.account_id, p.instrument_id, 'position', p.quantity,
                 round(p.quantity * b.close * CASE WHEN i.currency = 'KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
@@ -160,13 +170,38 @@ class V2WarehouseRepository:
                 json_object('position_as_of', p.as_of, 'price_date', b.session_date, 'fx_date', f.rate_date),
                 CASE WHEN p.quality_status = 'pass' AND b.quality_status = 'pass' THEN 'pass' ELSE 'degraded' END,
                 sha256(concat(p.source_observation_id, '|', b.source_observation_id, '|', coalesce(f.source_observation_id, 'KRW')))
-            FROM silver.position_snapshots p
+            FROM latest_positions p
             JOIN silver.instruments i ON i.instrument_id = p.instrument_id
-            JOIN silver.price_bars_daily b ON b.instrument_id = p.instrument_id AND b.session_date = ? AND b.price_basis = 'raw'
-            LEFT JOIN silver.fx_rates_daily f ON f.base_currency = i.currency AND f.quote_currency = 'KRW' AND f.rate_date = ? AND f.rate_type = 'close'
-            WHERE CAST(p.as_of AS DATE) = ?
+            JOIN latest_bars b ON b.instrument_id = p.instrument_id
+            LEFT JOIN (
+                SELECT * FROM silver.fx_rates_daily WHERE rate_date <= ? AND rate_type='close'
+                QUALIFY row_number() OVER (PARTITION BY base_currency, quote_currency ORDER BY rate_date DESC)=1
+            ) f ON f.base_currency = i.currency AND f.quote_currency = 'KRW'
             ON CONFLICT DO NOTHING
-        """, [evaluation_date, slot, as_of, evaluation_date, evaluation_date, evaluation_date])
+        """, [evaluation_date, evaluation_date, evaluation_date, slot, as_of, evaluation_date])
+        self.connection.execute("""
+            INSERT INTO gold.portfolio_daily_state
+            WITH latest_cash AS (
+                SELECT * FROM silver.cash_snapshots
+                WHERE CAST(as_of AS DATE) = ?
+                QUALIFY row_number() OVER (
+                    PARTITION BY account_id, currency ORDER BY as_of DESC, source_observation_id DESC
+                ) = 1
+            )
+            SELECT ?, ?, account_id, 'cash|' || currency, 'cash', NULL,
+                   round(amount * CASE WHEN currency='KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
+                   NULL, NULL, NULL, NULL, ?,
+                   json_object('cash_as_of', c.as_of, 'fx_date', f.rate_date),
+                   CASE WHEN c.quality_status='pass' AND (currency='KRW' OR f.rate IS NOT NULL)
+                        THEN 'pass' ELSE 'degraded' END,
+                   sha256(c.source_observation_id || '|' || coalesce(f.source_observation_id, 'KRW'))
+            FROM latest_cash c
+            LEFT JOIN (
+                SELECT * FROM silver.fx_rates_daily WHERE rate_date<=? AND rate_type='close'
+                QUALIFY row_number() OVER (PARTITION BY base_currency, quote_currency ORDER BY rate_date DESC)=1
+            ) f ON f.base_currency=c.currency AND f.quote_currency='KRW'
+            ON CONFLICT DO NOTHING
+        """, [evaluation_date, evaluation_date, slot, as_of, evaluation_date])
         return self.connection.execute(
             "SELECT count(*) FROM gold.portfolio_daily_state WHERE evaluation_date=? AND evaluation_slot=?",
             [evaluation_date, slot],

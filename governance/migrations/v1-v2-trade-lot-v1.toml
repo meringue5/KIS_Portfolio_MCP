@@ -1,0 +1,41 @@
+schema_version = 1
+mapping_id = "v1-v2-trade-lot-v1"
+target_migration = "0003"
+
+[[objects]]
+source = "main.domestic_orders"
+disposition = "transform"
+targets = ["bronze.source_observations", "silver.trade_events", "silver.purchase_lots", "silver.trade_threads", "silver.trade_thread_lots"]
+reason = "Filled domestic order aggregate is the approved V1 purchase-lot grain."
+
+[[objects]]
+source = "main.order_history"
+disposition = "land"
+targets = ["bronze.source_observations"]
+reason = "Preserve query envelopes; canonical events come from domestic_orders."
+
+[[objects]]
+source = "main.overseas_transaction_history"
+disposition = "land"
+targets = ["bronze.source_observations"]
+reason = "Preserve query envelopes pending event extraction."
+
+[[objects]]
+source = "main.trade_profit_history"
+disposition = "land"
+targets = ["bronze.source_observations"]
+reason = "Preserve reports without treating them as canonical trade events."
+
+[[objects]]
+source = "main.overseas_transactions"
+disposition = "defer"
+targets = ["bronze.source_observations"]
+reason = "Current rows lack side and quantity; guessing a trade or cash event is forbidden."
+
+[rules]
+trade_grain = "one filled broker order aggregate"
+lot_grain = "one filled buy order"
+thread_grain = "one imported purchase lot until owner explicitly groups lots"
+unfilled_order = "land only"
+correction = "separate event and lot with inferred_correction quality; raw original order link preserved"
+position_reconciliation = "matched or partial_history; never synthesize opening lots"

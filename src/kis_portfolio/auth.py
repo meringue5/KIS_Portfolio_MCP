@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import time
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from .config import get_token_dir
+from .config import get_state_backend, get_token_dir
 from .clients.kis import request_kis, wait_for_kis_slot
 from .db.kis_token_repository import get_kis_api_access_token, upsert_kis_api_access_token
 from .observability import current_or_new_operation_id, log_event
@@ -690,12 +691,41 @@ async def get_access_token(
             if token and expires_at:
                 return token
 
-        token_response = await _request_new_token_with_retry(
-            client,
-            domain,
-            cache_context,
-            operation_id,
-        )
+        distributed_claim = None
+        if get_state_backend() == "firestore":
+            from .platform.state_runtime import get_state_store
+
+            owner_id = f"{operation_id}:{uuid.uuid4()}"
+            distributed_claim = get_state_store().claim(
+                f"kis-token-refresh:{cache_context['cache_key']}",
+                owner_id,
+                timedelta(minutes=2),
+            )
+            if not distributed_claim.acquired:
+                # Another instance owns the upstream refresh. Wait for its
+                # encrypted result instead of multiplying KIS token calls.
+                for _ in range(40):
+                    await asyncio.sleep(0.25)
+                    token, _ = _read_valid_token_from_db(cache_context)
+                    if token:
+                        return token
+                raise RuntimeError("Timed out waiting for the distributed KIS token refresh lease.")
+
+        try:
+            token_response = await _request_new_token_with_retry(
+                client,
+                domain,
+                cache_context,
+                operation_id,
+            )
+        except Exception:
+            if distributed_claim is not None:
+                get_state_store().release(
+                    f"kis-token-refresh:{cache_context['cache_key']}",
+                    distributed_claim.owner_id,
+                    distributed_claim.fencing_token,
+                )
+            raise
 
         issued_at = _kis_now()
         token_data = token_response.json()
@@ -767,6 +797,13 @@ async def get_access_token(
                 refresh_after=_refresh_after(expires_at),
             )
 
+        if distributed_claim is not None:
+            get_state_store().release(
+                f"kis-token-refresh:{cache_context['cache_key']}",
+                distributed_claim.owner_id,
+                distributed_claim.fencing_token,
+            )
+
     return token
 
 
@@ -796,4 +833,3 @@ async def get_hashkey(
         raise Exception(f"Failed to get hash key: {response.text}")
 
     return response.json()["HASH"]
-
