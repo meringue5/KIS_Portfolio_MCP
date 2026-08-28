@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -109,6 +109,40 @@ def test_replay_is_deterministic_and_allocates_fifo() -> None:
         Decimal("5"),
         Decimal("1"),
     ]
+
+
+def test_replay_hashes_normalize_equivalent_timezones_and_decimal_scales() -> None:
+    seoul = timezone(timedelta(hours=9))
+    utc_request = _request("3")
+    seoul_request = ReplayRequest(
+        account_id=utc_request.account_id,
+        target_instrument_id=utc_request.target_instrument_id,
+        lineage_instrument_ids=utc_request.lineage_instrument_ids,
+        start_at=utc_request.start_at.astimezone(seoul),
+        cutoff_at=utc_request.cutoff_at.astimezone(seoul),
+        current_quantity=Decimal("3.0000000000"),
+        corporate_action_coverage=utc_request.corporate_action_coverage,
+        coverage_quality_result_id=utc_request.coverage_quality_result_id,
+    )
+    utc_trade = _trade("buy-a", 1, "1", "buy", "3", "100")
+    seoul_trade = ReplayTrade(
+        trade_event_id=utc_trade.trade_event_id,
+        account_id=utc_trade.account_id,
+        instrument_id=utc_trade.instrument_id,
+        side=utc_trade.side,
+        executed_at=utc_trade.executed_at.astimezone(seoul),
+        execution_sequence=utc_trade.execution_sequence,
+        quantity=Decimal("3.0000000000"),
+        price=Decimal("100.00000000"),
+        currency=utc_trade.currency,
+    )
+
+    utc_plan = replay_position(utc_request, (utc_trade,))
+    seoul_plan = replay_position(seoul_request, (seoul_trade,))
+
+    assert utc_plan.partition_key == seoul_plan.partition_key
+    assert utc_plan.replay_hash == seoul_plan.replay_hash
+    assert utc_plan.projection_hash == seoul_plan.projection_hash
 
 
 def test_inferred_opening_closes_and_later_buy_starts_actual_episode() -> None:

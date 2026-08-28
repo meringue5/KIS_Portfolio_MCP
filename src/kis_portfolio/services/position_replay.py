@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal, localcontext
 from fractions import Fraction
 from typing import Iterable
@@ -31,6 +31,17 @@ from kis_portfolio.modules.portfolio.reconstruction import (
 
 REPLAY_VERSION = "1.0.0"
 ZERO = Decimal("0")
+
+
+def _canonical_time(value: datetime) -> str:
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _canonical_decimal(value: Decimal | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.normalize()
+    return "0" if normalized == ZERO else format(normalized, "f")
 
 
 class ReplayContractError(ValueError):
@@ -271,9 +282,9 @@ def _projection_hash(
         "replay_hash": replay_hash,
         "assessment": {
             "status": assessment.status.value,
-            "current_quantity": assessment.current_quantity,
-            "replayed_quantity": assessment.replayed_quantity,
-            "inferred_opening_quantity": assessment.inferred_opening_quantity,
+            "current_quantity": _canonical_decimal(assessment.current_quantity),
+            "replayed_quantity": _canonical_decimal(assessment.replayed_quantity),
+            "inferred_opening_quantity": _canonical_decimal(assessment.inferred_opening_quantity),
             "evidence_provenance": (
                 assessment.evidence_provenance.value if assessment.evidence_provenance else None
             ),
@@ -286,9 +297,9 @@ def _projection_hash(
                 item.account_id,
                 item.opening_instrument_id,
                 item.instrument_id,
-                item.opened_at.isoformat(),
-                item.closed_at.isoformat() if item.closed_at else None,
-                item.current_quantity,
+                _canonical_time(item.opened_at),
+                _canonical_time(item.closed_at) if item.closed_at else None,
+                _canonical_decimal(item.current_quantity),
                 item.reconstruction_status.value,
             )
             for item in episodes
@@ -301,13 +312,13 @@ def _projection_hash(
                 item.opening_instrument_id,
                 item.instrument_id,
                 item.opening_trade_event_id,
-                item.opened_at.isoformat(),
+                _canonical_time(item.opened_at),
                 item.evidence_provenance.value,
-                item.effective_quantity,
-                item.remaining_quantity,
-                item.effective_unit_cost,
+                _canonical_decimal(item.effective_quantity),
+                _canonical_decimal(item.remaining_quantity),
+                _canonical_decimal(item.effective_unit_cost),
                 item.currency,
-                item.state_effective_at.isoformat(),
+                _canonical_time(item.state_effective_at),
                 item.cause_type,
                 item.cause_ref,
             )
@@ -321,10 +332,13 @@ def _projection_hash(
                 item.instrument_id,
                 item.plan.method.value,
                 item.plan.status.value,
-                item.plan.requested_quantity,
-                item.plan.allocated_quantity,
-                item.plan.unallocated_quantity,
-                tuple((piece.lot_id, piece.allocated_quantity) for piece in item.plan.slices),
+                _canonical_decimal(item.plan.requested_quantity),
+                _canonical_decimal(item.plan.allocated_quantity),
+                _canonical_decimal(item.plan.unallocated_quantity),
+                tuple(
+                    (piece.lot_id, _canonical_decimal(piece.allocated_quantity))
+                    for piece in item.plan.slices
+                ),
                 item.plan.review_required,
                 item.plan.blockers,
             )
@@ -332,7 +346,7 @@ def _projection_hash(
         ],
     }
     return hashlib.sha256(
-        json.dumps(document, sort_keys=True, separators=(",", ":"), default=str).encode()
+        json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
 
 
@@ -560,9 +574,9 @@ def _input_hash(
             "account": request.account_id,
             "target": request.target_instrument_id,
             "lineage": request.lineage_instrument_ids,
-            "start": request.start_at.isoformat(),
-            "cutoff": request.cutoff_at.isoformat(),
-            "current_quantity": str(request.current_quantity),
+            "start": _canonical_time(request.start_at),
+            "cutoff": _canonical_time(request.cutoff_at),
+            "current_quantity": _canonical_decimal(request.current_quantity),
             "coverage": request.corporate_action_coverage.value,
             "coverage_ref": request.coverage_quality_result_id,
             "gaps": request.source_gap_reasons,
@@ -572,10 +586,10 @@ def _input_hash(
                 item.trade_event_id,
                 item.instrument_id,
                 item.side,
-                item.executed_at.isoformat(),
+                _canonical_time(item.executed_at),
                 item.execution_sequence,
-                str(item.quantity),
-                str(item.price),
+                _canonical_decimal(item.quantity),
+                _canonical_decimal(item.price),
                 item.currency,
             )
             for item in trades
@@ -585,10 +599,10 @@ def _input_hash(
                 item.revision_id,
                 item.input_instrument_id,
                 item.output_instrument_id,
-                item.effective_at.isoformat(),
-                item.knowledge_at.isoformat(),
+                _canonical_time(item.effective_at),
+                _canonical_time(item.knowledge_at),
                 str(item.quantity_factor),
-                str(item.price_factor),
+                _canonical_decimal(item.price_factor),
             )
             for item in actions
         ],

@@ -15,7 +15,7 @@ S02 physical objects before S06 must not alter the logical input identity.
 - start: `2023-08-28T00:00:00+09:00`
 - cutoff: `2026-08-28T18:00:00+09:00` (already elapsed when inspected and applied)
 - observed schema version: `0008`
-- execution hash: `43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34`
+- canonical execution hash: `096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b`
 - partitions: 57
 - current-held partitions: 22
 - partitions with canonical trade history: 56
@@ -25,7 +25,10 @@ S02 physical objects before S06 must not alter the logical input identity.
 - source calls: 0
 - warehouse writes: 0
 
-Two independent inspections of the same cutoff returned the same execution hash and aggregate counts.
+Two independent inspections of the same cutoff returned the same aggregate counts. The initial platform-native
+timestamp hash differed between macOS/Asia-Seoul and Linux/UTC despite representing the same instants. S06 correctly
+failed its exact-hash gate before backup or write. WI-022 now normalizes all replay timestamps to UTC `Z` and Decimal
+scales before hashing; equivalent-offset fixtures pin the canonical hash above across runtime time zones.
 
 ## Fail-closed impact
 

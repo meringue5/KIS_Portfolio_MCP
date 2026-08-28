@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Iterable
@@ -76,8 +76,10 @@ def reconstruction_partition_key(
         raise ValueError("account_id and instrument_id are required")
     if start_at >= end_at:
         raise ValueError("reconstruction window must have positive duration")
+    canonical_start = start_at.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    canonical_end = end_at.astimezone(UTC).isoformat().replace("+00:00", "Z")
     identity = "|".join(
-        (CONTRACT_VERSION, account_id, instrument_id, start_at.isoformat(), end_at.isoformat())
+        (CONTRACT_VERSION, account_id, instrument_id, canonical_start, canonical_end)
     )
     return f"reconstruct-{hashlib.sha256(identity.encode()).hexdigest()}"
 
