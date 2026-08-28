@@ -56,7 +56,7 @@ must be replayed without silently rewriting the preserved migration artifacts.
   - [x] missing corporate-action coverage and source gaps fail closed without inferred official history.
   - [x] FIFO is deterministic within account, instrument and position episode and never creates a buy lot from a sell.
   - [x] the contract is pure and performs no source call, warehouse write or production mutation.
-- `WI-022-S02` — additive position-episode, lot-revision, allocation and exception schema (`proposed`).
+- `WI-022-S02` — additive position-episode, lot-revision, allocation and exception schema (`closed`).
 - `WI-022-S03` — deterministic trade and corporate-action replay with inferred-opening handling (`proposed`).
 - `WI-022-S04` — append-only sell allocation, reconciliation, idempotency and restore proof (`proposed`).
 - `WI-022-S05` — aggregate-only production read-only dry-run and impact report (`proposed`).
@@ -72,6 +72,15 @@ must be replayed without silently rewriting the preserved migration artifacts.
   opening, source/action blockers, negative residual, scoped FIFO, explicit-selector failure and insufficient lots.
 - `bash scripts/check.sh quick` passed; `bash scripts/check.sh full` passed with 326 tests and the existing Authlib
   deprecation warning. No source call, database write, live migration or external send occurred.
+- Migration `0010_position_lot_reconstruction.sql` adds seven backed-up identity/revision tables and four rebuild
+  current views without altering the WI-010 `purchase_lots` artifact or existing allocation slices.
+- The V2 catalog now governs 59 objects: 47 tables and 12 views. Forty-six table/object metadata contracts are in the
+  complete V2 recovery allowlist; the four new current projections are rebuilt from versioned tables.
+- Constraint and current-view fixtures reject actual lots without a buy reference and allocation quantity mismatch,
+  select whole latest revisions and preserve resolved exception history.
+- Thirteen focused migration/schema/recovery/corporate-action tests passed. `bash scripts/check.sh quick` and
+  `bash scripts/check.sh full` passed with 329 tests and the existing Authlib deprecation warning.
+- No live MotherDuck migration, source call, replay, scheduler change or external send occurred.
 
 ## Closeout
 

@@ -103,6 +103,13 @@ action이 없다는 판정도 `control.quality_results`의 종목·기간 covera
 price·quantity·instrument effect는 공통 `control.lineage_edges`에서 원 action revision을 인용한다.
 WI-036은 offline fixture와 local backup/restore까지만 수행하며 production source call과 schedule은 별도 gate다.
 
+WI-022-S02의 migration `0010`은 기존 WI-010 `silver.purchase_lots`와
+`silver.sell_allocation_revisions` row를 수정하지 않는다. 새 canonical path는 position episode identity/revision,
+actual·manual·inferred-opening lot identity/state revision, sell allocation whole-revision header와 기존 lot slice,
+Control exception identity/revision을 additive object로 둔다. current view는 knowledge time과 revision으로 최신
+whole revision을 선택하며, 기존 compatibility lot view와 새 reconstructed lot-state view를 혼합하지 않는다.
+이 단계는 구조와 local recovery만 검증하고 trade replay, FIFO persistence와 production migration은 수행하지 않는다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는
