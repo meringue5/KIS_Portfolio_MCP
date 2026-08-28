@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-009..014 canonical cash-event identity, revisions and PIT provenance | V2-ADR-006/010/012 | WI-020 | migration 0008, event/revision/current objects and PIT repository | category separation, immutable conflict and full backup/restore; full 257 passed | closed |
 | complete remaining V2 delivery ownership before WI-020 and WI-019 execution | ADR-021/022 | WI-034 | historical disposition, WI-035~051 append-only baseline, MS-002~004 and completeness checker | all 69 delivery IDs owned; 8 focused and full 254 tests passed | closed |
 | DEC-047/048 final M4 V2 documentation SSOT and exact total-asset valuation-change contribution intake | ADR-022 + V2-ADR-006/015 | WI-031 | MS-003/004 baseline, WI-032/033 and metric/read-model contracts | 10 focused tests; full gate 252 passed; no product mutation | closed |
 | GOV-003/004/006/008 immutable milestone and Work Item control | ADR-022 | WI-018 | milestone registry, MS-002 baseline, stable relationships and checker | 5 focused tests; full gate 251 passed | closed |
@@ -38,7 +39,7 @@
 | Requirement | Design item | Work Item | Dependency | Status |
 | --- | --- | --- | --- | --- |
 | DEC-015..017/026 trend and volatility | V2-W0503 | WI-019 | WI-013, WI-015 | ready |
-| DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | ready |
+| DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | closed |
 | DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | proposed |
 | DEC-015..017 corporate actions | V2-W0307 | WI-036 | WI-015 | proposed |
 | DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | proposed |

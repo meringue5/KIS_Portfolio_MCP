@@ -1,7 +1,7 @@
 ---
 id: WI-020
 title: Establish canonical cash events and classification revisions
-status: ready
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -35,9 +35,9 @@ must not be promoted to a deposit, withdrawal, fee, dividend or internal transfe
 
 ## Acceptance criteria
 
-- [ ] owner flows, internal transfers, trade settlement, fees/taxes and dividends remain distinct.
-- [ ] unmatched/partial events remain reversible and point-in-time.
-- [ ] migration, catalog, repository, backup/restore and full gates pass.
+- [x] owner flows, internal transfers, trade settlement, fees/taxes and dividends remain distinct.
+- [x] unmatched/partial events remain reversible and point-in-time.
+- [x] migration, catalog, repository, backup/restore and full gates pass.
 
 ## Change impact
 
@@ -55,10 +55,18 @@ must not be promoted to a deposit, withdrawal, fee, dividend or internal transfe
 
 ## Evidence
 
-- Pending.
+- Migration `0008_cash_event_revisions.sql` preserves the existing monetary fact, adds full source/time provenance,
+  an append-only classification revision ledger and a rebuildable current projection.
+- `V2WarehouseRepository` rejects unsupported categories, non-cash observations, identity conflicts, stale
+  corrections and incomplete trade links; PIT reads select only revisions known by the requested cutoff.
+- Deterministic fixtures keep owner flow, internal transfer, trade settlement, fee, tax, dividend and unknown
+  events distinct and prove cash snapshots cannot synthesize cash events.
+- Complete V2 Parquet backup/restore preserves the event and revision and rebuilds `cash_flow_events_current`.
+- Focused tests: 7 passed. `bash scripts/check.sh quick`: passed. `bash scripts/check.sh full`: 257 passed with
+  one third-party Authlib deprecation warning.
 
 ## Closeout
 
-- Result: ready.
+- Result: closed; canonical cash facts and point-in-time classification revisions are implemented locally.
 - Remaining risk: long-range source coverage belongs to WI-021.
 - Follow-up Work Item: WI-021.

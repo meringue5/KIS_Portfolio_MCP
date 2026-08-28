@@ -26,6 +26,7 @@ uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS
 
 - Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`, `silver.instrument_versions`,
   `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.trade_event_revisions`, `silver.cash_flow_events`,
+  `silver.cash_flow_event_revisions`,
   `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
   `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
   `silver.price_bar_revisions_daily`,
@@ -40,7 +41,7 @@ uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS
 - Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
   원문 backup이 됐다고 간주하지 않는다.
 - Rebuild/excluded: `silver.instrument_versions_effective`, `silver.instruments_current`,
-  `silver.trade_events_current`, `silver.purchase_lots_current`,
+  `silver.trade_events_current`, `silver.cash_flow_events_current`, `silver.purchase_lots_current`,
   `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.schema_migrations`.
 
