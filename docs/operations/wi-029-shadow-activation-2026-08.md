@@ -19,6 +19,11 @@
 | verification execution | `kis-portfolio-wi029-s04-verify-nqnl4`, completed |
 | schedules | 10:00, 14:30 and 16:00 KST weekdays, all enabled |
 
+The repeatable evidence closeout merged as PR #27 at
+`2bf17859521308b946a70c616bb948c9000f8c84` and deployment run `33182018996` succeeded in 4m49s. It deployed
+immutable image `sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43`; final verification execution
+`kis-portfolio-wi029-s04-verify-jlvt6` completed.
+
 The initial morning run reused the already completed governed core partition and performed only the newly needed
 classification and shadow composition. It made 36 core source calls and 8 bounded classification calls.
 
@@ -43,14 +48,18 @@ No account number, holding symbol, absolute asset value or confidential source p
 - Migration `0013` was required before the three runtime Jobs were updated.
 - The post-migration backup exported 58 governed tables and one index object, uploaded and downloaded all 59 objects,
   and restored all 58 tables into a fresh DuckDB database.
-- Backup index SHA-256:
+- Initial backup index SHA-256:
   `2d3f7ba00b4fbccf65f33cb3b2901395634c7cb746d8a46ad5241eb0b038b418`.
+- The final backup, after persisting calibration and shadow controls, also round-tripped 59 objects and restored 58
+  tables. Its index SHA-256 is `b4f9b9ccd99d0a0b1292288276e13ebebb4d73aca87e2a5cd3d00440ba4d0a0f`.
 - Verification found zero `external` alert rule versions and zero Telegram dispatch claims.
 
 ## Observation window
 
 The immutable replay report hash remains
 `a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d` for the bounded
-2023-08-28 through 2026-08-27 reconstructed window. The S04 closeout patch persists that report and starts the
-collecting shadow window for 2026-08-28 through 2026-09-10 inclusive. S05 may not verify the window before 14 elapsed
-calendar days, governed-session reconciliation, zero-send proof and explicit owner false-positive/miss review.
+2023-08-28 through 2026-08-27 reconstructed window. MotherDuck contains exactly one `draft` calibration row with
+that hash and exactly one `collecting` shadow window for 2026-08-28 through 2026-09-10 inclusive. Its initial state is
+2 observed session keys, 18 candidates, 18 quality suppressions and zero external sends. S05 may not verify the window
+before 14 elapsed calendar days, governed-session reconciliation, zero-send proof and explicit owner
+false-positive/miss review.

@@ -68,6 +68,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-08-28.6 | 2026-08-28 | WI-029 DB-only shadow를 운영 활성화하고 14일 evidence window 시작 | WI-029-S04 closed; WI-029-S05 in progress, 기존 ID 불변 |
 | 2026-08-28.5 | 2026-08-28 | owner option 3으로 ETF 수집/look-through를 초기 V2에서 제외하고 WI-028의 WI-027 의존성을 제거 | WI-026/027와 sub-item ID·증거 보존, status rejected; dependency revision만 적용 |
 | 2026-08-28.3 | 2026-08-28 | 미배정 corporate-action identity를 WI-036으로 분리하고 후속 lot reconstruction 의존성에 연결 | 기존 ID 불변; WI-036 append, 후속 sequence만 이동 |
 | 2026-08-28.2 | 2026-08-28 | 원화 평가액 변화 기여도를 WI-033으로 분리하고 alert 선행조건에 추가 | 기존 ID 불변; WI-028~030 sequence만 16~18로 변경 |
