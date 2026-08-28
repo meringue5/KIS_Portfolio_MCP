@@ -15,6 +15,8 @@ ADR gate, WIP limit and evidence rules. Do not copy those policies into this Ski
 Also read:
 
 - `docs/traceability.md` for current work and decision links.
+- `governance/project/milestones.toml` and the applicable `docs/milestones/` baseline for stable Work Item identity,
+  dependency and sub-item relationships.
 - The active `docs/work-items/WI-*.md`, if one exists.
 - The specialized Skill selected by the change: architecture, warehouse, MCP surface, API capability or release ops.
 
@@ -23,6 +25,8 @@ Also read:
 1. Capture evidence and compare the reported behavior with approved requirements, ADRs and owned contracts.
 2. Classify the work. Do not call a requested behavior change a defect merely because the user dislikes current behavior.
 3. For repository mutation, create or activate one Work Item and add its traceability row before substantive edits.
+   Allocate only the next unused Work Item ID. Never insert, renumber or reuse an existing ID; append an in-scope
+   discovery as `WI-NNN-SNN`, otherwise allocate a new Work Item and link its origin.
 4. Decide whether product decisions require explicit user approval. Read-only investigation may continue while approval is pending.
 5. Make the smallest coherent change set that updates every affected owner document and executable contract together.
 6. Run `bash scripts/check.sh quick` during work and `bash scripts/check.sh full` before closeout.

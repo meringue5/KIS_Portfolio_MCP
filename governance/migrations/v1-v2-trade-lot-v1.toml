@@ -1,12 +1,12 @@
 schema_version = 1
 mapping_id = "v1-v2-trade-lot-v1"
-target_migration = "0003"
+target_migration = "0006"
 
 [[objects]]
 source = "main.domestic_orders"
 disposition = "transform"
-targets = ["bronze.source_observations", "silver.trade_events", "silver.purchase_lots", "silver.trade_threads", "silver.trade_thread_lots"]
-reason = "Filled domestic order aggregate is the approved V1 purchase-lot grain."
+targets = ["bronze.source_observations", "silver.trade_events", "silver.trade_event_revisions", "silver.purchase_lots", "silver.trade_threads", "silver.trade_thread_lots"]
+reason = "Known-side filled domestic order aggregates become trade events; only buys become purchase lots."
 
 [[objects]]
 source = "main.order_history"
@@ -34,7 +34,7 @@ reason = "Current rows lack side and quantity; guessing a trade or cash event is
 
 [rules]
 trade_grain = "one filled broker order aggregate"
-lot_grain = "one filled buy order"
+lot_grain = "one filled buy order; sells and unknown side codes cannot create a lot"
 thread_grain = "one imported purchase lot until owner explicitly groups lots"
 unfilled_order = "land only"
 correction = "separate event and lot with inferred_correction quality; raw original order link preserved"

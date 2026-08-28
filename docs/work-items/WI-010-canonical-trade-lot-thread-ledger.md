@@ -6,6 +6,10 @@ type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-016
 requirement_refs: DEC-010..DEC-014, DEC-028, DEC-045, DEC-046
+milestone_ref: MS-001
+delivery_refs: V2-W0304, V2-W0305
+parent_work_item: none
+depends_on: WI-009
 architecture_impact: none; implements approved order-grain lot model
 data_impact: additive V2 trade events purchase lots threads and allocation quality
 security_impact: account ids remain internal and reports are redacted
@@ -45,6 +49,10 @@ cost_impact: bounded MotherDuck reads and writes
 1. source disposition과 deterministic event identity를 확정한다.
 2. isolated/live migration과 position reconciliation을 수행한다.
 3. no-op과 restore를 검증한다.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

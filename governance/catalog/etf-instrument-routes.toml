@@ -1,0 +1,225 @@
+schema_version = 1
+
+[[contracts]]
+id = "etf_route.time-0019k0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only TIME route for KRX 0019K0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0019K0"
+market = "KRX"
+symbol = "0019K0"
+profile_ids = ["etf_profile.time-v1"]
+provider_product_key = "0019K0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.time-0162y0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only TIME route for KRX 0162Y0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0162Y0"
+market = "KRX"
+symbol = "0162Y0"
+profile_ids = ["etf_profile.time-v1"]
+provider_product_key = "0162Y0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.time-0185l0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only TIME route for KRX 0185L0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0185L0"
+market = "KRX"
+symbol = "0185L0"
+profile_ids = ["etf_profile.time-v1"]
+provider_product_key = "0185L0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.time-441800"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only TIME route for KRX 441800."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|441800"
+market = "KRX"
+symbol = "441800"
+profile_ids = ["etf_profile.time-v1"]
+provider_product_key = "441800"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.time-456600"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only TIME route for KRX 456600."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|456600"
+market = "KRX"
+symbol = "456600"
+profile_ids = ["etf_profile.time-v1"]
+provider_product_key = "456600"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.koact-0074k0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only KoAct route for KRX 0074K0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0074K0"
+market = "KRX"
+symbol = "0074K0"
+profile_ids = ["etf_profile.koact-v1"]
+provider_product_key = "0074K0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.koact-0163y0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only KoAct route for KRX 0163Y0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0163Y0"
+market = "KRX"
+symbol = "0163Y0"
+profile_ids = ["etf_profile.koact-v1"]
+provider_product_key = "0163Y0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.koact-475070"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only KoAct route for KRX 475070."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|475070"
+market = "KRX"
+symbol = "475070"
+profile_ids = ["etf_profile.koact-v1"]
+provider_product_key = "475070"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.koact-476850"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only KoAct route for KRX 476850."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|476850"
+market = "KRX"
+symbol = "476850"
+profile_ids = ["etf_profile.koact-v1"]
+provider_product_key = "476850"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.koact-495230"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only KoAct route for KRX 495230."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|495230"
+market = "KRX"
+symbol = "495230"
+profile_ids = ["etf_profile.koact-v1"]
+provider_product_key = "495230"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.rise-0151p0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only RISE route for KRX 0151P0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0151P0"
+market = "KRX"
+symbol = "0151P0"
+profile_ids = ["etf_profile.rise-v1"]
+provider_product_key = "0151P0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.rise-0162z0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only RISE route for KRX 0162Z0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0162Z0"
+market = "KRX"
+symbol = "0162Z0"
+profile_ids = ["etf_profile.rise-v1"]
+provider_product_key = "0162Z0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.plus-0166n0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only PLUS route for KRX 0166N0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0166N0"
+market = "KRX"
+symbol = "0166N0"
+profile_ids = ["etf_profile.plus-v1"]
+provider_product_key = "0166N0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"
+
+[[contracts]]
+id = "etf_route.plus-0166s0"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Exact fixture-only PLUS route for KRX 0166S0."
+decision_refs = ["DEC-018", "DEC-019"]
+instrument_id = "v1|KRX|0166S0"
+market = "KRX"
+symbol = "0166S0"
+profile_ids = ["etf_profile.plus-v1"]
+provider_product_key = "0166S0"
+product_key_kind = "krx_code_fixture"
+activation_state = "fixture_only"
+valid_from = "2026-08-28"

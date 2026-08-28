@@ -309,7 +309,8 @@ CI workflow:
 
 Deploy workflow:
 
-- `workflow_dispatch`만 지원하며 target은 `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`다.
+- `workflow_dispatch`만 지원하며 일반 target은 `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`, `v2-core-batch`, `v2-core-schedulers`다.
+- `wi021-s06`은 `all`에 포함되지 않는 수동 1회성 복구 Job target이다. Scheduler를 만들지 않으며 고정 hash/range, 단일 task, 병렬도 1, 자동 retry 0으로 deploy 후 즉시 `--wait` 실행한다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

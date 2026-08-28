@@ -1,11 +1,34 @@
 schema_version = 1
 
 [[contracts]]
+id = "pipeline.trade-cash-backfill-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "승인된 보유계좌 범위의 국내·IRP·해외 거래·현금 이력을 bounded partition으로 재개 가능하게 초도 적재한다."
+decision_refs = ["DEC-009", "DEC-010", "DEC-013", "DEC-015", "DEC-030", "DEC-044"]
+source_ids = ["source.kis-open-api", "source.portfolio-owner"]
+input_dataset_ids = []
+output_dataset_ids = ["dataset.trade-event", "dataset.cash-transaction-event"]
+stages = ["collect-land-normalize", "quality", "publish"]
+schedule_policy = "one bounded three-year backfill for the approved held-account scope; no recurring schedule"
+calendar_gate = "source date range only; unavailable account or route ranges remain explicit known gaps"
+idempotency_key = "pipeline id, version, logical end date, backfill slot and deterministic source partition key"
+timeout_policy = "bounded 60-day partitions, per-source page cap and managed Job runtime"
+retry_policy = "resume the failed partition and stage; completed partitions are reused; only guarded idempotent reads"
+source_call_budget = "pre-reserved per partition; domestic/overseas order three pages, overseas transaction two pages and hard 400 physical calls"
+freshness_gates = ["source effective and fetched time retained", "watermark advances only after successful quality and publish"]
+quality_gates = ["account and pagination coverage explicit", "guarded call count survives failure", "watermark is contiguous and monotonic", "known source gaps are not fabricated"]
+secret_profile = "existing KIS account runtime only; control keys contain public account labels, never CANO or credentials"
+cost_class = "backfill"
+trigger_policy = "fixed-argument managed Job for approved account scope; no arbitrary Remote MCP date or account arguments"
+
+[[contracts]]
 id = "pipeline.owned-portfolio-core-v2"
 version = "1.0.0"
 status = "approved"
 owner = "owner"
-description = "현재 보유 국내·미국 계좌·거래·가격·환율을 immutable observation과 canonical ledger·daily state로 만드는 managed pipeline."
+description = "현재 보유 국내·미국 계좌·거래·가격·환율을 immutable observation과 correction-aware canonical ledger·daily state로 만드는 managed pipeline."
 decision_refs = ["DEC-003", "DEC-005", "DEC-010", "DEC-015", "DEC-030", "DEC-044"]
 source_ids = ["source.kis-open-api", "source.portfolio-owner", "source.us-exchange-calendars"]
 input_dataset_ids = []
@@ -18,10 +41,56 @@ timeout_policy = "bounded per stage and run; no request-scoped long execution"
 retry_policy = "resume failed stage; idempotent source reads only; no live order retry"
 source_call_budget = "bounded by configured account and held-instrument count before each run"
 freshness_gates = ["position and cash as-of recorded", "price session and FX date match the evaluation slot"]
-quality_gates = ["pagination and account coverage complete or explicit degraded", "daily state reconciles to positions, price, cash and FX"]
+quality_gates = ["pagination and account coverage complete or explicit degraded", "official trade side and market/product/execution identity present before lot creation", "daily state reconciles to positions, price, cash and FX"]
 secret_profile = "KIS account runtime only in production; synthetic fixture has none"
 cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted Remote MCP may request the same logical run without arbitrary args"
+
+[[contracts]]
+id = "pipeline.metric-evaluation-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "quality-gated canonical state를 승인된 point-in-time metric contract로 평가하고 Gold value와 lineage를 보존한다."
+decision_refs = ["DEC-015", "DEC-016", "DEC-017", "DEC-026", "DEC-030", "DEC-038", "DEC-041", "DEC-044"]
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-event"]
+output_dataset_ids = ["dataset.metric-value"]
+stages = ["resolve-contract", "select-point-in-time-input", "evaluate", "quality", "publish"]
+schedule_policy = "runs after each governed portfolio evaluation slot; replay uses an explicit historical cutoff"
+calendar_gate = "inherits the upstream portfolio state market-session and quality status"
+idempotency_key = "metric id and version, subject type and id, evaluation timestamp"
+timeout_policy = "bounded per metric family and held-subject shard"
+retry_policy = "resume unpublished metric shards; identical logical values are no-op and conflicting replay fails"
+source_call_budget = "zero direct source calls; consumes governed MotherDuck inputs only"
+freshness_gates = ["upstream portfolio state and market inputs are terminal for the slot", "knowledge cutoff is no later than evaluation time"]
+quality_gates = ["approved metric contract", "no future input", "declared input quality policy", "stable formula and lineage hash"]
+secret_profile = "MotherDuck runtime only; no Telegram token during metric evaluation"
+cost_class = "routine"
+trigger_policy = "chained managed Job after portfolio publish; allowlisted historical replay only"
+
+[[contracts]]
+id = "pipeline.price-history-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유상품의 국내·미국 raw/adjusted 일봉을 endpoint별 basis 계약으로 수집하고 raw page, revision과 current canonical 값을 보존한다."
+decision_refs = ["DEC-005", "DEC-015", "DEC-016", "DEC-017", "DEC-030", "DEC-041", "DEC-044"]
+source_ids = ["source.kis-open-api"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.market-calendar"]
+output_dataset_ids = ["dataset.price-bar-daily"]
+stages = ["plan", "collect-land-normalize", "quality", "publish"]
+schedule_policy = "daily incremental after each market close; one bounded three-year reconstructed backfill for currently held instruments"
+calendar_gate = "instrument market session and listing interval; no future or non-session row fabricated"
+idempotency_key = "pipeline id, version, instrument, price basis, start date and end date"
+timeout_policy = "maximum ten pages per instrument/basis partition and bounded one-off Job runtime"
+retry_policy = "idempotent GET only; resume completed partitions; repeated cursor or continuation fails closed"
+source_call_budget = "pre-reserved per partition, hard ten pages and hard 400 physical calls for the approved held-scope backfill"
+freshness_gates = ["source session date and fetched knowledge time retained", "daily final bar only after applicable market close"]
+quality_gates = ["endpoint-specific basis option", "OHLC and volume validation", "page and market-calendar coverage", "strict and reconstructed replay modes never conflated"]
+secret_profile = "existing KIS quote account runtime only; no new provider or secret"
+cost_class = "backfill"
+trigger_policy = "fixed-argument managed Job for approved held scope; no arbitrary Remote MCP range or symbol"
 
 [[contracts]]
 id = "pipeline.etf-lookthrough-v2"

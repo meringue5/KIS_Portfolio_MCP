@@ -23,6 +23,7 @@ DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
 DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
 DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
 DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
+DEFAULT_WI021_S06_JOB = "kis-portfolio-wi021-s06"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -41,6 +42,7 @@ DEFAULT_REMOTE_MAX_INSTANCES = "1"
 DEFAULT_CHATGPT_REMOTE_AUTH_MODE = "oauth"
 DEFAULT_BATCH_TASK_TIMEOUT = "1800s"
 DEFAULT_BATCH_MAX_RETRIES = "0"
+DEFAULT_WI021_S06_TASK_TIMEOUT = "14400s"
 DEFAULT_BATCH_SCHEDULE = "35 15 * * 1-5"
 DEFAULT_BATCH_TIME_ZONE = "Asia/Seoul"
 DEFAULT_OVERSEAS_BATCH_SCHEDULE = "35 7 * * 1-5"
@@ -853,6 +855,76 @@ def _deploy_v2_core_schedulers(
     return 0
 
 
+def _deploy_wi021_s06_job(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    required = _required_keys_for_batch(env)
+    payload, secret_refs = _split_runtime_env(
+        env=env,
+        payload=_build_batch_env(env),
+        required=required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=True,
+    )
+    missing = _validate_required(env, required, secret_mode=args.secret_mode)
+    if missing:
+        print("Missing required environment variables:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable build-once image digest.")
+        return 1
+    git_sha = os.environ.get("GITHUB_SHA", "").strip() or (_git_stdout(["rev-parse", "HEAD"]) or "")
+    if len(git_sha) < 7:
+        print("Failed to resolve release Git SHA.")
+        return 1
+    payload.update({
+        "KIS_GCP_PROJECT": project,
+        "KIS_GCS_BUCKET": env.get("KIS_GCS_BUCKET", f"{project}-kis-portfolio-private"),
+        "KIS_RELEASE_IMAGE_DIGEST": image.split("@", 1)[1],
+        "KIS_RELEASE_GIT_SHA": git_sha,
+    })
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    job = args.job or env.get("KIS_WI021_S06_JOB_NAME") or DEFAULT_WI021_S06_JOB
+    command_args = (
+        "run-wi021-s06,--start-date,20230828,--end-date,20260828,--as-of-date,20260828,"
+        "--expected-plan-hash,0755656ed8151a91,--expected-budget-hash,0a4abf9b795f9d73,"
+        f"--project,{project},--bucket,{payload['KIS_GCS_BUCKET']}"
+    )
+    env_yaml_path = _write_env_yaml(payload)
+    try:
+        command = [
+            "gcloud", "run", "jobs", "deploy", job,
+            "--image", image,
+            "--region", args.region,
+            "--env-vars-file", env_yaml_path,
+            "--command", "kis-portfolio-batch",
+            "--args", command_args,
+            "--tasks", "1",
+            "--parallelism", "1",
+            "--task-timeout", env.get("KIS_CLOUD_RUN_WI021_S06_TASK_TIMEOUT", DEFAULT_WI021_S06_TASK_TIMEOUT),
+            "--max-retries", "0",
+            "--service-account", service_account,
+            *_build_secret_flags(secret_refs),
+            *_build_label_flags("wi021-s06"),
+            "--project", project,
+        ]
+        return _run(command, dry_run=args.dry_run)
+    finally:
+        try:
+            os.unlink(env_yaml_path)
+        except FileNotFoundError:
+            pass
+
+
 def _deploy_scheduler_target(
     *,
     args: argparse.Namespace,
@@ -925,6 +997,7 @@ def main() -> int:
             "token-warmup-scheduler",
             "v2-core-batch",
             "v2-core-schedulers",
+            "wi021-s06",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1092,6 +1165,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_v2_core_jobs(args, env=env, project=project)
+
+    if args.target == "wi021-s06":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi021_s06_job(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

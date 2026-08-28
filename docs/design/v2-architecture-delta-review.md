@@ -271,9 +271,9 @@ Cloud Run service revision은 deploy 시 image copy를 보존하지만, 이것�
 
 | Scope | Tool | 동작 계약 |
 | --- | --- | --- |
-| read | `get-portfolio-overview` | canonical total asset, account/asset allocation, holdings, cash, quality; stored 또는 bounded live freshness policy |
+| read | `get-portfolio-overview` | canonical total asset, account/asset allocation, holdings, cash, quality와 최신 원화 평가액 변화 설명; stored 또는 bounded live freshness policy |
 | read | `get-position-analysis` | position·lot·thread별 손익, impact, drawdown과 risk |
-| read | `get-performance-history` | cash-flow-adjusted portfolio/position/lot/thread history와 allocation trend |
+| read | `get-performance-history` | cash-flow-adjusted portfolio/position/lot/thread history, allocation trend와 별도 version의 원화 평가액 변화 기여도 |
 | read | `get-market-snapshot` | 국내·미국 price/quote/FX의 cache 또는 bounded live read-through |
 | read | `get-market-history` | governed price/FX bars와 MA20/50/120, volume, RSI, Bollinger context |
 | read | `get-trade-ledger` | order, execution, transaction, settlement와 cash-flow reconciliation |
@@ -306,7 +306,7 @@ Cloud Run service revision은 deploy 시 image copy를 보존하지만, 이것�
 | cached price/FX, Bollinger | `get-market-history` | metric version과 quality를 포함해 통합 |
 | domestic/overseas order·transaction·detail | `get-trade-ledger` | canonical identity와 source filter로 통합 |
 | domestic/overseas period profit | `get-performance-history`, `get-trade-ledger` | 계산 결과와 원장 근거를 분리 |
-| portfolio/total history, daily change, trend, allocation | `get-performance-history`, `get-portfolio-overview` | canonical cash-flow-adjusted metric으로 대체 |
+| portfolio/total history, daily change, trend, allocation | `get-performance-history`, `get-portfolio-overview` | cash-flow-adjusted return과 원화 평가액 변화 기여도를 의미·version별로 분리하여 대체 |
 | portfolio anomaly | `get-signal-status` | rule/version/input을 가진 signal로 대체 |
 | domestic/overseas submit-order stub | 없음 | V2에서 제거하고 unsupported capability를 명시적으로 응답 |
 

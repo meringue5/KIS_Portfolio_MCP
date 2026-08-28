@@ -1,1 +1,209 @@
 schema_version = 1
+
+[[contracts]]
+id = "metric.portfolio-value-krw"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "평가 slot의 quality-gated 계좌·종목·현금 가치를 합산한 원화 기준 포트폴리오 가치. Telegram payload에는 절대액을 노출하지 않는다."
+decision_refs = ["DEC-005", "DEC-015", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.portfolio-daily-state"]
+grain = "one portfolio subject, evaluation timestamp and slot"
+formula_ref = "formula.portfolio-value-krw.v1"
+unit = "KRW"
+point_in_time = true
+quality_gate = "all component rows pass and their effective and knowledge timestamps do not exceed the evaluation cutoff"
+validation_policy = "Python Decimal golden fixture equals the governed SQL sum; future input and conflicting replay tests must fail"
+consumer_ids = ["portfolio return denominator", "drawdown and risk budget", "signal evaluation"]
+
+[[contracts]]
+id = "metric.total-asset-valuation-change-contribution-krw"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "Comparable canonical daily states 사이의 종목·현금별 원화 평가액 변화와 총자산 영향, 전체 변화 기여 비율 및 미설명 잔차. 해외 종목은 환율 효과를 포함하며 투자수익 기여도가 아니다."
+decision_refs = ["DEC-026", "DEC-038", "DEC-048"]
+input_dataset_ids = ["dataset.portfolio-daily-state"]
+grain = "one prior-current evaluation pair, consolidated instrument or cash component, and metric version"
+formula_ref = "formula.total-asset-valuation-change-contribution-krw.v1"
+unit = "KRW and percent"
+point_in_time = true
+quality_gate = "both selected daily states are complete and reconciled with equal required account coverage; otherwise publish degraded totals but suppress new and sold inference"
+validation_policy = "Decimal golden fixtures reconcile total change to instrument changes plus cash change plus residual; partial account, zero denominator, new, sold and foreign FX scenarios are mandatory"
+consumer_ids = ["Remote MCP portfolio overview", "Remote MCP performance history", "contribution-aware signal evaluation"]
+
+[[contracts]]
+id = "metric.sma-adjusted-close-20"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "마지막 20개 완료 거래일의 수정종가 단순이동평균."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.sma-adjusted-close-20.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "20 adjusted daily closes known by cutoff; operational_strict and pass only"
+validation_policy = "independent DuckDB avg and Python Decimal golden series must match to DECIMAL(38,10)"
+consumer_ids = ["market history", "trend context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.sma-adjusted-close-50"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "마지막 50개 완료 거래일의 수정종가 단순이동평균."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.sma-adjusted-close-50.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "50 adjusted daily closes known by cutoff; operational_strict and pass only"
+validation_policy = "independent DuckDB avg and Python Decimal golden series must match to DECIMAL(38,10)"
+consumer_ids = ["market history", "trend context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.sma-adjusted-close-120"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "마지막 120개 완료 거래일의 수정종가 단순이동평균."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.sma-adjusted-close-120.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "120 adjusted daily closes known by cutoff; operational_strict and pass only"
+validation_policy = "independent DuckDB avg and Python Decimal golden series must match to DECIMAL(38,10)"
+consumer_ids = ["market history", "long trend context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.volume-sma-20"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "마지막 20개 완료 거래일 vendor 관측 거래량의 단순이동평균."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.volume-sma-20.v1"
+unit = "vendor_volume_units"
+point_in_time = true
+quality_gate = "20 non-null vendor volumes known by cutoff; corporate-action affected input is non-pass"
+validation_policy = "independent DuckDB avg and Python Decimal golden series must match to DECIMAL(38,10)"
+consumer_ids = ["market history", "volume context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.volume-ratio-20"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "당일 vendor 거래량을 마지막 20개 완료 거래일 거래량 SMA로 나눈 비율."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.volume-ratio-20.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "20 non-null vendor volumes known by cutoff and non-zero SMA denominator"
+validation_policy = "independent DuckDB current-volume over avg and Python Decimal golden series must match"
+consumer_ids = ["market history", "volume context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.rsi-14-wilder"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "최대 최근 120개 수정종가에서 최초 14개 변화 평균을 seed로 재귀 계산한 Wilder RSI14."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.rsi-14-wilder.v1"
+unit = "index_0_100"
+point_in_time = true
+quality_gate = "15 to 120 adjusted closes known by cutoff; operational_strict and pass only"
+validation_policy = "independent Python recurrence golden series, monotonic 100 and flat 50 fixtures must match"
+consumer_ids = ["market history", "RSI context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.bollinger-lower-20-2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "수정종가 SMA20에서 population standard deviation 두 배를 뺀 Bollinger 하단."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.bollinger-lower-20-2.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "20 adjusted closes known by cutoff; operational_strict and pass only"
+validation_policy = "independent DuckDB avg and stddev_pop golden series must match"
+consumer_ids = ["market history", "Bollinger context"]
+
+[[contracts]]
+id = "metric.bollinger-upper-20-2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "수정종가 SMA20에 population standard deviation 두 배를 더한 Bollinger 상단."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.bollinger-upper-20-2.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "20 adjusted closes known by cutoff; operational_strict and pass only"
+validation_policy = "independent DuckDB avg and stddev_pop golden series must match"
+consumer_ids = ["market history", "Bollinger context"]
+
+[[contracts]]
+id = "metric.bollinger-percent-b-20-2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 수정종가가 Bollinger 하단과 상단 사이 어디에 있는지 나타내는 percent B."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.bollinger-percent-b-20-2.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "20 adjusted closes known by cutoff; zero-width flat series deterministically yields 0.5"
+validation_policy = "independent DuckDB band expression and Python Decimal golden series must match"
+consumer_ids = ["market history", "Bollinger context"]
+
+[[contracts]]
+id = "metric.bollinger-bandwidth-20-2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "Bollinger 상하단 폭을 SMA20으로 나눈 보조 변동성 context."
+decision_refs = ["DEC-015", "DEC-016", "DEC-026"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.bollinger-bandwidth-20-2.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "20 adjusted closes known by cutoff and non-zero SMA denominator"
+validation_policy = "independent DuckDB band expression and Python Decimal golden series must match"
+consumer_ids = ["market history", "Bollinger squeeze and expansion context"]
+
+[[contracts]]
+id = "metric.atr-20-wilder"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "최대 최근 120개 수정 OHLC에서 최초 20개 true range 평균을 seed로 재귀 계산한 Wilder ATR20."
+decision_refs = ["DEC-015", "DEC-017", "DEC-027"]
+input_dataset_ids = ["dataset.price-bar-daily"]
+grain = "one instrument and evaluation timestamp"
+formula_ref = "formula.atr-20-wilder.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "20 to 120 adjusted high low close bars known by cutoff; operational_strict and pass only"
+validation_policy = "independent Python true-range recurrence and constant-range golden series must match"
+consumer_ids = ["market history", "volatility context", "advisory ATR stop metadata"]

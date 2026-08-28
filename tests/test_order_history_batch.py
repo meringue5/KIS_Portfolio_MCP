@@ -47,6 +47,91 @@ async def test_inquery_order_list_uses_active_account_product_code_and_can_save(
     assert saved["args"][:6] == ("44444444", "29", "irp", "domestic", "20260423", "20260423")
 
 
+@pytest.mark.anyio
+async def test_domestic_order_history_splits_recent_old_routes_and_preserves_irp_gap(monkeypatch):
+    calls = []
+    monkeypatch.setenv("KIS_CANO", "44444444")
+    monkeypatch.setenv("KIS_ACNT_PRDT_CD", "29")
+    monkeypatch.setenv("KIS_ACCOUNT_TYPE", "REAL")
+
+    async def fake_paginated(path, tr_id, params, **kwargs):
+        calls.append((tr_id, params.copy(), kwargs))
+        return {"output1": [{"odno": "old-1"}], "output2": [], "pagination": {"page_count": 2}}
+
+    monkeypatch.setattr(kis_api, "_get_paginated_kis_json", fake_paginated)
+    result = await kis_api.inquery_order_list(
+        "20260101", "20260415", today=datetime(2026, 4, 20).date(),
+    )
+
+    assert [item[0] for item in calls] == ["CTSC9215R"]
+    assert calls[0][1]["CTX_AREA_FK100"] == ""
+    assert calls[0][2]["context_size"] == "100"
+    assert result["output1"] == [{"odno": "old-1"}]
+    assert result["segments"][1]["status"] == "provisional_source_gap"
+    assert result["pagination"]["page_count"] == 2
+
+
+@pytest.mark.anyio
+async def test_domestic_order_history_uses_current_recent_route(monkeypatch):
+    calls = []
+    monkeypatch.setenv("KIS_CANO", "44444444")
+    monkeypatch.setenv("KIS_ACNT_PRDT_CD", "01")
+    monkeypatch.setenv("KIS_ACCOUNT_TYPE", "REAL")
+
+    async def fake_paginated(path, tr_id, params, **kwargs):
+        calls.append((path, tr_id, params.copy(), kwargs))
+        return {"output1": [{"odno": "recent-1"}], "output2": [], "pagination": {"page_count": 1}}
+
+    monkeypatch.setattr(kis_api, "_get_paginated_kis_json", fake_paginated)
+    result = await kis_api.inquery_order_list(
+        "20260415", "20260420", today=datetime(2026, 4, 20).date(),
+    )
+
+    assert len(calls) == 1
+    assert calls[0][0] == kis_api.ORDER_LIST_PATH
+    assert calls[0][1] == "TTTC0081R"
+    assert calls[0][2]["CTX_AREA_FK100"] == ""
+    assert calls[0][3]["context_size"] == "100"
+    assert result["output1"] == [{"odno": "recent-1"}]
+    assert result["segments"][0]["status"] == "collected"
+
+
+@pytest.mark.anyio
+async def test_paginated_kis_json_propagates_fk_nk_and_n_continuation(monkeypatch):
+    calls = []
+    reservations = []
+    expected_pages = [
+        {"output1": [{"odno": "1"}], "ctx_area_fk100": "fk-1", "ctx_area_nk100": "nk-1"},
+        {"output1": [{"odno": "2"}]},
+    ]
+    responses = [
+        PageResponse(expected_pages[0], {"tr_cont": "F"}),
+        PageResponse(expected_pages[1], {}),
+    ]
+    monkeypatch.setenv("KIS_APP_KEY", "key")
+    monkeypatch.setenv("KIS_APP_SECRET", "secret")
+    monkeypatch.setattr(kis_api, "get_access_token", fake_token)
+    monkeypatch.setattr(kis_api.httpx, "AsyncClient", lambda: PageClient(calls, responses))
+
+    result = await kis_api._get_paginated_kis_json(
+        kis_api.ORDER_LIST_PATH,
+        "TTTC0081R",
+        {"CTX_AREA_FK100": "", "CTX_AREA_NK100": ""},
+        output_keys=("output1",),
+        context_size="100",
+        before_request=lambda page: reservations.append(page),
+        capture_pages=True,
+    )
+
+    assert result["output1"] == [{"odno": "1"}, {"odno": "2"}]
+    assert result["pagination"]["page_count"] == 2
+    assert calls[1]["headers"]["tr_cont"] == "N"
+    assert calls[1]["params"]["CTX_AREA_FK100"] == "fk-1"
+    assert calls[1]["params"]["CTX_AREA_NK100"] == "nk-1"
+    assert reservations == [1, 2]
+    assert result["captured_pages"] == expected_pages
+
+
 def test_collect_domestic_order_history_runs_all_accounts_and_reports_errors(monkeypatch):
     apply_account_env(monkeypatch)
     monkeypatch.setenv("KIS_ACCOUNT_LABEL", "previous")
@@ -235,6 +320,7 @@ async def fake_token(client, domain):
 class FakeResponse:
     status_code = 200
     text = "ok"
+    headers = {}
 
     def json(self):
         return {"output1": [{"odno": "1"}]}
@@ -253,6 +339,34 @@ class FakeClient:
     async def get(self, url, headers, params):
         self.calls.append({"url": url, "headers": headers, "params": params})
         return FakeResponse()
+
+
+class PageResponse:
+    status_code = 200
+    text = "ok"
+
+    def __init__(self, payload, headers):
+        self.payload = payload
+        self.headers = headers
+
+    def json(self):
+        return self.payload
+
+
+class PageClient:
+    def __init__(self, calls, responses):
+        self.calls = calls
+        self.responses = responses
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return None
+
+    async def get(self, url, headers, params):
+        self.calls.append({"url": url, "headers": headers.copy(), "params": params.copy()})
+        return self.responses.pop(0)
 
 
 def apply_account_env(monkeypatch):

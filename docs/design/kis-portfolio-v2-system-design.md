@@ -374,9 +374,9 @@ V2는 raw KIS endpoint마다 tool을 만들지 않고 질문의 결과 단위로
 
 | Scope | Tool candidate | 책임 |
 | --- | --- | --- |
-| read | `get-portfolio-overview` | canonical total asset·allocation·quality |
+| read | `get-portfolio-overview` | canonical total asset·allocation·quality와 최신 평가액 변화 설명 |
 | read | `get-position-analysis` | position/lot/thread 손익·drawdown·risk |
-| read | `get-performance-history` | cash-flow-adjusted portfolio history |
+| read | `get-performance-history` | cash-flow-adjusted portfolio history와 별도 표기된 원화 평가액 변화 기여도 |
 | read | `get-market-snapshot` | current/cached price·FX·freshness |
 | read | `get-market-history` | governed bars·trend·volume·RSI·Bollinger context |
 | read | `get-trade-ledger` | order/execution/transaction/cash flow |
@@ -392,6 +392,12 @@ V2는 raw KIS endpoint마다 tool을 만들지 않고 질문의 결과 단위로
 | collect | `run-managed-pipeline` | allowlisted Job trigger |
 | journal.write | `upsert-trade-journal` | expected revision 기반 작성·수정 |
 | journal.write | `revise-trade-thread` | lot/thread/sell allocation revision |
+
+원화 평가액 변화 기여도는 cash-flow-adjusted return attribution과 별도 metric/version을 가진다. 양일
+canonical daily state가 complete·reconciled이고 필수 계좌 coverage가 같을 때만 신규 편입·전량 매도를
+판정한다. 현금 delta와 미설명 residual을 포함하며, 해외 종목은 `KRW valuation change including FX`로
+표시한다. 전환기 V1 `get-total-asset-daily-change`의 additive response와 이 V2 read model은 같은 계산
+계약을 사용한다.
 
 주문 tool은 V2 public catalog에서 제거한다. V1 disabled stub은 connector cutover 동안에만 호환 표면에 남긴다.
 

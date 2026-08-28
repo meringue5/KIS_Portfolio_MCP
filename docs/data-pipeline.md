@@ -37,6 +37,67 @@ Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미�
 최근 7일의 source history에서 latest applicable session을 선택해 주말·한국 휴일 gap을 메운다. 모든 raw
 bundle은 recursive secret redaction과 account masking 후 private GCS에 content hash로 랜딩한다.
 
+WI-015의 `pipeline.price-history-v2`는 계좌 snapshot 수집과 분리된 held-instrument price partition을 사용한다.
+국내와 해외 endpoint의 수정주가 option 의미를 따로 고정하고, page raw observation과 normalized content
+revision을 함께 남긴다. 오늘 수집한 과거 일봉은 `retrospective_reconstructed`이며 strict historical alert
+input으로 승격하지 않는다. backfill은 instrument/basis당 최대 10 page, 전체 최대 400 physical call을 호출
+전에 예약하며 반복 cursor·continuation은 partial 성공이 아니라 실패다.
+
+WI-016부터 국내 주문 이력은 조회일 기준 recent/old TR을 분할하고 각 구간의 FK/NK continuation을 끝까지
+소비한다. 해외 기간거래는 거래행이 있는 `output1`을 정규화하며 체결가·수수료·적용환율·결제일의 원천
+필드를 보존한다. 국내 side code는 `01=sell`, `02=buy`만 승인하고 그 밖의 값은 lot을 만들지 않는다.
+V1의 all-buy 오염은 원행을 수정하거나 삭제하지 않고 `silver.trade_event_revisions`에 append한다.
+분석 소비자는 최신 revision인 `silver.trade_events_current`와 buy만 남긴
+`silver.purchase_lots_current`를 사용한다. 신규 canonical identity는 account, market, product code,
+instrument, broker order, executed time, execution sequence를 포함한다.
+
+WI-021-S01은 이 원천 경계를 3년 backfill의 결정적 60일 partition으로 투영한다. 국내 shard는 조회일 기준
+90일 old/recent 경계를 넘지 않고, IRP recent와 승인된 국내 cash-history source 부재는 호출 대상이 아닌
+`known_gap`으로 보존한다. 해외 주문과 기간거래는 별도 partition이며 기간거래만 trade/cash 후보를 함께
+낸다. `plan-trade-cash-backfill-v2`는 공개 manifest만 출력하고 source call, DB write, 호출 예산 강제나
+resume을 수행하지 않는다. 상세 계약은
+[WI-021-S01 backfill partition plan](./design/wi-021-s01-backfill-partition-plan.md)에 둔다.
+
+WI-021-S02는 S01 partition을 바꾸지 않고 별도 budget hash로 source별 page와 전체 physical-call ceiling을
+적용한다. 기본값은 국내 주문 3 page, 해외 주문 3 page, 해외 기간거래 2 page, 전체 400 call이다. 전체
+partition의 최악 page 합계를 실행 전에 예약하지 못하면 call gate를 만들지 않으며, 각 실제 source
+request도 `run_budgeted_physical_call`이 partition/global quota를 먼저 원자적으로 예약한 뒤에만 수행한다.
+한도 소진, unknown partition과 known gap은 외부 호출 전에 실패한다. 상세 계약은
+[WI-021-S02 call budget](./design/wi-021-s02-call-budget.md)에 둔다.
+
+WI-021-S03은 `pipeline.trade-cash-backfill-v2`를 기존 Control runner에 별도 등록한다. logical identity는
+pipeline/version/end-date/backfill slot/partition key이며, 완료 partition은 재사용하고 실패 partition은 같은
+run id에서 재개한다. 각 physical-call reservation은 I/O 전에 stage row에 기록되어 process restart 뒤에도
+page/global budget에서 차감된다. source stream watermark는 quality 이후 publish에서만 연속·단조 증가한다.
+
+WI-021-S04는 guarded fixture page를 content-based immutable row observation으로 landing하고, 주문 source의
+official side·체결수량·가격만 Silver trade fact로 만든다. 해외 period transaction은 주문 fact와 병합하지
+않는 trade candidate observation으로 남기며, 원천에 명시된 settlement·fee·tax만 별도 cash fact로 만든다.
+pagination이 불완전하면 Bronze observation은 보존하지만 Silver publish와 watermark를 차단한다. 이 단계는
+purchase lot을 만들지 않으며 lot/position replay는 WI-022가 담당한다.
+
+WI-021-S05는 같은 pipeline에 실제 KIS page adapter를 연결한다. 공통 pagination engine은 각 business HTTP
+직전에 durable reservation hook을 호출하고, 승인된 page 한도에서 continuation이 남으면 partial page를
+Bronze에 보존한 뒤 publish를 차단한다. 운영 명령은 기본 preflight이며 exact date·plan hash·budget hash,
+MotherDuck mode, 영향 테이블을 포함한 pre-backup manifest와 `--apply`가 모두 맞아야 source/DB를 연다.
+
+WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
+`silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
+유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은
+구성종목 없이 이름만으로 canonical 값이 되지 않는다. ETF provider 선택은
+`governance/catalog/etf-instrument-routes.toml`의 exact route만 허용한다.
+
+WI-019의 trend metric evaluator는 `silver.price_bar_revisions_daily`의 adjusted 일봉을 evaluation cutoff로
+point-in-time 선택해 SMA20/50/120, volume SMA/ratio20, Wilder RSI14, population-standard-deviation Bollinger
+20/2 context와 Wilder ATR20을 `gold.metric_values`에 저장한다. 장중 slot은 마지막 완료 일봉까지만 사용한다.
+필요 이력이 없으면 `insufficient_history`, 필드가 없으면 `missing_price_field`로 null을 기록한다. 오늘
+수집한 과거 일봉의 `retrospective_reconstructed` 상태는 그대로 보존하며 strict metric 값으로 승격하지 않는다.
+
+TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
+profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
+Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는
+Silver publish를 차단한다. 실제 issuer 수집은 provider별 rights가 모두 allowed가 되는 별도 Work Item이다.
+
 `tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
 `src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
 lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.

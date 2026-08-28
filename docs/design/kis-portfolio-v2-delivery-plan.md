@@ -225,11 +225,15 @@ pipeline별 feature flag로 V2 writer를 멈추고 V1 schedule을 재활성화�
 - `V2-W0507` alert state machine, de-duplication, recovery와 delivery ledger.
 - `V2-W0508` Telegram payload redaction·test destination·retry.
 - `V2-W0509` 3년 replay, asset-class calibration과 2주 shadow report.
+- `V2-W0510` comparable canonical daily state를 이용한 종목별 총자산 원화 평가액 변화 기여도,
+  현금·미설명 잔차·reconciliation 및 부분 수집 오판 방지 read model.
 
 ### Acceptance gate
 
 - metric golden fixtures가 SQL과 Python reference 계산에 일치한다.
 - point-in-time replay가 미래 consensus, future price, later journal revision을 읽지 않는다.
+- 원화 평가액 변화 기여도는 양일 completeness와 동일 필수 계좌 coverage를 검사하고, partial 상태에서
+  신규 편입·전량 매도 판정을 억제하며 해외 종목에 환율 포함 의미를 표시한다.
 - bootstrap threshold의 일별 alert 예산과 최대 누락 사례가 문서화된다.
 - shadow 2주 동안 Telegram 전송 없이 message candidate와 de-duplication이 검증된다.
 - 전체 계좌번호·총자산 절대액·credential이 payload와 log에 없다.
@@ -303,6 +307,7 @@ delivery feature flag를 끄고 signal evaluation은 DB-only로 유지한다. si
 - `V2-W0804` target별 과거 image와 V1 Job/Scheduler cleanup plan 승인.
 - `V2-W0805` quarterly restore, monthly capacity/cost, source contract review runbook.
 - `V2-W0806` obsolete package/shim 제거와 final architecture audit.
+- `V2-W0807` V1 문서 전수 분류, V2 canonical 문서 통합, supersession/archive link와 fresh-clone 검증.
 
 ### Acceptance gate
 
@@ -311,6 +316,8 @@ delivery feature flag를 끄고 signal evaluation은 DB-only로 유지한다. si
 - `main`에 V2 writer가 없고 external consumer도 없다.
 - catalog/DDL/repository/backup/live inventory drift가 0이다.
 - architecture, warehouse, MCP surface, security, deployment audit가 모두 통과한다.
+- architecture·requirements·MCP·data·security·deployment·recovery·cost·onboarding의 현재 정본이 V2 하나를
+  가리키고, V1 역사 증거는 지위가 명시된 상태로 보존된다.
 
 ### Rollback
 

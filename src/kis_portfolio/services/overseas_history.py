@@ -64,7 +64,7 @@ def _order_count(raw: dict) -> int:
 
 
 def _transaction_count(raw: dict) -> int:
-    return len(_row_list(raw, "output2"))
+    return len(_row_list(raw, "output1"))
 
 
 def _normalize_side(value: str) -> str:
@@ -205,7 +205,7 @@ def _normalize_overseas_transactions(
     account_id, account_product_code, account_type = _current_account()
     normalized = []
 
-    for row in _row_list(raw, "output2"):
+    for row in _row_list(raw, "output1"):
         transaction_date = _compact_yyyymmdd(
             _pick_value(row, "erlm_dt", "trad_dt", "tr_dt", "ccld_dt", "ord_dt") or fallback_date
         )
@@ -225,13 +225,18 @@ def _normalize_overseas_transactions(
             "transaction_type_code": _pick_value(row, "trad_dvsn_cd", "tr_dvsn_cd"),
             "transaction_type_name": _pick_value(row, "trad_dvsn_name", "tr_dvsn_name"),
             "quantity": to_float(_pick_value(row, "tr_qty", "ccld_qty", "ft_ccld_qty", "qty")),
-            "price": to_float(_pick_value(row, "tr_unpr", "ccld_unpr", "ft_ccld_unpr3", "unpr")),
+            "price": to_float(_pick_value(
+                row, "ft_ccld_unpr2", "ovrs_stck_ccld_unpr", "tr_unpr", "ccld_unpr",
+                "ft_ccld_unpr3", "unpr",
+            )),
             "amount": to_float(_pick_value(row, "tr_amt", "ccld_amt", "frcr_ccld_amt", "ovrs_tr_amt")),
-            "fee": to_float(_pick_value(row, "fee", "ovrs_fee", "frcr_fee")),
+            "fee": to_float(_pick_value(row, "frcr_fee1", "fee", "ovrs_fee", "frcr_fee")),
             "tax": to_float(_pick_value(row, "tax", "tax_amt", "frcr_tax")),
             "currency": _pick_value(row, "tr_crcy_cd", "crcy_cd", "ovrs_crcy_cd"),
             "settlement_amount": to_float(_pick_value(row, "sttl_amt", "frcr_sttl_amt", "settlement_amount")),
-            "fx_rate": to_float(_pick_value(row, "exrt", "aply_exrt", "fx_rate")),
+            "fx_rate": to_float(_pick_value(row, "erlm_exrt", "exrt", "aply_exrt", "fx_rate")),
+            "settlement_date": _compact_yyyymmdd(_pick_value(row, "sttl_dt")),
+            "domestic_fee": to_float(_pick_value(row, "dmst_frcr_fee1")),
             "order_no": _pick_value(row, "odno", "ord_no", "ovrs_odno"),
             "last_source": source,
             "last_transaction_history_id": saved_transaction_history_id,
@@ -241,6 +246,7 @@ def _normalize_overseas_transactions(
 
 
 def _format_overseas_transaction(row: dict) -> dict:
+    raw = row.get("raw_data") if isinstance(row.get("raw_data"), dict) else {}
     return {
         "transaction_hash": row.get("transaction_hash"),
         "transaction_date": _compact_yyyymmdd(row.get("transaction_date")),
@@ -259,6 +265,8 @@ def _format_overseas_transaction(row: dict) -> dict:
         "currency": row.get("currency"),
         "settlement_amount": row.get("settlement_amount"),
         "fx_rate": row.get("fx_rate"),
+        "settlement_date": row.get("settlement_date") or _compact_yyyymmdd(_pick_value(raw, "sttl_dt")),
+        "domestic_fee": row.get("domestic_fee") or to_float(_pick_value(raw, "dmst_frcr_fee1")),
         "order_no": row.get("order_no"),
         "first_seen_at": row.get("first_seen_at"),
         "last_seen_at": row.get("last_seen_at"),

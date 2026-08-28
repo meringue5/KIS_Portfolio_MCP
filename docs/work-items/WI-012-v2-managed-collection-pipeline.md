@@ -6,6 +6,10 @@ type: architecture
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-009..011
 requirement_refs: DEC-003, DEC-005, DEC-030, DEC-035..041, DEC-045, DEC-046
+milestone_ref: MS-001
+delivery_refs: V2-W0401, V2-W0402, V2-W0403, V2-W0409
+parent_work_item: none
+depends_on: WI-009, WI-010, WI-011
 architecture_impact: approved managed Job and raw-object boundary implementation
 data_impact: recurring governed Bronze Silver Gold writes and run quality lineage
 security_impact: private GCS, Secret Manager and least-privilege service accounts
@@ -49,6 +53,10 @@ V2 계약과 과거 ledger는 있으나 recurring governed writer와 off-vendor 
 1. private GCS create-or-verify와 restore evidence를 만든다.
 2. fixed-argument collection adapter, run/quality/lineage/watermark를 구현한다.
 3. Job/Scheduler 구성을 배포 경로에 연결하고 dual-write 관찰을 시작한다.
+
+## Sub-items
+
+- `none`.
 
 ## Evidence
 

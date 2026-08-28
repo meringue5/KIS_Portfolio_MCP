@@ -18,7 +18,12 @@ async def test_inquery_stock_history_uses_period_chart_tr_id(monkeypatch):
     monkeypatch.setenv("KIS_ACCOUNT_TYPE", "REAL")
     monkeypatch.setattr(kis_api, "get_access_token", fake_token)
     monkeypatch.setattr(kis_api.httpx, "AsyncClient", lambda: FakeClient(calls))
-    monkeypatch.setattr(kis_api.kisdb, "upsert_price_history", lambda rows: saved_rows.extend(rows))
+    saved_basis = []
+    monkeypatch.setattr(
+        kis_api.kisdb,
+        "upsert_price_history",
+        lambda rows, *, adjusted=False: (saved_rows.extend(rows), saved_basis.append(adjusted)),
+    )
 
     result = await kis_api.inquery_stock_history("005930", "20260101", "20260131")
 
@@ -44,6 +49,30 @@ async def test_inquery_stock_history_uses_period_chart_tr_id(monkeypatch):
         "close": "70500",
         "volume": "1000",
     }]
+    assert saved_basis == [True]
+
+
+@pytest.mark.anyio
+async def test_domestic_raw_and_overseas_adjusted_use_endpoint_specific_options(monkeypatch):
+    calls = []
+    saved_basis = []
+    monkeypatch.setenv("KIS_APP_KEY", "key")
+    monkeypatch.setenv("KIS_APP_SECRET", "secret")
+    monkeypatch.setenv("KIS_ACCOUNT_TYPE", "REAL")
+    monkeypatch.setattr(kis_api, "get_access_token", fake_token)
+    monkeypatch.setattr(kis_api.httpx, "AsyncClient", lambda: FakeClient(calls))
+    monkeypatch.setattr(
+        kis_api.kisdb,
+        "upsert_price_history",
+        lambda rows, *, adjusted=False: saved_basis.append(adjusted),
+    )
+
+    await kis_api.inquery_stock_history("005930", "20260101", "20260131", adjusted=False)
+    await kis_api.inquery_overseas_stock_history("AAPL", "NAS", "20260131", adjusted=True)
+
+    assert calls[0]["params"]["FID_ORG_ADJ_PRC"] == "1"
+    assert calls[1]["params"]["MODP"] == "1"
+    assert saved_basis == [False, True]
 
 
 async def fake_token(client, domain):
@@ -64,6 +93,12 @@ class FakeResponse:
                 "stck_lwpr": "69000",
                 "stck_clpr": "70500",
                 "acml_vol": "1000",
+                "xymd": "20260102",
+                "open": "100",
+                "high": "101",
+                "low": "99",
+                "clos": "100.5",
+                "tvol": "2000",
             }],
         }
 

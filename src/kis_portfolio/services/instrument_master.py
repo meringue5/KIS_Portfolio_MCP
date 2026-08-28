@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ssl
 import tempfile
 import urllib.request
 import zipfile
@@ -85,7 +84,6 @@ MARKET_SPECS = {
 
 
 def _download_zip(url: str, output_path: Path) -> None:
-    ssl._create_default_https_context = ssl._create_unverified_context
     urllib.request.urlretrieve(url, output_path)
 
 

@@ -7,6 +7,22 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-009..014 production trade/cash history | V2-ADR-006/010/012 | WI-021 / WI-021-S06 | fixed-hash one-off Cloud Run Job; pre/post V2 backup, private GCS recovery and restored aggregate reconciliation | zero-source-call before verified pre-recovery; one task/parallelism one/retry zero tests; live execution pending reviewed master release | in_progress |
+| DEC-009..014 bounded physical broker history | V2-ADR-006/010/012 | WI-021 / WI-021-S05 | per-page KIS adapter and hash/backup-gated production command | 131 partitions, 6 gaps, 374/400 preflight; physical-page and negative CLI tests; full 303 passed | S05 closed; parent in_progress |
+| DEC-009..014 governed trade/cash normalization | V2-ADR-006/010/012 | WI-021 / WI-021-S04 | guarded fixture pages, immutable observations, trade/cash facts and reconciliation report | incomplete pagination blocks Silver/watermark; replay no-op; full 297 passed | S04 closed; parent in_progress |
+| DEC-009..014 resumable backfill control | V2-ADR-006/010/012 | WI-021 / WI-021-S03 | governed backfill pipeline identity, partition logical runs, pre-I/O persisted call usage and monotonic watermark | failure/resume, completed reuse, gap/no-regression tests; full 295 passed | S03 closed; parent in_progress |
+| DEC-009..014 bounded source-call execution | V2-ADR-006/010/012 | WI-021 / WI-021-S02 | 3/3/2 page policy, 400-call preflight and guarded physical-call wrapper | 374/400 reservation, exhaustion/no-invocation tests; full 290 passed | S02 closed; parent in_progress |
+| DEC-009..014 bounded three-year trade/cash planning | V2-ADR-006/010/012 | WI-021 / WI-021-S01 | deterministic 60-day source-boundary planner and read-only CLI | exact coverage/gap/secret tests; full 278 passed | S01 closed; parent in_progress |
+| DEC-015..017/026 replay-safe trend and volatility metrics | V2-ADR-006/010/012 | WI-019 | 11 metric contracts, Decimal formulas and strict PIT evaluator | independent SQL/Python goldens, null quality and future-revision exclusion; full 262 passed | closed |
+| DEC-009..014 canonical cash-event identity, revisions and PIT provenance | V2-ADR-006/010/012 | WI-020 | migration 0008, event/revision/current objects and PIT repository | category separation, immutable conflict and full backup/restore; full 257 passed | closed |
+| complete remaining V2 delivery ownership before WI-020 and WI-019 execution | ADR-021/022 | WI-034 | historical disposition, WI-035~051 append-only baseline, MS-002~004 and completeness checker | all 69 delivery IDs owned; 8 focused and full 254 tests passed | closed |
+| DEC-047/048 final M4 V2 documentation SSOT and exact total-asset valuation-change contribution intake | ADR-022 + V2-ADR-006/015 | WI-031 | MS-003/004 baseline, WI-032/033 and metric/read-model contracts | 10 focused tests; full gate 252 passed; no product mutation | closed |
+| GOV-003/004/006/008 immutable milestone and Work Item control | ADR-022 | WI-018 | milestone registry, MS-002 baseline, stable relationships and checker | 5 focused tests; full gate 251 passed | closed |
+| DEC-005/018/019/030/041/044 held instrument and ETF routing | V2-ADR-006/010/012 | WI-017 | versioned classification, exact routes, rights-gated offline parsers | live 18 versions/14 routes, zero network profiles, private backup/restore, 248 tests | closed |
+| DEC-009..014/030/041/044 broker history correction | V2-ADR-006/010/012 | WI-016 | side/pagination/source-field correction and append-only revisions | live 19/19 revisions, zero unknown identity, private backup/restore, 239 tests | closed |
+| DEC-005/015..017/030/041/044 V2 dual-basis price history | V2-ADR-006/010/012 | WI-015 | price pipeline, revision ledger, bounded backfill | live 18 instruments, 15,152 dual-basis rows, 36/36 partitions, private backup/restore | closed |
+| DEC-015..019/026/038/041/044 Milestone 2 production data readiness | V2-ADR-006/010/012 | WI-014 | readiness review and prerequisite order | six read-only research tracks; price/trade/ETF-rights blockers documented | closed |
+| DEC-015..017/026/038/041/044 Milestone 2: point-in-time metric foundation | V2-ADR-006/010/012 | WI-013 | metric contracts, Gold value ledger, replay-safe evaluator | nullable unavailable outcome, idempotency, PIT and restore gates; 227 tests pass | closed |
 | DEC-046 Milestone 1: canonical portfolio ledger | V2-ADR-006/010/016 | WI-009 | account/position/cash/daily-state mapping and repositories | live 5 accounts, 1,357 positions, 232 cash; 27-day 0 KRW difference; restore | closed |
 | DEC-046 Milestone 1: trade/lot/thread ledger | V2-ADR-006/010/016 | WI-010 | trade events, purchase lots, thread links and quality | live 19 trade/lot/thread; 2 matched, 4 partial-history groups; restore | closed |
 | DEC-046 Milestone 1: Firestore operational state | V2-ADR-005/008/017 | WI-011 | OAuth/KIS/lease/run-request ports and runtime version gate | concurrency, reconnect/reissue and smoke | closed |
@@ -20,7 +36,46 @@
 | DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; MotherDuck Lite 0원; `my_db` empty legacy 확인; 운영 변경 없음 | verified, acceptance pending |
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
-| DEC-001..DEC-044: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; delivery-plan Wave 1~4의 배포·cutover·3년 backfill은 후속 Work Item | in_progress |
+| DEC-001..DEC-048: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0807 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; MS-002~004 and remaining delivery items tracked by immutable registry | in_progress |
+
+## Planned Milestone Work
+
+이 표의 Work Item ID는 예약된 불변 식별자다. 우선순위는 번호가 아니라
+`governance/project/milestones.toml`의 dependency와 sequence를 따른다.
+
+| Requirement | Design item | Work Item | Dependency | Status |
+| --- | --- | --- | --- | --- |
+| DEC-015..017/026 trend and volatility | V2-W0503 | WI-019 | WI-013, WI-015 | closed |
+| DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | closed |
+| DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | in_progress; S01 planner/partition only |
+| DEC-015..017 corporate actions | V2-W0307 | WI-036 | WI-015 | proposed |
+| DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | proposed |
+| DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | proposed |
+| DEC-012..014/027/031 thread risk plans/review queue | V2-W0305/0306 | WI-024 | WI-010, WI-022 | proposed |
+| DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | proposed |
+| DEC-018/019/025 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | proposed; rights gate |
+| DEC-018/019/026 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | proposed |
+| DEC-026/038/048 total-asset KRW valuation-change contribution | V2-W0510 | WI-033 | WI-009, WI-013 | ready |
+| DEC-026..028 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-027, WI-033 | proposed |
+| DEC-026..028 replay and shadow | V2-W0509 | WI-029 | WI-028 | proposed |
+| DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030 | WI-029 | proposed; external-send gate |
+| DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 | WI-012 | proposed; MS-003 |
+| DEC-020..025 filing actual/fundamental facts | V2-W0406 | WI-037 | WI-012, WI-017 | proposed; MS-003 |
+| DEC-020/024 dividend ledger | V2-W0407 | WI-038 | WI-020, WI-021, WI-037 | proposed; MS-003 |
+| DEC-022 macro profile | V2-W0408 | WI-039 | WI-012 | proposed; MS-003 |
+| DEC-031/032 catalog and quality read model | V2-W0410 | WI-040 | WI-012, WI-019, WI-020 | proposed; MS-003 |
+| DEC-020/021/023 forward consensus | V2-W0506 | WI-041 | WI-037 | proposed; MS-003 |
+| DEC-002/029/034 stateless Remote MCP reads | V2-W0601~0603 | WI-042 | WI-030, WI-040, WI-041 | proposed; MS-003 |
+| DEC-010..014/029 Remote managed commands | V2-W0604/0605 | WI-043 | WI-024, WI-042 | proposed; MS-003 |
+| DEC-002/029 client compatibility | V2-W0606/0607 | WI-044 | WI-042, WI-043 | proposed; MS-003 |
+| DEC-033..041 V1/V2 readiness | V2-W0701/0702/0703/0706 | WI-045 | WI-035, WI-044 | proposed; MS-003 |
+| DEC-002/033..041 Remote production cutover | V2-W0704/0705/0707 | WI-046 | WI-045 | proposed; production gate |
+| DEC-002/034 local and V1 public retirement | V2-W0801/0802 | WI-047 | WI-046 | proposed; MS-004 |
+| DEC-034/045 V1 main consumer transition | V2-W0803 | WI-048 | WI-046 | proposed; MS-004 |
+| DEC-034/040 V1 resource cleanup | V2-W0804 | WI-049 | WI-047 | proposed; destructive gate |
+| DEC-033..041 steady-state runbooks | V2-W0805 | WI-050 | WI-047, WI-048 | proposed; MS-004 |
+| DEC-034/045 final V2 audit | V2-W0806 | WI-051 | WI-047~050 | proposed; MS-004 |
+| DEC-047 final V2 documentation SSOT | V2-W0807 | WI-032 | WI-051 | proposed; final MS-004 |
 
 ## Governance Requirements
 
@@ -53,6 +108,7 @@
 ## Update Rules
 
 - Work Item을 시작·검증·종료할 때 해당 row의 artifact, evidence와 상태를 같은 변경에서 갱신한다.
+- Work Item ID를 발급하면 기존 row를 이동·재번호화하지 않는다. 새 발견은 sub-item 또는 다음 새 ID로 append한다.
 - 상세 로그나 긴 테스트 출력은 Work Item/CI artifact에 두고 이 표에는 링크나 명령 이름만 둔다.
 - closed row는 삭제하지 않는다. 오래된 항목은 별도 archive table/file로 이동할 수 있다.
 - 요구나 결정이 superseded되면 새 ID와 대체 관계를 기록하고 과거 연결을 덮어쓰지 않는다.

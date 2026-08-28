@@ -45,7 +45,7 @@ retention_policy = "canonical facts retained; initial three-year backfill and no
 backup_policy = "parquet"
 freshness_slo = "domestic by the post-close run, overseas by the Korean-morning run, IRP gaps reconciled when the delayed source becomes available"
 quality_rules = ["source order identity unique within account and market", "executed quantity and price are never inferred from current average cost", "provisional, actual and reconciliation_exception states are explicit"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.trade-cash-backfill-v2"]
 consumer_ids = ["purchase lots", "trade threads", "trade journal review", "realized performance"]
 
 [[contracts]]
@@ -61,15 +61,15 @@ input_dataset_ids = []
 purpose = "거래비용, 현금흐름, 배당 received 상태와 총자산 변화의 설명 가능성을 제공한다."
 grain = "one broker cash or settlement transaction row, or one provenance-tagged manual correction"
 natural_key = ["account_label", "source_transaction_id", "transaction_date", "row_ordinal"]
-time_semantics = "source transaction, settlement and fetched times retained separately"
-write_mode = "append-only event with correction links"
-schema_contract = "logical cash transaction v1; broker raw code and normalized event type coexist"
+time_semantics = "effective, settlement, knowledge, fetched and recorded times retained separately; point-in-time reads use the classification knowledge cutoff"
+write_mode = "append-only immutable monetary event plus append-only classification and reversible linkage revisions"
+schema_contract = "cash transaction v1; broker raw code and normalized owner flow, internal transfer, trade settlement, fee, tax, FX, dividend, interest or unknown event type coexist"
 sensitivity = "confidential"
 retention_policy = "canonical facts retained; initial three-year backfill and no automatic deletion"
 backup_policy = "parquet"
 freshness_slo = "by the next scheduled account-history run; manual gaps remain explicit until reconciled"
-quality_rules = ["amount and currency present", "manual records carry provenance and never overwrite broker rows", "candidate trade links remain reversible"]
-producer_pipeline_ids = []
+quality_rules = ["amount and currency present", "balance deltas never create inferred cash events", "manual records carry provenance and never overwrite broker rows", "candidate trade links remain reversible", "classification knowledge time never moves backwards"]
+producer_pipeline_ids = ["pipeline.trade-cash-backfill-v2"]
 consumer_ids = ["cash-flow analysis", "dividend ledger", "portfolio reconciliation"]
 
 [[contracts]]
@@ -80,7 +80,7 @@ owner = "owner"
 description = "국내·미국 보유상품의 코드, 거래소, 통화, 주식·ETF·REIT 유형과 issuer 식별자."
 decision_refs = ["DEC-005", "DEC-018", "DEC-020"]
 layer = "silver"
-source_ids = ["source.kis-open-api", "source.krx-market-data", "source.opendart", "source.sec-edgar"]
+source_ids = ["source.kis-open-api", "source.krx-market-data", "source.opendart", "source.sec-edgar", "source.portfolio-owner"]
 input_dataset_ids = []
 purpose = "모든 source의 security identity를 canonical instrument에 연결하고 자산유형별 정책을 적용한다."
 grain = "one instrument identity version per source-effective interval"
@@ -93,7 +93,7 @@ retention_policy = "identity history retained indefinitely"
 backup_policy = "parquet"
 freshness_slo = "held instruments resolved before their observations are published; official master refreshed each market day when available"
 quality_rules = ["canonical identity unique for each valid interval", "market, currency and asset type present for held instruments", "heuristic classification is labeled and cannot override explicit mappings"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2"]
 consumer_ids = ["all governed portfolio datasets", "ETF issuer routing", "filing entity mapping"]
 
 [[contracts]]
@@ -117,7 +117,7 @@ retention_policy = "minimum three years hot history; canonical facts retained an
 backup_policy = "parquet"
 freshness_slo = "KR final bar after close and US final bar by the Korean-morning run"
 quality_rules = ["OHLC ordering and nonnegative volume checked", "adjusted and raw basis never conflated", "trading-day coverage reconciled to the market calendar"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.price-history-v2"]
 consumer_ids = ["trend metrics", "portfolio valuation", "signal replay"]
 
 [[contracts]]
@@ -213,7 +213,7 @@ retention_policy = "minimum three years of trading-day snapshots; canonical sour
 backup_policy = "object"
 freshness_slo = "latest published snapshot before 10:00 KST for held KR ETFs and by the Korean-morning run for held US ETFs"
 quality_rules = ["source URL and hash present", "weights and unresolved residual reconcile within a declared tolerance", "non-equity and nested instruments preserve original type", "nested expansion is capped at three levels with cycle guard"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.etf-lookthrough-v2"]
 consumer_ids = ["ETF impact analysis", "portfolio exposure", "concentration alerts"]
 
 [[contracts]]
@@ -431,6 +431,30 @@ freshness_slo = "10:00, 14:30 and 16:00 KST on applicable KR market days plus on
 quality_rules = ["positions, price and FX watermarks recorded", "aggregate totals reconcile to components", "partial or stale inputs block official publish or carry explicit degraded status", "normal evaluations persist even when no alert is sent"]
 producer_pipeline_ids = []
 consumer_ids = ["asset trend", "portfolio impact", "signal evaluation", "Telegram alerting", "Remote MCP"]
+
+[[contracts]]
+id = "dataset.metric-value"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "승인된 formula version으로 point-in-time 계산한 재생 가능한 metric 값과 입력 lineage."
+decision_refs = ["DEC-015", "DEC-016", "DEC-017", "DEC-026", "DEC-038", "DEC-044"]
+layer = "gold"
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-event"]
+purpose = "signal, risk, contribution과 대화형 분석이 임의 SQL 대신 동일한 versioned metric을 사용하게 한다."
+grain = "one metric contract version, subject and evaluation timestamp or slot"
+natural_key = ["metric_id", "metric_version", "subject_type", "subject_id", "evaluation_at"]
+time_semantics = "evaluation_at is the stable logical cutoff; effective_at and knowledge_cutoff_at cannot exceed it; computed_at is audit metadata only"
+write_mode = "idempotent append by logical evaluation key; conflicting replay is rejected and formula versions are immutable"
+schema_contract = "Gold metric value v1 with nullable decimal value, explicit unavailable quality state, unit, input refs, formula hash, lineage hash and evaluation run"
+sensitivity = "confidential"
+retention_policy = "canonical evaluated values retained with at least three years hot history; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "available after each quality-gated 10:00, 14:30 and 16:00 portfolio state publish"
+quality_rules = ["metric contract is approved", "future effective or knowledge time is rejected", "unavailable or partial results use a null value and explicit non-pass quality rather than zero", "same logical key cannot change value or lineage"]
+producer_pipeline_ids = ["pipeline.metric-evaluation-v2"]
+consumer_ids = ["signal evaluation", "risk analysis", "Telegram candidate generation", "Remote MCP analytics"]
 
 [[contracts]]
 id = "dataset.unlicensed-market-content"

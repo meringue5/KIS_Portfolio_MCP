@@ -31,9 +31,10 @@ def test_mapping_contract_covers_backup_and_rerun_is_idempotent(tmp_path: Path) 
         f"''::VARCHAR AS etp_code, timestamp '2026-01-01 12:00:00' AS updated_at) TO '{backup / 'instrument_master.parquet'}' (FORMAT PARQUET)"
     )
     fixture.execute(
-        f"COPY (SELECT 'AAPL'::VARCHAR AS symbol, 'NAS'::VARCHAR AS exchange, date '2026-01-02' AS \"date\", "
-        f"100.0::DOUBLE AS \"open\", 110.0::DOUBLE AS high, 99.0::DOUBLE AS low, 108.0::DOUBLE AS \"close\", "
-        f"1000::BIGINT AS volume, false::BOOLEAN AS adjusted, timestamp '2026-01-03 08:00:00' AS created_at) "
+        f"COPY (SELECT * FROM (VALUES "
+        f"('AAPL','NAS',date '2026-01-02',100.0,110.0,99.0,108.0,1000,false,timestamp '2026-01-03 08:00:00'),"
+        f"('005930','KRX',date '2026-01-02',70000.0,71000.0,69000.0,70500.0,1000,false,timestamp '2026-01-03 08:00:00')) "
+        f"AS t(symbol,exchange,\"date\",\"open\",high,low,\"close\",volume,adjusted,created_at)) "
         f"TO '{backup / 'price_history.parquet'}' (FORMAT PARQUET)"
     )
     fixture.execute(
@@ -55,10 +56,12 @@ def test_mapping_contract_covers_backup_and_rerun_is_idempotent(tmp_path: Path) 
     first = module.apply(con, backup, "test-v1-v2")
     second = module.apply(con, backup, "test-v1-v2")
     assert first == second
-    assert first["source_rows"] == {"instrument_master": 1, "price_history": 1, "exchange_rate_history": 1}
+    assert first["source_rows"] == {"instrument_master": 1, "price_history": 2, "exchange_rate_history": 1}
+    assert first["quarantined_rows"] == {"price_history_ambiguous_krx_basis": 1}
     assert first["target_rows"] == {
-        "bronze.source_observations": 3,
+        "bronze.source_observations": 4,
         "silver.instruments": 2,
+        "silver.price_bar_revisions_daily": 1,
         "silver.price_bars_daily": 1,
         "silver.fx_rates_daily": 1,
     }

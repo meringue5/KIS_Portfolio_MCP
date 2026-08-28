@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from typing import Any
 
@@ -12,6 +12,25 @@ import duckdb
 
 from kis_portfolio.modules.core import new_id
 from kis_portfolio.ports.source import SourceEnvelope
+
+
+CASH_EVENT_TYPES = frozenset({
+    "unknown",
+    "owner_deposit",
+    "owner_withdrawal",
+    "internal_transfer_in",
+    "internal_transfer_out",
+    "trade_settlement_in",
+    "trade_settlement_out",
+    "fee",
+    "tax",
+    "fx_in",
+    "fx_out",
+    "dividend",
+    "interest",
+})
+CASH_LINK_QUALITIES = frozenset({"unmatched", "candidate", "explicit", "reconciled"})
+CASH_CLASSIFICATION_SOURCES = frozenset({"source", "manual", "rule"})
 
 
 def _json(value: Any) -> str:
@@ -83,17 +102,244 @@ class V2WarehouseRepository:
         """, [payload["account_id"], payload["currency"], payload["as_of"], payload["amount"],
               observation_id, payload.get("quality_status", "pass")])
 
-    def record_trade_with_lot(self, payload: dict[str, Any], observation_id: str) -> tuple[str, str | None]:
-        identity = f"{payload['account_id']}|{payload['broker_order_id']}|{payload.get('event_version', 1)}"
+    def record_cash_flow(self, payload: dict[str, Any], observation_id: str) -> str:
+        """Persist one source cash fact and its initial point-in-time classification."""
+        event_type = str(payload.get("event_type") or "").strip()
+        if event_type not in CASH_EVENT_TYPES:
+            raise ValueError(f"unsupported cash event_type: {event_type or '<empty>'}")
+        link_quality = str(payload.get("link_quality") or "unmatched")
+        if link_quality not in CASH_LINK_QUALITIES:
+            raise ValueError(f"unsupported cash link_quality: {link_quality}")
+        linked_trade_event_id = payload.get("linked_trade_event_id")
+        if link_quality != "unmatched" and not linked_trade_event_id:
+            raise ValueError("linked cash classification requires linked_trade_event_id")
+        classification_source = str(payload.get("classification_source") or "source")
+        if classification_source not in CASH_CLASSIFICATION_SOURCES:
+            raise ValueError(f"unsupported cash classification_source: {classification_source}")
+        source_record_id = str(payload.get("source_record_id") or "").strip()
+        if not source_record_id:
+            raise ValueError("cash event requires source_record_id")
+        observation = self.connection.execute(
+            """
+            SELECT dataset_id, source_id, source_record_id, fetched_at
+            FROM bronze.source_observations WHERE observation_id = ?
+            """,
+            [observation_id],
+        ).fetchone()
+        if not observation:
+            raise ValueError("cash event requires a governed source observation")
+        dataset_id, source_id, observed_record_id, fetched_at = observation
+        if dataset_id != "dataset.cash-transaction-event":
+            raise ValueError("cash event observation must use dataset.cash-transaction-event")
+        if source_record_id != observed_record_id:
+            raise ValueError("cash source_record_id must match the governed observation")
+        effective_at = payload["effective_at"]
+        settled_at = payload.get("settled_at")
+        knowledge_at = payload.get("knowledge_at") or fetched_at
+        recorded_at = payload.get("recorded_at") or knowledge_at
+        identity = f"{payload['account_id']}|{source_id}|{source_record_id}"
+        event_id = hashlib.sha256(f"cash-event|{identity}".encode()).hexdigest()
+        provenance = _json(payload.get("provenance", {"source_observation_id": observation_id}))
+        immutable = self.connection.execute(
+            """
+            SELECT account_id, event_type, effective_at, amount, currency, source_id, source_record_id
+            FROM silver.cash_flow_events WHERE cash_flow_event_id = ?
+            """,
+            [event_id],
+        ).fetchone()
+        expected = (
+            payload["account_id"], event_type, effective_at, Decimal(str(payload["amount"])),
+            payload["currency"], source_id, source_record_id,
+        )
+        if immutable is not None:
+            comparable = (
+                immutable[0], immutable[1], immutable[2], Decimal(str(immutable[3])),
+                immutable[4], immutable[5], immutable[6],
+            )
+            if comparable != expected:
+                raise ValueError("cash event identity replay conflicts with immutable monetary fact")
+            return event_id
+
+        revision_id = hashlib.sha256(f"cash-revision|{event_id}|1".encode()).hexdigest()
+        self.connection.execute("BEGIN TRANSACTION")
+        try:
+            self.connection.execute(
+                """
+                INSERT INTO silver.cash_flow_events(
+                    cash_flow_event_id, account_id, event_type, effective_at, amount, currency,
+                    source_record_id, quality_status, source_id, source_observation_id,
+                    source_event_code, settled_at, knowledge_at, fetched_at, recorded_at, provenance
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    event_id, payload["account_id"], event_type, effective_at, payload["amount"],
+                    payload["currency"], source_record_id, payload.get("quality_status", "pass"),
+                    source_id, observation_id, payload.get("source_event_code"), settled_at,
+                    knowledge_at, fetched_at, recorded_at, provenance,
+                ],
+            )
+            self.connection.execute(
+                """
+                INSERT INTO silver.cash_flow_event_revisions(
+                    cash_flow_event_revision_id, cash_flow_event_id, revision, event_type,
+                    classification_source, knowledge_at, recorded_at, linked_trade_event_id,
+                    link_quality, correction_reason, quality_status, provenance
+                ) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    revision_id, event_id, event_type,
+                    classification_source, knowledge_at, recorded_at,
+                    linked_trade_event_id, link_quality,
+                    payload.get("correction_reason", "source_event"),
+                    payload.get("quality_status", "pass"), provenance,
+                ],
+            )
+            self.connection.execute("COMMIT")
+        except Exception:
+            self.connection.execute("ROLLBACK")
+            raise
+        return event_id
+
+    def append_cash_flow_classification(self, event_id: str, payload: dict[str, Any]) -> str:
+        """Append a correction without mutating the immutable cash fact."""
+        event_type = str(payload.get("event_type") or "").strip()
+        if event_type not in CASH_EVENT_TYPES:
+            raise ValueError(f"unsupported cash event_type: {event_type or '<empty>'}")
+        link_quality = str(payload.get("link_quality") or "unmatched")
+        if link_quality not in CASH_LINK_QUALITIES:
+            raise ValueError(f"unsupported cash link_quality: {link_quality}")
+        linked_trade_event_id = payload.get("linked_trade_event_id")
+        if link_quality != "unmatched" and not linked_trade_event_id:
+            raise ValueError("linked cash classification requires linked_trade_event_id")
+        classification_source = str(payload.get("classification_source") or "manual")
+        if classification_source not in CASH_CLASSIFICATION_SOURCES:
+            raise ValueError(f"unsupported cash classification_source: {classification_source}")
+        current = self.connection.execute(
+            """
+            SELECT revision, knowledge_at FROM silver.cash_flow_event_revisions
+            WHERE cash_flow_event_id = ?
+            ORDER BY revision DESC LIMIT 1
+            """,
+            [event_id],
+        ).fetchone()
+        if not current:
+            raise ValueError("cash event does not exist")
+        expected_prior = int(payload.get("expected_prior_revision", current[0]))
+        if expected_prior != current[0]:
+            raise ValueError("cash classification expected_prior_revision conflict")
+        revision = current[0] + 1
+        knowledge_at = payload["knowledge_at"]
+        if knowledge_at < current[1]:
+            raise ValueError("cash classification knowledge_at cannot move backwards")
+        recorded_at = payload.get("recorded_at") or knowledge_at
+        revision_id = hashlib.sha256(f"cash-revision|{event_id}|{revision}".encode()).hexdigest()
+        self.connection.execute(
+            """
+            INSERT INTO silver.cash_flow_event_revisions(
+                cash_flow_event_revision_id, cash_flow_event_id, revision, event_type,
+                classification_source, knowledge_at, recorded_at, linked_trade_event_id,
+                link_quality, correction_reason, quality_status, provenance
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                revision_id, event_id, revision, event_type,
+                classification_source, knowledge_at, recorded_at,
+                linked_trade_event_id, link_quality,
+                payload.get("correction_reason", "classification_correction"),
+                payload.get("quality_status", "pass"), _json(payload.get("provenance", {})),
+            ],
+        )
+        return revision_id
+
+    def get_cash_flow_as_of(self, event_id: str, knowledge_cutoff_at: datetime) -> dict[str, Any] | None:
+        row = self.connection.execute(
+            """
+            SELECT events.cash_flow_event_id, events.account_id, revisions.event_type,
+                   events.effective_at, events.settled_at, events.amount, events.currency,
+                   events.source_id, events.source_record_id, events.source_event_code,
+                   revisions.revision, revisions.knowledge_at, revisions.linked_trade_event_id,
+                   revisions.link_quality, revisions.quality_status
+            FROM silver.cash_flow_events events
+            JOIN silver.cash_flow_event_revisions revisions USING (cash_flow_event_id)
+            WHERE events.cash_flow_event_id = ?
+              AND events.knowledge_at <= ?
+              AND revisions.knowledge_at <= ?
+            ORDER BY revisions.knowledge_at DESC, revisions.revision DESC
+            LIMIT 1
+            """,
+            [event_id, knowledge_cutoff_at, knowledge_cutoff_at],
+        ).fetchone()
+        if row is None:
+            return None
+        columns = (
+            "cash_flow_event_id", "account_id", "event_type", "effective_at", "settled_at",
+            "amount", "currency", "source_id", "source_record_id", "source_event_code",
+            "revision", "knowledge_at", "linked_trade_event_id", "link_quality", "quality_status",
+        )
+        return dict(zip(columns, row, strict=True))
+
+    def record_trade(self, payload: dict[str, Any], observation_id: str) -> str:
+        """Persist one governed trade event without inferring a purchase lot."""
+
+        side = str(payload.get("side") or "").lower()
+        if side not in {"buy", "sell"}:
+            raise ValueError("trade side must be buy or sell")
+        market = str(payload.get("market") or "").strip()
+        product_code = str(payload.get("account_product_code") or "").strip()
+        execution_sequence = str(payload.get("execution_sequence") or "aggregate").strip()
+        if not market or not product_code or not execution_sequence:
+            raise ValueError("trade identity requires market, account_product_code and execution_sequence")
+        observation = self.connection.execute(
+            """
+            SELECT dataset_id, fetched_at FROM bronze.source_observations
+            WHERE observation_id = ?
+            """,
+            [observation_id],
+        ).fetchone()
+        if not observation or observation[0] not in {
+            "dataset.trade-event",
+            "dataset.portfolio-position-observation",  # legacy fixture compatibility
+        }:
+            raise ValueError("trade event requires a governed trade observation")
+        identity = "|".join([
+            payload["account_id"], market, product_code, payload["instrument_id"],
+            payload["broker_order_id"], str(payload["executed_at"]), execution_sequence,
+        ])
         trade_id = hashlib.sha256(identity.encode()).hexdigest()
         self.connection.execute("""
             INSERT INTO silver.trade_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(account_id, broker_order_id, event_version) DO NOTHING
-        """, [trade_id, payload["account_id"], payload["instrument_id"], payload["side"],
+        """, [trade_id, payload["account_id"], payload["instrument_id"], side,
               payload["executed_at"], payload["quantity"], payload["price"], payload["currency"],
               payload["broker_order_id"], payload.get("event_version", 1), observation_id,
               payload.get("quality_status", "pass")])
-        if payload["side"].lower() != "buy":
+        knowledge_at = payload.get("knowledge_at")
+        if knowledge_at is None:
+            knowledge_at = observation[1]
+        revision = int(payload.get("event_version", 1))
+        revision_id = hashlib.sha256(f"trade-revision|{trade_id}|{revision}".encode()).hexdigest()
+        self.connection.execute("""
+            INSERT INTO silver.trade_event_revisions(
+                trade_event_revision_id, source_trade_event_id, account_id, market, product_code,
+                instrument_id, broker_order_id, executed_at, execution_sequence, revision, side,
+                quantity, price, currency, knowledge_at, source_observation_id, correction_reason,
+                quality_status, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT DO NOTHING
+        """, [revision_id, trade_id, payload["account_id"], market, product_code,
+              payload["instrument_id"], payload["broker_order_id"], payload["executed_at"],
+              execution_sequence, revision, side, payload["quantity"], payload["price"],
+              payload["currency"], knowledge_at, observation_id,
+              payload.get("correction_reason", "source_event"), payload.get("quality_status", "pass"),
+              _json(payload.get("trade_metadata", {}))])
+        return trade_id
+
+    def record_trade_with_lot(self, payload: dict[str, Any], observation_id: str) -> tuple[str, str | None]:
+        """Persist a trade and retain the legacy buy-lot projection for existing callers."""
+
+        trade_id = self.record_trade(payload, observation_id)
+        side = str(payload.get("side") or "").lower()
+        if side != "buy":
             return trade_id, None
         lot_id = hashlib.sha256(f"lot|{trade_id}".encode()).hexdigest()
         self.connection.execute("""
@@ -128,15 +374,133 @@ class V2WarehouseRepository:
               payload["authored_at"], payload.get("expected_prior_revision")])
 
     def upsert_price_bar(self, payload: dict[str, Any], observation_id: str) -> None:
-        self.connection.execute("""
-            INSERT INTO silver.price_bars_daily VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        self.upsert_price_bars([payload], observation_id)
+
+    def upsert_price_bars(self, payloads: list[dict[str, Any]], observation_id: str) -> None:
+        """Write one landed page in two database round trips."""
+        if not payloads:
+            return
+        fallback_knowledge_at = None
+        if any(payload.get("knowledge_at") is None for payload in payloads):
+            row = self.connection.execute(
+                "SELECT fetched_at FROM bronze.source_observations WHERE observation_id=?", [observation_id]
+            ).fetchone()
+            if not row:
+                raise ValueError("price revision requires a governed source observation")
+            fallback_knowledge_at = row[0]
+        revision_rows: list[list[Any]] = []
+        current_rows: list[list[Any]] = []
+        for payload in payloads:
+            basis = str(payload.get("price_basis") or "").strip()
+            if basis not in {"raw", "adjusted"}:
+                raise ValueError("price_basis must be raw or adjusted")
+            session_date = payload["session_date"]
+            if isinstance(session_date, str):
+                session_date = date.fromisoformat(session_date)
+            effective_at = payload.get("effective_at") or datetime.combine(session_date, time.max, tzinfo=UTC)
+            knowledge_at = payload.get("knowledge_at") or fallback_knowledge_at
+            endpoint = str(payload.get("endpoint") or "fixture-or-legacy")
+            request_option = str(payload.get("request_option") or basis)
+            volume_basis = str(payload.get("volume_basis") or "vendor_reported")
+            reconstruction_mode = str(payload.get("reconstruction_mode") or "operational_strict")
+            quality_status = str(payload.get("quality_status") or "pass")
+            revision_document = {
+                "instrument_id": payload["instrument_id"],
+                "session_date": session_date.isoformat(),
+                "price_basis": basis,
+                "open": str(payload.get("open")),
+                "high": str(payload.get("high")),
+                "low": str(payload.get("low")),
+                "close": str(payload.get("close")),
+                "volume": payload.get("volume"),
+                "endpoint": endpoint,
+                "request_option": request_option,
+                "volume_basis": volume_basis,
+                "quality_status": quality_status,
+            }
+            revision_hash = str(payload.get("revision_hash") or hashlib.sha256(
+                _json(revision_document).encode()
+            ).hexdigest())
+            shared = [
+                payload["instrument_id"], session_date, basis,
+                payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
+                payload.get("volume"), observation_id, quality_status, effective_at, knowledge_at,
+                revision_hash, endpoint, request_option, volume_basis, reconstruction_mode,
+            ]
+            current_rows.append(shared)
+            revision_rows.append(
+                shared[:3] + [revision_hash] + shared[3:8] + shared[10:12]
+                + [observation_id, endpoint, request_option, volume_basis, reconstruction_mode, quality_status,
+                   _json(payload.get("metadata", {}))]
+            )
+
+        revision_values = ",".join(["(" + ",".join(["?"] * 18) + ")"] * len(revision_rows))
+        self.connection.execute(f"""
+            INSERT INTO silver.price_bar_revisions_daily(
+                instrument_id, session_date, price_basis, revision_hash,
+                open, high, low, close, volume, effective_at, knowledge_at,
+                source_observation_id, endpoint, request_option, volume_basis,
+                reconstruction_mode, quality_status, metadata
+            ) VALUES {revision_values}
+            ON CONFLICT DO NOTHING
+        """, [value for row in revision_rows for value in row])
+        current_values = ",".join(["(" + ",".join(["?"] * 17) + ")"] * len(current_rows))
+        self.connection.execute(f"""
+            INSERT INTO silver.price_bars_daily(
+                instrument_id, session_date, price_basis, open, high, low, close, volume,
+                source_observation_id, quality_status, effective_at, knowledge_at, revision_hash,
+                endpoint, request_option, volume_basis, reconstruction_mode
+            ) VALUES {current_values}
             ON CONFLICT(instrument_id, session_date, price_basis) DO UPDATE SET
                 open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close,
                 volume=excluded.volume, source_observation_id=excluded.source_observation_id,
-                quality_status=excluded.quality_status
-        """, [payload["instrument_id"], payload["session_date"], payload.get("price_basis", "raw"),
-              payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
-              payload.get("volume"), observation_id, payload.get("quality_status", "pass")])
+                quality_status=excluded.quality_status, effective_at=excluded.effective_at,
+                knowledge_at=excluded.knowledge_at, revision_hash=excluded.revision_hash,
+                endpoint=excluded.endpoint, request_option=excluded.request_option,
+                volume_basis=excluded.volume_basis, reconstruction_mode=excluded.reconstruction_mode
+            WHERE silver.price_bars_daily.knowledge_at IS NULL
+               OR excluded.knowledge_at >= silver.price_bars_daily.knowledge_at
+        """, [value for row in current_rows for value in row])
+
+    def get_price_bars_as_of(
+        self,
+        *,
+        instrument_id: str,
+        start_date: date,
+        end_date: date,
+        price_basis: str,
+        evaluation_at: datetime,
+        replay_mode: str = "operational_strict",
+    ) -> list[dict[str, Any]]:
+        if price_basis not in {"raw", "adjusted"}:
+            raise ValueError("price_basis must be raw or adjusted")
+        if replay_mode not in {"operational_strict", "retrospective_reconstructed"}:
+            raise ValueError("unsupported replay_mode")
+        if evaluation_at.tzinfo is None:
+            raise ValueError("evaluation_at must be timezone-aware")
+        knowledge_clause = "AND knowledge_at <= ?" if replay_mode == "operational_strict" else ""
+        params: list[Any] = [instrument_id, start_date, end_date, price_basis, evaluation_at]
+        if replay_mode == "operational_strict":
+            params.append(evaluation_at)
+        rows = self.connection.execute(f"""
+            SELECT session_date, open, high, low, close, volume, effective_at, knowledge_at,
+                   revision_hash, source_observation_id, endpoint, request_option, volume_basis,
+                   reconstruction_mode, quality_status
+            FROM silver.price_bar_revisions_daily
+            WHERE instrument_id=? AND session_date BETWEEN ? AND ? AND price_basis=?
+              AND effective_at <= ? {knowledge_clause}
+            QUALIFY row_number() OVER (
+                PARTITION BY instrument_id, session_date, price_basis
+                ORDER BY knowledge_at DESC, recorded_at DESC, revision_hash DESC
+            ) = 1
+            ORDER BY session_date
+        """, params).fetchall()
+        columns = [
+            "session_date", "open", "high", "low", "close", "volume", "effective_at", "knowledge_at",
+            "revision_hash", "source_observation_id", "endpoint", "request_option", "volume_basis",
+            "reconstruction_mode", "quality_status",
+        ]
+        return [dict(zip(columns, row)) | {"replay_mode": replay_mode} for row in rows]
 
     def upsert_fx_rate(self, payload: dict[str, Any], observation_id: str) -> None:
         self.connection.execute("""
@@ -210,9 +574,14 @@ class V2WarehouseRepository:
     def table_count(self, qualified_name: str) -> int:
         allowed = {
             "bronze.source_observations", "silver.accounts", "silver.instruments",
+            "silver.instrument_versions", "silver.instrument_versions_effective", "silver.instruments_current",
             "silver.position_snapshots", "silver.cash_snapshots", "silver.trade_events",
-            "silver.purchase_lots", "silver.trade_threads", "silver.trade_journal_revisions",
-            "silver.price_bars_daily", "silver.fx_rates_daily", "gold.portfolio_daily_state",
+            "silver.trade_event_revisions", "silver.trade_events_current",
+            "silver.cash_flow_events", "silver.cash_flow_event_revisions", "silver.cash_flow_events_current",
+            "silver.purchase_lots", "silver.purchase_lots_current", "silver.trade_threads",
+            "silver.trade_journal_revisions",
+            "silver.price_bars_daily", "silver.price_bar_revisions_daily", "silver.fx_rates_daily",
+            "gold.portfolio_daily_state", "control.etf_instrument_routes",
         }
         if qualified_name not in allowed:
             raise ValueError("table is not in the repository count allowlist")

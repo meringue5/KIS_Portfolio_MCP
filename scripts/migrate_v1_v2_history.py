@@ -56,7 +56,9 @@ def apply(con: duckdb.DuckDBPyConnection, backup: Path, run_id: str) -> dict:
                    'dataset.price-bar-daily', 'source.kis-open-api', exchange || '|' || symbol || '|' || date,
                    'v1-price|' || exchange || '|' || symbol || '|' || date || '|' || adjusted,
                    timezone('UTC', cast(date as timestamp)), timezone('Asia/Seoul', created_at), timezone('Asia/Seoul', created_at),
-                   sha256(to_json(t)), 'passed', to_json(t), ?, current_timestamp
+                   sha256(to_json(t)),
+                   CASE WHEN exchange='KRX' AND NOT adjusted THEN 'quarantined_ambiguous_basis' ELSE 'passed' END,
+                   to_json(t), ?, current_timestamp
             FROM read_parquet({prices}) t
         """, [run_id])
         con.execute(f"""
@@ -87,11 +89,38 @@ def apply(con: duckdb.DuckDBPyConnection, backup: Path, run_id: str) -> dict:
             GROUP BY exchange, symbol
         """)
         con.execute(f"""
-            INSERT OR IGNORE INTO silver.price_bars_daily
-            SELECT 'v1|' || exchange || '|' || symbol, date, CASE WHEN adjusted THEN 'adjusted' ELSE 'raw' END,
+            INSERT OR IGNORE INTO silver.price_bar_revisions_daily(
+                instrument_id, session_date, price_basis, revision_hash,
+                open, high, low, close, volume, effective_at, knowledge_at,
+                source_observation_id, endpoint, request_option, volume_basis,
+                reconstruction_mode, quality_status, metadata
+            )
+            SELECT 'v1|' || exchange || '|' || symbol, date,
+                   CASE WHEN adjusted THEN 'adjusted' ELSE 'raw' END, sha256(to_json(t)),
                    open, high, low, close, volume,
-                   'v1-price-' || sha256(exchange || '|' || symbol || '|' || date || '|' || adjusted), 'passed'
-            FROM read_parquet({prices})
+                   timezone('UTC', cast(date as timestamp)), timezone('Asia/Seoul', created_at),
+                   'v1-price-' || sha256(exchange || '|' || symbol || '|' || date || '|' || adjusted),
+                   'legacy-main.price_history', 'stored-adjusted-flag', 'provider-reported-unadjusted',
+                   'retrospective_reconstructed', 'passed',
+                   json_object('mapping_id','v1-v2-history-v1','source','main.price_history')
+            FROM read_parquet({prices}) t
+            WHERE NOT (exchange='KRX' AND NOT adjusted)
+        """)
+        con.execute(f"""
+            INSERT OR IGNORE INTO silver.price_bars_daily(
+                instrument_id, session_date, price_basis, open, high, low, close, volume,
+                source_observation_id, quality_status, effective_at, knowledge_at, revision_hash,
+                endpoint, request_option, volume_basis, reconstruction_mode
+            )
+            SELECT 'v1|' || exchange || '|' || symbol, date,
+                   CASE WHEN adjusted THEN 'adjusted' ELSE 'raw' END,
+                   open, high, low, close, volume,
+                   'v1-price-' || sha256(exchange || '|' || symbol || '|' || date || '|' || adjusted),
+                   'passed', timezone('UTC', cast(date as timestamp)), timezone('Asia/Seoul', created_at),
+                   sha256(to_json(t)), 'legacy-main.price_history', 'stored-adjusted-flag',
+                   'provider-reported-unadjusted', 'retrospective_reconstructed'
+            FROM read_parquet({prices}) t
+            WHERE NOT (exchange='KRX' AND NOT adjusted)
         """)
         con.execute(f"""
             INSERT OR IGNORE INTO silver.fx_rates_daily
@@ -108,11 +137,16 @@ def apply(con: duckdb.DuckDBPyConnection, backup: Path, run_id: str) -> dict:
         "price_history": con.execute(f"select count(*) from read_parquet({prices})").fetchone()[0],
         "exchange_rate_history": con.execute(f"select count(*) from read_parquet({fx})").fetchone()[0],
     }
+    quarantined_price_rows = con.execute(
+        f"select count(*) from read_parquet({prices}) where exchange='KRX' and not adjusted"
+    ).fetchone()[0]
     return {
         "source_rows": source_rows,
+        "quarantined_rows": {"price_history_ambiguous_krx_basis": quarantined_price_rows},
         "target_rows": {
             "bronze.source_observations": con.execute("select count(*) from bronze.source_observations where pipeline_run_id=?", [run_id]).fetchone()[0],
             "silver.instruments": con.execute("select count(*) from silver.instruments where instrument_id like 'v1|%'").fetchone()[0],
+            "silver.price_bar_revisions_daily": con.execute("select count(*) from silver.price_bar_revisions_daily where source_observation_id like 'v1-price-%'").fetchone()[0],
             "silver.price_bars_daily": con.execute("select count(*) from silver.price_bars_daily where source_observation_id like 'v1-price-%'").fetchone()[0],
             "silver.fx_rates_daily": con.execute("select count(*) from silver.fx_rates_daily where source_observation_id like 'v1-fx-%'").fetchone()[0],
         },
@@ -148,7 +182,12 @@ def main() -> None:
         expected_observations = sum(result["source_rows"].values())
         passed = (
             result["target_rows"]["bronze.source_observations"] == expected_observations
-            and result["target_rows"]["silver.price_bars_daily"] == result["source_rows"]["price_history"]
+            and result["target_rows"]["silver.price_bars_daily"]
+            + result["quarantined_rows"]["price_history_ambiguous_krx_basis"]
+            == result["source_rows"]["price_history"]
+            and result["target_rows"]["silver.price_bar_revisions_daily"]
+            + result["quarantined_rows"]["price_history_ambiguous_krx_basis"]
+            == result["source_rows"]["price_history"]
             and result["target_rows"]["silver.fx_rates_daily"] == result["source_rows"]["exchange_rate_history"]
         )
         evidence = {"mapping_id": contract["mapping_id"], "source_manifest_created_at": manifest.get("created_at"), "target": target_label, "run_id": run_id, **result, "passed": passed, "verified_at": datetime.now(UTC).isoformat()}
