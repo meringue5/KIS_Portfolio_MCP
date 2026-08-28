@@ -1,0 +1,124 @@
+schema_version = 1
+mapping_id = "v1-v2-history-v1"
+source_manifest_version = 1
+target_migration = "0002"
+
+[[objects]]
+source = "main.instrument_master"
+disposition = "transform"
+targets = ["bronze.source_observations", "silver.instruments"]
+reason = "Stable market and symbol key; required fields are complete and unique."
+
+[[objects]]
+source = "main.price_history"
+disposition = "transform"
+targets = ["bronze.source_observations", "silver.instruments", "silver.price_bars_daily"]
+reason = "Stable exchange, symbol, date and adjusted key; required fields are complete and unique."
+
+[[objects]]
+source = "main.exchange_rate_history"
+disposition = "transform"
+targets = ["bronze.source_observations", "silver.fx_rates_daily"]
+reason = "Stable currency, date and period key; required fields are complete and unique."
+
+[[objects]]
+source = "main.market_calendar"
+disposition = "reference-only"
+targets = []
+reason = "V2 has no governed physical calendar target yet; V1 remains authoritative."
+
+[[objects]]
+source = "main.instrument_classification_overrides"
+disposition = "defer"
+targets = []
+reason = "Empty source; target override contract is not yet present."
+
+[[objects]]
+source = "main.portfolio_snapshots"
+disposition = "defer"
+targets = []
+reason = "Raw balance JSON requires account identity and position normalization contract."
+
+[[objects]]
+source = "main.overseas_asset_snapshots"
+disposition = "defer"
+targets = []
+reason = "Aggregate feeder rows require account, cash and position reconciliation."
+
+[[objects]]
+source = "main.order_history"
+disposition = "defer"
+targets = []
+reason = "Query-envelope grain is not a canonical trade-event grain."
+
+[[objects]]
+source = "main.overseas_order_history"
+disposition = "defer"
+targets = []
+reason = "Empty source and canonical trade-event identity remains unresolved."
+
+[[objects]]
+source = "main.overseas_transaction_history"
+disposition = "defer"
+targets = []
+reason = "Query-envelope grain requires transaction extraction and reconciliation."
+
+[[objects]]
+source = "main.overseas_settlement_balance_snapshots"
+disposition = "defer"
+targets = []
+reason = "Empty source and settlement-to-cash mapping remains unresolved."
+
+[[objects]]
+source = "main.trade_profit_history"
+disposition = "defer"
+targets = []
+reason = "Report observation is not a canonical trade or return fact."
+
+[[objects]]
+source = "main.asset_overview_snapshots"
+disposition = "defer"
+targets = []
+reason = "Gold daily state must be rebuilt after canonical positions and cash exist."
+
+[[objects]]
+source = "main.asset_holding_snapshots"
+disposition = "defer"
+targets = []
+reason = "Account and instrument identity mapping requires separate reconciliation."
+
+[[objects]]
+source = "main.domestic_orders"
+disposition = "defer"
+targets = []
+reason = "Order state must be converted to immutable execution events and purchase lots."
+
+[[objects]]
+source = "main.overseas_orders"
+disposition = "defer"
+targets = []
+reason = "Empty source and event conversion contract remains unresolved."
+
+[[objects]]
+source = "main.overseas_transactions"
+disposition = "defer"
+targets = []
+reason = "Trade and cash-flow event split requires explicit fee, tax and settlement semantics."
+
+[[objects]]
+source = "main.cash_flow"
+disposition = "defer"
+targets = []
+reason = "Known unmanaged drift; provenance and canonical event identity are not approved."
+
+[[objects]]
+source = "main.trade_journal"
+disposition = "defer"
+targets = []
+reason = "Known unmanaged drift; revision and trade-thread mapping are not approved."
+
+[[objects]]
+source = "main.asset_return_daily"
+disposition = "defer"
+targets = []
+reason = "Known unmanaged drift; Gold return must be rebuilt from canonical facts."

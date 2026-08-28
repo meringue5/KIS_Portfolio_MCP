@@ -2,7 +2,6 @@
 
 import logging
 import time
-
 import duckdb
 
 from kis_portfolio.config import (
@@ -17,9 +16,33 @@ logger = logging.getLogger(__name__)
 
 _con: duckdb.DuckDBPyConnection | None = None
 
+REQUIRED_RUNTIME_TABLES = frozenset({
+    "portfolio_snapshots",
+    "asset_overview_snapshots",
+    "price_history",
+})
+
+
+def _verify_runtime_schema(con: duckdb.DuckDBPyConnection) -> None:
+    """Fail closed when a managed production schema was not migrated.
+
+    This query is intentionally read-only. Schema creation and migration belong
+    to the release job, never a serving identity or cold start.
+    """
+    rows = con.execute(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema='main'"
+    ).fetchall()
+    available = {str(row[0]) for row in rows}
+    missing = sorted(REQUIRED_RUNTIME_TABLES - available)
+    if missing:
+        raise RuntimeError(
+            "Managed MotherDuck schema is incomplete; run the migration job before startup: "
+            + ", ".join(missing)
+        )
+
 
 def get_connection() -> duckdb.DuckDBPyConnection:
-    """Return a singleton DB connection. Initialize schema on first use."""
+    """Return a singleton DB connection and verify its managed schema."""
     global _con
     if _con is not None:
         return _con
@@ -44,16 +67,22 @@ def get_connection() -> duckdb.DuckDBPyConnection:
         raise ValueError("KIS_DB_MODE must be 'motherduck' or 'local'")
 
     _con = duckdb.connect(conn_str)
-    for attempt in range(3):
-        try:
-            init_schema(_con)
-            break
-        except duckdb.TransactionException as exc:
-            if "write-write conflict" not in str(exc).lower() or attempt == 2:
-                _con.close()
-                _con = None
-                raise
-            time.sleep(0.2 * (attempt + 1))
+    try:
+        if mode == "local":
+            for attempt in range(3):
+                try:
+                    init_schema(_con)
+                    break
+                except duckdb.TransactionException as exc:
+                    if "write-write conflict" not in str(exc).lower() or attempt == 2:
+                        raise
+                    time.sleep(0.2 * (attempt + 1))
+        else:
+            _verify_runtime_schema(_con)
+    except Exception:
+        _con.close()
+        _con = None
+        raise
     return _con
 
 

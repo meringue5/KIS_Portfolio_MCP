@@ -1,0 +1,43 @@
+name: Architecture change
+description: 경계, SSOT, 보안, 비용 또는 비기능 결정을 바꾸는 제안입니다.
+title: "[Architecture] "
+labels:
+  - architecture
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context와 현재 제약
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: 제안 결정
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 대안과 trade-off
+    validations:
+      required: true
+  - type: textarea
+    id: consequences
+    attributes:
+      label: 데이터·보안·비용·운영 영향
+    validations:
+      required: true
+  - type: textarea
+    id: migration
+    attributes:
+      label: Migration, 검증과 rollback
+    validations:
+      required: true
+  - type: checkboxes
+    id: approval
+    attributes:
+      label: 승인 상태
+      options:
+        - label: 사용자 승인 전에는 production code·schema·infrastructure를 변경하지 않습니다.
+          required: true

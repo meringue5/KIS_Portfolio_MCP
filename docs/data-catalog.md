@@ -7,6 +7,11 @@
 DB 객체를 추가하거나 의미를 바꿀 때는 이 문서를 먼저 또는 같은 변경에서 갱신해야 한다.
 단순한 테이블 목록은 다른 문서에 복제하지 않고 이 문서를 참조한다.
 
+이 문서는 더 넓은 [Data Governance Harness](./governance/data-governance-harness.md) 아래에서 물리 object
+계약을 담당한다. source, collection basket, logical dataset, metric과 pipeline 계약은
+`governance/catalog/`가 소유한다. 물리 object가 새 dataset을 구현하거나 기존 dataset의 의미를 바꾸면
+`governance/catalog/datasets.toml`과 이 문서를 같은 변경에서 갱신한다.
+
 ## Authority and Scope
 
 각 책임의 source of truth는 다음과 같다.
@@ -23,13 +28,21 @@ DB 객체를 추가하거나 의미를 바꿀 때는 이 문서를 먼저 또는
 
 관리 범위는 `table_catalog = current_database() = 'kis_portfolio'`인 객체다. MotherDuck 연결에
 함께 보이는 `sample_data`, `md_information_schema`, 과거 로컬/원격 database인 `my_db` 등은 이
-서비스의 관리 대상이 아니다. `schema = main`만으로 필터링하면 다른 catalog의 동명 객체가
-섞이므로 운영 검사에서는 항상 catalog와 schema를 함께 제한한다.
+서비스의 관리 대상이 아니다. 2026-08-28 확인한 `my_db`는 5 tables + 1 view를 가진 약 256 KiB의 초기
+legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 repository code는 모두
+`kis_portfolio`만 사용한다. `my_db`는 운영 SSOT가 아니지만 사용자 승인과 cleanup Work Item 전에는
+자동 삭제하지 않는다. `schema = main`만으로 필터링하면 다른 catalog의 동명 객체가 섞이므로 운영
+검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout이 관리하는 객체는 **25 tables + 2 views = 27 objects**다. 운영 DB에는 분기된
 `codex/portfolio-pipeline-reliability`의 객체까지 적용되어 **27 tables + 3 views = 30 objects**가 있다.
 현재 물리 위치는 모두 `kis_portfolio.main`이며, 아래 계층은 즉시 적용하는 논리 계약이자 향후 목표
 schema다.
+
+> 승인된 V2 목표: `docs/design/kis-portfolio-v2-system-design.md`의 V2-ADR-005는 operational Security
+> state를 Seoul의 Firestore Standard database 하나와 Secret Manager로 분리한다. 이 architecture 승인은
+> schema migration이나 cutover가 아니다. 별도 Work Item이 완료되기 전까지 이 문서의 현재 V1 catalog,
+> registry와 live DB 계약은 그대로 유지한다.
 
 ## Layer Model
 
@@ -44,6 +57,53 @@ schema다.
 Bronze/Silver/Gold는 데이터 품질과 소비 목적을 나타낸다. Control과 Security를 억지로
 medallion 계층에 섞지 않는다. Gold는 반드시 Silver 또는 명시된 Control 기준정보에서 파생하며,
 Bronze를 임의로 직접 조인해 새로운 공식 지표를 만들지 않는다.
+
+## V2 Parallel Physical Catalog
+
+DEC-045에 따라 기존 `main` 객체는 그대로 보존하고 V2는 explicit migration
+`src/kis_portfolio/platform/sql/0001_v2_foundation.sql`과 `0002_v2_read_models.sql`로 병렬 생성한다.
+V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다. V1
+`get_connection()`의 `init_schema()`는 이 객체를 만들지 않는다.
+
+### V2 Bronze
+
+| Object | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `bronze.source_observations` | source record observation; content와 logical idempotency key로 append-only replay | Parquet / confidential |
+| `bronze.raw_object_manifest` | private object content hash와 rights metadata | private object / restricted |
+| `bronze.owner_research_documents` | owner PDF SHA-256별 immutable original identity | private object / restricted |
+
+### V2 Silver canonical ledger
+
+| Objects | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `silver.accounts`, `silver.instruments` | canonical account와 effective instrument identity | Parquet / confidential·internal |
+| `silver.position_snapshots`, `silver.cash_snapshots` | account/instrument 또는 currency/as-of 관측 | Parquet / confidential |
+| `silver.trade_events`, `silver.cash_flow_events` | broker order event version과 source cash event | Parquet / confidential |
+| `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots` | buy-order lot, investment thread와 versioned link | Parquet / confidential |
+| `silver.sell_allocation_revisions`, `silver.trade_journal_revisions` | sell-to-lot allocation 및 owner journal append-only revision | Parquet / confidential |
+| `silver.price_bars_daily`, `silver.fx_rates_daily` | instrument/session/basis와 currency pair/date/rate type | Parquet / internal |
+| `silver.etf_constituent_snapshots` | ETF/source date/file hash/constituent ordinal | Parquet / internal |
+| `silver.filing_events`, `silver.financial_facts` | filing document version과 point-in-time taxonomy fact | Parquet / internal |
+| `silver.dividend_events`, `silver.macro_observations` | dividend state event와 series/vintage/revision | Parquet / confidential·internal |
+| `silver.owner_research_extractions` | document/extractor/version/revision/page·section locator | private object / restricted |
+
+### V2 Gold and Control
+
+| Object | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
+| `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
+| `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
+| `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
+| `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence | Parquet / internal |
+| `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
+| `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
+
+총 32개 V2 object는 30 tables + 2 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
+사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
+evidence 없이는 실행하지 않는다.
 
 ## Bronze Catalog
 
@@ -194,16 +254,18 @@ view를 재생성한다.
 
 DB 객체 변경 PR 또는 작업은 다음을 모두 만족해야 한다.
 
-1. `catalog.py`에 객체와 계약을 등록한다.
-2. 이 문서의 해당 layer catalog와 필요하면 column convention을 갱신한다.
-3. versioned migration 또는 현재 단계의 `schema.py` DDL을 추가한다.
-4. repository write mode와 natural key를 테스트한다.
-5. Parquet 포함/제외를 명시하고 `docs/backup.md`를 맞춘다.
-6. Security/PII 영향이 있으면 `docs/security-and-secrets.md`를 갱신한다.
-7. warehouse contract 검사와 live inventory를 실행한다.
+1. 관련 source/dataset/metric/pipeline manifest를 확인하고 새 의미면 proposed contract를 먼저 등록한다.
+2. `catalog.py`에 물리 객체와 계약을 등록한다.
+3. 이 문서의 해당 layer catalog와 필요하면 column convention을 갱신한다.
+4. versioned migration 또는 현재 단계의 `schema.py` DDL을 추가한다.
+5. repository write mode와 natural key를 테스트한다.
+6. Parquet 포함/제외를 명시하고 `docs/backup.md`를 맞춘다.
+7. Security/PII 영향이 있으면 `docs/security-and-secrets.md`를 갱신한다.
+8. DGH·warehouse contract 검사와 live inventory를 실행한다.
 
 ```bash
 uv run python .agent/skills/kis-warehouse-contract/scripts/check_warehouse_contracts.py
+python3 .agent/skills/kis-data-governance/scripts/check_data_governance.py
 uv run python .agent/skills/kis-warehouse-contract/scripts/inspect_portfolio_db.py --inventory
 ```
 

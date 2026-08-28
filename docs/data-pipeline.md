@@ -4,12 +4,42 @@
 OLTP 성격이 강하다. 하지만 장기 목표는 포트폴리오 분석, 시계열 비교, 이상치 탐지 같은 OLAP
 워크로드다. 따라서 저장 계층과 분석 계층을 섞지 않는 방향으로 설계한다.
 
+2026-08-28 승인된 V2 목표에서는 Scheduler와 LLM 요청이 동일한 allowlisted managed pipeline registry를
+호출하고, fixed Job args와 Firestore의 run request·lease·idempotency claim을 사용한다. MotherDuck은
+`bronze/silver/gold/control` 데이터 plane을 맡는다. 이 문서 아래의 현재 V1 쓰기 경로는 별도 pipeline
+Work Item과 dual-run 전까지 그대로 유효하다.
+
 ## 원칙
 
 1. Raw 데이터는 가능한 한 보존한다.
 2. 중복 제거와 대표값 선택은 raw write path에서 하지 않는다.
 3. 분석용 정제 데이터는 view, table, 또는 별도 pipeline 단계에서 만든다.
 4. 로컬 DuckDB는 운영 중심 DB가 아니라 백업/검증/개발용이다.
+
+## V2 Managed Runtime 구현 기준선
+
+`src/kis_portfolio/platform/pipeline.py`는 `(pipeline_id, version, logical_date, slot, partition)`을 hash한
+logical idempotency key, run/stage ledger, source-call budget과 stage resume를 구현한다. 성공 stage는 재시도
+때 건너뛰고 실패 stage부터 이어가며, 이미 성공한 logical run은 같은 `run_id`를 반환한다. quality와
+lineage는 `control.quality_results`, `control.lineage_edges`에 저장하고 DB-only read model로 조회한다.
+
+승인된 initial registry는 다음과 같다.
+
+- `pipeline.owned-portfolio-core-v2`
+- `pipeline.etf-lookthrough-v2`
+- `pipeline.fundamentals-dividends-v2`
+- `pipeline.macro-profile-v2`
+- `pipeline.owner-research-pdf-v1`
+
+WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio-v2`다. 허용 slot은
+`kr-1000`, `kr-1430`, `kr-1600`, partition은 `all-accounts` 하나뿐이다. 각 slot은 별도 fixed-argument
+Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미국 최근 마감 입력도 함께 읽고,
+최근 7일의 source history에서 latest applicable session을 선택해 주말·한국 휴일 gap을 메운다. 모든 raw
+bundle은 recursive secret redaction과 account masking 후 private GCS에 content hash로 랜딩한다.
+
+`tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
+`src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
+lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.
 
 ## 계층
 
@@ -29,7 +59,8 @@ Security -> auth/token repositories only
 - Silver: 정규화 시계열, deduplicated order/transaction, canonical total assets
 - Gold: 일별 대표값과 재생성 가능한 분석 view/table
 - Control: migration, 시장 달력, 종목마스터, classification override
-- Security: 암호화/해시된 token과 OAuth state; 분석/기본 백업에서 격리
+- Security: 현재 V1은 암호화/해시된 token과 OAuth state를 MotherDuck에서 격리한다. 승인된 V2는 이를
+  Firestore와 Secret Manager로 이동한다.
 
 전체 객체 목록, grain, key, 민감도, 백업 정책과 물리 schema 전환 계획은
 [Data Store Governance and Catalog](./data-catalog.md)가 관리한다. 이 문서에서는 객체 목록을
@@ -95,10 +126,13 @@ asset_overview_daily_snapshots
 ## 구현 위치
 
 - object governance registry: `src/kis_portfolio/db/catalog.py`
+- source/dataset/collection/metric/pipeline registry: `governance/catalog/`
+- data governance policy and gates: `docs/governance/data-governance-harness.md`
 - current physical DDL and Gold view SQL: `src/kis_portfolio/db/schema.py`
 - Bronze/Silver/Control repositories: `src/kis_portfolio/db/repository.py`
 - analytics SQL: `src/kis_portfolio/analytics/`
 - backup: `scripts/backup_motherduck.py`
 
-새 객체는 catalog에 layer/grain/key/backup/sensitivity를 먼저 선언한다. 물리 schema 분리 전까지도 이
-논리 계약은 즉시 적용되며, `main`에 코드 밖 객체를 임의 생성하지 않는다.
+새 수집·dataset·metric·pipeline은 DGH manifest를 proposed로 먼저 등록한다. 새 물리 객체는 data catalog에
+layer/grain/key/backup/sensitivity를 선언한다. 물리 schema 분리 전까지도 이 논리 계약은 즉시 적용되며,
+`main`에 코드 밖 객체를 임의 생성하지 않는다.

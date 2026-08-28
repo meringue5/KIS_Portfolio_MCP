@@ -1,6 +1,9 @@
 # TODO
 
-자주 바뀌는 작업 큐다. 결정된 설계 원칙은 `SPEC.md`, 에이전트 운영 지침은 `AGENTS.md`에 둔다.
+과거·임시 우선순위 메모다. 신규 작업 상태의 SSOT는 GitHub Issue 또는 `docs/work-items/`, 연결 관계는
+`docs/traceability.md`에 둔다. 결정된 설계 원칙은 `SPEC.md`, Project OS 정책은
+`docs/governance/project-operating-system.md`, 에이전트 진입 규칙은 `AGENTS.md`가 소유한다. 이 파일의
+미완료 표시는 현재 구현 상태를 보장하지 않는다.
 
 ## High Priority
 

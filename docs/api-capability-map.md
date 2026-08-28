@@ -6,6 +6,14 @@ core service, MCP adapter, 데이터 파이프라인으로 승격할지 정리�
 MCP tool 이름은 외부 인터페이스일 뿐이다. 신규 기능은 먼저 아래 capability 중 어디에 속하는지 정한 뒤,
 core service 함수와 저장 정책을 설계한다.
 
+## 승인된 V2 Public Boundary
+
+2026-08-28 승인된 V2 public catalog는 결과 중심 18개 tool과 `mcp:read`, `mcp:collect`,
+`mcp:journal.write` 세 scope를 사용한다. 주문 tool은 V2에서 제거한다. 정확한 목록, V1 35개 tool migration
+mapping과 compatibility gate는 [V2 Architecture Delta Review](./design/v2-architecture-delta-review.md)가
+소유한다. V2 read model과 scope가 구현·검증되기 전에는 현재 V1 catalog를 제거하거나 이름만 같은 빈 tool을
+노출하지 않는다.
+
 ## Source Of Truth
 
 - 한국투자 Open API 문서: https://apiportal.koreainvestment.com/apiservice-summary
@@ -84,4 +92,3 @@ Future backend API는 별도 public surface가 필요해지는 시점에 `adapte
 2. README/SPEC에서 fork attribution은 유지하고, 프로젝트 설명은 포트폴리오 서비스 중심으로 변경한다.
 3. Python package는 `kis_portfolio`, public MCP는 `kis-portfolio-mcp`로 사용한다.
 4. upstream 병합 가치가 낮아진 시점에 GitHub repository rename을 검토한다.
-

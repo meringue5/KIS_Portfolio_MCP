@@ -23,6 +23,16 @@ DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
 DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
 DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
 DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
+DEFAULT_V2_CORE_JOBS = {
+    "kr-1000": "kis-portfolio-owned-core-v2-1000",
+    "kr-1430": "kis-portfolio-owned-core-v2-1430",
+    "kr-1600": "kis-portfolio-owned-core-v2-1600",
+}
+DEFAULT_V2_CORE_SCHEDULES = {
+    "kr-1000": "0 10 * * 1-5",
+    "kr-1430": "30 14 * * 1-5",
+    "kr-1600": "0 16 * * 1-5",
+}
 DEFAULT_AUTH_MIN_INSTANCES = "0"
 DEFAULT_AUTH_MAX_INSTANCES = "1"
 DEFAULT_REMOTE_CONCURRENCY = "20"
@@ -248,9 +258,24 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_CIRCUIT_FAILURE_THRESHOLD",
         "KIS_CIRCUIT_WINDOW_SECONDS",
         "KIS_CIRCUIT_OPEN_SECONDS",
+        "KIS_STATE_BACKEND",
+        "KIS_GCP_PROJECT",
+        "KIS_FIRESTORE_DATABASE",
+        "KIS_GCS_BUCKET",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload.update(_build_account_env(env))
+    return payload
+
+
+def _build_v2_pipeline_env(env: dict[str, str], project: str) -> dict[str, str]:
+    payload = _build_batch_env(env)
+    payload.update({
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": project,
+        "KIS_FIRESTORE_DATABASE": env.get("KIS_FIRESTORE_DATABASE", "kis-portfolio-state"),
+        "KIS_GCS_BUCKET": env.get("KIS_GCS_BUCKET", f"{project}-kis-portfolio-private"),
+    })
     return payload
 
 
@@ -730,6 +755,104 @@ def _deploy_service_or_job(
             pass
 
 
+def _build_release_image(args: argparse.Namespace, *, project: str) -> str | None:
+    sha = os.environ.get("GITHUB_SHA", "").strip() or (_git_stdout(["rev-parse", "HEAD"]) or "unknown")
+    tag = f"{args.region}-docker.pkg.dev/{project}/kis-portfolio/kis-portfolio:{sha[:40]}"
+    code = _run(["gcloud", "builds", "submit", "--tag", tag, "--project", project, "."], dry_run=args.dry_run)
+    if code != 0:
+        return None
+    if args.dry_run:
+        return f"{tag}@sha256:dry-run"
+    completed = _run_capture(
+        ["gcloud", "artifacts", "docker", "images", "describe", tag,
+         "--project", project, "--format=value(image_summary.digest)"],
+        dry_run=False,
+    )
+    digest = completed.stdout.strip() if completed.returncode == 0 else ""
+    return f"{tag.split(':', 1)[0]}@{digest}" if digest.startswith("sha256:") else None
+
+
+def _deploy_v2_core_jobs(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    required = _required_keys_for_batch(env)
+    payload, secret_refs = _split_runtime_env(
+        env=env,
+        payload=_build_v2_pipeline_env(env, project),
+        required=required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=True,
+    )
+    missing = _validate_required(env, required, secret_mode=args.secret_mode)
+    if missing:
+        print("Missing required environment variables:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+    image = _build_release_image(args, project=project)
+    if not image:
+        print("Failed to resolve the build-once image digest.")
+        return 1
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    env_yaml_path = _write_env_yaml(payload)
+    try:
+        for slot, default_job in DEFAULT_V2_CORE_JOBS.items():
+            key = f"KIS_V2_CORE_JOB_{slot.split('-', 1)[1]}"
+            job = env.get(key, default_job)
+            command = [
+                "gcloud", "run", "jobs", "deploy", job,
+                "--image", image, "--region", args.region,
+                "--env-vars-file", env_yaml_path,
+                "--command", "kis-portfolio-batch",
+                "--args", f"collect-owned-portfolio-v2,--date,today,--slot,{slot},--partition-key,all-accounts",
+                "--task-timeout", env.get("KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT", DEFAULT_BATCH_TASK_TIMEOUT),
+                "--max-retries", "0", "--service-account", service_account,
+                *_build_secret_flags(secret_refs), *_build_label_flags("v2-core-batch"),
+                "--project", project,
+            ]
+            if _run(command, dry_run=args.dry_run) != 0:
+                return 1
+    finally:
+        try:
+            os.unlink(env_yaml_path)
+        except FileNotFoundError:
+            pass
+    print(f"build-once image digest deployed to {len(DEFAULT_V2_CORE_JOBS)} fixed-argument jobs: {image}")
+    return 0
+
+
+def _deploy_v2_core_schedulers(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    scheduler_sa = env.get(
+        "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT",
+        f"kis-portfolio-scheduler@{project}.iam.gserviceaccount.com",
+    )
+    for slot, job in DEFAULT_V2_CORE_JOBS.items():
+        suffix = slot.split("-", 1)[1]
+        job = env.get(f"KIS_V2_CORE_JOB_{suffix}", job)
+        scheduler = env.get(f"KIS_V2_CORE_SCHEDULER_{suffix}", f"{job}-schedule")
+        code = _deploy_scheduler_target(
+            args=args, env={**env, "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT": scheduler_sa},
+            project=project, job=job, scheduler=scheduler,
+            scheduler_region=args.scheduler_region or args.region,
+            schedule=env.get(f"KIS_V2_CORE_SCHEDULE_{suffix}", DEFAULT_V2_CORE_SCHEDULES[slot]),
+            time_zone="Asia/Seoul",
+        )
+        if code != 0:
+            return code
+    return 0
+
+
 def _deploy_scheduler_target(
     *,
     args: argparse.Namespace,
@@ -800,6 +923,8 @@ def main() -> int:
             "overseas-scheduler",
             "token-warmup-batch",
             "token-warmup-scheduler",
+            "v2-core-batch",
+            "v2-core-schedulers",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -962,6 +1087,12 @@ def main() -> int:
             is_job=True,
         )
 
+    if args.target == "v2-core-batch":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_v2_core_jobs(args, env=env, project=project)
+
     if not project:
         print("Missing required environment variables:")
         print("- GOOGLE_CLOUD_PROJECT")
@@ -991,6 +1122,9 @@ def main() -> int:
             time_zone=args.time_zone or env.get("KIS_TOKEN_WARMUP_TIME_ZONE") or DEFAULT_TOKEN_WARMUP_TIME_ZONE,
         )
 
+    if args.target == "v2-core-schedulers":
+        return _deploy_v2_core_schedulers(args, env=env, project=project)
+
     return _deploy_scheduler_target(
         args=args,
         env=env,
@@ -1005,4 +1139,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

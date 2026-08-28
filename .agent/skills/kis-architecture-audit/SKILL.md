@@ -16,13 +16,10 @@ Use this skill before and after structural refactors, package renames, MCP expos
    uv run python .agent/skills/kis-architecture-audit/scripts/check_architecture_contracts.py
    ```
 
-3. Run the normal verification set:
+3. For repository delivery, use the Project OS shared harness instead of duplicating the normal verification set:
 
    ```bash
-   uv run pytest
-   bash -n scripts/setup.sh
-   python3 -m json.tool docs/examples/claude_desktop_config.example.json >/dev/null
-   git diff --check
+   bash scripts/check.sh full
    ```
 
 4. If the script fails, fix either the implementation or the docs. Do not silently widen the contract.
@@ -30,7 +27,9 @@ Use this skill before and after structural refactors, package renames, MCP expos
 ## Contract Focus
 
 - Package/import identity is `kis_portfolio`; runtime `kis_mcp_server` imports must not return.
-- Public CLI scripts are `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, and `kis-portfolio-remote`.
+- Public/runtime CLI scripts are `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, and
+  `kis-portfolio-remote`. The administrative explicit migration CLI is `kis-portfolio-migrate`; runtime targets
+  must not invoke it during startup.
 - Public MCP is the single `kis-portfolio` service.
 - Root `server.py` is a compatibility shim to `kis_portfolio.adapters.mcp`.
 - `scripts/setup.sh` creates only `kis-portfolio` in Claude config.

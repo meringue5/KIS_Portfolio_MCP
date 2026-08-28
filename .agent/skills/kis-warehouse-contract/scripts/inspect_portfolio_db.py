@@ -56,12 +56,14 @@ def inspect() -> dict:
     import duckdb
 
     from kis_portfolio.db import get_connection
-    from kis_portfolio.db.catalog import object_by_name
+    from kis_portfolio.db.catalog import object_by_name, v2_object_by_qualified_name
     from kis_portfolio.db.schema import init_schema
+    from kis_portfolio.platform.migrations import MigrationRunner
 
     con = get_connection()
     database = con.execute("SELECT current_database()").fetchone()[0]
-    catalog = object_by_name()
+    catalog = {f"main.{name}": item for name, item in object_by_name().items()}
+    catalog.update(v2_object_by_qualified_name())
     object_rows = fetch_all(con, """
         SELECT t.table_catalog,
                t.table_schema,
@@ -101,6 +103,7 @@ def inspect() -> dict:
     expected_con = duckdb.connect(":memory:")
     try:
         init_schema(expected_con)
+        MigrationRunner(expected_con).apply()
         expected_column_rows = fetch_all(expected_con, """
             SELECT table_schema,
                    table_name,
@@ -108,21 +111,23 @@ def inspect() -> dict:
                    data_type,
                    ordinal_position
             FROM information_schema.columns
-            WHERE table_schema = 'main'
+            WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
             ORDER BY table_name, ordinal_position
         """)
     finally:
         expected_con.close()
     expected_columns_by_object: dict[str, dict[str, str]] = {}
     for row in expected_column_rows:
-        expected_columns_by_object.setdefault(row["table_name"], {})[row["column_name"]] = row["data_type"]
+        qualified = f"{row['table_schema']}.{row['table_name']}"
+        expected_columns_by_object.setdefault(qualified, {})[row["column_name"]] = row["data_type"]
 
     inventory = []
     actual_managed_names = set()
     unmanaged_objects = []
     managed_column_drift = []
     for row in object_rows:
-        expected = catalog.get(row["table_name"])
+        qualified = f"{row['table_schema']}.{row['table_name']}"
+        expected = catalog.get(qualified)
         actual_type = "view" if row["table_type"] == "VIEW" else "table"
         is_managed = bool(
             expected
@@ -132,7 +137,7 @@ def inspect() -> dict:
         actual_columns = columns_by_object.get((row["table_schema"], row["table_name"]), [])
         column_drift = None
         if is_managed:
-            expected_columns = expected_columns_by_object.get(row["table_name"], {})
+            expected_columns = expected_columns_by_object.get(qualified, {})
             actual_column_types = {column["name"]: column["type"] for column in actual_columns}
             missing_columns = sorted(set(expected_columns) - set(actual_column_types))
             extra_columns = sorted(set(actual_column_types) - set(expected_columns))
@@ -160,7 +165,7 @@ def inspect() -> dict:
         }
         inventory.append(item)
         if is_managed:
-            actual_managed_names.add(row["table_name"])
+            actual_managed_names.add(qualified)
         else:
             unmanaged_objects.append({
                 "schema": row["table_schema"],

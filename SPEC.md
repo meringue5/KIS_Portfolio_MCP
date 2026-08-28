@@ -479,6 +479,125 @@ circuit breaker를 적용한다. 상세 운영 계약은 `docs/kis-api-resilienc
 
 ---
 
+### ADR-020: Remote-only 제품표면과 월 5만원 serverless 비용 상한
+
+**결정**: 사용자-facing MCP는 OAuth Remote MCP 하나를 SSOT로 둔다. 운영 architecture는 검증된 shared
+core를 유지하면서 request-based scale-to-zero Cloud Run service와 실행 후 종료하는 Cloud Run Job을
+기본으로 한다. 운영 인프라·저장·네트워크·외부 데이터 provider를 합친 월 실제 지출 상한은 50,000원이다.
+
+**이유**:
+- local MCP 안내는 iPhone 등 원격 client에서 로컬 Mac 실행이 필요하다는 혼선을 만든다.
+- 현재 core·Remote MCP·OAuth·batch 경계는 이미 목표 책임을 표현하며 별도 REST microservice나 전면
+  재작성은 비용과 검증 회귀를 늘린다.
+- 상시 worker와 dedicated warehouse compute는 개인 자산관리 서비스의 사용 패턴과 비용 상한에 맞지 않는다.
+- MotherDuck Flights가 포함된 Business 기본료는 현재 예산을 초과하므로 기능 편의만으로 채택할 수 없다.
+
+**계약**:
+- 제품 문서와 connector 안내는 Remote MCP만 가리킨다. local entrypoint는 구현·test harness로 한시 유지할
+  수 있으나 지원되는 제품 표면으로 부르지 않는다.
+- auth·remote는 `min-instances=0`과 명시적인 `max-instances`를 사용하고 cold start를 허용한다.
+- 필수 수집·정제·품질·경보는 예약 또는 on-demand job으로 실행하고 완료 후 종료한다.
+- 신규 서비스·provider·수집주기는 정상월·backfill월·장애 재시도월의 원화 비용과 잔여 예산을 먼저 제시한다.
+- 35,000원·42,500원·50,000원 비용 단계와 max instances, timeout·retry, source call budget을 함께 사용한다.
+  budget alert 자체가 지출을 차단한다고 가정하지 않는다.
+- 세부 데이터·신호 요구와 구현 미승인 경계는
+  `docs/requirements/kis-portfolio-data-platform-requirements.md`의 DEC-020~DEC-045가 소유한다.
+
+---
+
+### ADR-021: KIS Portfolio V2 재개발 기준선
+
+**결정**: 승인된 DEC-001~DEC-045를 구현하는 다음 버전은 serverless modular monolith로 재개발한다.
+하나의 versioned application core와 여러 adapter를 같은 immutable image digest로 배포하고, 사용자-facing
+표면은 stateless OAuth Remote MCP 하나로 제한한다. 분석·장기 이력은 MotherDuck, 원문·복구본은 private
+GCS, OAuth/KIS token·lease·run request 같은 operational state는 Firestore와 Secret Manager에 둔다.
+
+**상태**: 2026-08-28 사용자 승인. 상세 결정, 대안, 전환 계획은
+`docs/design/kis-portfolio-v2-system-design.md`, `docs/design/kis-portfolio-v2-delivery-plan.md`와
+`docs/design/v2-architecture-delta-review.md`가 소유한다. DEC-045가 Firestore API와 named state database
+provisioning을 후속 승인했으며, secret migration, 배포, connector cutover 또는 V1 제거 권한은 아니다.
+
+DEC-046는 private GCS를 포함한 합의된 GCP resource의 non-destructive provisioning과 Milestone 1
+WI-009~012 연속 실행을 추가 승인한다. Remote MCP traffic cutover, V1 중지·삭제, Telegram 외부 전송과
+유료 provider는 계속 별도 gate다.
+
+**이전 결정과의 관계**:
+- ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
+- ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는
+  transactional state를 Seoul의 named Firestore Standard `kis-portfolio-state`로 옮기고, collection allowlist와
+  Secret Manager key 격리로 보완한다. migration·reconnect rehearsal과 cutover 승인 전에는 현행 catalog나
+  runtime을 바꾸지 않는다.
+- ADR-020의 "검증된 shared core 우선"은 endpoint/resilience/domain calculation 재사용 원칙으로 좁힌다.
+  monolithic MCP adapter, repository, runtime DDL과 analytics/operational-state 결합은 V2 계약에 맞춰
+  재개발한다.
+- 기존 `main` 데이터는 삭제하거나 in-place 변형하지 않고 parallel schema, dual-run, reconciliation과
+  rollback gate를 거쳐 전환한다.
+
+**승인된 계약**:
+1. Firestore state plane과 OAuth/KIS token 재발급·재연결 방식
+2. stateless MCP와 18개 이하 public tool catalog
+3. 단일 image digest, fixed-argument managed Job과 allowlisted LLM trigger
+4. V2 logical data model, parallel schema와 Wave 0~8 전환 계획
+
+---
+
+### ADR-022: Project Operating System을 개발·운영 상위 control system으로 채택
+
+**결정**: 정식 명칭을 **Project Operating System**, 한국어를 **프로젝트 운영체계**, 약칭을
+**Project OS**로 고정한다. `Project Governance`는 그 안의 결정권·문서 권한·변경통제 하위 영역이다.
+Project OS는 제품 application/data/runtime architecture와 병립하면서 이를 승인된 계약에 맞게 변경하는
+상위 Engineering Control System이다.
+
+**상태**: 사용자 승인, 즉시 적용. canonical policy는 `docs/governance/project-operating-system.md`가
+소유한다.
+
+**이유**:
+- 1인 앱도 대화, TODO, 코드와 운영 상태 사이의 판단 근거가 흩어지면 architecture drift가 발생한다.
+- 제품 아키텍처만으로는 bug, requirement change, architecture change와 incident의 처리 흐름을 소유하지
+  못한다.
+- Skill과 hook은 유용하지만 정책 SSOT가 되면 문서·CI와 서로 다른 규칙으로 노후화될 수 있다.
+- 요구/ADR → Work Item → 구현 → 자동·운영 증거 → 인수의 연결이 있어야 개선과 유지보수가 재현된다.
+
+**계약**:
+- 티켓은 관찰·진행·증거의 tracker이고 승인된 DEC/ADR/catalog가 결정 SSOT다.
+- 모든 비사소한 변경은 분류, 계약 비교, 영향, 인수 기준과 evidence를 가진다.
+- 동시에 하나의 구현 Work Item만 `in_progress`로 둔다.
+- Skill, tracked Git hook과 CI는 `scripts/check.sh` 단일 검사 entrypoint를 사용한다.
+- local hook은 조기 피드백이고 CI와 release approval이 최종 gate다.
+- 구현을 이유로 계약을 silent widening하지 않고, 의도한 계약 변경은 사용자 승인을 먼저 받는다.
+- Project OS 자체 변경도 governance Work Item과 dogfood 검증을 거친다.
+
+---
+
+### ADR-023: Data Governance Harness를 Project OS의 데이터 전용 집행 계층으로 채택
+
+**결정**: **Data Governance Harness(DGH, 데이터 거버넌스 하네스)**를 Project OS 아래에서 product data
+architecture를 집행하는 전문 control system으로 둔다. source, collection basket, dataset, metric과
+pipeline은 implementation 전에 versioned machine-readable contract를 가져야 하며, 이후 원천 데이터
+카탈로그와 수집 장바구니는 반드시 이 형식을 사용한다.
+
+**상태**: 2026-08-28 사용자 승인, 즉시 적용. canonical policy는
+`docs/governance/data-governance-harness.md`, 계약 형식은 `governance/contract-schema.toml`, 개별 계약은
+`governance/catalog/`가 소유한다. 이 승인은 source 선정, provider 가입, production migration, schedule,
+backfill 또는 deployment 권한이 아니다.
+
+**이유**:
+- 물리 DB 객체, 코드와 대화형 요구만으로는 source 권리, collection 범위, 의미, 품질, lineage와 보존 책임을
+  일관되게 강제할 수 없다.
+- 별도 대형 governance SaaS는 현재 1인 운영·scale-to-zero·월 50,000원 상한에 비해 운영면과 비용을 늘린다.
+- Git 기반 계약과 deterministic checker는 결정·코드·증거를 같은 review 경계에 두고, 추후 catalog 제품이나
+  dbt를 도입해도 정책 SSOT를 보존한다.
+
+**계약**:
+- approved/active contract만 production 수집·publish·공식 분석의 근거가 된다.
+- grain, key, time semantics, freshness, quality, lineage, sensitivity, retention, backup과 cost 책임을 명시한다.
+- Git hook과 CI는 Project OS의 `scripts/check.sh`를 통해 동일한 DGH checker를 실행한다.
+- runtime은 run/stage/watermark/quality/lineage evidence를 남기고 partial·stale 결과를 성공으로 숨기지 않는다.
+- Gold, metric, signal과 Telegram은 선언된 quality publish gate를 통과해야 한다.
+- 예외와 destructive change는 범위·만료·보완통제·사용자 승인을 가진 Work Item 없이 우회할 수 없다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

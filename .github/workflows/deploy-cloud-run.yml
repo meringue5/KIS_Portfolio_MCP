@@ -18,6 +18,8 @@ on:
           - overseas-scheduler
           - token-warmup-batch
           - token-warmup-scheduler
+          - v2-core-batch
+          - v2-core-schedulers
 
 permissions:
   contents: read
@@ -82,6 +84,9 @@ jobs:
       KIS_TOKEN_WARMUP_TIME_ZONE: ${{ vars.KIS_TOKEN_WARMUP_TIME_ZONE || 'Asia/Seoul' }}
       KIS_TOKEN_WARMUP_ACCOUNT_LABEL: ${{ vars.KIS_TOKEN_WARMUP_ACCOUNT_LABEL || 'all' }}
       KIS_TOKEN_WARMUP_VALID_THROUGH: ${{ vars.KIS_TOKEN_WARMUP_VALID_THROUGH || '16:30' }}
+      KIS_GCS_BUCKET: ${{ vars.KIS_GCS_BUCKET || 'grand-forge-279904-kis-portfolio-private' }}
+      KIS_FIRESTORE_DATABASE: ${{ vars.KIS_FIRESTORE_DATABASE || 'kis-portfolio-state' }}
+      KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT: ${{ vars.KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT || 'kis-portfolio-pipeline@grand-forge-279904.iam.gserviceaccount.com' }}
       KIS_DEPLOY_SECRET_MODE: secret-manager
     steps:
       - name: Check out repository
@@ -197,4 +202,20 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_TOKEN_WARMUP_JOB_NAME}" \
             --scheduler "${KIS_TOKEN_WARMUP_SCHEDULER_NAME}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
+
+      - name: Build once and deploy V2 owned-portfolio jobs
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'v2-core-batch'
+        run: |
+          uv run python scripts/deploy_cloud_run.py v2-core-batch \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --secret-mode secret-manager
+
+      - name: Deploy V2 owned-portfolio schedulers
+        if: github.event.inputs.target == 'all' || github.event.inputs.target == 'v2-core-schedulers'
+        run: |
+          uv run python scripts/deploy_cloud_run.py v2-core-schedulers \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"

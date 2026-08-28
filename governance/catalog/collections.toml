@@ -1,0 +1,120 @@
+schema_version = 1
+
+[[contracts]]
+id = "collection.owned-portfolio-core-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 보유 국내·미국 주식·ETF·REIT의 계좌, 거래, 가격, 환율, calendar와 매매일지를 구성하는 v1 필수 장바구니."
+decision_refs = ["DEC-003", "DEC-005", "DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014", "DEC-015", "DEC-030", "DEC-041"]
+scope = "all currently held Korean and U.S. listed stocks, ETFs and REITs across configured accounts; no unheld watchlist instruments"
+source_ids = ["source.kis-open-api", "source.portfolio-owner", "source.krx-market-data", "source.us-exchange-calendars"]
+dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.cash-transaction-event", "dataset.instrument-master", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.market-calendar", "dataset.trade-journal", "dataset.portfolio-daily-state"]
+priority = "required"
+history_policy = "initial three-year backfill for daily prices and available domestic, IRP and overseas trade/cash history; current balances are observations and are not fabricated backward"
+schedule_policy = "platform Scheduler is SSOT; KR observations and evaluation at applicable 10:00, 14:30 and 16:00 KST slots, U.S. close summary on the next Korean morning, history reconciliation after close"
+trigger_policy = "Cloud Run Jobs and Scheduler primary; allowlisted Remote MCP collection request may enqueue an idempotent supplemental run but cannot replace the schedule"
+cost_budget = "existing KIS account/API and request-based GCP only; zero new paid provider, bounded calls by held-instrument scope, monthly total platform ceiling KRW 50000"
+acceptance_rules = ["all configured accounts and currently held instruments covered or a named gap is published", "three-year price and trade backfill coverage measured without inventing missing history", "daily portfolio state reconciles to source positions, prices, cash and FX", "source partial or stale status propagates to consumers", "no automatic order capability"]
+
+[[contracts]]
+id = "collection.etf-lookthrough-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 보유 ETF만 대상으로 공식 issuer/KRX 구성자료를 보존하고 look-through impact를 계산하기 위한 권장 장바구니."
+decision_refs = ["DEC-005", "DEC-018", "DEC-019", "DEC-041"]
+scope = "held Korean ETFs and held U.S. ETFs only; issuer adapters onboarded on demand through an allowlist"
+source_ids = ["source.krx-market-data", "source.kr-etf-issuers", "source.us-etf-issuers"]
+dataset_ids = ["dataset.instrument-master", "dataset.etf-constituent-snapshot"]
+priority = "recommended"
+history_policy = "target three years of daily source snapshots where the official source exposes history; otherwise start from activation and record unavailable backfill instead of reconstructing it"
+schedule_policy = "one retrieval per held ETF per applicable trading day before the relevant portfolio evaluation, respecting issuer publication lag"
+trigger_policy = "platform Scheduler primary; bounded manual or Remote MCP replay only for a declared ETF/date gap"
+cost_budget = "free official downloads only, conditional requests and content hashes; any licensed feed requires a new approved source version under the KRW 50000 platform ceiling"
+acceptance_rules = ["each held ETF maps to an allowlisted official issuer or explicit unsupported_source", "source date, URL, file hash and row coverage retained", "weights plus residual reconcile within declared tolerance", "cash, bonds, derivatives and nested ETFs preserve type", "nested expansion stops at three levels and reports unresolved residual"]
+
+[[contracts]]
+id = "collection.fundamentals-dividends-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유기업의 공식 공시·재무 actual과 declared/entitled/received/corrected 배당을 위한 권장 장바구니."
+decision_refs = ["DEC-005", "DEC-020", "DEC-022", "DEC-023", "DEC-025", "DEC-032", "DEC-041"]
+scope = "issuers underlying currently held Korean and U.S. stocks, REITs and look-through-relevant ETFs; filings and dividend facts only"
+source_ids = ["source.opendart", "source.sec-edgar", "source.kis-open-api", "source.portfolio-owner"]
+dataset_ids = ["dataset.instrument-master", "dataset.filing-event", "dataset.financial-fact", "dataset.cash-transaction-event", "dataset.trade-event", "dataset.dividend-event"]
+priority = "recommended"
+history_policy = "initial five fiscal years and at least eight quarters of actuals; three years of account dividend receipts where available; canonical collected filings and events are not auto-deleted"
+schedule_policy = "daily incremental filing and dividend-right checks plus post-account-history receipt reconciliation; never poll faster than source publication cadence"
+trigger_policy = "platform Scheduler primary; Remote MCP may request an allowlisted issuer refresh or gap reconciliation"
+cost_budget = "OpenDART and SEC free APIs plus existing KIS access; object storage only for permitted content-addressed originals; no paid research or consensus feed"
+acceptance_rules = ["Korean actuals originate from OpenDART and U.S. actuals from SEC EDGAR", "filing corrections preserve prior versions and knowledge time", "financial facts retain original taxonomy and mapping provenance", "dividend state gaps are explicit and manual evidence cannot overwrite broker events", "licensed research full text is not collected"]
+
+[[contracts]]
+id = "collection.macro-profile-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "ECOS·FRED/ALFRED·Cboe의 승인된 최소 series로 macro_profile_v1을 구성하는 권장 장바구니."
+decision_refs = ["DEC-024", "DEC-026", "DEC-041"]
+scope = "versioned allowlist of Korean and U.S. rates, inflation, liquidity, activity, FX context and daily VIX needed by owned-instrument analysis"
+source_ids = ["source.bok-ecos", "source.fred-alfred", "source.cboe-vix"]
+dataset_ids = ["dataset.macro-observation"]
+priority = "recommended"
+history_policy = "source-available history sufficient for regime calibration, with ALFRED vintages when provided; series-specific rights and frequency govern retention and publish"
+schedule_policy = "daily incremental check, but each series is fetched and evaluated only according to its native publication frequency"
+trigger_policy = "platform Scheduler primary; allowlisted Remote MCP refresh only after the source publication window"
+cost_budget = "free official APIs/downloads only; small allowlisted series set and cached metadata; no paid macro terminal"
+acceptance_rules = ["every series has source, unit, frequency, interpretation and license metadata", "FRED third-party series rights are reviewed individually", "vintage-aware analysis cannot use future revisions", "missing releases and revisions remain explicit", "new series requires a source and metric contract change"]
+
+[[contracts]]
+id = "collection.owner-research-pdf-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "사용자가 정당하게 입수한 리서치 PDF를 선택적으로 검증·보존·추출하는 수동 권장 장바구니."
+decision_refs = ["DEC-025", "DEC-042", "DEC-044"]
+scope = "owner-selected PDF documents for held or explicitly reviewed issuers; no autonomous discovery, web crawling or bulk folder ingestion"
+source_ids = ["source.owner-provided-research-document"]
+dataset_ids = ["dataset.owner-research-document", "dataset.owner-research-extraction"]
+priority = "recommended"
+history_policy = "no automatic backfill; each owner-provided document begins at its manual intake and preserves immutable hash-based versions"
+schedule_policy = "none; human-initiated intake and explicit re-extraction only"
+trigger_policy = "authenticated local or future owner-authorized Remote MCP upload request; Scheduler and unattended LLM discovery are prohibited"
+cost_budget = "no paid provider and no autonomous network calls; bounded private object storage and extraction compute under the platform KRW 50000 ceiling"
+acceptance_rules = ["owner asserts lawful possession and personal processing rights", "PDF signature, size limit and SHA-256 pass", "DRM or prohibited terms cause rejection or metadata-only registration", "original and extraction remain restricted and private", "content is never redistributed or copied into Telegram", "every extraction unit links to document hash, page or section and extractor version"]
+
+[[contracts]]
+id = "collection.consensus-research-later"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "point-in-time consensus와 analyst research metadata의 후순위 장바구니. KIS 국내 coverage를 먼저 표본검증하고 미국 licensed gap은 provider 선정 전 유지한다."
+decision_refs = ["DEC-021", "DEC-022", "DEC-025", "DEC-032", "DEC-041"]
+scope = "held issuers only; consensus distributions, analyst counts, revisions and rights-approved research metadata"
+source_ids = ["source.kis-open-api", "source.consensus-provider-tbd"]
+dataset_ids = ["dataset.consensus-snapshot", "dataset.research-reference"]
+priority = "later"
+history_policy = "no collection until a sample proves point-in-time fields and provider rights; desired history includes pre-event snapshots and post-event revisions, not present-day reconstructed consensus"
+schedule_policy = "later design must align snapshots to earnings events and provider update cadence"
+trigger_policy = "disabled until source approval; future platform schedule primary with allowlisted issuer refresh only"
+cost_budget = "KRW 0 during discovery; any subscription must fit the total monthly KRW 50000 ceiling and state normal, backfill and failure-month cost before approval"
+acceptance_rules = ["KIS domestic estimate and opinion endpoints pass recorded coverage and field-shape sampling", "U.S. coverage names a licensed provider and preserves knowledge time", "analyst count and distribution or dispersion are available", "user and model scenarios are separate from consensus", "research full text is excluded unless expressly licensed"]
+
+[[contracts]]
+id = "collection.unlicensed-market-content-excluded"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "권리 미확인 포털·리서치·컨센서스 원문 scraping을 v1 수집대상에서 명시적으로 제외한다."
+decision_refs = ["DEC-025", "DEC-041"]
+scope = "unnamed third-party websites, paywalled or copyrighted research full text, and present-day consensus pages without point-in-time rights"
+source_ids = ["source.unlicensed-market-content"]
+dataset_ids = ["dataset.unlicensed-market-content"]
+priority = "excluded"
+history_policy = "no history and no retained payload"
+schedule_policy = "disabled"
+trigger_policy = "no scheduler, batch or MCP trigger is authorized"
+cost_budget = "zero because collection is prohibited"
+acceptance_rules = ["no physical table or object created", "no adapter or scraping code shipped", "replacement requires a named source, rights review, cost estimate and owner approval", "links may only enter an approved research-reference contract"]

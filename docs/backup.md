@@ -7,6 +7,55 @@
 `scripts/backup_motherduck.py`의 대상 목록은 `src/kis_portfolio/db/catalog.py`에서 직접 파생하므로,
 테이블을 추가할 때 백업 포함 여부를 명시하지 않으면 warehouse contract 검사를 통과할 수 없다.
 
+2026-08-28 승인된 V2에서도 MotherDuck 분석 데이터의 off-vendor Parquet 백업 책임은 유지한다. Firestore의
+active OAuth/token/lease state를 MotherDuck이나 이 Parquet 백업에 복제하지 않는다. V2 operational-state
+복구는 OAuth connector 재연결, KIS token 재발급, immutable run summary와 idempotent 재실행을 기본으로 하며,
+Firestore PITR/managed backup은 실제 비용·RPO 검토를 거친 별도 Work Item 전에는 활성화하지 않는다.
+현재 V1 백업 대상과 실행 절차는 아래와 같이 유지된다.
+
+## V2 parallel backup contract
+
+V2 registry의 backup policy는 `V2_DATA_OBJECTS`와 `v2_backup_table_names()`에 machine-readable하게 있다.
+운영 migration 전까지 현재 V1 `backup_motherduck.py`의 export 목록에는 자동 편입하지 않는다. V2가 live로
+적용되면 qualified schema를 보존하는 새 backup manifest version으로 다음을 export한다.
+
+```bash
+uv run python scripts/backup_v2_motherduck.py
+uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS --database :memory:
+```
+
+- Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`,
+  `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.cash_flow_events`,
+  `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
+  `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
+  `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
+  `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
+  `gold.portfolio_daily_state`, `control.pipeline_definitions`, `control.pipeline_runs`,
+  `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`.
+- Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
+  `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
+- Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
+  원문 backup이 됐다고 간주하지 않는다.
+- Rebuild/excluded: `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
+  `control.schema_migrations`.
+
+owner research 원문과 추출물은 restricted다. local rehearsal에서는 owner-only directory의 0600 file로
+검증하며, production object destination과 lifecycle은 별도 GCS provisioning/restore Work Item 전에는
+활성화하지 않는다.
+
+## Private GCS recovery foundation
+
+WI-012에서 `gs://grand-forge-279904-kis-portfolio-private`를 Seoul regional Standard bucket으로
+create-or-verify했다. Uniform bucket-level access와 public-access prevention은 강제되고, Google-managed
+encryption, versioning, 7일 soft delete, noncurrent version 30일 삭제, incomplete multipart upload 7일
+중단 정책을 사용한다. Current immutable raw/recovery object에는 자동 만료를 적용하지 않는다. Dataset별
+retention 계약 없이 current object를 일괄 삭제하지 않기 위해서다.
+
+`scripts/sync_v2_backup_gcs.py`는 backup file별 SHA-256을 가진 content-addressed object와 복원 index를
+생성한다. Restore는 모든 파일 hash를 검증한 뒤 기존 `scripts/restore_v2_backup.py` gate로 이어간다.
+Portfolio backup은 confidential payload이므로 실제 최초 업로드는 해당 payload의 외부 GCS 전송 승인을
+확인한 뒤 수행한다. Firestore operational state는 이 경로에 포함하지 않는다.
+
 ## Parquet 백업
 
 기본 백업 포맷은 Parquet이다. 이유는 다음과 같다.
@@ -53,6 +102,9 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 
 Gold view와 `schema_migrations`도 기본 백업에서 제외한다. Gold는 복원된 Bronze/Silver/Control table과
 versioned migration으로 재생성하고, migration ledger는 복원 대상 database에서 새로 검증한다.
+
+2026-08-28 병렬 적용과 실제 복원 리허설 결과는
+[MotherDuck V2 Parallel Foundation](./operations/motherduck-v2-foundation-2026-08.md)에 기록한다.
 
 최근 백업 N개만 남기려면:
 

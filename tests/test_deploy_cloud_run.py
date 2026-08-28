@@ -210,6 +210,47 @@ def test_batch_runtime_flags_apply_to_domestic_and_overseas_jobs():
     ]
 
 
+def test_v2_pipeline_env_forces_named_state_and_private_bucket():
+    payload = deploy_cloud_run._build_v2_pipeline_env(
+        {"KIS_DB_MODE": "motherduck", "MOTHERDUCK_DATABASE": "kis_portfolio"},
+        "grand-forge-279904",
+    )
+    assert payload["KIS_STATE_BACKEND"] == "firestore"
+    assert payload["KIS_FIRESTORE_DATABASE"] == "kis-portfolio-state"
+    assert payload["KIS_GCS_BUCKET"] == "grand-forge-279904-kis-portfolio-private"
+
+
+def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
+    commands = []
+    args = argparse.Namespace(
+        region="asia-northeast3", target="v2-core-batch", dry_run=True,
+        secret_mode="secret-manager",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck", "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT": "1800s",
+    }
+    monkeypatch.setattr(
+        deploy_cloud_run, "_build_release_image",
+        lambda args, project: "image@sha256:one-build",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run",
+        lambda command, dry_run: commands.append(command) or 0,
+    )
+    result = deploy_cloud_run._deploy_v2_core_jobs(
+        args, env=env, project="grand-forge-279904",
+    )
+    assert result == 0 and len(commands) == 3
+    assert {command[command.index("--image") + 1] for command in commands} == {"image@sha256:one-build"}
+    fixed_args = {command[command.index("--args") + 1] for command in commands}
+    assert fixed_args == {
+        "collect-owned-portfolio-v2,--date,today,--slot,kr-1000,--partition-key,all-accounts",
+        "collect-owned-portfolio-v2,--date,today,--slot,kr-1430,--partition-key,all-accounts",
+        "collect-owned-portfolio-v2,--date,today,--slot,kr-1600,--partition-key,all-accounts",
+    }
+
+
 def test_overseas_batch_command_uses_default_account_and_exchange():
     command_args = deploy_cloud_run._build_overseas_batch_command_args({})
 
@@ -475,4 +516,3 @@ def test_deploy_workflow_uses_secret_manager_not_bundled_env():
     assert "environment: production" in workflow
     assert 'test "${GITHUB_REF}" = "refs/heads/master"' in workflow
     assert "KIS_DEPLOY_SECRET_MODE: secret-manager" in workflow
-

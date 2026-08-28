@@ -17,13 +17,15 @@ from mcp.server.auth.provider import (
 from mcp.shared.auth import OAuthClientMetadata
 
 from kis_portfolio.adapters.auth.config import StaticOAuthClientConfig
-from kis_portfolio.db import auth_repository
+from kis_portfolio.platform.state_runtime import get_auth_repository
 from kis_portfolio.security.oauth_crypto import (
     digest_token,
     generate_token,
     hash_client_secret,
     verify_client_secret,
 )
+
+auth_repository = get_auth_repository()
 
 
 def _to_timestamp(value: datetime | None) -> int | None:
@@ -337,7 +339,9 @@ class KisOAuthProvider:
         *,
         resource: str | None = None,
     ) -> OAuthToken:
-        auth_repository.consume_authorization_code(authorization_code.id)
+        consumed = auth_repository.consume_authorization_code(authorization_code.id)
+        if consumed is False:
+            raise TokenError(error="invalid_grant", error_description="Authorization code was already used.")
         resolved_resource = _normalize_resource(resource) or authorization_code.resource
         return await self._issue_token_pair(
             user_id=authorization_code.user_id,
@@ -392,7 +396,11 @@ class KisOAuthProvider:
                 error_description="Requested scope exceeds previously granted scope.",
             )
 
-        auth_repository.revoke_oauth_token(refresh_token.id)
+        consume_refresh = getattr(auth_repository, "consume_refresh_token", None)
+        if consume_refresh is not None and not consume_refresh(refresh_token.id):
+            raise TokenError(error="invalid_grant", error_description="Refresh token was already used.")
+        if consume_refresh is None:
+            auth_repository.revoke_oauth_token(refresh_token.id)
         return await self._issue_token_pair(
             user_id=refresh_token.user_id,
             client_id=client.client_id,

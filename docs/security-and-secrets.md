@@ -22,6 +22,47 @@ DB 객체의 전체 목록, logical layer, grain과 sensitivity 등급은 `docs/
   Federation credential과 비시크릿 vars만 둔다.
 - GitHub Environment secret `KIS_DEPLOY_ENV`는 deprecated migration artifact다. 새 workflow에서는 사용하지 않는다.
 
+## 현재 V1과 승인된 V2 목표
+
+현재 runtime은 아래 inventory와 같이 MotherDuck에 encrypted KIS token cache와 OAuth digest state를 저장하고,
+Secret Manager의 개별 secret resource를 `latest` version으로 주입한다. 이는 migration 전까지 유효한 V1
+운영 계약이다.
+
+2026-08-28 승인된 V2 security plane은 다음과 같다. 이 결정은 목표 architecture이며 아직 secret 재구성,
+Firestore 활성화 또는 token migration을 수행하지 않았다.
+
+- 장기 credential과 cryptographic key의 SSOT는 GCP Secret Manager다.
+- Secret Manager는 `KIS provider`, `OAuth providers`, `OAuth server keyring`, `Warehouse access`,
+  `Token encryption keyring`, `Notification`의 신뢰경계별 최대 6개 bundle을 목표로 한다. 하나의
+  mega-secret으로 합치지 않는다.
+- release manifest는 `latest` 대신 숫자 secret version을 pin하고, runtime은 필요한 bundle만 시작 시 읽어
+  process memory에 cache한다.
+- rotation의 previous version은 7일 rollback window 동안 disable하고 검증 뒤 destroy한다.
+- OAuth digest, encrypted KIS token cache, lease와 run request는 Seoul의 Firestore Standard database 하나에
+  저장한다. database IAM 위에 identity별 application collection allowlist와 negative test를 둔다.
+- auth와 pipeline에는 서로의 복호화 key를 주지 않는다. MotherDuck은 V2에서 분석 사실과
+  `bronze/silver/gold/control`만 소유한다.
+
+실제 secret payload를 bundle로 옮기는 작업은 별도 security/provisioning Work Item과 rollback rehearsal 뒤에
+수행한다. 그 전에는 아래 V1 inventory와 rotation runbook이 현재 운영 절차다.
+
+### 2026-08-28 V2 state foundation inventory
+
+- project `grand-forge-279904`에는 기존 `(default)` `DATASTORE_MODE` database가
+  `asia-northeast3`에 있고 free tier를 사용한다. 이 database는 변경·삭제하지 않는다.
+- 합의한 Firestore Native state plane은 named database `kis-portfolio-state`로 같은 서울 region에 생성했다.
+  Standard edition, delete protection enabled, PITR/managed backup/TTL deletes disabled다.
+- named database는 free quota 대상이 아니지만 생성 고정비는 없고 read/write/storage 실제 사용량만
+  과금된다. 1인 앱의 token·lease·run request만 저장하고 월 50,000원 비용 gate를 적용한다.
+- `scripts/bootstrap_firestore_state.py`가 non-secret `system_config/state-schema-v1` marker와 transactional
+  lease fencing을 검증했다. collection allowlist는 `auth_users`, `auth_identities`, `oauth_clients`,
+  `oauth_grants`, `oauth_codes`, `oauth_tokens`, `kis_token_cache`, `leases`, `run_requests`, `system_config`다.
+- Secret Manager API와 기존 KIS Portfolio secret entity는 이미 존재하므로 중복 생성하거나 secret 값을
+  읽지 않았다.
+
+근거: [Firestore database 관리](https://cloud.google.com/firestore/docs/manage-databases),
+[Firestore 가격과 named database](https://cloud.google.com/firestore/pricing).
+
 ## Trust Boundaries
 
 - Local developer machine: `.env`, local DuckDB, legacy `var/tokens/token_{CANO}.json` migration input을 가진다.
@@ -29,7 +70,8 @@ DB 객체의 전체 목록, logical layer, grain과 sensitivity 등급은 `docs/
 - Cloud Run auth service: MCP OAuth authorization server다. owner login, consent, token issuance를 담당한다.
 - Cloud Run remote service: MCP resource server다. OAuth bearer token을 검증하고 KIS 조회 tool을 실행한다.
 - Cloud Run batch job: 예약 수집 job이다. KIS/MotherDuck runtime env를 사용하지만 MCP OAuth client token은 쓰지 않는다.
-- MotherDuck: 운영 데이터베이스다. portfolio data, encrypted KIS token cache, OAuth digest state를 저장한다.
+- MotherDuck: 현재 V1 운영 데이터베이스다. portfolio data, encrypted KIS token cache, OAuth digest state를
+  저장한다. 승인된 V2에서는 분석 plane만 맡는다.
 - KIS Open API: app key/secret으로 KIS API access token을 발급한다.
 - Claude/ChatGPT clients: MCP OAuth access token을 bearer로 보내고 refresh token을 클라이언트 쪽에 보관한다.
 

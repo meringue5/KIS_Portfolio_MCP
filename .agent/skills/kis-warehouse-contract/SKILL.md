@@ -9,7 +9,9 @@ Use this skill for DB schema, repository, analytics, backup, and pipeline change
 
 ## Workflow
 
-1. Read `docs/data-catalog.md` first. It owns object purpose, grain, logical layer, sensitivity, backup policy, and the physical schema migration plan.
+1. Read `docs/governance/data-governance-harness.md` first when the change adds or changes a source, dataset, metric,
+   pipeline, quality, lineage or retention contract. Then read `docs/data-catalog.md`; it owns physical object purpose,
+   grain, logical layer, sensitivity, backup policy, and the physical schema migration plan.
 2. Read `docs/data-pipeline.md`, `docs/backup.md`, `docs/security-and-secrets.md` when the change touches their responsibility, plus relevant `src/kis_portfolio/db/` files.
 3. Run:
 

@@ -19,6 +19,10 @@ class DataObject:
     key: str
     physical_schema: str = "main"
 
+    @property
+    def qualified_name(self) -> str:
+        return f"{self.physical_schema}.{self.name}"
+
 
 DATA_OBJECTS = (
     DataObject(
@@ -159,6 +163,44 @@ DATA_OBJECTS = (
 )
 
 
+# V2 objects are governed separately from the V1 runtime allowlist. They are created only by
+# ``kis-portfolio-migrate``; V1 ``init_schema`` and the current backup job do not touch them.
+V2_DATA_OBJECTS = (
+    DataObject("source_observations", "table", "bronze", "bronze", "append-only", "parquet", "confidential", "Immutable source envelopes for replay.", "one source record observation", "idempotency_key", "bronze"),
+    DataObject("raw_object_manifest", "table", "bronze", "bronze", "content-addressed", "object", "restricted", "Private raw-object identity and rights manifest.", "one content hash", "content_hash", "bronze"),
+    DataObject("owner_research_documents", "table", "bronze", "bronze", "content-addressed", "object", "restricted", "Owner-provided PDF metadata and private object identity.", "one PDF content hash", "document_sha256", "bronze"),
+    DataObject("accounts", "table", "silver", "silver", "versioned upsert", "parquet", "confidential", "Canonical account identities.", "one account identity", "account_id", "silver"),
+    DataObject("instruments", "table", "silver", "silver", "versioned upsert", "parquet", "internal", "Canonical instrument identity versions.", "one instrument identity", "instrument_id", "silver"),
+    DataObject("position_snapshots", "table", "silver", "silver", "idempotent upsert", "parquet", "confidential", "Canonical position observations.", "one account instrument and as-of", "account_id, instrument_id, as_of", "silver"),
+    DataObject("cash_snapshots", "table", "silver", "silver", "idempotent upsert", "parquet", "confidential", "Canonical cash observations.", "one account currency and as-of", "account_id, currency, as_of", "silver"),
+    DataObject("trade_events", "table", "silver", "silver", "append-only versions", "parquet", "confidential", "Canonical executed-order events.", "one broker order event version", "trade_event_id", "silver"),
+    DataObject("cash_flow_events", "table", "silver", "silver", "append-only events", "parquet", "confidential", "Canonical cash-flow ledger.", "one source cash event", "cash_flow_event_id", "silver"),
+    DataObject("purchase_lots", "table", "silver", "silver", "append-only open; derived balance", "parquet", "confidential", "Buy-order purchase lots.", "one executed buy order", "lot_id", "silver"),
+    DataObject("trade_threads", "table", "silver", "silver", "versioned upsert", "parquet", "confidential", "Owner investment-decision threads.", "one investment thread", "thread_id", "silver"),
+    DataObject("trade_thread_lots", "table", "silver", "silver", "append-only revisions", "parquet", "confidential", "Versioned lot-to-thread links.", "one thread lot allocation revision", "thread_id, lot_id, allocation_revision", "silver"),
+    DataObject("sell_allocation_revisions", "table", "silver", "silver", "append-only revisions", "parquet", "confidential", "Explicit or inferred sell-to-lot allocation revisions.", "one allocation lot revision", "allocation_id, revision, lot_id", "silver"),
+    DataObject("trade_journal_revisions", "table", "silver", "silver", "append-only revisions", "parquet", "confidential", "Owner-authored trade journal history.", "one journal revision", "journal_id, revision", "silver"),
+    DataObject("price_bars_daily", "table", "silver", "silver", "idempotent upsert", "parquet", "internal", "Raw and adjusted daily OHLCV.", "one instrument session and basis", "instrument_id, session_date, price_basis", "silver"),
+    DataObject("fx_rates_daily", "table", "silver", "silver", "idempotent upsert", "parquet", "internal", "Daily FX observations.", "one pair date and rate type", "base_currency, quote_currency, rate_date, rate_type", "silver"),
+    DataObject("etf_constituent_snapshots", "table", "silver", "silver", "append-only snapshots", "parquet", "internal", "Official ETF constituent snapshots.", "one ETF file constituent row", "etf_instrument_id, source_date, file_hash, constituent_ordinal", "silver"),
+    DataObject("filing_events", "table", "silver", "silver", "append-only versions", "parquet", "internal", "Filing identity and correction events.", "one issuer filing document version", "issuer_id, filing_id, document_version", "silver"),
+    DataObject("financial_facts", "table", "silver", "silver", "append-only facts", "parquet", "internal", "Point-in-time normalized financial facts.", "one filing taxonomy fact", "issuer_id, filing_id, taxonomy, concept, period_end, unit, dimension_hash", "silver"),
+    DataObject("dividend_events", "table", "silver", "silver", "append-only events", "parquet", "confidential", "Declared entitled received and corrected dividends.", "one dividend state event", "dividend_event_id", "silver"),
+    DataObject("macro_observations", "table", "silver", "silver", "append-only vintages", "parquet", "internal", "Governed macro observations and vintages.", "one series period vintage revision", "series_contract_id, observation_period, realtime_start, source_revision", "silver"),
+    DataObject("owner_research_extractions", "table", "silver", "silver", "append-only versions", "object", "restricted", "Versioned page or section extraction with document lineage.", "one document extractor revision locator", "document_sha256, extractor_id, extractor_version, extraction_revision, locator", "silver"),
+    DataObject("portfolio_daily_state", "table", "gold", "gold", "idempotent materialization", "parquet", "confidential", "Quality-gated daily canonical portfolio state.", "one date slot account instrument aggregate", "evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level", "gold"),
+    DataObject("portfolio_daily_summary", "view", "gold", "gold", "derived view", "excluded", "confidential", "Daily portfolio summary read model.", "one date and slot", "evaluation_date, evaluation_slot", "gold"),
+    DataObject("schema_migrations", "table", "control", "control", "migration ledger", "excluded", "internal", "Checksum-verified V2 migration versions.", "one migration version", "version", "control"),
+    DataObject("pipeline_definitions", "table", "control", "control", "versioned upsert", "parquet", "internal", "Managed pipeline definitions.", "one pipeline version", "pipeline_id, version", "control"),
+    DataObject("pipeline_runs", "table", "control", "control", "idempotent claim", "parquet", "internal", "Pipeline logical-run ledger.", "one logical pipeline run key", "idempotency_key", "control"),
+    DataObject("pipeline_stage_runs", "table", "control", "control", "resumable upsert", "parquet", "internal", "Stage attempt and resume evidence.", "one run and stage", "run_id, stage_name", "control"),
+    DataObject("quality_results", "table", "control", "control", "append-only", "parquet", "internal", "Dataset quality rule evidence.", "one run dataset rule evaluation", "quality_result_id", "control"),
+    DataObject("lineage_edges", "table", "control", "control", "append-only", "parquet", "internal", "Input-output transform lineage.", "one run lineage edge", "lineage_edge_id", "control"),
+    DataObject("watermarks", "table", "control", "control", "upsert", "parquet", "internal", "Pipeline partition watermarks.", "one pipeline partition watermark type", "pipeline_id, partition_key, watermark_type", "control"),
+    DataObject("pipeline_run_summary", "view", "control", "control", "derived view", "excluded", "internal", "Pipeline status read model.", "one pipeline run", "run_id", "control"),
+)
+
+
 def managed_object_names(object_type: str | None = None) -> tuple[str, ...]:
     return tuple(
         item.name
@@ -177,3 +219,15 @@ def backup_table_names() -> tuple[str, ...]:
 
 def object_by_name() -> dict[str, DataObject]:
     return {item.name: item for item in DATA_OBJECTS}
+
+
+def v2_object_by_qualified_name() -> dict[str, DataObject]:
+    return {item.qualified_name: item for item in V2_DATA_OBJECTS}
+
+
+def v2_backup_table_names() -> tuple[str, ...]:
+    return tuple(
+        item.qualified_name
+        for item in V2_DATA_OBJECTS
+        if item.object_type == "table" and item.backup_policy in {"parquet", "object"}
+    )
