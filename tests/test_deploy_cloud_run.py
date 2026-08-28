@@ -220,6 +220,18 @@ def test_v2_pipeline_env_forces_named_state_and_private_bucket():
     assert payload["KIS_GCS_BUCKET"] == "grand-forge-279904-kis-portfolio-private"
 
 
+def test_v2_pipeline_env_includes_public_sec_fair_access_identity():
+    payload = deploy_cloud_run._build_v2_pipeline_env(
+        {
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio",
+            "SEC_EDGAR_USER_AGENT": "KIS Portfolio mustafa@example.com",
+        },
+        "grand-forge-279904",
+    )
+    assert payload["SEC_EDGAR_USER_AGENT"] == "KIS Portfolio mustafa@example.com"
+
+
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
     commands = []
     args = argparse.Namespace(
@@ -369,6 +381,56 @@ def test_v2_schedulers_use_dedicated_invoker_instead_of_legacy_default(monkeypat
     } == {
         "kis-portfolio-scheduler@grand-forge-279904.iam.gserviceaccount.com",
     }
+
+
+def test_wi029_s04_migrates_before_same_digest_core_and_verifies_private_restore(monkeypatch):
+    commands = []
+    scheduler_calls = []
+    builds = {"count": 0}
+    args = argparse.Namespace(
+        region="asia-northeast3", scheduler_region="asia-northeast3",
+        target="wi029-s04", dry_run=True, secret_mode="secret-manager",
+        job="kis-portfolio-wi029-s04",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_GCS_BUCKET": "private-bucket",
+        "SEC_EDGAR_USER_AGENT": "KIS Portfolio mustafa@example.com",
+    }
+
+    def build(_args, *, project):
+        builds["count"] += 1
+        assert project == "grand-forge-279904"
+        return "image@sha256:" + "b" * 64
+
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", build)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, dry_run: commands.append(command) or 0,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_deploy_v2_core_schedulers",
+        lambda *args, **kwargs: scheduler_calls.append(kwargs) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi029_s04(
+        args, env=env, project="grand-forge-279904",
+    )
+    assert result == 0
+    assert builds["count"] == 1
+    assert commands[0][4] == "kis-portfolio-wi029-s04-migration"
+    assert "--args=--motherduck,--through,0013" in commands[0]
+    assert commands[1][:5] == ["gcloud", "run", "jobs", "execute", "kis-portfolio-wi029-s04-migration"]
+    core_deploys = [command for command in commands if "v2-core-batch" in " ".join(command)]
+    assert len(core_deploys) == 3
+    assert {command[command.index("--image") + 1] for command in core_deploys} == {
+        "image@sha256:" + "b" * 64
+    }
+    verify = next(command for command in commands if "wi029-s04-verify" in " ".join(command) and "deploy" in command)
+    secrets = verify[verify.index("--set-secrets") + 1]
+    assert secrets.startswith("MOTHERDUCK_TOKEN=")
+    assert "KIS_APP_" not in secrets and "KIS_CANO_" not in secrets
+    assert scheduler_calls
 
 
 def test_overseas_batch_command_uses_default_account_and_exchange():

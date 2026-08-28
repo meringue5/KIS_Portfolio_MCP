@@ -47,6 +47,8 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `control.pipeline_definitions`, `control.metric_definitions`, `control.alert_rule_versions`,
   `control.alert_state_revisions`, `control.alert_candidate_outcomes`,
   `control.alert_dispatch_claims`, `control.alert_delivery_attempts`,
+  `control.alert_calibration_runs`, `control.alert_shadow_windows`,
+  `control.alert_rule_approval_revisions`,
   `control.pipeline_runs`,
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`,
   `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`,

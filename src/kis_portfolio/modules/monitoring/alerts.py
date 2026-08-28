@@ -68,8 +68,8 @@ class AlertRuleVersion:
             _aware(valid_to, "valid_to")
         if status not in {"approved", "active"}:
             raise AlertContractError("alert rule must be approved or active")
-        if minimum not in {"warning", "critical"}:
-            raise AlertContractError("delivery floor must be warning or critical")
+        if minimum not in {"watch", "warning", "critical"}:
+            raise AlertContractError("delivery floor must be watch, warning or critical")
         if mode not in {"off", "shadow", "external"}:
             raise AlertContractError("unknown delivery mode")
         if valid_to is not None and valid_to <= valid_from:

@@ -31,15 +31,17 @@ claim.
 | Prior | Current | Transition | New delivery candidate |
 | --- | --- | --- | --- |
 | none | normal | `initial_normal` | no |
-| none/normal | active warning+ | `entered`/`reentered` | yes |
+| none/normal | active watch+ | `entered`/`reentered` | yes |
 | active | identical fingerprint | none | no |
 | active | higher severity | `escalated` | yes |
-| active | changed warning+ fingerprint | `updated` | yes |
+| active | changed watch+ fingerprint | `updated` | yes |
 | active | lower severity but active | `deescalated` | no |
-| active warning+ | normal | `recovered` | yes |
+| active watch+ | normal | `recovered` | yes |
 
 A re-entry increments the episode number. Recovery carries the prior delivered severity for routing while the current
-candidate remains normal. `watch` and `normal` are stored but are below the owner-approved `warning` (`주의`) floor.
+candidate remains normal. WI-029 clarifies the approved Korean mapping as `normal/정상`, `watch/주의`,
+`warning/경고`, `critical/긴급`; migration `0013` therefore adds the exact rank-1 `watch` delivery floor without
+editing migration `0012`.
 
 ## Warehouse objects
 

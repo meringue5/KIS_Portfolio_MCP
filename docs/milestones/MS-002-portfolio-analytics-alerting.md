@@ -34,8 +34,8 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 14 | WI-026 ETF constituent forward collection | V2-W0405 | WI-012, WI-017 | rejected from initial V2; evidence preserved for future intake |
 | 15 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | rejected from initial V2; no implementation claimed |
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
-| 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | proposed; ETF is opaque, no constituent inference |
-| 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | proposed |
+| 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | closed; PR #25, shadow-only ledger |
+| 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | in progress; S01~S05, elapsed two-week evidence required |
 | 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | proposed; external-send approval gate |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.

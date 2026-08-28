@@ -1,7 +1,7 @@
 ---
 id: WI-029
 title: Calibrate signals with replay and shadow evaluation
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-010, V2-ADR-012
@@ -51,14 +51,32 @@ owner can approve external delivery.
 
 ## Sub-items
 
-- `none`.
+- `WI-029-S01`: freeze bootstrap rule and replay/report contracts.
+- `WI-029-S02`: implement deterministic replay, asset-class calibration and tests.
+- `WI-029-S03`: audit live eligibility and execute only a bounded, provenance-labelled replay.
+- `WI-029-S04`: activate DB-only shadow schedules with external delivery impossible.
+- `WI-029-S05`: collect two elapsed weeks of evidence and record owner rule-version approval.
 
 ## Evidence
 
-- Pending.
+- Activated after WI-028 merged as PR #25 (`a9dc2ccd96660be2b4f89e4b95e50e2a0efb9d46`).
+- `WI-029-S01` closed: bootstrap severity, stateful budget, provenance, coverage and owner-review contracts are frozen in
+  `docs/design/wi-029-signal-replay-shadow-contract.md`.
+- `WI-029-S02` closed: deterministic pure replay, per-class multiplier calibration, immutable evidence repository and
+  local golden tests are implemented.
+- `WI-029-S03` closed: bounded aggregate-only live audit and reconstructed replay are recorded in
+  `docs/operations/wi-029-replay-readiness-2026-08.md`. The official-evidence replay hash is
+  `a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d`; no DB or external-send write occurred.
+- `WI-029-S04` is active. Managed migrations, append-only classification evidence, immutable calibration persistence
+  and DB-only shadow scheduling remain before the elapsed observation window can start.
+- S04 repository implementation is release-ready: the three existing scale-to-zero jobs land operational-strict
+  raw/adjusted bars and compose KR slots plus morning U.S. close shadow evaluation; the morning job resolves only
+  current overseas unknown holdings through bounded KIS+SEC evidence. The `wi029-s04` target enforces migration 0013,
+  one initial morning run, zero external transport and private GCS backup/download/fresh restore. Live execution
+  evidence is still required before S04 closes.
 
 ## Closeout
 
-- Result: proposed; depends on WI-028 and elapsed shadow evidence.
+- Result: in progress; S01-S03 are closed, S04 is active, and closure still requires elapsed S05 evidence.
 - Remaining risk: reconstructed-history bias.
 - Follow-up Work Item: WI-030.

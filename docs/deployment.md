@@ -273,6 +273,17 @@ V2 owned-portfolio pipeline은 기존 배치와 별도의 최소권한 identity�
 - Scheduler invoker service account: `kis-portfolio-scheduler@PROJECT.iam.gserviceaccount.com`
 - 선택 override: `KIS_V2_SCHEDULER_INVOKER_SERVICE_ACCOUNT`
 
+WI-029-S04부터 같은 세 Job은 portfolio publish 뒤 DB-only shadow evaluation까지 수행한다. `kr-1000`은
+국내 10시와 전일 미국 close session을 함께 평가하고, `kr-1430`·`kr-1600`은 해당 국내 slot만 평가한다.
+별도 상시 서비스나 Scheduler는 만들지 않는다. 오전 Job은 현재 보유 해외 `unknown`만 최대 8개 KIS+SEC
+공식 근거로 분류하며 `SEC_EDGAR_USER_AGENT`는 연락 이메일을 포함한 공개 fair-access identity다.
+이 값은 secret이 아니며 GitHub repository/environment variable로 둔다.
+
+수동 target `wi029-s04`는 tested master의 한 immutable image로 migration `0013`을 먼저 실행한 뒤 세 core
+Job을 갱신하고 오전 Job을 한 번 실행한다. 마지막 verify Job은 Telegram external rule/claim이 0인지 검사하고,
+전체 governed V2 table을 private GCS에 올렸다가 fresh DuckDB로 내려받아 복원한다. migration·verify Job에는
+MotherDuck token만 주입하며 KIS 계좌 secret은 verify Job에 주입하지 않는다.
+
 V2 Scheduler는 기존 배치용 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 상속하지 않는다.
 따라서 기존 Scheduler identity를 변경하지 않고 V2 pipeline만 전용 계정으로 격리한다.
 
@@ -311,6 +322,8 @@ Deploy workflow:
 
 - `workflow_dispatch`만 지원하며 일반 target은 `all`, `auth`, `remote`, `batch`, `scheduler`, `overseas-batch`, `overseas-scheduler`, `token-warmup-batch`, `token-warmup-scheduler`, `v2-core-batch`, `v2-core-schedulers`다.
 - `wi021-s06`과 `wi022-s06`은 `all`에 포함되지 않는 수동 1회성 복구 Job target이다. Scheduler를 만들지 않으며 고정 hash/range, 단일 task, 병렬도 1, 자동 retry 0으로 deploy 후 즉시 `--wait` 실행한다. `wi022-s06`은 계좌/KIS API secret 없이 MotherDuck token만 주입하고 migration `0010`, private pre/post restore 및 exact reconstruction hash를 요구한다.
+- `wi029-s04`도 `all`에 포함되지 않는 수동 activation target이며 migration→core update→morning shadow→private
+  backup/restore 순서를 한 실행 안에서 강제한다. external Telegram transport는 배포하지 않는다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.
@@ -332,6 +345,7 @@ Deploy workflow:
   - `KIS_CLOUD_RUN_REMOTE_CONCURRENCY` (선택, 기본값 `20`)
   - `KIS_CLOUD_RUN_REMOTE_MIN_INSTANCES` (선택, 기본값 `0`)
   - `KIS_CLOUD_RUN_REMOTE_MAX_INSTANCES` (선택, 기본값 `1`)
+  - `SEC_EDGAR_USER_AGENT` (WI-029-S04 필수, 예: `KIS Portfolio Service contact@example.com`)
   - `KIS_REAL_API_MIN_INTERVAL_SECONDS` (선택, 기본값 `0.15`)
   - `KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS` (선택, 기본값 `1.0`)
   - `KIS_TOKEN_MIN_INTERVAL_SECONDS` (선택, 기본값 `1.0`)

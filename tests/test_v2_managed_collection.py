@@ -125,3 +125,46 @@ def test_managed_collection_resumes_from_landed_bundle_without_source_recall(mon
     assert con.execute(
         "select attempt from control.pipeline_stage_runs where run_id=? and stage_name='normalize'", [first["run_id"]]
     ).fetchone()[0] == 2
+
+
+def test_operational_price_payload_is_landed_as_strict_and_beats_legacy_reconstruction(monkeypatch):
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
+    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adjusted BOOLEAN, created_at TIMESTAMP)")
+    con.execute("CREATE TABLE main.exchange_rate_history(currency VARCHAR, date DATE, rate DOUBLE)")
+    con.execute("INSERT INTO main.market_calendar VALUES ('krx','2026-08-28',true,NULL)")
+    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',1,1,1,1,1,true,'2026-08-28 07:00:00')")
+    observed = datetime(2026, 8, 28, 7, tzinfo=UTC)
+
+    async def fake_collect(slot):
+        assert slot == "kr-1600"
+        return {
+            "domestic": [{"account_label": "ria", "account_type": "REAL", "snapshot_id": "s",
+                "observed_at": observed,
+                "raw": {"output1": [{"pdno": "005930", "hldg_qty": "1", "evlu_amt": "90"}],
+                        "output2": [{"tot_evlu_amt": "100"}]}}],
+            "overseas": {}, "overseas_deposit": {}, "source_calls": 1,
+            "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "price_observations": [{
+                "market": "KRX", "symbol": "005930", "adjusted": True,
+                "fetched_at": observed,
+                "raw": {"output2": [{"stck_bsop_date": "20260828", "stck_oprc": "100",
+                    "stck_hgpr": "101", "stck_lwpr": "89", "stck_clpr": "90", "acml_vol": "3000"}]},
+            }],
+        }
+
+    monkeypatch.setattr(v2_collection, "_collect_sources", fake_collect)
+    monkeypatch.setattr(v2_collection, "load_account_registry", lambda: [FakeAccount("ria")])
+    result = v2_collection.run_owned_portfolio_pipeline(
+        con, logical_date=date(2026, 8, 28), slot="kr-1600", object_store=FakeObjectStore(),
+    )
+    assert result["status"] == "succeeded"
+    rows = con.execute(
+        """
+        SELECT reconstruction_mode,close FROM silver.price_bar_revisions_daily
+        WHERE instrument_id='v1|KRX|005930' AND session_date='2026-08-28' AND price_basis='adjusted'
+        """
+    ).fetchall()
+    assert rows == [("operational_strict", 90)]
+    con.close()

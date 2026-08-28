@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -22,8 +23,10 @@ from kis_portfolio.db.connection import get_connection
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
+from kis_portfolio.services.overseas_classification_sync import sync_held_overseas_classifications
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.price_history import run_held_price_backfill
+from kis_portfolio.services.shadow_alerts import run_shadow_signal_evaluation
 from kis_portfolio.services.position_reconstruction_runtime import (
     build_reconstruction_execution_plan,
 )
@@ -44,6 +47,7 @@ from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
 from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
+from kis_portfolio.services.wi029_s04 import verify_wi029_s04
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -236,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
     wi022_s06.add_argument("--expected-execution-hash", required=True)
     wi022_s06.add_argument("--project", required=True)
     wi022_s06.add_argument("--bucket", required=True)
+    wi029_s04 = subparsers.add_parser(
+        "run-wi029-s04-verify",
+        help="Verify migration 0013, zero external delivery and private GCS backup restore.",
+    )
+    wi029_s04.add_argument("--project", required=True)
+    wi029_s04.add_argument("--bucket", required=True)
     return parser
 
 
@@ -280,6 +290,17 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
     result = run_owned_portfolio_pipeline(
         get_connection(), logical_date=logical_date, slot=args.slot, partition_key=args.partition_key,
     )
+    if result["status"] in {"succeeded", "skipped"} and result.get("reason") is None:
+        if args.slot == "kr-1000":
+            result["overseas_classification"] = sync_held_overseas_classifications(
+                get_connection(),
+                logical_date=logical_date,
+                source_slot=args.slot,
+                sec_user_agent=os.environ.get("SEC_EDGAR_USER_AGENT", ""),
+            )
+        result["shadow"] = run_shadow_signal_evaluation(
+            get_connection(), logical_date=logical_date, source_slot=args.slot,
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
 
@@ -481,6 +502,21 @@ def _run_wi022_s06(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi029_s04_verify(args: argparse.Namespace) -> int:
+    try:
+        result = verify_wi029_s04(
+            get_connection(), project=args.project, bucket=args.bucket,
+        )
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed", "error_type": type(exc).__name__,
+            "detail": "redacted; inspect managed aggregate verification evidence",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -508,6 +544,8 @@ def main() -> None:
         raise SystemExit(_run_position_reconstruction_plan(args))
     if args.command == "run-wi022-s06":
         raise SystemExit(_run_wi022_s06(args))
+    if args.command == "run-wi029-s04-verify":
+        raise SystemExit(_run_wi029_s04_verify(args))
 
     parser.print_help()
     raise SystemExit(2)
