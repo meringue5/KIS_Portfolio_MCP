@@ -10,7 +10,7 @@
 | DEC-046 Milestone 1: canonical portfolio ledger | V2-ADR-006/010/016 | WI-009 | account/position/cash/daily-state mapping and repositories | live 5 accounts, 1,357 positions, 232 cash; 27-day 0 KRW difference; restore | closed |
 | DEC-046 Milestone 1: trade/lot/thread ledger | V2-ADR-006/010/016 | WI-010 | trade events, purchase lots, thread links and quality | live 19 trade/lot/thread; 2 matched, 4 partial-history groups; restore | closed |
 | DEC-046 Milestone 1: Firestore operational state | V2-ADR-005/008/017 | WI-011 | OAuth/KIS/lease/run-request ports and runtime version gate | concurrency, reconnect/reissue and smoke | closed |
-| DEC-046 Milestone 1: managed collection | V2-ADR-007/009..011 | WI-012 | private GCS, fixed Jobs/Scheduler, V2 pipeline adapters | production run, quality/lineage, restore and observation start | in_progress |
+| DEC-046 Milestone 1: managed collection | V2-ADR-007/009..011 | WI-012 | private GCS, fixed Jobs/Scheduler, V2 pipeline adapters | production run, quality/lineage, restore and 5-day observation started | closed |
 | DEC-045 / V2-W0308: V1→V2 historical transition | V2-ADR-006/008/016 | WI-006 | executable object/column/key/time/money mapping contract | 20 object disposition, transform allowlist and validator | closed |
 | DEC-045 / V2-W0308: isolated migration proof | V2-ADR-008/010/016 | WI-007 | disposable transform runner and reconciliation report | 5,378 observations; price 838, FX 100; idempotent rerun | closed |
 | DEC-045 / V2-W0308: reconciled live history | V2-ADR-008/010/016 | WI-008 | bounded allowlisted V2 backfill manifest | live 5,378 observations, no-op rerun, post-backup/restore | closed |
