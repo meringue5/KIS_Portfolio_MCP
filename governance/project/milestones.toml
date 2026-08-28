@@ -559,6 +559,12 @@ title = "Enforce per-source page and global physical-call budgets"
 status = "closed"
 
 [[subitems]]
+id = "WI-021-S03"
+parent_id = "WI-021"
+title = "Implement partition resume idempotency and monotonic watermarks"
+status = "closed"
+
+[[subitems]]
 id = "WI-026-S01"
 parent_id = "WI-026"
 title = "Review and activate the TIME ETF source profile"

@@ -365,6 +365,31 @@ def test_physical_call_gate_fails_before_page_four_and_rejects_noncallable_keys(
     assert gate.public_snapshot()["partition_pages_used"] == {callable_key: 3}
 
 
+def test_physical_call_gate_restores_usage_once_and_fails_closed():
+    source_plan = plan_trade_cash_backfill(
+        [BackfillAccountScope("ria", "01")],
+        start_date=END,
+        end_date=END,
+        as_of_date=END,
+    )
+    budgeted = apply_call_budget(source_plan)
+    key = source_plan.callable_partitions[0].key
+    gate = BackfillCallBudget(budgeted)
+
+    gate.restore({key: 2})
+    assert gate.reserve(key).page_number == 3
+    with pytest.raises(BackfillBudgetError, match="only be restored"):
+        gate.restore({key: 1})
+
+    unknown = BackfillCallBudget(budgeted)
+    with pytest.raises(BackfillBudgetError, match="unapproved partition"):
+        unknown.restore({"unknown": 1})
+
+    over = BackfillCallBudget(budgeted)
+    with pytest.raises(BackfillBudgetExceeded, match="persisted partition usage"):
+        over.restore({key: 4})
+
+
 @pytest.mark.parametrize(
     "policy",
     [

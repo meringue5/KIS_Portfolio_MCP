@@ -1,6 +1,29 @@
 schema_version = 1
 
 [[contracts]]
+id = "pipeline.trade-cash-backfill-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "승인된 보유계좌 범위의 국내·IRP·해외 거래·현금 이력을 bounded partition으로 재개 가능하게 초도 적재한다."
+decision_refs = ["DEC-009", "DEC-010", "DEC-013", "DEC-015", "DEC-030", "DEC-044"]
+source_ids = ["source.kis-open-api", "source.portfolio-owner"]
+input_dataset_ids = []
+output_dataset_ids = ["dataset.trade-event", "dataset.cash-transaction-event"]
+stages = ["collect-land-normalize", "quality", "publish"]
+schedule_policy = "one bounded three-year backfill for the approved held-account scope; no recurring schedule"
+calendar_gate = "source date range only; unavailable account or route ranges remain explicit known gaps"
+idempotency_key = "pipeline id, version, logical end date, backfill slot and deterministic source partition key"
+timeout_policy = "bounded 60-day partitions, per-source page cap and managed Job runtime"
+retry_policy = "resume the failed partition and stage; completed partitions are reused; only guarded idempotent reads"
+source_call_budget = "pre-reserved per partition; domestic/overseas order three pages, overseas transaction two pages and hard 400 physical calls"
+freshness_gates = ["source effective and fetched time retained", "watermark advances only after successful quality and publish"]
+quality_gates = ["account and pagination coverage explicit", "guarded call count survives failure", "watermark is contiguous and monotonic", "known source gaps are not fabricated"]
+secret_profile = "existing KIS account runtime only; control keys contain public account labels, never CANO or credentials"
+cost_class = "backfill"
+trigger_policy = "fixed-argument managed Job for approved account scope; no arbitrary Remote MCP date or account arguments"
+
+[[contracts]]
 id = "pipeline.owned-portfolio-core-v2"
 version = "1.0.0"
 status = "approved"

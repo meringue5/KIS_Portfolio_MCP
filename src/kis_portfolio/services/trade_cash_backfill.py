@@ -14,7 +14,7 @@ import re
 import threading
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Any, Awaitable, Callable, Iterable, TypeVar
+from typing import Any, Awaitable, Callable, Iterable, Mapping, TypeVar
 
 
 PLAN_ID = "plan.trade-cash-history-v2"
@@ -307,6 +307,46 @@ class BackfillCallBudget:
     def total_used(self) -> int:
         with self._lock:
             return self._total_used
+
+    def restore(self, partition_pages_used: Mapping[str, int]) -> None:
+        """Restore durable reservations once, failing closed on invalid state."""
+
+        with self._lock:
+            if self._total_used or any(self._used.values()):
+                raise BackfillBudgetError("call budget can only be restored into an unused gate")
+            restored = {key: 0 for key in self._limits}
+            for partition_key, used in partition_pages_used.items():
+                if partition_key not in self._limits:
+                    raise BackfillBudgetError(
+                        f"persisted usage references an unapproved partition: {partition_key}"
+                    )
+                if type(used) is not int or used < 0:
+                    raise BackfillBudgetError(
+                        f"persisted page usage must be a nonnegative integer: {partition_key}"
+                    )
+                limit = self._limits[partition_key]
+                if used > limit:
+                    raise BackfillBudgetExceeded(
+                        f"persisted partition usage exceeds page budget: "
+                        f"{partition_key} {used}/{limit}"
+                    )
+                restored[partition_key] = used
+            total = sum(restored.values())
+            global_limit = self._budgeted_plan.policy.max_physical_calls
+            if total > global_limit:
+                raise BackfillBudgetExceeded(
+                    f"persisted usage exceeds global physical call budget: {total}/{global_limit}"
+                )
+            self._used = restored
+            self._total_used = total
+
+    def used_for(self, partition_key: str) -> int:
+        with self._lock:
+            if partition_key not in self._used:
+                raise BackfillBudgetError(
+                    f"partition is not callable in the approved budget: {partition_key}"
+                )
+            return self._used[partition_key]
 
     def reserve(self, partition_key: str) -> PhysicalCallReservation:
         """Reserve one physical call or raise before the caller performs I/O."""

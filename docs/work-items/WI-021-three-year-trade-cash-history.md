@@ -61,6 +61,11 @@ reconstruction and return analysis has not been collected or reconciled.
   - [x] every physical call through the S02 guard requires a partition reservation and exhaustion raises first.
   - [x] unknown partitions, known gaps and invalid/over-wide page policies fail closed.
   - [x] budget identity and evidence contain no credential or account number.
+- `WI-021-S03` — partition resume, idempotent logical runs and monotonic source watermarks (`closed`).
+  - [x] completed partitions are reused without another handler or source call.
+  - [x] a failed partition resumes with the same run identity and persisted physical-call usage.
+  - [x] watermark advances only after publish, rejects gaps and never moves backwards.
+  - [x] the runtime uses existing governed Control objects and performs no production collection.
 
 ## Evidence
 
@@ -80,10 +85,19 @@ reconstruction and return analysis has not been collected or reconciled.
   their reservation.
 - `bash scripts/check.sh quick`: passed after S02 code and contract documentation.
 - `bash scripts/check.sh full`: 290 tests passed; all common gates passed with the same existing Authlib warning.
+- WI-021-S03 registers the separate governed `pipeline.trade-cash-backfill-v2` identity and reuses
+  `control.pipeline_runs`, `control.pipeline_stage_runs` and `control.watermarks`; no schema or live warehouse
+  mutation was added.
+- Every guarded reservation is checkpointed before source I/O. Failure injection proves the failed partition keeps
+  its run ID and prior call usage, while an already completed partition is not invoked again.
+- Publish advances a hashed non-secret source-stream watermark only across contiguous ranges; older replay is a
+  no-op and a gap fails closed without moving the watermark.
+- `bash scripts/check.sh quick`: passed after S03 implementation and governance contract registration.
+- `bash scripts/check.sh full`: 295 tests passed; all common gates passed with the same existing Authlib warning.
 
 ## Closeout
 
-- Result: WI-021-S01 and S02 closed; parent WI-021 remains in progress and no source or database was changed.
+- Result: WI-021-S01 through S03 closed; the parent remains active for reconciliation and approved execution.
 - Remaining risk: broker retention and historical gaps.
-- Follow-up: resumable execution, reconciliation and separately approved live backfill remain inside WI-021 before
-  WI-022 can start.
+- Follow-up: source-adapter integration, reconciliation dry-run and separately approved live backfill remain inside
+  WI-021 before WI-022 can start.

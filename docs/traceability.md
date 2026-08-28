@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-009..014 resumable backfill control | V2-ADR-006/010/012 | WI-021 / WI-021-S03 | governed backfill pipeline identity, partition logical runs, pre-I/O persisted call usage and monotonic watermark | failure/resume, completed reuse, gap/no-regression tests; full 295 passed | S03 closed; parent in_progress |
 | DEC-009..014 bounded source-call execution | V2-ADR-006/010/012 | WI-021 / WI-021-S02 | 3/3/2 page policy, 400-call preflight and guarded physical-call wrapper | 374/400 reservation, exhaustion/no-invocation tests; full 290 passed | S02 closed; parent in_progress |
 | DEC-009..014 bounded three-year trade/cash planning | V2-ADR-006/010/012 | WI-021 / WI-021-S01 | deterministic 60-day source-boundary planner and read-only CLI | exact coverage/gap/secret tests; full 278 passed | S01 closed; parent in_progress |
 | DEC-015..017/026 replay-safe trend and volatility metrics | V2-ADR-006/010/012 | WI-019 | 11 metric contracts, Decimal formulas and strict PIT evaluator | independent SQL/Python goldens, null quality and future-revision exclusion; full 262 passed | closed |
