@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from decimal import Decimal
 
 import duckdb
@@ -112,3 +113,36 @@ class MetricWarehouseRepository:
 
     def count_values(self) -> int:
         return self.connection.execute("SELECT count(*) FROM gold.metric_values").fetchone()[0]
+
+    def read_values(
+        self,
+        *,
+        metric_id: str,
+        metric_version: str,
+        subject_type: str | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+    ) -> list[dict[str, object]]:
+        """Read one explicit metric version without falling through to another formula."""
+        clauses = ["metric_id=?", "metric_version=?"]
+        params: list[object] = [metric_id, metric_version]
+        if subject_type is not None:
+            clauses.append("subject_type=?")
+            params.append(subject_type)
+        if start_at is not None:
+            clauses.append("evaluation_at>=?")
+            params.append(start_at)
+        if end_at is not None:
+            clauses.append("evaluation_at<=?")
+            params.append(end_at)
+        cursor = self.connection.execute(f"""
+            SELECT metric_id, metric_version, subject_type, subject_id, evaluation_at,
+                   evaluation_slot, effective_at, knowledge_cutoff_at, value_decimal,
+                   unit, quality_status, input_refs, formula_hash, lineage_hash,
+                   evaluation_run_id
+            FROM gold.metric_values
+            WHERE {' AND '.join(clauses)}
+            ORDER BY evaluation_at, subject_type, subject_id
+        """, params)
+        columns = [item[0] for item in cursor.description]
+        return [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
