@@ -231,7 +231,6 @@ def _cash_payloads(
 
     for suffix, event_type, candidates in (
         ("fee", "fee", ("frcr_fee1", "fee", "ovrs_fee", "frcr_fee")),
-        ("domestic-fee", "fee", ("dmst_frcr_fee1",)),
         ("tax", "tax", ("tax", "tax_amt", "frcr_tax")),
     ):
         amount = _decimal(_pick(row, *candidates))
@@ -242,6 +241,16 @@ def _cash_payloads(
                 "event_type": event_type,
                 "amount": -abs(amount),
             })
+
+    domestic_fee = _decimal(_pick(row, "dmst_frcr_fee1"))
+    if domestic_fee:
+        events.append({
+            **common,
+            "source_record_id": f"{row_id}:domestic-fee",
+            "event_type": "fee",
+            "amount": -abs(domestic_fee),
+            "currency": "KRW",
+        })
     return events
 
 

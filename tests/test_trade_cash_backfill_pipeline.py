@@ -90,7 +90,7 @@ def test_fixture_pages_reconcile_trade_cash_without_creating_lots(tmp_path: Path
                 "output1": [{
                     "erlm_dt": "20260828", "pdno": "AAPL", "odno": "O-1",
                     "sll_buy_dvsn_cd": "01", "tr_qty": "1", "ft_ccld_unpr2": "220",
-                    "sttl_amt": "218", "frcr_fee1": "1", "tax": "1",
+                    "sttl_amt": "218", "frcr_fee1": "1", "dmst_frcr_fee1": "1800", "tax": "1",
                     "sttl_dt": "20260830", "tr_crcy_cd": "USD", "trad_dvsn_cd": "SELL",
                 }]
             }
@@ -111,8 +111,14 @@ def test_fixture_pages_reconcile_trade_cash_without_creating_lots(tmp_path: Path
     ]
     assert connection.execute("SELECT count(*) FROM silver.purchase_lots").fetchone()[0] == 0
     assert connection.execute(
-        "SELECT event_type, amount FROM silver.cash_flow_events_current ORDER BY event_type, amount"
-    ).fetchall() == [("fee", -1), ("tax", -1), ("trade_settlement_in", 218)]
+        "SELECT event_type, amount, currency FROM silver.cash_flow_events_current "
+        "ORDER BY event_type, amount, currency"
+    ).fetchall() == [
+        ("fee", -1800, "KRW"),
+        ("fee", -1, "USD"),
+        ("tax", -1, "USD"),
+        ("trade_settlement_in", 218, "USD"),
+    ]
     assert connection.execute(
         "SELECT count(*) FROM bronze.source_observations WHERE quality_status='candidate'"
     ).fetchone()[0] == 1
@@ -128,7 +134,7 @@ def test_fixture_pages_reconcile_trade_cash_without_creating_lots(tmp_path: Path
         OVERSEAS_TRANSACTION_HISTORY: 1,
     })
     assert connection.execute("SELECT count(*) FROM silver.trade_events").fetchone()[0] == 2
-    assert connection.execute("SELECT count(*) FROM silver.cash_flow_events").fetchone()[0] == 3
+    assert connection.execute("SELECT count(*) FROM silver.cash_flow_events").fetchone()[0] == 4
     connection.close()
 
 

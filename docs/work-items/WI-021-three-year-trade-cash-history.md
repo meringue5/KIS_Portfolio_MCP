@@ -75,7 +75,7 @@ reconstruction and return analysis has not been collected or reconciled.
   - [x] each HTTP page is reserved before I/O and uses the approved route/TR/continuation contract.
   - [x] production execution requires an exact approved plan hash, account scope, database mode and explicit apply flag.
   - [x] preview and failure output contain no credential or raw account number.
-- `WI-021-S06` — bounded production execution, reconciliation and recovery evidence (`ready`).
+- `WI-021-S06` — bounded production execution, reconciliation and recovery evidence (`in_progress`).
   - [ ] pre-backfill V2 backup exists before the first source call.
   - [ ] all callable partitions terminate or retain an explicit resumable failure/known gap.
   - [ ] aggregate reconciliation, private GCS upload and isolated restore pass before parent closeout.
@@ -112,7 +112,8 @@ reconstruction and return analysis has not been collected or reconciled.
   Silver trade/cash facts. Domestic and overseas order aggregates preserve official side/quantity/price; overseas
   period transactions remain separate trade candidates and only explicit settlement/fee/tax amounts become cash facts.
 - An incomplete-pagination fixture retains one Bronze observation but creates zero Silver trade rows and zero
-  watermark rows. The reconciled fixture creates two trades and three cash facts, zero purchase lots and is a no-op
+  watermark rows. The reconciled fixture creates two trades and four cash facts, including a KRW-denominated
+  domestic fee distinct from foreign-currency fee/tax/settlement, zero purchase lots and is a no-op
   on replay.
 - `bash scripts/check.sh full`: 297 tests passed; all common gates passed with the existing Authlib warning.
 - WI-021-S05 adds a dedicated KIS page adapter using the common pagination engine's pre-request reservation hook.
@@ -123,10 +124,11 @@ reconstruction and return analysis has not been collected or reconciled.
 - The reviewed `2023-08-28..2026-08-28` preflight produced plan `0755656ed8151a91`, budget
   `0a4abf9b795f9d73`, 131 callable partitions, six gaps and a 374/400 worst-case reservation.
 - `bash scripts/check.sh full`: 303 tests passed; all common gates passed with the existing Authlib warning.
+- WI-021-S06 production readiness preserves KIS `dmst_frcr_fee1` as a separate KRW fee rather than inheriting the
+  overseas transaction currency. Targeted fixture/source tests (6 passed) and `bash scripts/check.sh quick` passed.
 
 ## Closeout
 
-- Result: WI-021-S01 through S05 closed; the parent remains active for bounded production execution and recovery.
+- Result: WI-021-S01 through S05 closed; S06 and the parent remain active for bounded production execution and recovery.
 - Remaining risk: broker retention and historical gaps.
-- Follow-up: S04 fixture reconciliation, S05 physical adapter/preflight and S06 approved live recovery evidence remain
-  inside WI-021 before WI-022 can start.
+- Follow-up: S06 approved live recovery evidence remains inside WI-021 before WI-022 can start.
