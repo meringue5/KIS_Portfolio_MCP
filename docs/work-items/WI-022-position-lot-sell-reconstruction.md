@@ -63,7 +63,12 @@ must be replayed without silently rewriting the preserved migration artifacts.
   - [x] zero balance closes an episode and a later buy opens a new stable episode.
   - [x] missing coverage, source gaps, ambiguous order and insufficient opening quantity fail closed.
   - [x] the replay is deterministic, pure and persists no S02 object.
-- `WI-022-S04` — append-only sell allocation, reconciliation, idempotency and restore proof (`proposed`).
+- `WI-022-S04` — append-only sell allocation, reconciliation, idempotency and restore proof (`closed`).
+  - [x] only reconciled S03 plans publish episode, lot and whole sell-allocation revisions atomically.
+  - [x] stable identities are immutable and a repeated replay hash creates no duplicate revision or slice.
+  - [x] blocked plans publish only a reviewable Control exception; later passing evidence resolves it append-only.
+  - [x] persisted current projections reconcile with the replay plan and transaction failure leaves no partial publish.
+  - [x] a complete governed V2 Parquet export restores the reconstructed current projections in fresh DuckDB.
 - `WI-022-S05` — aggregate-only production read-only dry-run and impact report (`proposed`).
 - `WI-022-S06` — separately approved bounded production apply and recovery evidence (`proposed`).
 
@@ -92,9 +97,17 @@ must be replayed without silently rewriting the preserved migration artifacts.
 - `docs/design/wi-022-s03-deterministic-replay.md` fixes the algorithm, local episode quality and S04 persistence
   handoff. `bash scripts/check.sh quick` and `bash scripts/check.sh full` passed with 339 tests and the existing Authlib
   deprecation warning. No source call, database write, live migration, scheduler change or external send occurred.
+- `position_reconstruction_warehouse.py` verifies input and candidate projection hashes, immutable identities, complete
+  allocation scope and quantity reconciliation before publishing all episode/lot/allocation revisions in one
+  transaction. Blocked plans remain Control exceptions and later passing evidence resolves them append-only.
+- Seven S04 repository fixtures prove identical replay reuse, changed-input whole revisions, exception open/resolve,
+  inferred opening without fabricated cost, transaction rollback, tamper rejection and complete V2 Parquet restore.
+  Twenty focused S02~S04 tests passed. `bash scripts/check.sh quick` and `bash scripts/check.sh full` passed with 346
+  tests and the existing Authlib deprecation warning. No source call, production database write, live migration,
+  scheduler change, GCS upload or external send occurred.
 
 ## Closeout
 
-- Result: in progress; S01~S03 and dependencies WI-010, WI-021 and repository-local WI-036 are closed.
+- Result: in progress; S01~S04 are closed and S05 is next.
 - Remaining risk: owner review for ambiguous opening positions.
-- Follow-up sub-item: WI-022-S04 append-only persistence, reconciliation, idempotency and restore proof.
+- Follow-up sub-item: WI-022-S05 aggregate-only production read-only dry-run and impact report.

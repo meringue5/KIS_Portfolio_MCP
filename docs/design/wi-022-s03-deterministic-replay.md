@@ -22,7 +22,8 @@ multiple action revisions at one instant, or opposing trade sides with the same 
 silently tie-broken: the plan returns `reconciliation_exception` with no derived facts.
 
 The replay hash serializes sorted canonical inputs, evidence coverage and source gaps. Input iteration order therefore
-cannot change an episode, lot, allocation or replay identity.
+cannot change an episode, lot, allocation or replay identity. A separate projection hash serializes every candidate
+fact so the S04 publish boundary can detect any post-replay mutation.
 
 ## Reverse boundary derivation
 
@@ -48,6 +49,8 @@ Insufficient open-lot quantity blocks the whole candidate plan rather than creat
 When all lot balances reach zero, the episode closes at that sell time. A later buy starts a new stable episode. A
 governed successor may carry the open episode and its remaining lots to the output instrument; symbol/name similarity
 alone cannot. Quantity and price effects update effective quantity and unit cost while preserving original evidence.
+Each lot state also retains its last effective cause and reference (`buy_trade`, `inferred_opening`,
+`sell_allocation` or `corporate_action`) for the append-only S04 revision.
 
 Episode reconstruction status is local to its evidence. Thus an inferred historical episode may close, while a later
 episode based entirely on actual buys is `reconstructed`. The plan-level status remains `inferred_opening` whenever

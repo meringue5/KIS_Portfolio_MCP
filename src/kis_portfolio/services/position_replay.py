@@ -150,6 +150,9 @@ class ReplayLot:
     remaining_quantity: Decimal
     effective_unit_cost: Decimal | None
     currency: str
+    state_effective_at: datetime
+    cause_type: str
+    cause_ref: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +172,7 @@ class ReplayAllocationCandidate:
     allocation_id: str
     sell_trade_event_id: str
     episode_id: str
+    instrument_id: str
     plan: SellAllocationPlan
 
 
@@ -176,6 +180,7 @@ class ReplayAllocationCandidate:
 class PositionReplayPlan:
     partition_key: str
     replay_hash: str
+    projection_hash: str
     assessment: ReconstructionAssessment
     coverage_quality_result_id: str | None
     episodes: tuple[ReplayEpisode, ...]
@@ -190,6 +195,7 @@ class PositionReplayPlan:
             "replay_version": REPLAY_VERSION,
             "partition_key": self.partition_key,
             "replay_hash": self.replay_hash,
+            "projection_hash": self.projection_hash,
             "status": self.assessment.status.value,
             "blockers": list(self.assessment.blockers),
             "episode_count": len(self.episodes),
@@ -226,6 +232,9 @@ class _MutableLot:
     remaining_quantity: Fraction
     effective_unit_cost: Decimal | None
     currency: str
+    state_effective_at: datetime
+    cause_type: str
+    cause_ref: str
 
 
 @dataclass(slots=True)
@@ -236,6 +245,95 @@ class _MutableEpisode:
     instrument_id: str
     opened_at: datetime
     closed_at: datetime | None = None
+
+
+def replay_projection_hash(plan: PositionReplayPlan) -> str:
+    """Recompute the deterministic candidate-fact hash used at publish time."""
+
+    return _projection_hash(
+        replay_hash=plan.replay_hash,
+        assessment=plan.assessment,
+        episodes=plan.episodes,
+        lots=plan.lots,
+        allocations=plan.allocations,
+    )
+
+
+def _projection_hash(
+    *,
+    replay_hash: str,
+    assessment: ReconstructionAssessment,
+    episodes: tuple[ReplayEpisode, ...],
+    lots: tuple[ReplayLot, ...],
+    allocations: tuple[ReplayAllocationCandidate, ...],
+) -> str:
+    document = {
+        "replay_hash": replay_hash,
+        "assessment": {
+            "status": assessment.status.value,
+            "current_quantity": assessment.current_quantity,
+            "replayed_quantity": assessment.replayed_quantity,
+            "inferred_opening_quantity": assessment.inferred_opening_quantity,
+            "evidence_provenance": (
+                assessment.evidence_provenance.value if assessment.evidence_provenance else None
+            ),
+            "blockers": assessment.blockers,
+            "eligible": assessment.eligible_for_reconciled_projection,
+        },
+        "episodes": [
+            (
+                item.episode_id,
+                item.account_id,
+                item.opening_instrument_id,
+                item.instrument_id,
+                item.opened_at.isoformat(),
+                item.closed_at.isoformat() if item.closed_at else None,
+                item.current_quantity,
+                item.reconstruction_status.value,
+            )
+            for item in episodes
+        ],
+        "lots": [
+            (
+                item.lot_id,
+                item.episode_id,
+                item.account_id,
+                item.opening_instrument_id,
+                item.instrument_id,
+                item.opening_trade_event_id,
+                item.opened_at.isoformat(),
+                item.evidence_provenance.value,
+                item.effective_quantity,
+                item.remaining_quantity,
+                item.effective_unit_cost,
+                item.currency,
+                item.state_effective_at.isoformat(),
+                item.cause_type,
+                item.cause_ref,
+            )
+            for item in lots
+        ],
+        "allocations": [
+            (
+                item.allocation_id,
+                item.sell_trade_event_id,
+                item.episode_id,
+                item.instrument_id,
+                item.plan.method.value,
+                item.plan.status.value,
+                item.plan.requested_quantity,
+                item.plan.allocated_quantity,
+                item.plan.unallocated_quantity,
+                tuple((piece.lot_id, piece.allocated_quantity) for piece in item.plan.slices),
+                item.plan.review_required,
+                item.plan.blockers,
+            )
+            for item in allocations
+        ],
+    }
+    return hashlib.sha256(
+        json.dumps(document, sort_keys=True, separators=(",", ":"), default=str).encode()
+    ).hexdigest()
 
 
 def _decimal(value: Decimal | int | str, field: str) -> Decimal:
@@ -418,9 +516,17 @@ def _blocked_plan(
     trade_count: int,
     action_count: int,
 ) -> PositionReplayPlan:
+    projection_hash = _projection_hash(
+        replay_hash=replay_hash,
+        assessment=assessment,
+        episodes=(),
+        lots=(),
+        allocations=(),
+    )
     return PositionReplayPlan(
         partition_key,
         replay_hash,
+        projection_hash,
         assessment,
         request.coverage_quality_result_id,
         (),
@@ -574,6 +680,9 @@ def replay_position(
                 opening_fraction,
                 None,
                 "UNKNOWN",
+                request.start_at,
+                "inferred_opening",
+                partition_key,
             )
         )
 
@@ -603,6 +712,9 @@ def replay_position(
                         quantity,
                         trade.price,
                         trade.currency,
+                        trade.executed_at,
+                        "buy_trade",
+                        trade.trade_event_id,
                     )
                 )
             else:
@@ -634,14 +746,20 @@ def replay_position(
                 if allocation.status is not AllocationStatus.COMPLETE:
                     blocker = "insufficient_open_lot_quantity"
                     break
+                allocation_id = _hash(f"sell-allocation|{trade.trade_event_id}")
                 by_id = {item.lot_id: item for item in lots}
                 for item in allocation.slices:
-                    by_id[item.lot_id].remaining_quantity -= _to_fraction(item.allocated_quantity)
+                    lot = by_id[item.lot_id]
+                    lot.remaining_quantity -= _to_fraction(item.allocated_quantity)
+                    lot.state_effective_at = trade.executed_at
+                    lot.cause_type = "sell_allocation"
+                    lot.cause_ref = allocation_id
                 allocations.append(
                     ReplayAllocationCandidate(
-                        _hash(f"sell-allocation|{trade.trade_event_id}"),
+                        allocation_id,
                         trade.trade_event_id,
                         active.episode_id,
+                        trade.instrument_id,
                         allocation,
                     )
                 )
@@ -667,6 +785,9 @@ def replay_position(
                     lot.effective_unit_cost *= action.price_factor
                 if action.output_instrument_id:
                     lot.instrument_id = action.output_instrument_id
+                lot.state_effective_at = action.effective_at
+                lot.cause_type = "corporate_action"
+                lot.cause_ref = action.revision_id
             if action.output_instrument_id:
                 active.instrument_id = action.output_instrument_id
 
@@ -749,6 +870,9 @@ def replay_position(
             _to_decimal(item.remaining_quantity, "remaining lot quantity"),
             item.effective_unit_cost,
             item.currency,
+            item.state_effective_at,
+            item.cause_type,
+            item.cause_ref,
         )
         for item in lots
     )
@@ -778,9 +902,17 @@ def replay_position(
         )
         for item in episodes
     )
+    projection_hash = _projection_hash(
+        replay_hash=replay_hash,
+        assessment=assessment,
+        episodes=immutable_episodes,
+        lots=immutable_lots,
+        allocations=tuple(allocations),
+    )
     return PositionReplayPlan(
         partition_key,
         replay_hash,
+        projection_hash,
         assessment,
         request.coverage_quality_result_id,
         immutable_episodes,

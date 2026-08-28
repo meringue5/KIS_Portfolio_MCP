@@ -117,6 +117,14 @@ episode를 닫고 후속 매수는 새 episode를 연다. 동일시각 tie, line
 derived fact 없이 fail closed한다. 이 단계의 결과는 memory-only plan이며 S02 객체 저장은 S04까지 금지한다.
 상세 계약은 [WI-022-S03 deterministic replay](./design/wi-022-s03-deterministic-replay.md)에 둔다.
 
+WI-022-S04는 S03의 input `replay_hash`와 candidate-fact `projection_hash`를 모두 검증한 뒤 migration `0010`의
+episode, lot-state, whole sell-allocation, exception revision을 단일 transaction으로 publish한다. 같은 hash는
+revision/slice를 추가하지 않고, 변경된 input은 knowledge time이 증가할 때만 append한다. blocked plan은 Silver
+fact 없이 Control exception만 열며 같은 partition의 후속 reconciled plan이 이를 append-only로 resolve한다.
+commit 전 current view와 plan의 episode/lot/allocation 수량을 다시 대조하고 실패하면 전체 rollback한다.
+fresh DuckDB complete V2 Parquet restore까지 S04에서 검증하지만 production DB 적용은 S06까지 금지한다. 상세
+계약은 [WI-022-S04 append-only persistence](./design/wi-022-s04-append-only-persistence.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는

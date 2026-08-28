@@ -604,7 +604,7 @@ status = "closed"
 id = "WI-022-S04"
 parent_id = "WI-022"
 title = "Prove append-only sell allocation reconciliation idempotency and restore"
-status = "proposed"
+status = "closed"
 
 [[subitems]]
 id = "WI-022-S05"
