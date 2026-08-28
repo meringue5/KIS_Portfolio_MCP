@@ -262,6 +262,15 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 통합할 때 schema, repository, analytics, backup, tests와 catalog registry를 한 변경으로 편입하고 broken
 view를 재생성한다.
 
+### Managed V2 production register
+
+2026-08-28 WI-022-S06 managed release가 checksum-verified migration을 `0010`까지 적용했다. canonical
+reconstruction hash와 57-partition aggregate가 일치한 뒤 corporate-action coverage 미평가를 나타내는
+`control.reconstruction_exceptions` identity 57건과 first revision 57건만 append했다. current open exception은
+57건이며 `silver.position_episodes`, `silver.purchase_lot_identities`, `silver.sell_allocation_sets`는 모두 0건이다.
+pre/post complete V2 backup은 private GCS에 업로드·다운로드·fresh DuckDB restore되었고 live/restored aggregate가
+일치했다. 이것은 위 `main` branch drift 객체를 채택하거나 수정한 작업이 아니다.
+
 ## Change Contract
 
 DB 객체 변경 PR 또는 작업은 다음을 모두 만족해야 한다.

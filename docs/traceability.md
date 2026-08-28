@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEC-009..014 reconstruction production apply | ADR-021/023 + V2-ADR-006/010/016 | WI-022 / WI-022-S06 | exact-hash append-only exception publish and private recovery pending | S05 fixed 57-partition input; managed production evidence pending | in_progress |
+| DEC-009..014 reconstruction production apply | ADR-021/023 + V2-ADR-006/010/016 | WI-022 / WI-022-S06 | exact-hash append-only exception publish; pre/post private recovery and isolated reconciliation | run 33163171218 attempt 2 / execution `9zmm2`: 57 exceptions, 0 Silver, idempotent replay and restore pass | closed |
 | DEC-009..014 reconstruction production impact | ADR-021/023 + V2-ADR-006/010/016 | WI-022 / WI-022-S05 | aggregate-only read-only production planner; UTC/Decimal canonical hash; fail-closed Silver gate | hash `096a01a5...d50b`; 57 exceptions, 0 Silver projections, 0 writes/calls | closed |
 | DEC-009..014 append-only reconstruction publish | ADR-021/023 + V2-ADR-006/010/016 | WI-022 / WI-022-S04 | two-hash publish gate; atomic episode, lot, whole-allocation and exception revisions | 7 S04 / 20 focused; full 346 passed; rollback and complete local restore | closed |
 | DEC-009..014 deterministic position replay | ADR-021/023 + V2-ADR-006/010/016 | WI-022 / WI-022-S03 | pure reverse/forward trade-action replay, inferred opening, split/successor handling and episode boundaries | 10 focused; full 339 passed; no warehouse write or source call | closed |
@@ -56,7 +56,7 @@
 | DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | closed |
 | DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | closed; live recovery evidence recorded |
 | DEC-015..017 corporate actions | V2-W0307 | WI-036 | WI-015 | closed; production activation remains gated |
-| DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | in_progress; S01~S05 closed, S06 active |
+| DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | closed; 57 review exceptions, 0 fabricated Silver, private recovery pass |
 | DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | proposed |
 | DEC-012..014/027/031 thread risk plans/review queue | V2-W0305/0306 | WI-024 | WI-010, WI-022 | proposed |
 | DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | proposed |

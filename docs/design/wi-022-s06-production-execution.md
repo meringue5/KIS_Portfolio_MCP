@@ -40,3 +40,19 @@ it emits no account, instrument, order, lot, trade-event or source-observation i
 The 57 exceptions are the correct current data product: they preserve the unassessed corporate-action dependency for
 later review without inventing opening quantity, cost basis or sell allocation. Activating governed action coverage
 later requires a new S05 hash and a separately reviewed reconstruction apply; it does not rewrite this evidence.
+
+## Production closeout
+
+GitHub Actions run `33163171218`, attempt 2, executed tested master
+`38a376ccadb798ab086cb38de6b3753a87c0439f` with immutable image
+`sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327`. Cloud Run execution
+`kis-portfolio-wi022-s06-9zmm2` completed migration `0010`, the exact plan gate, private pre/post backup recovery,
+the bounded append-only apply, immediate idempotent replay and isolated reconciliation.
+
+The first apply inserted 57 Control exception identities and 57 first revisions. It inserted zero Silver episode,
+lot or allocation rows and made zero source calls. The identical replay changed zero rows. Live and restored evidence
+both reported 57 partitions, 57 current open exceptions and zero Silver reconstruction identities. The private
+content-addressed evidence hash is `636d3846a6a6b33af844d2ed3002f332472519eb3f7e116480e612be685615cd`.
+
+The complete incident and recovery record is in
+`docs/operations/milestone-2-position-reconstruction-2026-08.md`.
