@@ -19,6 +19,7 @@ from .portfolio_performance import (
     RECONCILIATION_TOLERANCE,
     register_portfolio_performance_formulas,
 )
+from .lot_thread_risk import LOT_THREAD_RISK_FORMULAS, register_lot_thread_risk_formulas
 
 __all__ = [
     "FutureMetricInputError",
@@ -37,4 +38,6 @@ __all__ = [
     "PERFORMANCE_FORMULAS",
     "RECONCILIATION_TOLERANCE",
     "register_portfolio_performance_formulas",
+    "LOT_THREAD_RISK_FORMULAS",
+    "register_lot_thread_risk_formulas",
 ]

@@ -513,7 +513,7 @@ description = "승인된 formula version으로 point-in-time 계산한 재생 �
 decision_refs = ["DEC-015", "DEC-016", "DEC-017", "DEC-026", "DEC-038", "DEC-044"]
 layer = "gold"
 source_ids = []
-input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-event", "dataset.cash-transaction-event"]
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-event", "dataset.cash-transaction-event", "dataset.position-episode", "dataset.purchase-lot-state", "dataset.sell-allocation", "dataset.trade-thread-risk-plan"]
 purpose = "signal, risk, contribution과 대화형 분석이 임의 SQL 대신 동일한 versioned metric을 사용하게 한다."
 grain = "one metric contract version, subject and evaluation timestamp or slot"
 natural_key = ["metric_id", "metric_version", "subject_type", "subject_id", "evaluation_at"]
@@ -524,7 +524,7 @@ sensitivity = "confidential"
 retention_policy = "canonical evaluated values retained with at least three years hot history; no automatic deletion"
 backup_policy = "parquet"
 freshness_slo = "available after each quality-gated 10:00, 14:30 and 16:00 portfolio state publish"
-quality_rules = ["metric contract is approved", "future effective or knowledge time is rejected", "unavailable or partial results use a null value and explicit non-pass quality rather than zero", "same logical key cannot change value or lineage"]
+quality_rules = ["metric contract is approved", "future effective or knowledge time is rejected", "unavailable or partial results use a null value and explicit non-pass quality rather than zero", "same logical key cannot change value or lineage", "lot thread and instrument risk values publish only after exact reconstruction, canonical quantity, owner-plan, price and FX reconciliation"]
 producer_pipeline_ids = ["pipeline.metric-evaluation-v2"]
 consumer_ids = ["signal evaluation", "risk analysis", "Telegram candidate generation", "Remote MCP analytics"]
 

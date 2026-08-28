@@ -29,7 +29,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 10 | WI-022 position/lot/sell reconstruction | V2-W0304, V2-W0305 | WI-010, WI-021, WI-036 | closed; 57 review exceptions, idempotency and private restore passed |
 | 11 | WI-023 return/contribution/drawdown | V2-W0502 | WI-009, WI-015, WI-020..022 | closed; formula/replay/restore pass, production publish remains fail-closed on upstream quality |
 | 12 | WI-024 typed thread risk plan | V2-W0305, V2-W0306 | WI-010, WI-022 | closed; owner-only revision/review/restore pass, production migration not applied |
-| 13 | WI-025 lot/thread risk metrics | V2-W0504 | WI-015, WI-019, WI-022, WI-024 | proposed |
+| 13 | WI-025 lot/thread risk metrics | V2-W0504 | WI-015, WI-019, WI-022, WI-024 | closed; 8 PIT metrics, 6 focused/full 374 pass, production fail-closed |
 | 14 | WI-026 ETF constituent forward collection | V2-W0405 | WI-012, WI-017 | proposed; provider rights gate |
 | 15 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | proposed |
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | ready; return attribution과 분리 |

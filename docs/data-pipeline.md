@@ -157,6 +157,15 @@ actor가 optimistic revision으로 별도 Silver plan revision에 기록할 때�
 public MCP write와 자동 review schedule은 이번 단계에서 활성화하지 않는다. 상세 계약은
 [WI-024 thread risk review](./design/wi-024-thread-risk-review-contract.md)에 둔다.
 
+WI-025의 W0504 evaluator는 reconstructed episode/lot revision, operational-strict adjusted price path, 동일 slot의
+canonical Gold quantity와 owner-authoritative risk plan만 point-in-time으로 읽는다. lot MFE/MAE와 episode
+high/drawdown은 zero-quantity episode 경계를 넘지 않으며, thread planned loss는 open quantity에 owner
+reference-stop과 cutoff FX를 적용한다. 모든 open lot이 정확히 한 thread에 연결되고 instrument 합계까지
+reconcile될 때만 숫자를 발행한다. 누락 plan, partial reconstruction, 미래 revision, canonical quantity mismatch는
+0이 아니라 명시적 non-pass `NULL` metric으로 보존한다. 이 evaluator는 source call, 신규 schema, public MCP,
+Telegram 또는 주문 권한을 추가하지 않는다. 상세 계약은
+[WI-025 lot/thread risk metrics](./design/wi-025-lot-thread-risk-contract.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는
