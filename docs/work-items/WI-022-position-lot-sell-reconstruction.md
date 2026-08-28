@@ -1,7 +1,7 @@
 ---
 id: WI-022
 title: Reconstruct positions lots and sell allocations
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-016
@@ -51,14 +51,30 @@ must be replayed without silently rewriting the preserved migration artifacts.
 
 ## Sub-items
 
-- `none`.
+- `WI-022-S01` — reconstruction boundary, quality-state and FIFO allocation contract (`closed`).
+  - [x] evidence provenance and reconstruction outcome remain separate axes.
+  - [x] missing corporate-action coverage and source gaps fail closed without inferred official history.
+  - [x] FIFO is deterministic within account, instrument and position episode and never creates a buy lot from a sell.
+  - [x] the contract is pure and performs no source call, warehouse write or production mutation.
+- `WI-022-S02` — additive position-episode, lot-revision, allocation and exception schema (`proposed`).
+- `WI-022-S03` — deterministic trade and corporate-action replay with inferred-opening handling (`proposed`).
+- `WI-022-S04` — append-only sell allocation, reconciliation, idempotency and restore proof (`proposed`).
+- `WI-022-S05` — aggregate-only production read-only dry-run and impact report (`proposed`).
+- `WI-022-S06` — separately approved bounded production apply and recovery evidence (`proposed`).
 
 ## Evidence
 
-- Pending.
+- `docs/design/wi-022-s01-reconstruction-contract.md` fixes the position-episode boundary, separate evidence/outcome
+  quality axes, fail-closed precedence and explicit-lot > explicit-thread FIFO > inferred FIFO allocation order.
+- `dataset.position-episode`, `dataset.purchase-lot-state`, `dataset.sell-allocation` and
+  `pipeline.position-lot-reconstruction-v2` are approved logical contracts; S02 still owns physical objects.
+- The pure domain module and nine tests cover non-secret deterministic partition identity, exact replay, inferred
+  opening, source/action blockers, negative residual, scoped FIFO, explicit-selector failure and insufficient lots.
+- `bash scripts/check.sh quick` passed; `bash scripts/check.sh full` passed with 326 tests and the existing Authlib
+  deprecation warning. No source call, database write, live migration or external send occurred.
 
 ## Closeout
 
-- Result: proposed; depends on WI-021.
+- Result: in progress; WI-010, WI-021 and repository-local WI-036 dependencies are closed.
 - Remaining risk: owner review for ambiguous opening positions.
 - Follow-up Work Item: WI-023 and WI-024.

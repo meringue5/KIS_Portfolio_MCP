@@ -206,3 +206,26 @@ quality_gates = ["PDF signature and size", "owner rights assertion", "DRM or pro
 secret_profile = "owner authentication only; no provider credential"
 cost_class = "routine"
 trigger_policy = "owner-authenticated explicit upload; no Scheduler, crawling or unattended LLM discovery"
+
+[[contracts]]
+id = "pipeline.position-lot-reconstruction-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "승인된 거래·포지션·기업행사 사실을 account/instrument episode별로 재생해 lot state와 가역적 매도 배분을 만든다."
+decision_refs = ["DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014", "DEC-038", "DEC-041", "DEC-044"]
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.corporate-action-event"]
+output_dataset_ids = ["dataset.position-episode", "dataset.purchase-lot-state", "dataset.sell-allocation"]
+stages = ["plan-boundaries", "replay", "allocate", "reconcile", "quality", "publish"]
+schedule_policy = "WI-022 initial bounded reconstruction only; recurring incremental activation is outside S01 and requires a later runtime gate"
+calendar_gate = "trade effective order and governed corporate-action effective sequence; unresolved same-time ordering is an exception"
+idempotency_key = "pipeline id, version, source history cutoff, position cutoff and hashed account/instrument partition"
+timeout_policy = "bounded account/instrument partitions with no source request or always-on service"
+retry_policy = "reuse completed deterministic partition; append a new reconstruction revision only when governed inputs or contract version change"
+source_call_budget = "zero; consumes governed MotherDuck inputs only"
+freshness_gates = ["trade and position cutoffs are explicit", "corporate-action held-instrument coverage spans the reconstruction window"]
+quality_gates = ["actual manual and inferred-opening provenance remain distinct", "known source gaps remain provisional", "missing corporate-action coverage is not_assessed", "negative residual ambiguous order and insufficient lots are reconciliation exceptions", "all published quantities reconcile or retain explicit blockers"]
+secret_profile = "MotherDuck runtime only after production approval; pure S01 contract has no secret"
+cost_class = "backfill"
+trigger_policy = "repository-local fixture in S01 through S04; S05 is read-only dry-run and S06 requires explicit bounded production approval"
