@@ -84,14 +84,15 @@ class AlertWarehouseRepository:
             """
             INSERT INTO control.alert_rule_versions(
                 rule_id,version,contract_status,definition_hash,minimum_delivery_severity,
-                delivery_mode,valid_from,valid_to,definition
-            ) VALUES (?,?,?,?,?,?,?,?,?)
+                delivery_mode,valid_from,valid_to,definition,minimum_delivery_rank
+            ) VALUES (?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(rule_id,version) DO NOTHING
             """,
             [
                 rule.rule_id, rule.version, rule.status, rule.definition_hash,
-                rule.minimum_delivery_severity, rule.delivery_mode, rule.valid_from,
-                rule.valid_to, _json(document),
+                "warning" if rule.minimum_delivery_severity == "watch" else rule.minimum_delivery_severity,
+                rule.delivery_mode, rule.valid_from, rule.valid_to, _json(document),
+                {"watch": 1, "warning": 2, "critical": 3}[rule.minimum_delivery_severity],
             ],
         )
 

@@ -31,7 +31,7 @@ mapping과 compatibility gate는 [V2 Architecture Delta Review](./design/v2-arch
 | Overseas Account | 해외 잔고, 해외 예수금, 해외 결제기준잔고, 해외 기간 손익 | MCP tool + service 일부 구현 | 결제/현금/권리/배당 원장 확장 |
 | Order | 국내/해외 주문, 정정취소, 주문조회 | 국내/해외 조회 일부 구현, 주문은 safety gate | 기본 비활성, 별도 confirmation/audit 전까지 확장 금지 |
 | Market Data | 국내/해외 현재가, 호가, 일/분봉 | 일부 구현 및 가격 이력 저장 | 가격 서비스와 DB cache 분리 |
-| Master Data | 국내/해외 종목코드, 업종, 테마, 회원사, 상품 메타데이터 | 국내 master ingestion v1 구현 | 공식 `stocks_info` 예제를 ingestion 기준으로 사용 |
+| Master Data | 국내/해외 종목코드, 업종, 테마, 회원사, 상품 메타데이터 | 국내 master ingestion v1 + bounded 해외 `search-info` adapter 구현 | 공식 `stocks_info`와 `search-info` 예제를 ingestion 기준으로 사용 |
 | Analytics | 최신 합산, 일별 변화, 추세, 이상치, 볼린저 밴드 | 일부 구현 | canonical 총자산과 feeder 분석을 분리 유지 |
 | Realtime | websocket 실시간 시세/체결통보 | 미구현 | 원격 배포와 auth 설계 이후 검토 |
 | Remote Access | Streamable HTTP MCP, web/backend hosting | OAuth remote 구현 | read-only remote와 future backend HTTP API 검토 |
@@ -53,7 +53,9 @@ mapping과 compatibility gate는 [V2 Architecture Delta Review](./design/v2-arch
 3. Master Data
    - KOSPI/KOSDAQ/KONEX master file ingestion 운영화
    - `instrument_master`, `instrument_classification_overrides` 유지보수 루틴 정리
-   - 해외 종목/ETF 추가 enrichment 후보 검토
+   - 해외 보유상품 분류 preflight는 KIS `CTPF1702R` 상품정보와 SEC submissions의 exact
+     ticker/CIK/SIC evidence를 함께 요구한다. 한쪽만 있거나 identity가 불일치하면 `unknown`이다.
+   - 해외 `search-info`(`CTPF1702R`)의 상품분류·ETF 지표를 held-scope instrument version evidence로 사용하고 raw observation을 보존
 
 4. Analytics
    - portfolio aggregate service 분리
