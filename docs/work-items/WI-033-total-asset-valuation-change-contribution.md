@@ -1,7 +1,7 @@
 ---
 id: WI-033
 title: Implement instrument-level total-asset valuation-change contribution
-status: ready
+status: closed
 type: change
 owner: owner
 decision_refs: DEC-048
@@ -48,18 +48,18 @@ valuation-change explanation that includes FX effects for foreign holdings.
 
 ## Acceptance criteria
 
-- [ ] `valuation_change_krw = current_value_krw - previous_value_krw` is returned per instrument with previous/current
+- [x] `valuation_change_krw = current_value_krw - previous_value_krw` is returned per instrument with previous/current
   snapshot refs and values.
-- [ ] `total_asset_impact_pct` uses previous total assets as the denominator; `share_of_total_change_pct` uses total
+- [x] `total_asset_impact_pct` uses previous total assets as the denominator; `share_of_total_change_pct` uses total
   KRW change and is null with an explicit reason when that denominator is zero.
-- [ ] new/sold inference is emitted only when both days are complete and comparable with equal required account
+- [x] new/sold inference is emitted only when both days are complete and comparable with equal required account
   coverage; otherwise status is partial/degraded and potentially false inferences are suppressed.
-- [ ] top positive/negative contributors, cash delta, holding delta sum, unexplained residual and tolerance-based
+- [x] top positive/negative contributors, cash delta, holding delta sum, unexplained residual and tolerance-based
   reconciliation status are included.
-- [ ] foreign results are labeled `KRW valuation change including FX`, never investment-return contribution.
-- [ ] metric, data catalog, MCP response schema, golden fixtures, partial/missing-account/zero-denominator/FX tests and
+- [x] foreign results are labeled `KRW valuation change including FX`, never investment-return contribution.
+- [x] metric, data catalog, MCP response schema, golden fixtures, partial/missing-account/zero-denominator/FX tests and
   backward compatibility are updated in the same change.
-- [ ] `bash scripts/check.sh quick` passes during work and `bash scripts/check.sh full` passes before closeout.
+- [x] `bash scripts/check.sh quick` passes during work and `bash scripts/check.sh full` passes before closeout.
 
 ## Change impact
 
@@ -87,12 +87,16 @@ valuation-change explanation that includes FX effects for foreign holdings.
 ## Evidence
 
 - Contract review: current V1 analytics selects only total-level lag/change; holdings are stored by overview snapshot.
-- Commands/tests: pending implementation.
-- Operating evidence: pending implementation; no live DB or MCP runtime changed by WI-031.
+- Commands/tests: 14 focused quality/valuation tests pass; `bash scripts/check.sh quick` and the final full gate pass.
+- Implementation: one shared calculation DTO, V1 additive DB-only response, V2 replay-safe metric ledger projection,
+  managed V1 quality columns/view, aggregate-only readiness inspector and catalog/pipeline/backup/MCP contracts.
+- Operating evidence: read-only MotherDuck inspection reported 2 latest V1 states with 60 holding rows, but the live
+  daily view lacks quality projection; V2 has 920 daily-state rows, 31 pass and 889 non-pass. `publish_ready=false`,
+  with zero writes and zero source calls.
 
 ## Closeout
 
-- Result: ready.
-- Remaining risk: current V1 snapshot-quality fields and the V2 daily-state completeness projection must be verified
-  together before allowing new/sold inference.
+- Result: closed; code and contracts fail closed until comparable canonical daily states are available.
+- Remaining risk: production deployment must refresh the V1 daily view, and upstream work must remediate 889 non-pass
+  V2 rows before official numeric metrics or new/sold inference can publish.
 - Follow-up Work Item: WI-028 consumes this output for contribution-aware alert state.

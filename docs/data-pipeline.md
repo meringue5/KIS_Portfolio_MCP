@@ -246,6 +246,19 @@ asset_overview_daily_snapshots
 
 이 view들은 계좌별 또는 canonical snapshot별 일자 마지막 스냅샷을 대표값으로 사용한다.
 
+## 원화 평가액 변화 기여도
+
+WI-033은 양일 canonical daily state를 동일한 계산 계약으로 비교한다. V1은
+`asset_overview_daily_snapshots`와 `asset_holding_snapshots`를 읽어 기존
+`get-total-asset-daily-change`에 additive diagnostic field를 반환하며 DB에는 쓰지 않는다. V2는
+`gold.portfolio_daily_state`를 읽고 승인된
+`metric.total-asset-valuation-change-contribution-krw`를 기존 `gold.metric_values`에 저장한다.
+
+양일 완전성, 필수 계좌 coverage, holdings/cash reconciliation 중 하나라도 실패하면 신규 편입·전량 매도
+판정을 억제한다. 응답에는 조사용 change와 blocker를 남길 수 있지만 V2의 공식 numeric metric은 `NULL`로
+저장한다. 따라서 부분 수집이 급락이나 전량 매도로 승격되지 않는다. 해외 보유분은 가격과 환율 효과를
+분리하지 않고 `KRW valuation change including FX`로 표시한다.
+
 ## 향후 정제 작업 후보
 
 - `portfolio_minute_snapshots`: 같은 계좌의 같은 분 내 마지막 스냅샷

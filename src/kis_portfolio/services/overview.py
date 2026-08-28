@@ -44,6 +44,68 @@ def pct(value: float | int | None, total: float | int | None) -> float | None:
     return round(float(value) / float(total) * 100, 2)
 
 
+def assess_total_asset_overview_quality(
+    *,
+    overview: dict,
+    normalized_holdings: list[dict],
+    required_account_labels: list[str],
+    observed_account_labels: list[str],
+    refresh_status: dict,
+    feeder_errors: list[dict],
+) -> dict:
+    """Build a non-sensitive completeness and reconciliation contract for one overview."""
+    required = sorted(set(required_account_labels))
+    observed = sorted(set(observed_account_labels))
+    flags: list[dict] = []
+    if not refresh_status.get("requested"):
+        flags.append({"code": "refresh_not_requested"})
+    if int(refresh_status.get("error_count", 0) or 0):
+        flags.append({"code": "account_refresh_error", "count": int(refresh_status["error_count"])})
+    not_saved = int((refresh_status.get("snapshot_status_counts") or {}).get("not_saved", 0) or 0)
+    if not_saved:
+        flags.append({"code": "account_snapshot_not_saved", "count": not_saved})
+    missing = sorted(set(required) - set(observed))
+    if missing:
+        flags.append({"code": "required_account_snapshot_missing", "account_labels": missing})
+    if feeder_errors:
+        flags.append({
+            "code": "feeder_error",
+            "tools": sorted({str(item.get("tool") or "unknown") for item in feeder_errors}),
+        })
+    missing_values = sum(
+        1 for item in normalized_holdings
+        if item.get("basis_category") != "cash" and item.get("value_krw") is None
+    )
+    if missing_values:
+        flags.append({"code": "holding_krw_value_missing", "count": missing_values})
+    total = int((overview.get("totals") or {}).get("total_eval_amt_krw") or 0)
+    holding_total = sum(int(item.get("value_krw") or 0) for item in normalized_holdings)
+    residual = total - holding_total
+    tolerance = max(1, round(abs(total) * 0.000001))
+    reconciliation_status = "pass" if abs(residual) <= tolerance else "failed"
+    if reconciliation_status != "pass":
+        flags.append({
+            "code": "overview_holding_reconciliation_failed",
+            "residual_krw": residual,
+            "tolerance_krw": tolerance,
+        })
+    is_complete = not flags and set(required) == set(observed)
+    return {
+        "status": "pass" if is_complete else "degraded",
+        "is_complete": is_complete,
+        "flags": flags,
+        "required_account_labels": required,
+        "observed_account_labels": observed,
+        "reconciliation": {
+            "status": reconciliation_status,
+            "overview_total_krw": total,
+            "holding_and_cash_total_krw": holding_total,
+            "residual_krw": residual,
+            "tolerance_krw": tolerance,
+        },
+    }
+
+
 def _first_number(row: dict, keys: list[str]) -> float | None:
     for key in keys:
         number = parse_number(row.get(key))

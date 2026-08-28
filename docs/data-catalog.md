@@ -141,7 +141,7 @@ Authorization header는 어떤 JSON 컬럼에도 넣지 않는다. 계좌번호�
 | --- | --- | --- | --- | --- |
 | `price_history` | 국내·해외 종목의 정규화 OHLCV. 종목/거래소/거래일 grain | PK `(symbol, exchange, date)`; 기본 insert-ignore, adjusted resync만 update | market data service | Parquet / internal |
 | `exchange_rate_history` | 통화별 정규화 환율. 통화/일자/주기 grain | PK `(currency, date, period)`; insert-ignore | exchange-rate service | Parquet / internal |
-| `asset_overview_snapshots` | 원화 기준 canonical 총자산과 allocation. overview refresh grain | PK `id`; canonical append | total asset overview service | Parquet / confidential |
+| `asset_overview_snapshots` | 원화 기준 canonical 총자산, allocation, completeness/quality. overview refresh grain | PK `id`; canonical append; `quality_status`, `quality_flags`, `is_complete`는 같은 refresh 품질 판정 | total asset overview service | Parquet / confidential |
 | `asset_holding_snapshots` | canonical overview에 속한 보유종목·현금 정규화 row | PK `id`; `overview_snapshot_id`로 parent 연결; append-only | total asset overview service | Parquet / confidential |
 | `domestic_orders` | 국내 주문의 최신 canonical 상태. KIS 주문 식별자 grain | PK `(account_id, account_product_code, order_date, order_branch_no, order_no)`; upsert | raw order normalization | Parquet / confidential |
 | `overseas_orders` | 해외 주문의 최신 canonical 상태. KIS 해외 주문 식별자 grain | PK `(account_id, account_product_code, order_date, exchange_code, order_branch_no, order_no)`; upsert | overseas raw order normalization | Parquet / confidential |
@@ -149,7 +149,9 @@ Authorization header는 어떤 JSON 컬럼에도 넣지 않는다. 계좌번호�
 
 `asset_overview_snapshots`가 총자산의 canonical aggregate다. 국내 feeder만 담은
 `portfolio_snapshots`를 글로벌 총자산 분석의 기준으로 사용하지 않는다. 종목/현금 상세 합계와 overview
-합계는 같은 refresh에서 생성되며, 품질 검사에서 두 합계의 차이를 검증하는 방향으로 확장한다.
+합계는 같은 refresh에서 생성된다. 필수 계좌 coverage, feeder 오류와 두 합계의 차이를 검사한 결과는
+`asset_overview_snapshots`의 managed quality column과 `overview_data.data_quality`에 함께 보존한다. legacy row는
+소급해 `pass`로 추정하지 않고 `legacy_unassessed`/incomplete로 투영한다.
 
 ## Gold Catalog
 
@@ -256,7 +258,7 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 | --- | --- | --- | --- |
 | `cash_flow` | Silver; 외부입출금·환전·배당·세금 event grain, PK `idempotency_key`, signed `amount_krw`, upsert, Parquet/confidential | base table, 0 rows | branch-defined pending integration |
 | `trade_journal` | Silver; 투자결정/거래 journal entry grain, PK `id`, unique `idempotency_key`, upsert, Parquet/confidential | base table, 0 rows | branch-defined pending integration |
-| `asset_overview_snapshots` quality extension | Silver canonical snapshot에 `quality_status`, `quality_flags`, `is_complete` 추가 | 세 컬럼 존재 | managed-column drift pending integration |
+| `asset_overview_snapshots` quality extension | Silver canonical snapshot에 `quality_status`, `quality_flags`, `is_complete` 추가 | 세 컬럼 존재 | WI-033에서 DDL/writer/view/test와 함께 managed로 통합; legacy row는 fail-closed |
 | `asset_return_daily` | Gold; 일별 총자산 변화에서 외부 현금흐름을 제외한 근사 수익률 view | view는 존재하지만 현재 `asset_overview_daily_snapshots`가 품질 컬럼을 투영하지 않아 조회 실패 | broken branch-defined view |
 
 이 객체들은 정체불명의 수동 DDL은 아니지만, 현재 branch의 registry/DDL/repository/test에는 없다. 따라서

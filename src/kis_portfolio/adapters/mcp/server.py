@@ -39,7 +39,7 @@ from kis_portfolio.observability import (
 )
 from kis_portfolio.services import kis_api
 from kis_portfolio.services.account import fetch_balance_snapshot, get_latest_balance_fallback
-from kis_portfolio.services.overview import build_total_asset_overview
+from kis_portfolio.services.overview import assess_total_asset_overview_quality, build_total_asset_overview
 from kis_portfolio.services.order_history import get_domestic_order_history
 from kis_portfolio.services.overseas_history import (
     get_overseas_order_history as get_overseas_order_history_service,
@@ -580,6 +580,14 @@ async def _get_total_asset_overview_impl(
         overview["errors"] = errors
     if missing_snapshot_accounts:
         overview["missing_snapshot_accounts"] = missing_snapshot_accounts
+    overview["data_quality"] = assess_total_asset_overview_quality(
+        overview=overview,
+        normalized_holdings=normalized_holdings,
+        required_account_labels=[account.label for account in accounts],
+        observed_account_labels=[str(row.get("account_label")) for row in domestic_snapshot_rows],
+        refresh_status=refresh_status,
+        feeder_errors=errors,
+    )
     if save_snapshot:
         overseas_snapshot_id = kisdb.insert_overseas_asset_snapshot(
             overseas_account.cano,
@@ -1161,7 +1169,7 @@ async def get_total_asset_history(
 
 @mcp.tool(
     name="get-total-asset-daily-change",
-    description="Use this when you need daily value changes from canonical total-asset snapshots without a live KIS API call.",
+    description="Use this for DB-only canonical total-asset daily changes and instrument-level KRW valuation-change contribution. Foreign rows include FX effects; this is not investment-return attribution.",
     annotations=READ_ONLY_TOOL,
 )
 async def get_total_asset_daily_change(

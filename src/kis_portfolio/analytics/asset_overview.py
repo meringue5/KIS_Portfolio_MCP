@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import duckdb
 
+from kis_portfolio.application.valuation_change import read_latest_v1_valuation_change
 from kis_portfolio.common.values import rows_to_dicts
 
 
@@ -39,15 +40,23 @@ def get_total_asset_daily_change(
     rows = rows_to_dicts(con.execute("""
         WITH changes AS (
             SELECT
+                id,
                 snap_date,
+                snapshot_at,
                 total_eval_amt_krw,
+                quality_status,
+                is_complete,
                 lag(total_eval_amt_krw) OVER (ORDER BY snap_date) AS prev_total_eval_amt_krw
             FROM asset_overview_daily_snapshots
         )
         SELECT
             snap_date,
+            id AS snapshot_ref,
+            snapshot_at,
             total_eval_amt_krw,
             prev_total_eval_amt_krw,
+            quality_status,
+            is_complete,
             total_eval_amt_krw - prev_total_eval_amt_krw AS change_amt,
             round(
                 (total_eval_amt_krw - prev_total_eval_amt_krw)
@@ -58,11 +67,13 @@ def get_total_asset_daily_change(
         ORDER BY snap_date DESC
         LIMIT ?
     """, [days]))
+    contribution = read_latest_v1_valuation_change(con, top_n=5, include_account_breakdown=True)
     return {
         "days": days,
         "count": len(rows),
         "latest": rows[0] if rows else None,
         "data": rows,
+        "valuation_change_contribution": contribution,
         "message": None if rows else "총자산 일별 스냅샷이 없습니다.",
     }
 

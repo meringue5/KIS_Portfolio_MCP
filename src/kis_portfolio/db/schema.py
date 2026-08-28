@@ -103,6 +103,9 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
             unknown_amt_krw BIGINT,
             allocation_data JSON,
             classification_summary JSON,
+            quality_status VARCHAR,
+            quality_flags JSON,
+            is_complete BOOLEAN,
             overview_data JSON,
             PRIMARY KEY (id)
         )
@@ -498,6 +501,9 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     _ensure_column(con, "kis_api_access_tokens", "created_at", "TIMESTAMP")
     _ensure_column(con, "kis_api_access_tokens", "updated_at", "TIMESTAMP")
     _ensure_column(con, "order_history", "account_product_code", "VARCHAR")
+    _ensure_column(con, "asset_overview_snapshots", "quality_status", "VARCHAR")
+    _ensure_column(con, "asset_overview_snapshots", "quality_flags", "JSON")
+    _ensure_column(con, "asset_overview_snapshots", "is_complete", "BOOLEAN")
 
     create_curated_views(con)
     logger.info("DB schema initialized")
@@ -547,6 +553,12 @@ def create_curated_views(con: duckdb.DuckDBPyConnection) -> None:
             arg_max(unknown_amt_krw, snapshot_at) AS unknown_amt_krw,
             arg_max(allocation_data, snapshot_at) AS allocation_data,
             arg_max(classification_summary, snapshot_at) AS classification_summary,
+            coalesce(arg_max(quality_status, snapshot_at), 'legacy_unassessed') AS quality_status,
+            coalesce(
+                arg_max(quality_flags, snapshot_at),
+                CAST('[{"code":"legacy_completeness_unassessed"}]' AS JSON)
+            ) AS quality_flags,
+            coalesce(arg_max(is_complete, snapshot_at), FALSE) AS is_complete,
             arg_max(overview_data, snapshot_at) AS overview_data
         FROM asset_overview_snapshots
         WHERE total_eval_amt_krw IS NOT NULL

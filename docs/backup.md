@@ -127,6 +127,11 @@ var/backup/parquet/YYYYMMDD_HHMMSS/
 Gold view와 `schema_migrations`도 기본 백업에서 제외한다. Gold는 복원된 Bronze/Silver/Control table과
 versioned migration으로 재생성하고, migration ledger는 복원 대상 database에서 새로 검증한다.
 
+WI-033은 새 물리 객체를 추가하지 않는다. canonical completeness 필드는 기존
+`asset_overview_snapshots.parquet`에 포함되고, V2 기여도 지표는 기존 managed V2
+`gold.metric_values`/`control.metric_definitions` 백업·복원 계약을 그대로 따른다. legacy snapshot 품질은
+복원 뒤에도 `pass`로 추정하지 않는다.
+
 2026-08-28 병렬 적용과 실제 복원 리허설 결과는
 [MotherDuck V2 Parallel Foundation](./operations/motherduck-v2-foundation-2026-08.md)에 기록한다.
 

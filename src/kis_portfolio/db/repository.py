@@ -1206,9 +1206,12 @@ def insert_asset_overview_snapshot(
             unknown_amt_krw,
             allocation_data,
             classification_summary,
+            quality_status,
+            quality_flags,
+            is_complete,
             overview_data
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
     """, [
         overview_data.get("base_currency", "KRW"),
@@ -1228,6 +1231,9 @@ def insert_asset_overview_snapshot(
         classification_summary.get("amounts", {}).get("unknown"),
         json.dumps(allocation, ensure_ascii=False, default=str),
         json.dumps(classification_summary, ensure_ascii=False, default=str),
+        overview_data.get("data_quality", {}).get("status", "legacy_unassessed"),
+        json.dumps(overview_data.get("data_quality", {}).get("flags", []), ensure_ascii=False),
+        bool(overview_data.get("data_quality", {}).get("is_complete", False)),
         json.dumps(overview_data, ensure_ascii=False, default=str),
     ]).fetchone()
     return row[0]

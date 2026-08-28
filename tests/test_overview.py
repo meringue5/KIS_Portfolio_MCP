@@ -1,9 +1,51 @@
 from kis_portfolio.account_registry import AccountConfig
 from kis_portfolio.services.overview import (
+    assess_total_asset_overview_quality,
     build_total_asset_overview,
     build_fx_rates,
     summarize_overseas_deposit,
 )
+
+
+def test_overview_quality_passes_only_complete_reconciled_refresh():
+    result = assess_total_asset_overview_quality(
+        overview={"totals": {"total_eval_amt_krw": 1_000}},
+        normalized_holdings=[
+            {"basis_category": "domestic_account", "value_krw": 600},
+            {"basis_category": "cash", "value_krw": 400},
+        ],
+        required_account_labels=["ria", "isa"],
+        observed_account_labels=["isa", "ria"],
+        refresh_status={"requested": True, "error_count": 0, "snapshot_status_counts": {"saved": 2}},
+        feeder_errors=[],
+    )
+
+    assert result["status"] == "pass"
+    assert result["is_complete"] is True
+    assert result["flags"] == []
+    assert result["reconciliation"]["residual_krw"] == 0
+
+
+def test_overview_quality_fails_closed_on_missing_account_and_reconciliation_gap():
+    result = assess_total_asset_overview_quality(
+        overview={"totals": {"total_eval_amt_krw": 1_000}},
+        normalized_holdings=[{"basis_category": "domestic_account", "value_krw": 600}],
+        required_account_labels=["ria", "isa"],
+        observed_account_labels=["ria"],
+        refresh_status={"requested": True, "error_count": 1, "snapshot_status_counts": {"not_saved": 1}},
+        feeder_errors=[{"tool": "get-overseas-balance"}],
+    )
+
+    assert result["status"] == "degraded"
+    assert result["is_complete"] is False
+    codes = {item["code"] for item in result["flags"]}
+    assert {
+        "account_refresh_error",
+        "account_snapshot_not_saved",
+        "required_account_snapshot_missing",
+        "feeder_error",
+        "overview_holding_reconciliation_failed",
+    } <= codes
 
 
 def account(label, cano, display_name=None):
