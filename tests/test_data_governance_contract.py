@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import shutil
+import tomllib
 from pathlib import Path
 
 
@@ -61,6 +62,24 @@ def test_current_repository_satisfies_data_governance_contract():
     checker = _load_checker()
 
     assert checker.check(REPO_ROOT) == []
+
+
+def test_etf_collection_is_later_and_has_no_initial_v2_production_trigger():
+    collections = tomllib.loads(
+        (REPO_ROOT / "governance/catalog/collections.toml").read_text(encoding="utf-8")
+    )["contracts"]
+    pipelines = tomllib.loads(
+        (REPO_ROOT / "governance/catalog/pipelines.toml").read_text(encoding="utf-8")
+    )["contracts"]
+    collection = next(item for item in collections if item["id"] == "collection.etf-lookthrough-v1")
+    pipeline = next(item for item in pipelines if item["id"] == "pipeline.etf-lookthrough-v2")
+
+    assert collection["version"] == "1.1.0"
+    assert collection["priority"] == "later"
+    assert "no production trigger" in collection["trigger_policy"]
+    assert pipeline["version"] == "1.1.0"
+    assert pipeline["source_call_budget"].startswith("zero production calls")
+    assert "no Scheduler" in pipeline["trigger_policy"]
 
 
 def test_governance_accepts_approved_source_dataset_and_collection(tmp_path: Path):

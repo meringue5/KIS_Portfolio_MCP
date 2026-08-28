@@ -7,8 +7,9 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| owner option 3: ETF analysis outside initial V2 | ADR-024 / DEC-049 | WI-052 | DEC/ADR, DGH v1.1.0, rejected WI-026/027 and revised alert dependency | 14 focused and full shared gate pass; zero runtime/external change | closed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-ADR-006/010/012/015 | WI-033 | shared DTO, comparable-state gate, V1 additive MCP and V2 metric ledger projection | 14 focused/full gate pass; live read-only gate blocks stale V1 view and 889 non-pass V2 rows | closed; production publish remains fail-closed |
-| DEC-018/019/025/030/038/041/044 ETF provider rights activation | ADR-023 + V2-ADR-006/010/012 | WI-026 | provider-specific official-source rights review; production registry remains fail-closed | four provider official-source reviews and KRX API alternative checked; 0 production calls/profiles/writes | blocked; explicit production rights or licensed full-composition API required |
+| DEC-018/019/025/030/038/041/044/049 ETF provider rights activation | ADR-023/024 + V2-ADR-006/010/012 | WI-026 | provider-specific official-source rights review; production registry remains fail-closed | four provider reviews and KRX/KIS alternatives checked; 0 production calls/profiles/writes | rejected from initial V2; future new intake required |
 | DEC-012..017/027/038/041/044 lot/thread path and risk | ADR-021/023 + V2-ADR-006/010/012 | WI-025 | 8 adjusted-price lot/episode and owner-stop thread/instrument risk metrics, PIT evaluator and readiness inspector | 6 focused/full 374 pass; complete restore; production 0 reconstructed lot, 0 adjusted price, 57 exceptions and no publish/write | closed |
 | DEC-012..014/027/031/038/044 typed thread risk and owner review | ADR-021/023 + V2-ADR-006/010/012 | WI-024 | two dataset contracts, migration 0011, owner-authoritative plan revisions and review queue repository | 5 focused / 28 adjacent tests and complete restore; production read-only inventory 19 open threads, 0 generated intent, migration unapplied | closed |
 | DEC-004/009..017/026/038/041/044 portfolio performance | ADR-021/023 + V2-ADR-006/010/012 | WI-023 | five versioned metrics, Modified Dietz evaluator, explicit residual and chain-linked drawdown | 9 focused / 22 adjacent tests; restore pass; production read-only gate blocks 889 non-pass state rows and missing exact cash coverage with zero writes/calls | closed |
@@ -48,7 +49,7 @@
 | DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; MotherDuck Lite 0원; `my_db` empty legacy 확인; 운영 변경 없음 | verified, acceptance pending |
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
-| DEC-001..DEC-048: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0807 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; MS-002~004 and remaining delivery items tracked by immutable registry | in_progress |
+| DEC-001..DEC-049: KIS Portfolio data platform | ADR-021/024 approved architecture baseline | V2-W0001..V2-W0807 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; ETF deferred; MS-002~004 remaining delivery tracked by immutable registry | in_progress |
 
 ## Planned Milestone Work
 
@@ -65,10 +66,10 @@
 | DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | closed; production values remain fail-closed on state/cash coverage quality |
 | DEC-012..014/027/031 thread risk plans/review queue | V2-W0305/0306 | WI-024 | WI-010, WI-022 | closed; production migration and owner responses remain gated |
 | DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | closed; production values remain fail-closed |
-| DEC-018/019/025 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | blocked; no production-rights evidence or licensed full-composition API |
-| DEC-018/019/026 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | blocked by WI-026 |
+| DEC-018/019/025/049 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | rejected from initial V2; evidence retained, later collection v1.1.0 |
+| DEC-018/019/026/049 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | rejected from initial V2; no implementation claimed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-W0510 | WI-033 | WI-009, WI-013 | closed; production publish remains fail-closed on canonical quality |
-| DEC-026..028 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-027, WI-033 | proposed |
+| DEC-026..028/049 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-033 | proposed; ETF treated as opaque security |
 | DEC-026..028 replay and shadow | V2-W0509 | WI-029 | WI-028 | proposed |
 | DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030 | WI-029 | proposed; external-send gate |
 | DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 | WI-012 | proposed; MS-003 |

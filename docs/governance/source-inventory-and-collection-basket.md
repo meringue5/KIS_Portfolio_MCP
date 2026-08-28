@@ -18,8 +18,9 @@ material trade-off를 승인한다.
 
 1. **필수 core**는 기존 KIS 계좌·거래·가격 API와 사용자 매매일지로 구성한다.
 2. **공시 actual**은 국내 OpenDART, 미국 SEC EDGAR를 canonical source로 사용한다.
-3. **ETF look-through**는 보유 ETF의 공식 운용사 holdings 파일을 canonical source로 사용하고 KRX는 공식
-   참조와 국내 coverage 보완에 사용한다. KIS ETF 구성종목 API는 완전성 기준이 아니라 cross-check다.
+3. **ETF look-through**의 미래 canonical source는 공식 운용사 holdings 파일이며 KRX는 공식 참조, KIS는
+   cross-check다. DEC-049에 따라 권리 승인 전까지 이 장바구니는 `later`이고 초기 V2에서는 수집·분석하지
+   않는다.
 4. **macro_profile_v1**은 ECOS, FRED/ALFRED와 Cboe VIX의 작은 allowlist로 시작한다.
 5. **국내 consensus**는 KIS 종목추정실적·투자의견을 먼저 표본검증하되 canonical로 승격하지 않는다.
    **미국 consensus**는 point-in-time 분포·analyst count·revision을 제공하는 licensed provider가 선정될
@@ -28,7 +29,8 @@ material trade-off를 승인한다.
    scraping은 하지 않으며 private 원본·versioned 추출·lineage만 owner-authorized 분석에 사용한다.
 7. 권리 미확인 리서치 원문, 포털 consensus와 일반 웹 scraping은 제외한다.
 
-2026-08-28 owner 승인에 따라 필수 core와 권장 장바구니의 의존 계약을 `approved`로 승격했다. 아직
+2026-08-28 owner 승인에 따라 필수 core와 당시 권장 장바구니의 의존 계약을 `approved`로 승격했다. 이후
+DEC-049가 ETF 장바구니를 initial V2의 `recommended`에서 `later`로 변경했다. 아직
 production producer/consumer가 없으므로 `active`는 아니다. provider 가입, API key 발급, production 호출,
 live DDL, backfill, Scheduler, MotherDuck 운영 변경과 비용 발생은 승인하지 않는다.
 
@@ -56,7 +58,7 @@ KIS는 보유수량·체결·실수령 현금의 canonical source지만, 국내 
 | 매수 lot·thread·매매일지 | 주문체결, 현금거래, owner intent와 revision | KIS; portfolio owner | trade-event, cash-transaction-event, trade-journal | required core |
 | 3년 가격·거래 복원 | adjusted/raw OHLCV, 거래량, 주문·거래 | KIS | price-bar-daily, trade-event | required core |
 | 자산추세·기여도·경보 | 포지션, 가격, FX, 현금과 session status | governed core datasets | portfolio-daily-state | required core |
-| ETF impact | 공식 일별 구성, 비중, non-equity와 nested ETF | 공식 KR/US issuer; KRX reference | etf-constituent-snapshot | recommended ETF |
+| ETF impact | 공식 일별 구성, 비중, non-equity와 nested ETF | 공식 KR/US issuer; KRX reference | etf-constituent-snapshot | later; initial V2 제외 |
 | 5년·8분기 actual | filing, XBRL/DART facts와 correction | OpenDART; SEC EDGAR | filing-event, financial-fact | recommended fundamentals |
 | 배당 이력 | declared, entitled, received, corrected | OpenDART/SEC; KIS; owner evidence | dividend-event | recommended fundamentals |
 | macro context | 금리, curve, 물가, 유동성, 경기, FX, VIX와 vintage | ECOS; FRED/ALFRED; Cboe | macro-observation | recommended macro |

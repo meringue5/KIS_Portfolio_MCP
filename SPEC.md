@@ -604,6 +604,35 @@ backfill 또는 deployment 권한이 아니다.
 
 ---
 
+### ADR-024: ETF look-through를 초기 V2 critical path에서 분리한다
+
+**결정**: WI-026 ETF 구성종목 production 수집과 WI-027 nested look-through를 초기 V2 인수범위에서
+제외한다. 기존 ID와 조사·fixture·route·schema는 보존하되 두 Work Item은 현재 delivery path에서
+`rejected`로 역사화한다. WI-028 alert state는 WI-027 의존성을 제거하고 ETF를 불투명한 상장상품으로
+다룬다.
+
+**상태**: 2026-08-28 사용자 승인. 요구 정본은 DEC-049, 실행 추적은 WI-052가 소유한다.
+
+**이유**:
+
+- KIS 구성종목 endpoint는 승인된 cross-check지만 완전한 구성 원장이 아니다.
+- 현재 운용사/KRX 경로에는 자동수집, GCP 처리, private raw 보관과 파생 이용을 모두 허용하는 승인형
+  endpoint 또는 적용 가능한 권리 증거가 없다.
+- 불완전 자료를 canonical로 승격하면 ETF 임팩트와 경보를 정밀해 보이는 오정보로 만든다.
+- ETF capability 하나가 가격·lot/thread·성과·경보·Remote MCP·V2 전환 전체를 무기한 막는 것은 초기
+  제품 가치와 맞지 않는다.
+
+**계약**:
+
+- 초기 V2는 ETF 종목 자체의 가격·추세·평가액 변화·risk를 제공할 수 있지만 구성기업·섹터·국가·통화
+  look-through는 지원하지 않는다고 명시한다.
+- ETF DGH collection/pipeline은 `later`이며 production schedule, network call과 공식 consumer를 갖지 않는다.
+- DEC-018/019의 품질·보존 요구는 폐기하지 않는다. 미래 재도입은 새 Work Item, 새 contract version,
+  rights/cost approval과 complete-source quality evidence를 요구한다.
+- 기존 fixture와 dormant 데이터 객체는 자동 삭제하지 않는다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

@@ -191,7 +191,8 @@ Wave 4에 들어가기 전에 source inventory와 collection basket을 DGH manif
 - `V2-W0402` fixed-argument Cloud Run Job definitions와 Scheduler manifest generator.
 - `V2-W0403` 국내·해외 ledger pipeline을 V2 runner로 전환.
 - `V2-W0404` 국내·미국 adjusted/raw 3년 price backfill과 incremental daily pipeline.
-- `V2-W0405` KRX/issuer ETF constituent daily snapshot과 nested expansion input.
+- `V2-W0405` KRX/issuer ETF constituent daily snapshot과 nested expansion input. DEC-049에 따라 initial V2에서는
+  rejected/deferred이며 새 rights-approved intake 전 production 실행하지 않는다.
 - `V2-W0406` OpenDART/SEC actual fact, KIS experimental estimate adapter.
 - `V2-W0407` dividend declared/entitled/received와 manual import port.
 - `V2-W0408` ECOS/FRED/ALFRED/Cboe macro profile v1.
@@ -204,7 +205,8 @@ Wave 4에 들어가기 전에 source inventory와 collection basket을 DGH manif
 - failure injection 후 성공 stage를 재수행하지 않고 실패 stage부터 이어갈 수 있다.
 - source rate limit과 daily call budget을 넘기기 전에 runner가 중지한다.
 - 3년 backfill의 row/object/compute 증가량이 cost model 안에 있다.
-- KIS 100-row pagination, ETF partial source, consensus source gap을 quality result가 표시한다.
+- KIS 100-row pagination과 consensus source gap을 quality result가 표시한다. 후속 ETF pipeline은 partial
+  source를 quality result로 표시해야 하지만 initial V2 terminal gate에는 포함하지 않는다.
 - LLM 없이 Scheduler만으로 5거래일 연속 모든 필수 pipeline이 terminal state가 된다.
 
 ### Rollback
@@ -220,7 +222,7 @@ pipeline별 feature flag로 V2 writer를 멈추고 V1 schedule을 재활성화�
 - `V2-W0502` cash-flow-adjusted portfolio return, contribution, drawdown.
 - `V2-W0503` SMA20/50/120, volume ratio, RSI14, Bollinger context, ATR20.
 - `V2-W0504` position/lot/thread MFE·MAE·episode high와 2% risk cap.
-- `V2-W0505` ETF look-through와 residual/confidence.
+- `V2-W0505` ETF look-through와 residual/confidence. DEC-049에 따라 initial V2에서는 rejected/deferred다.
 - `V2-W0506` actual/consensus surprise, guidance cut, NTM revision.
 - `V2-W0507` alert state machine, de-duplication, recovery와 delivery ledger.
 - `V2-W0508` Telegram payload redaction·test destination·retry.
@@ -349,7 +351,8 @@ V2 전체 설계의 구현 완료는 다음이 모두 참일 때만 선언한다
 3. MotherDuck `bronze/silver/gold/control`이 versioned migration과 catalog로 관리된다.
 4. 필수 pipeline은 LLM 없이 정기 실행되고 LLM trigger는 같은 managed Job을 사용한다.
 5. 승인된 source basket의 backfill·incremental 수집·quality·lineage가 동작한다.
-6. 평단가, lot/thread, 배당, ETF, fundamentals, macro와 signal 데이터 제품이 point-in-time으로 재현된다.
+6. 평단가, lot/thread, 배당, fundamentals, macro와 signal 데이터 제품이 point-in-time으로 재현된다. ETF는
+   자체 상장상품 수준으로 포함하며 constituent look-through는 DEC-049의 후속 범위다.
 7. Telegram은 승인된 rule version의 `주의` 이상만 보내고 중복·민감정보를 억제한다.
 8. 직접 SQL과 MCP가 같은 metric version에서 일치한다.
 9. dual-run, remote smoke, restore rehearsal과 rollback rehearsal evidence가 있다.

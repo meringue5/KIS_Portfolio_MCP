@@ -337,7 +337,7 @@ look-through의 canonical source로 선정하지 않는다.
 | 반환 grain 후보 | ETF·기준일·구성자산 |
 | 요구 필드 | 구성자산 식별자·명칭·수량·평가금액·비중, 기준일, source URL·hash |
 | 요구 연결 | canonical ETF 구성 snapshot과 direct/recursive look-through |
-| 현재 상태 | canonical 원천으로 `selected`, `official-confirmed`; 자동수집·과거 coverage·이용조건은 `gap` |
+| 현재 상태 | 미래 canonical 후보로 `selected`, `official-confirmed`; 자동수집·과거 coverage·이용조건은 `gap`, DEC-049로 initial V2 제외 |
 
 KRX는 PDF가 거래소와 운용사 홈페이지에 매일 공시된다고 설명한다. 현재 보유 운용사 페이지에서도
 구성종목과 Excel 다운로드가 확인된다. 구현 전에는 KRX dataset의 안정적인 자동 접근 방식, 이용조건,
@@ -351,7 +351,8 @@ KRX는 PDF가 거래소와 운용사 홈페이지에 매일 공시된다고 설�
 
 RSI, 이동평균, rolling high와 ETF look-through는 외부 원천 dataset이 아니라 위 원천에서 재생성하는
 Gold 지표다. B-1~B-5 승인으로 수정주가, SMA20·50·120, 거래량 20일 비율, Wilder RSI14, 보유 에피소드
-고점과 ETF look-through 계약을 `selected`로 확정했다.
+고점과 ETF look-through 계약을 `selected`로 확정했다. 이후 DEC-049가 ETF look-through만 초기 V2
+인수범위에서 제외했으며 source 후보와 품질 계약은 미래 재도입을 위해 보존한다.
 
 ## 7. 3차 조사 범위: 실적·가치·배당·매크로
 

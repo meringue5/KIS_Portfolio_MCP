@@ -266,11 +266,11 @@ consumer_ids = ["owner review workflow", "journal MCP", "lot and thread risk qua
 
 [[contracts]]
 id = "dataset.etf-constituent-snapshot"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
-description = "보유 ETF별 공식 구성종목, 비중, 단위와 현금·채권·파생·nested ETF 유형을 보존한 일별 snapshot."
-decision_refs = ["DEC-018", "DEC-019"]
+description = "향후 권리 승인 뒤 보유 ETF별 공식 구성종목과 비주식·nested 유형을 보존할 일별 snapshot; 초기 V2 공식 consumer 없음."
+decision_refs = ["DEC-018", "DEC-019", "DEC-049"]
 layer = "silver"
 source_ids = ["source.krx-market-data", "source.kr-etf-issuers", "source.us-etf-issuers"]
 input_dataset_ids = []
@@ -283,10 +283,10 @@ schema_contract = "logical ETF composition v1; full source file stored content-a
 sensitivity = "internal"
 retention_policy = "minimum three years of trading-day snapshots; canonical source files retained under object policy"
 backup_policy = "object"
-freshness_slo = "latest published snapshot before 10:00 KST for held KR ETFs and by the Korean-morning run for held US ETFs"
+freshness_slo = "not applicable while later and unscheduled; a future approved version must define market-specific publication lag"
 quality_rules = ["source URL and hash present", "weights and unresolved residual reconcile within a declared tolerance", "non-equity and nested instruments preserve original type", "nested expansion is capped at three levels with cycle guard"]
 producer_pipeline_ids = ["pipeline.etf-lookthrough-v2"]
-consumer_ids = ["ETF impact analysis", "portfolio exposure", "concentration alerts"]
+consumer_ids = ["future ETF impact analysis", "future portfolio look-through"]
 
 [[contracts]]
 id = "dataset.filing-event"

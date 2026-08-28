@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import re
 import shutil
+import tomllib
 from pathlib import Path
 
 
@@ -62,6 +63,25 @@ def test_current_repository_satisfies_project_os_contract():
     checker = _load_checker()
 
     assert checker.check(REPO_ROOT) == []
+
+
+def test_initial_v2_alert_chain_preserves_but_excludes_etf_work():
+    registry = tomllib.loads(
+        (REPO_ROOT / "governance/project/milestones.toml").read_text(encoding="utf-8")
+    )
+    work_items = {item["id"]: item for item in registry["work_items"]}
+
+    assert "WI-026" in next(
+        milestone["work_item_ids"] for milestone in registry["milestones"] if milestone["id"] == "MS-002"
+    )
+    assert work_items["WI-027"]["depends_on"] == ["WI-009", "WI-017", "WI-026"]
+    assert work_items["WI-028"]["depends_on"] == ["WI-019", "WI-023", "WI-025", "WI-033"]
+    assert "status: rejected" in (
+        REPO_ROOT / "docs/work-items/WI-026-etf-constituent-forward-collection.md"
+    ).read_text(encoding="utf-8")
+    assert "status: rejected" in (
+        REPO_ROOT / "docs/work-items/WI-027-nested-etf-look-through.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_project_os_rejects_two_in_progress_work_items(tmp_path: Path):

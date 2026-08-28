@@ -433,6 +433,20 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 전환기에는 기존 `get-total-asset-daily-change`에 additive field로 제공하고, V2에서는 승인된 18-tool
   budget 안의 `get-performance-history`/`get-portfolio-overview` read model로 제공한다.
 
+### DEC-049: ETF 구성종목 수집과 look-through를 초기 V2 인수범위에서 제외한다
+
+- 2026-08-28 owner는 source 권리 검토 뒤 선택지 3을 승인했다. WI-026의 자동수집과 WI-027의 nested ETF
+  look-through는 초기 V2 완료조건이 아니며 alert·Remote MCP·cutover를 막지 않는다.
+- DEC-018/019의 canonical source, 완전성, 3년 보존 계약은 미래 ETF capability의 요구로 보존한다. 이를
+  KIS 부분 구성자료나 추정치로 대체하거나 조용히 완화하지 않는다.
+- 초기 V2에서 ETF는 자체 종목 가격·추세·평가액 변화·lot/thread 위험을 가진 불투명한 상장상품으로
+  분석할 수 있다. 구성기업·국가·섹터·통화 노출 및 ETF 내부 기여도는 `unsupported`/missing coverage로
+  표시하고 생성하지 않는다.
+- collection priority는 `later`, production schedule과 network profile은 비활성으로 유지한다. 기존 fixture
+  parser, exact route, dormant schema와 권리 검토 증거는 삭제하지 않는다.
+- 향후 완전한 구성자료의 자동 처리·cloud processing·private raw retention·derived use 권리가 확인되고
+  비용이 승인되면 새 Work Item과 contract version으로 다시 도입한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -992,6 +1006,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-28 | 범위 변경 승인 | DEC-049로 ETF 구성종목 수집·look-through를 초기 V2 인수범위에서 제외하고, 별도 source 조사 뒤 새 Work Item으로 재도입하기로 함 |
 | 2026-08-28 | 요구·계획 승인 | DEC-047 final MS-004 V2 문서 정본화와 DEC-048 종목별 총자산 원화 평가액 변화 기여도를 승인하고 WI-032/033으로 분리함 |
 | 2026-08-28 | Milestone 1 실행 승인 | DEC-046으로 private GCS 등 합의된 GCP provisioning과 WI-009~012 연속 실행 권한을 확정함 |
 | 2026-08-28 | provisioning 권한 승인 | DEC-045로 기존 MotherDuck 보존·병렬 V2 객체와 Secret Manager·Seoul Firestore 기반 provisioning 권한을 확정함 |

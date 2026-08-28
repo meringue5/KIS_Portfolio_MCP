@@ -1,11 +1,11 @@
 ---
 id: WI-027
 title: Implement nested ETF look-through and impact
-status: proposed
+status: rejected
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
-requirement_refs: DEC-018, DEC-019, DEC-026, DEC-038, DEC-041, DEC-044
+decision_refs: ADR-021, ADR-023, ADR-024, V2-ADR-006, V2-ADR-010, V2-ADR-012
+requirement_refs: DEC-018, DEC-019, DEC-026, DEC-038, DEC-041, DEC-044, DEC-049
 milestone_ref: MS-002
 delivery_refs: V2-W0505
 parent_work_item: none
@@ -55,10 +55,12 @@ constituent snapshots are joined point-in-time to current positions.
 
 ## Evidence
 
-- Pending.
+- WI-026 official-source rights review found no production-approved complete constituent source; KIS remains a partial
+  cross-check only.
+- 2026-08-28 owner chose option 3, excluding ETF impact analysis from initial V2 while preserving later research.
 
 ## Closeout
 
-- Result: proposed; depends on WI-026.
+- Result: rejected from initial V2 scope without implementation; acceptance criteria remain intentionally unmet.
 - Remaining risk: provider coverage and source-date gaps.
-- Follow-up Work Item: WI-028.
+- Follow-up Work Item: WI-028 proceeds without constituent exposure; future reintroduction requires a new Work Item.
