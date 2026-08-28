@@ -69,8 +69,13 @@ must be replayed without silently rewriting the preserved migration artifacts.
   - [x] blocked plans publish only a reviewable Control exception; later passing evidence resolves it append-only.
   - [x] persisted current projections reconcile with the replay plan and transaction failure leaves no partial publish.
   - [x] a complete governed V2 Parquet export restores the reconstructed current projections in fresh DuckDB.
-- `WI-022-S05` — aggregate-only production read-only dry-run and impact report (`proposed`).
-- `WI-022-S06` — separately approved bounded production apply and recovery evidence (`proposed`).
+- `WI-022-S05` — aggregate-only production read-only dry-run and impact report (`closed`).
+  - [x] production inspection is read-only and emits no account, order, lot or raw source identity.
+  - [x] the report pins reconstruction window/cutoff, schema state, partition count and deterministic plan hash.
+  - [x] status, blocker and projected episode/lot/allocation/exception counts reconcile at aggregate level.
+  - [x] missing migration/input/coverage or quantity mismatch blocks Silver projection rather than fabricating it.
+  - [x] repeated inspection of the same cutoff produces the same reviewed execution hash.
+- `WI-022-S06` — separately approved bounded production apply and recovery evidence (`in_progress`).
 
 ## Evidence
 
@@ -105,9 +110,20 @@ must be replayed without silently rewriting the preserved migration artifacts.
   Twenty focused S02~S04 tests passed. `bash scripts/check.sh quick` and `bash scripts/check.sh full` passed with 346
   tests and the existing Authlib deprecation warning. No source call, production database write, live migration,
   scheduler change, GCS upload or external send occurred.
+- `position_reconstruction_runtime.py` reads the passing production current-position and canonical-trade boundaries,
+  evaluates each account/instrument partition and returns only aggregate counts plus a deterministic logical-input hash.
+  Its public report contains no account, instrument, order, lot or source-observation identity.
+- Two identical read-only MotherDuck inspections of `2023-08-28T00:00:00+09:00` through
+  `2026-08-28T23:59:59+09:00` produced execution hash
+  `b0dfeb93e376520a0a864390276bf65620e2627b05cac834f139f8972e79ba96`: 57 partitions, 22 current-held,
+  56 with trade history, 282 canonical trade inputs and zero source calls/writes.
+- Production has no passing corporate-action coverage rows for this window. All 57 partitions therefore remain
+  `not_assessed` and are approved only for append-only Control exceptions; projected Silver episode, lot and allocation
+  counts are all zero. This is a fail-closed result, not a claim that no corporate action occurred.
+- `docs/design/wi-022-s05-production-dry-run.md` records the reviewed aggregate impact and S06 exact-input gate.
 
 ## Closeout
 
-- Result: in progress; S01~S04 are closed and S05 is next.
+- Result: in progress; S01~S05 are closed and S06 is active.
 - Remaining risk: owner review for ambiguous opening positions.
-- Follow-up sub-item: WI-022-S05 aggregate-only production read-only dry-run and impact report.
+- Follow-up sub-item: WI-022-S06 bounded append-only production apply and recovery proof.
