@@ -120,7 +120,8 @@ must be replayed without silently rewriting the preserved migration artifacts.
   Its public report contains no account, instrument, order, lot or source-observation identity.
 - Two identical read-only MotherDuck inspections of `2023-08-28T00:00:00+09:00` through the already elapsed
   `2026-08-28T18:00:00+09:00` cutoff produced execution hash
-  `43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34`: 57 partitions, 22 current-held,
+  canonical execution hash `096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b`: 57 partitions,
+  22 current-held,
   56 with trade history, 282 canonical trade inputs and zero source calls/writes.
 - Production has no passing corporate-action coverage rows for this window. All 57 partitions therefore remain
   `not_assessed` and are approved only for append-only Control exceptions; projected Silver episode, lot and allocation

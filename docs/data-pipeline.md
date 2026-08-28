@@ -126,8 +126,9 @@ fresh DuckDB complete V2 Parquet restore까지 S04에서 검증하지만 product
 계약은 [WI-022-S04 append-only persistence](./design/wi-022-s04-append-only-persistence.md)에 둔다.
 
 WI-022-S05의 production planner는 passing current-position snapshot과 canonical trade current view를 read-only로
-읽고 account/instrument identity를 노출하지 않는 aggregate impact report만 만든다. 같은 logical input, replay 및
-projection은 additive schema migration 여부와 무관하게 같은 execution hash를 갖는다. 2026-08-28 cutoff의 실제
+읽고 account/instrument identity를 노출하지 않는 aggregate impact report만 만든다. 해시 입력의 timestamp는 UTC
+`Z`, Decimal은 scale-independent canonical string으로 정규화한다. 같은 logical input, replay 및 projection은
+runtime timezone과 additive schema migration 여부와 무관하게 같은 execution hash를 갖는다. 2026-08-28 cutoff의 실제
 검사에서는 corporate-action date-range coverage가 0건이므로 57개 partition 전부가 `not_assessed`다. 따라서 S06은
 Silver episode/lot/allocation을 생성할 수 없고 append-only Control exception만 발행할 수 있다. 상세 근거는
 [WI-022-S05 production dry-run](./design/wi-022-s05-production-dry-run.md)에 둔다.

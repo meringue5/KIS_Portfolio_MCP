@@ -996,7 +996,7 @@ def _deploy_wi022_s06_job(
     command_args = (
         "run-wi022-s06,--start-at,2023-08-28T00:00:00+09:00,"
         "--cutoff-at,2026-08-28T18:00:00+09:00,"
-        "--expected-execution-hash,43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34,"
+        "--expected-execution-hash,096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b,"
         f"--project,{project},--bucket,{payload['KIS_GCS_BUCKET']}"
     )
     env_yaml_path = _write_env_yaml(payload)

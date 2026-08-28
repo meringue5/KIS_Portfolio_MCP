@@ -11,7 +11,7 @@ The fixed production envelope is:
 
 - start: `2023-08-28T00:00:00+09:00`;
 - already elapsed cutoff: `2026-08-28T18:00:00+09:00`;
-- execution hash: `43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34`;
+- canonical execution hash: `096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b`;
 - 57 partitions: 22 current-held, 56 with trade history and 35 trade-only;
 - 22 current-position rows, 282 canonical trade rows and zero passing action-coverage rows;
 - zero eligible Silver projections and 57 append-only Control exceptions;

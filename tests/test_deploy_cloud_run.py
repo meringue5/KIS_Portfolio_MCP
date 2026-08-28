@@ -336,7 +336,7 @@ def test_wi022_s06_job_is_minimal_single_task_fixed_hash_and_immutable(monkeypat
     fixed = command[command.index("--args") + 1]
     assert "--start-at,2023-08-28T00:00:00+09:00" in fixed
     assert "--cutoff-at,2026-08-28T18:00:00+09:00" in fixed
-    assert "43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34" in fixed
+    assert "096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b" in fixed
     secrets = command[command.index("--set-secrets") + 1]
     assert secrets.startswith("MOTHERDUCK_TOKEN=")
     assert "KIS_APP_" not in secrets and "KIS_CANO_" not in secrets

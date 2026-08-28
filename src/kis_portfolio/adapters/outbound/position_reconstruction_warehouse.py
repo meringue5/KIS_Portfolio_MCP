@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -56,8 +56,23 @@ class ReconstructionWriteResult:
         )
 
 
+def _json_default(value: Any) -> str:
+    if isinstance(value, datetime):
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    if isinstance(value, Decimal):
+        normalized = value.normalize()
+        return "0" if normalized == ZERO else format(normalized, "f")
+    raise TypeError(f"unsupported reconstruction hash value: {type(value).__name__}")
+
+
 def _json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=_json_default,
+    )
 
 
 def _hash(label: str, value: Any) -> str:
@@ -71,8 +86,8 @@ def _provenance(request: ReplayRequest, plan: PositionReplayPlan) -> dict[str, A
         "partition_key": plan.partition_key,
         "replay_hash": plan.replay_hash,
         "projection_hash": plan.projection_hash,
-        "reconstruction_start_at": request.start_at.isoformat(),
-        "reconstruction_cutoff_at": request.cutoff_at.isoformat(),
+        "reconstruction_start_at": _json_default(request.start_at),
+        "reconstruction_cutoff_at": _json_default(request.cutoff_at),
         "coverage_quality_result_id": plan.coverage_quality_result_id,
     }
 
@@ -261,7 +276,7 @@ class PositionReconstructionWarehouseRepository:
                 "episode_id": episode.episode_id,
                 "account_id": episode.account_id,
                 "opening_instrument_id": episode.opening_instrument_id,
-                "opened_at": episode.opened_at.isoformat(),
+                "opened_at": _json_default(episode.opened_at),
             }
             identity_hash = _hash("position-episode-identity", identity_document)
             if self._ensure_episode_identity(
@@ -274,7 +289,7 @@ class PositionReconstructionWarehouseRepository:
                 "replay_hash": plan.replay_hash,
                 "episode_id": episode.episode_id,
                 "instrument_id": episode.instrument_id,
-                "closed_at": episode.closed_at.isoformat() if episode.closed_at else None,
+                "closed_at": _json_default(episode.closed_at) if episode.closed_at else None,
                 "current_quantity": episode.current_quantity,
                 "reconstruction_status": episode.reconstruction_status.value,
             }
@@ -297,7 +312,7 @@ class PositionReconstructionWarehouseRepository:
                 "account_id": lot.account_id,
                 "opening_instrument_id": lot.opening_instrument_id,
                 "opening_trade_event_id": lot.opening_trade_event_id,
-                "opened_at": lot.opened_at.isoformat(),
+                "opened_at": _json_default(lot.opened_at),
                 "evidence_provenance": lot.evidence_provenance.value,
             }
             identity_hash = _hash("purchase-lot-identity", identity_document)
@@ -310,7 +325,7 @@ class PositionReconstructionWarehouseRepository:
                 "remaining_quantity": lot.remaining_quantity,
                 "effective_unit_cost": lot.effective_unit_cost,
                 "currency": lot.currency,
-                "state_effective_at": lot.state_effective_at.isoformat(),
+                "state_effective_at": _json_default(lot.state_effective_at),
                 "cause_type": lot.cause_type,
                 "cause_ref": lot.cause_ref,
                 "reconstruction_status": next(
