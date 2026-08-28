@@ -140,6 +140,16 @@ post-backup을 별도 fresh DuckDB로 복원해 live와 같은 aggregate reconci
 Control exception 57건만 publish할 수 있고 Silver reconstruction row와 V1 row는 쓰지 않는다. 상세 계약은
 [WI-022-S06 production execution](./design/wi-022-s06-production-execution.md)에 둔다.
 
+WI-023의 W0502 evaluator는 인접한 pass `gold.portfolio_daily_state`와 평가 cutoff 이전에 알려진 canonical
+cash classification만 읽는다. `main.market_calendar`의 KRX 날짜 coverage, 양일 필수 계좌와 state 품질,
+`control.quality_results`의 exact cash-flow coverage scope가 모두 맞아야 Modified Dietz 수익률과 구성요소
+기여도를 발행한다. 기여도 합계와 수익률의 차이는 별도 residual metric으로 보존하고, wealth index는 최초
+기준값 1에서 pass 기간수익률만 chain-link한다. 한 기간이라도 unavailable이면 wealth/drawdown chain을
+재시작하지 않는다. non-KRW 외부 현금흐름은 point-in-time FX revision 계약이 생기기 전까지 fail closed한다.
+이 단계는 기존 `gold.metric_values`와 `control.metric_definitions`만 사용하며 source call, schema migration,
+public MCP 또는 production schedule을 추가하지 않는다. 상세 계약은
+[WI-023 portfolio performance](./design/wi-023-portfolio-performance-contract.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는

@@ -27,7 +27,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 8 | WI-021 three-year trade/cash history | V2-W0403 | WI-016, WI-020 | closed; 131 partitions, private recovery and reconciliation passed |
 | 9 | WI-036 corporate-action ledger | V2-W0307 | WI-015 | closed; repository-local PIT ledger and fail-closed coverage gate |
 | 10 | WI-022 position/lot/sell reconstruction | V2-W0304, V2-W0305 | WI-010, WI-021, WI-036 | closed; 57 review exceptions, idempotency and private restore passed |
-| 11 | WI-023 return/contribution/drawdown | V2-W0502 | WI-009, WI-015, WI-020..022 | proposed |
+| 11 | WI-023 return/contribution/drawdown | V2-W0502 | WI-009, WI-015, WI-020..022 | closed; formula/replay/restore pass, production publish remains fail-closed on upstream quality |
 | 12 | WI-024 typed thread risk plan | V2-W0305, V2-W0306 | WI-010, WI-022 | proposed |
 | 13 | WI-025 lot/thread risk metrics | V2-W0504 | WI-015, WI-019, WI-022, WI-024 | proposed |
 | 14 | WI-026 ETF constituent forward collection | V2-W0405 | WI-012, WI-017 | proposed; provider rights gate |

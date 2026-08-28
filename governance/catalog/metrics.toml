@@ -17,6 +17,86 @@ validation_policy = "Python Decimal golden fixture equals the governed SQL sum; 
 consumer_ids = ["portfolio return denominator", "drawdown and risk budget", "signal evaluation"]
 
 [[contracts]]
+id = "metric.portfolio-return-modified-dietz"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "인접한 quality-gated 포트폴리오 상태 사이의 외부 현금흐름 시점가중 Modified Dietz 수익률."
+decision_refs = ["DEC-004", "DEC-009", "DEC-013", "DEC-015", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.cash-transaction-event"]
+grain = "one portfolio subject, prior-current governed evaluation pair and metric version"
+formula_ref = "formula.portfolio-return-modified-dietz.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "both states pass with identical required account coverage; cash-event coverage and classifications span the period; denominator is non-zero; no future knowledge"
+validation_policy = "independent DuckDB Decimal fixture equals Python formula to DECIMAL(38,10); zero denominator, missing coverage, unknown classification, unsupported FX and future revision fail closed"
+consumer_ids = ["portfolio performance history", "chain-linked wealth", "drawdown", "signal evaluation"]
+
+[[contracts]]
+id = "metric.portfolio-component-contribution-modified-dietz"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "계좌를 합산한 position 또는 cash 구성요소의 가치변화에서 배정된 외부 현금흐름을 뺀 금액을 포트폴리오 Dietz denominator로 나눈 수익률 기여도."
+decision_refs = ["DEC-009", "DEC-013", "DEC-015", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.cash-transaction-event"]
+grain = "one consolidated portfolio component, prior-current governed evaluation pair and metric version"
+formula_ref = "formula.portfolio-component-contribution-modified-dietz.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "portfolio return gate passes and every external cash flow is assigned only to its matching cash-currency component"
+validation_policy = "component contributions plus the explicit residual equal the portfolio Modified Dietz return within 0.0000000001; identity and account coverage changes remain non-pass"
+consumer_ids = ["portfolio performance history", "contribution-aware signal evaluation"]
+
+[[contracts]]
+id = "metric.portfolio-contribution-residual"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "포트폴리오 Modified Dietz 수익률과 모든 구성요소 기여도 합계의 차이."
+decision_refs = ["DEC-009", "DEC-013", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.metric-value"]
+grain = "one portfolio subject, governed evaluation pair and metric version"
+formula_ref = "formula.portfolio-contribution-residual.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "return and every component contribution pass; absolute residual is at most 0.0000000001"
+validation_policy = "persist the rounded Decimal residual explicitly; do not replace missing contribution coverage with zero"
+consumer_ids = ["portfolio performance reconciliation", "data quality"]
+
+[[contracts]]
+id = "metric.portfolio-wealth-index"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "최초 기준값 1에서 pass Modified Dietz 기간수익률을 순서대로 연결한 포트폴리오 wealth index."
+decision_refs = ["DEC-015", "DEC-017", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.metric-value"]
+grain = "one portfolio subject, governed evaluation timestamp and metric version"
+formula_ref = "formula.portfolio-wealth-index.v1"
+unit = "index_base_1"
+point_in_time = true
+quality_gate = "every return since the chain base passes in market-session order; any unavailable period breaks the chain"
+validation_policy = "independent cumulative product fixture matches to DECIMAL(38,10); a chain gap produces null rather than a restarted index"
+consumer_ids = ["portfolio performance history", "drawdown", "signal evaluation"]
+
+[[contracts]]
+id = "metric.portfolio-drawdown"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 chain-linked wealth index를 그 시점까지의 wealth high-water mark로 나눈 값에서 1을 뺀 낙폭."
+decision_refs = ["DEC-015", "DEC-017", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.metric-value"]
+grain = "one portfolio subject, governed evaluation timestamp and metric version"
+formula_ref = "formula.portfolio-drawdown.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "current wealth and prior high-water chain pass; high-water denominator is positive"
+validation_policy = "independent SQL running max of chain-linked wealth matches to DECIMAL(38,10); absolute total asset peaks are not used"
+consumer_ids = ["portfolio performance history", "risk context", "signal evaluation"]
+
+[[contracts]]
 id = "metric.total-asset-valuation-change-contribution-krw"
 version = "1.0.0"
 status = "approved"

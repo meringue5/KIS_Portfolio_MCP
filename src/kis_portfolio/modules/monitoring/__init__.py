@@ -13,6 +13,12 @@ from .metrics import (
     sum_decimal_inputs,
 )
 from .trend_metrics import TREND_FORMULAS, register_trend_formulas
+from .portfolio_performance import (
+    METRIC_QUANTUM,
+    PERFORMANCE_FORMULAS,
+    RECONCILIATION_TOLERANCE,
+    register_portfolio_performance_formulas,
+)
 
 __all__ = [
     "FutureMetricInputError",
@@ -27,4 +33,8 @@ __all__ = [
     "sum_decimal_inputs",
     "TREND_FORMULAS",
     "register_trend_formulas",
+    "METRIC_QUANTUM",
+    "PERFORMANCE_FORMULAS",
+    "RECONCILIATION_TOLERANCE",
+    "register_portfolio_performance_formulas",
 ]
