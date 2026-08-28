@@ -286,6 +286,7 @@ def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
     assert "--expected-plan-hash,0755656ed8151a91" in fixed
     assert "--expected-budget-hash,0a4abf9b795f9d73" in fixed
     assert "--start-date,20230828,--end-date,20260828" in fixed
+    assert "--as-of-date" not in fixed
 
 
 def test_v2_schedulers_use_dedicated_invoker_instead_of_legacy_default(monkeypatch):

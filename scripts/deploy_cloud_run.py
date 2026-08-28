@@ -895,7 +895,7 @@ def _deploy_wi021_s06_job(
     )
     job = args.job or env.get("KIS_WI021_S06_JOB_NAME") or DEFAULT_WI021_S06_JOB
     command_args = (
-        "run-wi021-s06,--start-date,20230828,--end-date,20260828,--as-of-date,20260828,"
+        "run-wi021-s06,--start-date,20230828,--end-date,20260828,"
         "--expected-plan-hash,0755656ed8151a91,--expected-budget-hash,0a4abf9b795f9d73,"
         f"--project,{project},--bucket,{payload['KIS_GCS_BUCKET']}"
     )
