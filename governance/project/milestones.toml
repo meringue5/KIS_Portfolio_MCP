@@ -580,7 +580,7 @@ status = "closed"
 id = "WI-021-S06"
 parent_id = "WI-021"
 title = "Execute and recover the bounded production backfill"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-026-S01"
