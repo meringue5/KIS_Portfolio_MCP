@@ -118,12 +118,14 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
     ymd = datetime.now(SEOUL).strftime("%Y%m%d")
     with scoped_account_env(quote_account):
         for symbol in domestic_symbols:
-            await kis_api.inquery_stock_history(symbol, ymd, ymd)
+            await kis_api.inquery_stock_history(symbol, ymd, ymd, adjusted=False)
             calls += 1
         if slot == "kr-1000":
             market_map = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}
             for market, symbol in overseas_symbols:
-                await kis_api.inquery_overseas_stock_history(symbol, market_map.get(market, market[:3]), ymd)
+                await kis_api.inquery_overseas_stock_history(
+                    symbol, market_map.get(market, market[:3]), ymd, adjusted=False,
+                )
                 calls += 1
             await kis_api.inquery_exchange_rate_history("USD", ymd, ymd)
             calls += 1
@@ -327,15 +329,22 @@ def build_owned_portfolio_pipeline(
 
         lower_date = context.logical_date - timedelta(days=7)
         price_rows = connection.execute("""
-            SELECT exchange, symbol, date, open, high, low, close, volume
+            SELECT exchange, symbol, date, open, high, low, close, volume, adjusted, created_at
             FROM main.price_history WHERE date BETWEEN ? AND ?
         """, [lower_date, context.logical_date]).fetchall()
-        for market, symbol, session_date, open_, high, low, close, volume in price_rows:
+        for market, symbol, session_date, open_, high, low, close, volume, adjusted, created_at in price_rows:
             normalized_market = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}.get(market, market)
             instrument_id = _instrument_id(normalized_market, symbol)
             payload = {
-                "instrument_id": instrument_id, "session_date": session_date, "price_basis": "raw",
+                "instrument_id": instrument_id, "session_date": session_date,
+                "price_basis": "adjusted" if adjusted else "raw",
                 "open": open_, "high": high, "low": low, "close": close, "volume": volume,
+                "effective_at": session_date,
+                "knowledge_at": created_at,
+                "endpoint": "legacy-main.price_history",
+                "request_option": "stored-adjusted-flag",
+                "volume_basis": "provider-reported",
+                "reconstruction_mode": "retrospective_reconstructed",
                 "quality_status": "pass",
             }
             obs = repository.record_observation(

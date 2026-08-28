@@ -28,6 +28,7 @@ uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS
   `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.cash_flow_events`,
   `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
   `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
+  `silver.price_bar_revisions_daily`,
   `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
   `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
   `gold.portfolio_daily_state`, `gold.metric_values`, `control.pipeline_definitions`,

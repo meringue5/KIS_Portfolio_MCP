@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from typing import Any
 
@@ -128,15 +128,114 @@ class V2WarehouseRepository:
               payload["authored_at"], payload.get("expected_prior_revision")])
 
     def upsert_price_bar(self, payload: dict[str, Any], observation_id: str) -> None:
+        basis = str(payload.get("price_basis") or "").strip()
+        if basis not in {"raw", "adjusted"}:
+            raise ValueError("price_basis must be raw or adjusted")
+        session_date = payload["session_date"]
+        if isinstance(session_date, str):
+            session_date = date.fromisoformat(session_date)
+        effective_at = payload.get("effective_at") or datetime.combine(session_date, time.max, tzinfo=UTC)
+        knowledge_at = payload.get("knowledge_at")
+        if knowledge_at is None:
+            row = self.connection.execute(
+                "SELECT fetched_at FROM bronze.source_observations WHERE observation_id=?", [observation_id]
+            ).fetchone()
+            if not row:
+                raise ValueError("price revision requires a governed source observation")
+            knowledge_at = row[0]
+        endpoint = str(payload.get("endpoint") or "fixture-or-legacy")
+        request_option = str(payload.get("request_option") or basis)
+        volume_basis = str(payload.get("volume_basis") or "vendor_reported")
+        reconstruction_mode = str(payload.get("reconstruction_mode") or "operational_strict")
+        quality_status = str(payload.get("quality_status") or "pass")
+        revision_document = {
+            "instrument_id": payload["instrument_id"],
+            "session_date": session_date.isoformat(),
+            "price_basis": basis,
+            "open": str(payload.get("open")),
+            "high": str(payload.get("high")),
+            "low": str(payload.get("low")),
+            "close": str(payload.get("close")),
+            "volume": payload.get("volume"),
+            "endpoint": endpoint,
+            "request_option": request_option,
+            "volume_basis": volume_basis,
+            "quality_status": quality_status,
+        }
+        revision_hash = str(payload.get("revision_hash") or hashlib.sha256(
+            _json(revision_document).encode()
+        ).hexdigest())
         self.connection.execute("""
-            INSERT INTO silver.price_bars_daily VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO silver.price_bar_revisions_daily(
+                instrument_id, session_date, price_basis, revision_hash,
+                open, high, low, close, volume, effective_at, knowledge_at,
+                source_observation_id, endpoint, request_option, volume_basis,
+                reconstruction_mode, quality_status, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT DO NOTHING
+        """, [payload["instrument_id"], session_date, basis, revision_hash,
+              payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
+              payload.get("volume"), effective_at, knowledge_at, observation_id, endpoint, request_option,
+              volume_basis, reconstruction_mode, quality_status, _json(payload.get("metadata", {}))])
+        self.connection.execute("""
+            INSERT INTO silver.price_bars_daily(
+                instrument_id, session_date, price_basis, open, high, low, close, volume,
+                source_observation_id, quality_status, effective_at, knowledge_at, revision_hash,
+                endpoint, request_option, volume_basis, reconstruction_mode
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(instrument_id, session_date, price_basis) DO UPDATE SET
                 open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close,
                 volume=excluded.volume, source_observation_id=excluded.source_observation_id,
-                quality_status=excluded.quality_status
-        """, [payload["instrument_id"], payload["session_date"], payload.get("price_basis", "raw"),
+                quality_status=excluded.quality_status, effective_at=excluded.effective_at,
+                knowledge_at=excluded.knowledge_at, revision_hash=excluded.revision_hash,
+                endpoint=excluded.endpoint, request_option=excluded.request_option,
+                volume_basis=excluded.volume_basis, reconstruction_mode=excluded.reconstruction_mode
+            WHERE silver.price_bars_daily.knowledge_at IS NULL
+               OR excluded.knowledge_at >= silver.price_bars_daily.knowledge_at
+        """, [payload["instrument_id"], session_date, basis,
               payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
-              payload.get("volume"), observation_id, payload.get("quality_status", "pass")])
+              payload.get("volume"), observation_id, quality_status, effective_at, knowledge_at, revision_hash,
+              endpoint, request_option, volume_basis, reconstruction_mode])
+
+    def get_price_bars_as_of(
+        self,
+        *,
+        instrument_id: str,
+        start_date: date,
+        end_date: date,
+        price_basis: str,
+        evaluation_at: datetime,
+        replay_mode: str = "operational_strict",
+    ) -> list[dict[str, Any]]:
+        if price_basis not in {"raw", "adjusted"}:
+            raise ValueError("price_basis must be raw or adjusted")
+        if replay_mode not in {"operational_strict", "retrospective_reconstructed"}:
+            raise ValueError("unsupported replay_mode")
+        if evaluation_at.tzinfo is None:
+            raise ValueError("evaluation_at must be timezone-aware")
+        knowledge_clause = "AND knowledge_at <= ?" if replay_mode == "operational_strict" else ""
+        params: list[Any] = [instrument_id, start_date, end_date, price_basis, evaluation_at]
+        if replay_mode == "operational_strict":
+            params.append(evaluation_at)
+        rows = self.connection.execute(f"""
+            SELECT session_date, open, high, low, close, volume, effective_at, knowledge_at,
+                   revision_hash, source_observation_id, endpoint, request_option, volume_basis,
+                   reconstruction_mode, quality_status
+            FROM silver.price_bar_revisions_daily
+            WHERE instrument_id=? AND session_date BETWEEN ? AND ? AND price_basis=?
+              AND effective_at <= ? {knowledge_clause}
+            QUALIFY row_number() OVER (
+                PARTITION BY instrument_id, session_date, price_basis
+                ORDER BY knowledge_at DESC, recorded_at DESC, revision_hash DESC
+            ) = 1
+            ORDER BY session_date
+        """, params).fetchall()
+        columns = [
+            "session_date", "open", "high", "low", "close", "volume", "effective_at", "knowledge_at",
+            "revision_hash", "source_observation_id", "endpoint", "request_option", "volume_basis",
+            "reconstruction_mode", "quality_status",
+        ]
+        return [dict(zip(columns, row)) | {"replay_mode": replay_mode} for row in rows]
 
     def upsert_fx_rate(self, payload: dict[str, Any], observation_id: str) -> None:
         self.connection.execute("""
@@ -212,7 +311,8 @@ class V2WarehouseRepository:
             "bronze.source_observations", "silver.accounts", "silver.instruments",
             "silver.position_snapshots", "silver.cash_snapshots", "silver.trade_events",
             "silver.purchase_lots", "silver.trade_threads", "silver.trade_journal_revisions",
-            "silver.price_bars_daily", "silver.fx_rates_daily", "gold.portfolio_daily_state",
+            "silver.price_bars_daily", "silver.price_bar_revisions_daily", "silver.fx_rates_daily",
+            "gold.portfolio_daily_state",
         }
         if qualified_name not in allowed:
             raise ValueError("table is not in the repository count allowlist")

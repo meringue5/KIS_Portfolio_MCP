@@ -117,7 +117,7 @@ retention_policy = "minimum three years hot history; canonical facts retained an
 backup_policy = "parquet"
 freshness_slo = "KR final bar after close and US final bar by the Korean-morning run"
 quality_rules = ["OHLC ordering and nonnegative volume checked", "adjusted and raw basis never conflated", "trading-day coverage reconciled to the market calendar"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.price-history-v2"]
 consumer_ids = ["trend metrics", "portfolio valuation", "signal replay"]
 
 [[contracts]]

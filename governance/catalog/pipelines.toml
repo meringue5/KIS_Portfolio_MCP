@@ -47,6 +47,29 @@ cost_class = "routine"
 trigger_policy = "chained managed Job after portfolio publish; allowlisted historical replay only"
 
 [[contracts]]
+id = "pipeline.price-history-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유상품의 국내·미국 raw/adjusted 일봉을 endpoint별 basis 계약으로 수집하고 raw page, revision과 current canonical 값을 보존한다."
+decision_refs = ["DEC-005", "DEC-015", "DEC-016", "DEC-017", "DEC-030", "DEC-041", "DEC-044"]
+source_ids = ["source.kis-open-api"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.market-calendar"]
+output_dataset_ids = ["dataset.price-bar-daily"]
+stages = ["plan", "collect-land-normalize", "quality", "publish"]
+schedule_policy = "daily incremental after each market close; one bounded three-year reconstructed backfill for currently held instruments"
+calendar_gate = "instrument market session and listing interval; no future or non-session row fabricated"
+idempotency_key = "pipeline id, version, instrument, price basis, start date and end date"
+timeout_policy = "maximum ten pages per instrument/basis partition and bounded one-off Job runtime"
+retry_policy = "idempotent GET only; resume completed partitions; repeated cursor or continuation fails closed"
+source_call_budget = "pre-reserved per partition, hard ten pages and hard 400 physical calls for the approved held-scope backfill"
+freshness_gates = ["source session date and fetched knowledge time retained", "daily final bar only after applicable market close"]
+quality_gates = ["endpoint-specific basis option", "OHLC and volume validation", "page and market-calendar coverage", "strict and reconstructed replay modes never conflated"]
+secret_profile = "existing KIS quote account runtime only; no new provider or secret"
+cost_class = "backfill"
+trigger_policy = "fixed-argument managed Job for approved held scope; no arbitrary Remote MCP range or symbol"
+
+[[contracts]]
 id = "pipeline.etf-lookthrough-v2"
 version = "1.0.0"
 status = "approved"

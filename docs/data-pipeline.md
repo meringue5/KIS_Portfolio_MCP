@@ -37,6 +37,12 @@ Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미�
 최근 7일의 source history에서 latest applicable session을 선택해 주말·한국 휴일 gap을 메운다. 모든 raw
 bundle은 recursive secret redaction과 account masking 후 private GCS에 content hash로 랜딩한다.
 
+WI-015의 `pipeline.price-history-v2`는 계좌 snapshot 수집과 분리된 held-instrument price partition을 사용한다.
+국내와 해외 endpoint의 수정주가 option 의미를 따로 고정하고, page raw observation과 normalized content
+revision을 함께 남긴다. 오늘 수집한 과거 일봉은 `retrospective_reconstructed`이며 strict historical alert
+input으로 승격하지 않는다. backfill은 instrument/basis당 최대 10 page, 전체 최대 400 physical call을 호출
+전에 예약하며 반복 cursor·continuation은 partial 성공이 아니라 실패다.
+
 `tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
 `src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
 lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.

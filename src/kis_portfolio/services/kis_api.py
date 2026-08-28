@@ -562,7 +562,13 @@ async def inquery_stock_info(symbol: str, start_date: str, end_date: str):
         
         return response.json()
 
-async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
+async def inquery_stock_history(
+    symbol: str,
+    start_date: str,
+    end_date: str,
+    *,
+    adjusted: bool = True,
+):
     """
     Get daily stock price history from Korea Investment & Securities
     
@@ -584,7 +590,8 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
             "FID_INPUT_DATE_1": start_date,  # 시작일자
             "FID_INPUT_DATE_2": end_date,  # 종료일자
             "FID_PERIOD_DIV_CODE": "D",  # 기간분류코드
-            "FID_ORG_ADJ_PRC": "0",  # 수정주가원구분
+            # Domestic endpoint contract: 0=adjusted, 1=raw.
+            "FID_ORG_ADJ_PRC": "0" if adjusted else "1",
         }
         
         response = await request_kis(
@@ -624,7 +631,7 @@ async def inquery_stock_history(symbol: str, start_date: str, end_date: str):
                             "volume": item.get("acml_vol"),
                         })
                 if rows:
-                    kisdb.upsert_price_history(rows)
+                    kisdb.upsert_price_history(rows, adjusted=adjusted)
         except Exception as e:
             logger.warning(f"DB price_history save failed (non-critical): {e}")
 
@@ -1215,6 +1222,8 @@ async def inquery_overseas_stock_history(
     exchange: str = "NAS",
     end_date: str = "",
     period: str = "0",
+    *,
+    adjusted: bool = False,
 ):
     """
     해외주식 기간별시세 조회 (HHDFS76240000).
@@ -1251,7 +1260,8 @@ async def inquery_overseas_stock_history(
                 "SYMB": symbol,
                 "GUBN": period,
                 "BYMD": end_date,
-                "MODP": "0",
+                # Overseas endpoint contract is the inverse of domestic: 0=raw, 1=adjusted.
+                "MODP": "1" if adjusted else "0",
             },
         )
     data = response.json()
@@ -1273,7 +1283,7 @@ async def inquery_overseas_stock_history(
                         "volume": item.get("tvol"),
                     })
             if rows:
-                kisdb.upsert_price_history(rows)
+                kisdb.upsert_price_history(rows, adjusted=adjusted)
     except Exception as e:
         logger.warning(f"DB overseas price_history save failed (non-critical): {e}")
 

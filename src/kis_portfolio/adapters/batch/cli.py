@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
+from kis_portfolio.services.price_history import run_held_price_backfill
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.db.connection import get_connection
@@ -95,6 +96,19 @@ def build_parser() -> argparse.ArgumentParser:
     managed.add_argument("--date", default="today", help="YYYYMMDD or today in Asia/Seoul")
     managed.add_argument("--slot", required=True, choices=sorted(ALLOWED_SLOTS))
     managed.add_argument("--partition-key", default="all-accounts", choices=("all-accounts",))
+
+    price_backfill = subparsers.add_parser(
+        "backfill-held-price-history-v2",
+        help="Plan or execute the governed held-instrument dual-basis price backfill.",
+    )
+    price_backfill.add_argument("--start-date", help="YYYYMMDD; default is three years before end date")
+    price_backfill.add_argument("--end-date", default="today", help="YYYYMMDD or today")
+    price_backfill.add_argument(
+        "--execute", action="store_true",
+        help="Perform KIS reads and writes. Without this flag the command is a read-only dry-run.",
+    )
+    price_backfill.add_argument("--max-pages-per-partition", type=int, default=10, choices=range(1, 11))
+    price_backfill.add_argument("--max-physical-calls", type=int, default=400)
     return parser
 
 
@@ -143,6 +157,27 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
 
 
+def _run_price_backfill(args: argparse.Namespace) -> int:
+    end_date = (
+        datetime.now(ZoneInfo("Asia/Seoul")).date()
+        if args.end_date == "today" else datetime.strptime(args.end_date, "%Y%m%d").date()
+    )
+    start_date = (
+        datetime.strptime(args.start_date, "%Y%m%d").date()
+        if args.start_date else end_date - timedelta(days=365 * 3)
+    )
+    result = run_held_price_backfill(
+        get_connection(),
+        start_date=start_date,
+        end_date=end_date,
+        dry_run=not args.execute,
+        max_pages_per_partition=args.max_pages_per_partition,
+        max_physical_calls=args.max_physical_calls,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] in {"dry_run", "succeeded", "skipped"} else 1
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -158,6 +193,8 @@ def main() -> None:
         raise SystemExit(_run_sync_market_calendar(args))
     if args.command == "collect-owned-portfolio-v2":
         raise SystemExit(_run_owned_portfolio_v2(args))
+    if args.command == "backfill-held-price-history-v2":
+        raise SystemExit(_run_price_backfill(args))
 
     parser.print_help()
     raise SystemExit(2)

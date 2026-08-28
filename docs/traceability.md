@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-005/015..017/030/041/044 V2 dual-basis price history | V2-ADR-006/010/012 | WI-015 | price pipeline, revision ledger, bounded backfill | endpoint basis, PIT, pagination, coverage and restore gates | in_progress |
 | DEC-015..019/026/038/041/044 Milestone 2 production data readiness | V2-ADR-006/010/012 | WI-014 | readiness review and prerequisite order | six read-only research tracks; price/trade/ETF-rights blockers documented | closed |
 | DEC-015..017/026/038/041/044 Milestone 2: point-in-time metric foundation | V2-ADR-006/010/012 | WI-013 | metric contracts, Gold value ledger, replay-safe evaluator | nullable unavailable outcome, idempotency, PIT and restore gates; 227 tests pass | closed |
 | DEC-046 Milestone 1: canonical portfolio ledger | V2-ADR-006/010/016 | WI-009 | account/position/cash/daily-state mapping and repositories | live 5 accounts, 1,357 positions, 232 cash; 27-day 0 KRW difference; restore | closed |

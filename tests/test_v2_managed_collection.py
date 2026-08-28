@@ -34,10 +34,10 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
     con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
-    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT)")
+    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adjusted BOOLEAN, created_at TIMESTAMP)")
     con.execute("CREATE TABLE main.exchange_rate_history(currency VARCHAR, date DATE, rate DOUBLE)")
     con.execute("INSERT INTO main.market_calendar VALUES ('krx', '2026-08-28', true, NULL)")
-    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',70000,73000,69000,72000,100)")
+    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',70000,73000,69000,72000,100,false,'2026-08-28 07:00:00')")
     observed = datetime(2026, 8, 28, 7, tzinfo=UTC)
 
     async def fake_collect(slot):
@@ -92,10 +92,10 @@ def test_managed_collection_resumes_from_landed_bundle_without_source_recall(mon
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
     con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
-    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT)")
+    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adjusted BOOLEAN, created_at TIMESTAMP)")
     con.execute("CREATE TABLE main.exchange_rate_history(currency VARCHAR, date DATE, rate DOUBLE)")
     con.execute("INSERT INTO main.market_calendar VALUES ('krx','2026-08-28',true,NULL)")
-    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',1,1,1,1,1)")
+    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',1,1,1,1,1,false,'2026-08-28 07:00:00')")
     calls = {"count": 0}
 
     async def fake_collect(slot):
