@@ -2,9 +2,10 @@
 
 ## Decision
 
-The approved three-year trade/cash backfill runs as a dedicated, manually dispatched Cloud Run Job. It is never
-included in the `all` deployment target and has no Scheduler. GitHub Actions builds once from tested `master`, resolves
-the image digest and deploys one task with parallelism one, zero automatic retries and a four-hour hard timeout.
+The approved three-year trade/cash backfill runs as dedicated, manually dispatched Cloud Run Jobs. They are never
+included in the `all` deployment target and have no Scheduler. GitHub Actions builds once from tested `master`, resolves
+the image digest and deploys a schema migration task followed by the recovery/backfill task. Both use one task,
+parallelism one and zero automatic retries; the backfill has a four-hour hard timeout.
 
 The fixed production envelope is:
 
@@ -18,7 +19,9 @@ The fixed production envelope is:
 
 ## Fail-closed order
 
-`run-wi021-s06` performs one serial process:
+The release first executes `kis-portfolio-migrate --motherduck --through 0008`. This is an explicit, additive,
+checksum-verified migration Job using the same immutable image; it is idempotent and cannot adopt later migrations.
+Only after it succeeds does `run-wi021-s06` perform one serial process:
 
 1. Rebuild the deterministic plan and verify database mode, hashes and partition count before opening the warehouse.
 2. Export the complete governed V2 allowlist to a private pre-backup directory.
@@ -38,8 +41,9 @@ ledger and reuses completed partitions; Cloud Run itself never retries automatic
 ## Release and execution
 
 The production action is the `wi021-s06` manual target in `.github/workflows/deploy-cloud-run.yml`. It requires the
-normal `production` environment approval and refuses non-`master` source. The workflow deploys the immutable one-off
-Job and immediately executes it with `--wait`. No local or branch-source Cloud Run deployment is an approved path.
+normal `production` environment approval and refuses non-`master` source. The workflow deploys the immutable migration
+and recovery Jobs, waits for migration `0008`, and then executes the recovery/backfill Job with `--wait`. No local or
+branch-source Cloud Run deployment is an approved path.
 
 The current Mac could reach MotherDuck over HTTPS and through the authenticated web UI, while native DuckDB 1.5.2 and
 1.5.4 clients repeatedly failed during MotherDuck session creation. The same Secret Manager token was confirmed by
