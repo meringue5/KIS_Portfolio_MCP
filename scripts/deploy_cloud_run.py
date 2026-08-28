@@ -834,7 +834,7 @@ def _deploy_v2_core_schedulers(
     project: str,
 ) -> int:
     scheduler_sa = env.get(
-        "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT",
+        "KIS_V2_SCHEDULER_INVOKER_SERVICE_ACCOUNT",
         f"kis-portfolio-scheduler@{project}.iam.gserviceaccount.com",
     )
     for slot, job in DEFAULT_V2_CORE_JOBS.items():

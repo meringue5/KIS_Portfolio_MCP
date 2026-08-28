@@ -265,6 +265,17 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 - Cloud Run Job task timeout: `1800s`
 - Cloud Run Job max retries: `0`
 
+V2 owned-portfolio pipeline은 기존 배치와 별도의 최소권한 identity를 사용한다.
+
+- Job names: `kis-portfolio-owned-core-v2-{1000,1430,1600}`
+- Schedules: 평일 `10:00`, `14:30`, `16:00` KST
+- Runtime service account: `kis-portfolio-pipeline@PROJECT.iam.gserviceaccount.com`
+- Scheduler invoker service account: `kis-portfolio-scheduler@PROJECT.iam.gserviceaccount.com`
+- 선택 override: `KIS_V2_SCHEDULER_INVOKER_SERVICE_ACCOUNT`
+
+V2 Scheduler는 기존 배치용 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 상속하지 않는다.
+따라서 기존 Scheduler identity를 변경하지 않고 V2 pipeline만 전용 계정으로 격리한다.
+
 Cloud Scheduler는 Cloud Run Job의 `https://run.googleapis.com/v2/projects/PROJECT/locations/REGION/jobs/JOB:run` endpoint를 OAuth로 호출한다. Google 공식 문서 예시도 같은 URI 패턴과 `--oauth-service-account-email` 구성을 사용한다. [Cloud Run jobs on a schedule](https://docs.cloud.google.com/run/docs/execute/jobs-on-schedule)
 
 `scheduler` target은 먼저 선택된 service account에 `roles/run.invoker`를 부여한 뒤 Cloud Scheduler job을 create/update 한다.

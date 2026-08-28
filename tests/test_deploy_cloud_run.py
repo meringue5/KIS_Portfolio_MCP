@@ -251,6 +251,35 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
     }
 
 
+def test_v2_schedulers_use_dedicated_invoker_instead_of_legacy_default(monkeypatch):
+    calls = []
+    args = argparse.Namespace(
+        region="asia-northeast3", scheduler_region="asia-northeast3",
+        dry_run=True, target="v2-core-schedulers",
+    )
+    env = {
+        "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT":
+            "legacy-compute@example.iam.gserviceaccount.com",
+    }
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_deploy_scheduler_target",
+        lambda **kwargs: calls.append(kwargs) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_v2_core_schedulers(
+        args, env=env, project="grand-forge-279904",
+    )
+
+    assert result == 0 and len(calls) == 3
+    assert {
+        call["env"]["KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT"]
+        for call in calls
+    } == {
+        "kis-portfolio-scheduler@grand-forge-279904.iam.gserviceaccount.com",
+    }
+
+
 def test_overseas_batch_command_uses_default_account_and_exchange():
     command_args = deploy_cloud_run._build_overseas_batch_command_args({})
 
