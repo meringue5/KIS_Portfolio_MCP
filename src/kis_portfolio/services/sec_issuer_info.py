@@ -12,6 +12,7 @@ from kis_portfolio.services.overseas_instrument_info import OverseasInstrumentIn
 
 
 SEC_SUBMISSIONS_BASE_URL = "https://data.sec.gov/submissions"
+SEC_COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_REIT_SIC = "6798"
 CIK_PATTERN = re.compile(r"^[0-9]{10}$")
 
@@ -81,6 +82,46 @@ async def fetch_sec_issuer_info(
         tickers=tickers,
         raw=dict(body),
     )
+
+
+async def fetch_sec_ticker_ciks(
+    *,
+    symbols: tuple[str, ...],
+    user_agent: str,
+    client: httpx.AsyncClient | None = None,
+) -> dict[str, str]:
+    """Resolve a bounded exact ticker set through the SEC's published ticker file."""
+    normalized = tuple(sorted({str(item).strip().upper() for item in symbols if str(item).strip()}))
+    if not normalized or len(normalized) > 8:
+        raise ValueError("SEC ticker lookup requires one to eight unique symbols")
+    normalized_user_agent = str(user_agent).strip()
+    if "@" not in normalized_user_agent or len(normalized_user_agent) > 200:
+        raise ValueError("SEC user agent must contain a bounded contact email")
+    owns_client = client is None
+    http_client = client or httpx.AsyncClient(timeout=20.0)
+    try:
+        response = await http_client.get(
+            SEC_COMPANY_TICKERS_URL,
+            headers={"User-Agent": normalized_user_agent, "Accept-Encoding": "gzip, deflate"},
+        )
+    finally:
+        if owns_client:
+            await http_client.aclose()
+    if response.status_code != 200:
+        raise SecIssuerInfoError(f"SEC ticker mapping lookup failed: status={response.status_code}")
+    wanted = set(normalized)
+    matches: dict[str, set[str]] = {symbol: set() for symbol in normalized}
+    body = response.json()
+    for item in body.values() if isinstance(body, dict) else []:
+        if not isinstance(item, dict):
+            continue
+        ticker = str(item.get("ticker") or "").strip().upper()
+        if ticker in wanted:
+            matches[ticker].add(str(item.get("cik_str") or "").zfill(10))
+    ambiguous = sorted(symbol for symbol, ciks in matches.items() if len(ciks) != 1)
+    if ambiguous:
+        raise SecIssuerInfoError("SEC ticker mapping is missing or ambiguous for requested scope")
+    return {symbol: next(iter(matches[symbol])) for symbol in normalized}
 
 
 def classify_overseas_issuer(

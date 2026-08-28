@@ -7,6 +7,7 @@ from kis_portfolio.services.sec_issuer_info import (
     SecIssuerInfoError,
     classify_overseas_issuer,
     fetch_sec_issuer_info,
+    fetch_sec_ticker_ciks,
 )
 
 
@@ -90,3 +91,19 @@ def test_classification_uses_exact_kis_and_sec_evidence() -> None:
 
     with pytest.raises(ValueError, match="match exactly"):
         classify_overseas_issuer(symbol="OTHER", kis=_kis(), sec=company)
+
+
+@pytest.mark.anyio
+async def test_sec_ticker_mapping_is_bounded_exact_and_ambiguous_fails() -> None:
+    transport = httpx.MockTransport(lambda _request: httpx.Response(200, json={
+        "0": {"cik_str": 1234567, "ticker": "EXAMPLE", "title": "Example"},
+        "1": {"cik_str": 7654321, "ticker": "OTHER", "title": "Other"},
+    }))
+    async with httpx.AsyncClient(transport=transport) as client:
+        assert await fetch_sec_ticker_ciks(
+            symbols=("EXAMPLE",), user_agent="KIS Portfolio mustafa@example.com", client=client
+        ) == {"EXAMPLE": "0001234567"}
+        with pytest.raises(SecIssuerInfoError, match="missing or ambiguous"):
+            await fetch_sec_ticker_ciks(
+                symbols=("MISSING",), user_agent="KIS Portfolio mustafa@example.com", client=client
+            )

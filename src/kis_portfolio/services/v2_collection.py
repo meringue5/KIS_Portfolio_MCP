@@ -78,6 +78,29 @@ def _reference_row(connection: duckdb.DuckDBPyConnection, table: str, symbol: st
     return dict(zip(("exposure_type", "exposure_region", "asset_subtype", "reason", "updated_at"), row)) if row else None
 
 
+def _current_official_overseas_classification(
+    connection: duckdb.DuckDBPyConnection, instrument_id: str
+) -> dict[str, Any] | None:
+    row = connection.execute(
+        """
+        SELECT name,asset_type,economic_exposure,currency,issuer_id,
+               classification_source,classification_quality,metadata
+        FROM silver.instruments_current
+        WHERE instrument_id=? AND asset_type!='unknown'
+          AND classification_quality IN ('official_reference','owner_approved')
+        """,
+        [instrument_id],
+    ).fetchone()
+    if row is None:
+        return None
+    metadata = json.loads(str(row[7])) if isinstance(row[7], str) else dict(row[7] or {})
+    return dict(zip(
+        ("name", "asset_type", "economic_exposure", "currency", "issuer_id",
+         "classification_source", "classification_quality", "metadata"),
+        (*row[:7], metadata),
+    ))
+
+
 def _envelope(source_record_id: str, payload: dict[str, Any], observed_at: datetime) -> SourceEnvelope:
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
     return SourceEnvelope(
@@ -119,6 +142,7 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
 
     overseas: dict[str, Any] = {}
     overseas_deposit: dict[str, Any] = {}
+    price_observations: list[dict[str, Any]] = []
     if slot == "kr-1000":
         brokerage = next(account for account in accounts if account.label == "brokerage")
         with scoped_account_env(brokerage):
@@ -141,15 +165,26 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
     ymd = datetime.now(SEOUL).strftime("%Y%m%d")
     with scoped_account_env(quote_account):
         for symbol in domestic_symbols:
-            await kis_api.inquery_stock_history(symbol, ymd, ymd, adjusted=False)
-            calls += 1
+            for adjusted in (False, True):
+                raw = await kis_api.inquery_stock_history(symbol, ymd, ymd, adjusted=adjusted)
+                price_observations.append({
+                    "market": "KRX", "symbol": symbol, "adjusted": adjusted,
+                    "fetched_at": datetime.now(UTC), "raw": raw,
+                })
+                calls += 1
         if slot == "kr-1000":
             market_map = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}
             for market, symbol in overseas_symbols:
-                await kis_api.inquery_overseas_stock_history(
-                    symbol, market_map.get(market, market[:3]), ymd, adjusted=False,
-                )
-                calls += 1
+                normalized_market = market_map.get(market, market[:3])
+                for adjusted in (False, True):
+                    raw = await kis_api.inquery_overseas_stock_history(
+                        symbol, normalized_market, ymd, adjusted=adjusted,
+                    )
+                    price_observations.append({
+                        "market": normalized_market, "symbol": symbol, "adjusted": adjusted,
+                        "fetched_at": datetime.now(UTC), "raw": raw,
+                    })
+                    calls += 1
             await kis_api.inquery_exchange_rate_history("USD", ymd, ymd)
             calls += 1
     return {
@@ -159,7 +194,43 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
         "source_calls": calls,
         "domestic_symbols": domestic_symbols,
         "overseas_symbols": overseas_symbols,
+        "price_observations": price_observations,
     }
+
+
+def _operational_price_rows(observation: dict[str, Any]) -> list[dict[str, Any]]:
+    market = str(observation["market"])
+    adjusted = bool(observation["adjusted"])
+    output = observation["raw"].get("output2") or observation["raw"].get("output") or []
+    rows: list[dict[str, Any]] = []
+    for item in output if isinstance(output, list) else []:
+        session = item.get("stck_bsop_date") or item.get("stck_clpr_date") or item.get("xymd")
+        if not session:
+            continue
+        rows.append({
+            "instrument_id": _instrument_id(market, observation["symbol"]),
+            "session_date": datetime.strptime(str(session), "%Y%m%d").date(),
+            "price_basis": "adjusted" if adjusted else "raw",
+            "open": item.get("stck_oprc") or item.get("open"),
+            "high": item.get("stck_hgpr") or item.get("high"),
+            "low": item.get("stck_lwpr") or item.get("low"),
+            "close": item.get("stck_clpr") or item.get("clos"),
+            "volume": item.get("acml_vol") or item.get("tvol"),
+            "effective_at": datetime.strptime(str(session), "%Y%m%d").date(),
+            "knowledge_at": observation["fetched_at"],
+            "endpoint": (
+                "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
+                if market == "KRX" else "/uapi/overseas-price/v1/quotations/dailyprice"
+            ),
+            "request_option": (
+                f"FID_ORG_ADJ_PRC={'0' if adjusted else '1'}"
+                if market == "KRX" else f"MODP={'1' if adjusted else '0'}"
+            ),
+            "volume_basis": "provider-reported",
+            "reconstruction_mode": "operational_strict",
+            "quality_status": "pass",
+        })
+    return rows
 
 
 def build_owned_portfolio_pipeline(
@@ -184,6 +255,7 @@ def build_owned_portfolio_pipeline(
             ],
             "overseas": collected["overseas"],
             "overseas_deposit": collected.get("overseas_deposit", {}),
+            "price_observations": collected.get("price_observations", []),
         }
         payload = json.dumps(redact_nested(safe_bundle), ensure_ascii=False, sort_keys=True, default=str).encode()
         stored = object_store.put_bytes(
@@ -238,7 +310,10 @@ def build_owned_portfolio_pipeline(
                 "domestic": bundle["domestic"], "overseas": bundle["overseas"],
                 "overseas_deposit": bundle.get("overseas_deposit", {}),
                 "source_calls": 0, "domestic_symbols": [], "overseas_symbols": [],
+                "price_observations": bundle.get("price_observations", []),
             }
+            for item in collected["price_observations"]:
+                item["fetched_at"] = datetime.fromisoformat(item["fetched_at"])
             context.state["collected"] = collected
         normalized = 0
         for item in collected["domestic"]:
@@ -326,13 +401,19 @@ def build_owned_portfolio_pipeline(
                     if not symbol or quantity <= 0:
                         continue
                     currency = str(row.get("tr_crcy_cd") or "USD")
+                    instrument_id = _instrument_id(normalized_market, symbol)
+                    official = _current_official_overseas_classification(connection, instrument_id)
                     instrument = {
-                        "instrument_id": _instrument_id(normalized_market, symbol),
+                        "instrument_id": instrument_id,
                         "market": normalized_market, "symbol": symbol, "name": row.get("ovrs_item_name"),
-                        "asset_type": "unknown", "currency": currency, "as_of": observed,
-                        "economic_exposure": "unknown", "valid_from": observed, "knowledge_at": observed,
-                        "classification_source": "unresolved",
-                        "classification_quality": "unknown", "metadata": {"source": "kis-overseas-balance"},
+                        "asset_type": official["asset_type"] if official else "unknown",
+                        "currency": official["currency"] if official else currency, "as_of": observed,
+                        "economic_exposure": official["economic_exposure"] if official else "unknown",
+                        "issuer_id": official["issuer_id"] if official else None,
+                        "valid_from": observed, "knowledge_at": observed,
+                        "classification_source": official["classification_source"] if official else "unresolved",
+                        "classification_quality": official["classification_quality"] if official else "unknown",
+                        "metadata": official["metadata"] if official else {"source": "kis-overseas-balance"},
                     }
                     instrument_obs = repository.record_observation(
                         "dataset.instrument-master",
@@ -369,6 +450,26 @@ def build_owned_portfolio_pipeline(
                 repository.upsert_cash(cash_payload, cash_obs)
                 normalized += 1
 
+        operational_keys: set[tuple[str, str, date, str]] = set()
+        for observation in collected.get("price_observations", []):
+            for payload in _operational_price_rows(observation):
+                if payload["session_date"] > context.logical_date:
+                    continue
+                market, symbol = payload["instrument_id"].split("|")[1:]
+                key = (market, symbol, payload["session_date"], payload["price_basis"])
+                operational_keys.add(key)
+                obs = repository.record_observation(
+                    "dataset.price-bar-daily",
+                    _envelope(
+                        f"{context.run_id}:price-live:{market}:{symbol}:{payload['session_date']}:{payload['price_basis']}",
+                        payload,
+                        observation["fetched_at"],
+                    ),
+                    context.run_id,
+                )
+                repository.upsert_price_bar(payload, obs)
+                normalized += 1
+
         lower_date = context.logical_date - timedelta(days=7)
         price_rows = connection.execute("""
             SELECT exchange, symbol, date, open, high, low, close, volume, adjusted, created_at
@@ -376,10 +477,13 @@ def build_owned_portfolio_pipeline(
         """, [lower_date, context.logical_date]).fetchall()
         for market, symbol, session_date, open_, high, low, close, volume, adjusted, created_at in price_rows:
             normalized_market = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}.get(market, market)
+            basis = "adjusted" if adjusted else "raw"
+            if (normalized_market, symbol, session_date, basis) in operational_keys:
+                continue
             instrument_id = _instrument_id(normalized_market, symbol)
             payload = {
                 "instrument_id": instrument_id, "session_date": session_date,
-                "price_basis": "adjusted" if adjusted else "raw",
+                "price_basis": basis,
                 "open": open_, "high": high, "low": low, "close": close, "volume": volume,
                 "effective_at": session_date,
                 "knowledge_at": created_at,

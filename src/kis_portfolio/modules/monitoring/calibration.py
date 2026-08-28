@@ -66,6 +66,8 @@ class SignalObservation:
     bollinger_percent_b: Decimal | None = None
     risk_ratio: Decimal | None = None
     stop_breached: bool = False
+    input_lineage_hash: str = ""
+    input_known_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if not self.subject_id.strip() or not self.session_key.strip():
@@ -76,6 +78,8 @@ class SignalObservation:
             raise ValueError("unknown replay provenance")
         if self.evaluation_at.tzinfo is None:
             raise ValueError("evaluation_at must be timezone-aware")
+        if self.input_known_at is not None and self.input_known_at.tzinfo is None:
+            raise ValueError("input_known_at must be timezone-aware")
         if self.valid_bar_count < 0:
             raise ValueError("valid_bar_count cannot be negative")
 

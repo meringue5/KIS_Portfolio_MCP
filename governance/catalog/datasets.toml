@@ -93,7 +93,7 @@ retention_policy = "identity history retained indefinitely"
 backup_policy = "parquet"
 freshness_slo = "held instruments resolved before their observations are published; official master refreshed each market day when available"
 quality_rules = ["canonical identity unique for each valid interval", "market, currency and asset type present for held instruments", "heuristic classification is labeled and cannot override explicit mappings"]
-producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2"]
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.held-instrument-classification-v2"]
 consumer_ids = ["all governed portfolio datasets", "ETF issuer routing", "filing entity mapping"]
 
 [[contracts]]
@@ -633,7 +633,7 @@ description = "승인된 rule version과 point-in-time metric으로 평가한 �
 decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-038", "DEC-041", "DEC-044", "DEC-049"]
 layer = "gold"
 source_ids = []
-input_dataset_ids = ["dataset.metric-value", "dataset.portfolio-daily-state"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily", "dataset.metric-value", "dataset.portfolio-daily-state"]
 purpose = "동일 상태 중복을 억제하면서 replay와 shadow에서 진입·상향·회복·재진입을 재현한다."
 grain = "one alert rule version, opaque subject, logical market session and governed evaluation slot"
 natural_key = ["rule_id", "rule_version", "subject_type", "subject_id", "session_key", "evaluation_slot"]

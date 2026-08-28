@@ -69,6 +69,11 @@ owner can approve external delivery.
   `a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d`; no DB or external-send write occurred.
 - `WI-029-S04` is active. Managed migrations, append-only classification evidence, immutable calibration persistence
   and DB-only shadow scheduling remain before the elapsed observation window can start.
+- S04 repository implementation is release-ready: the three existing scale-to-zero jobs land operational-strict
+  raw/adjusted bars and compose KR slots plus morning U.S. close shadow evaluation; the morning job resolves only
+  current overseas unknown holdings through bounded KIS+SEC evidence. The `wi029-s04` target enforces migration 0013,
+  one initial morning run, zero external transport and private GCS backup/download/fresh restore. Live execution
+  evidence is still required before S04 closes.
 
 ## Closeout
 

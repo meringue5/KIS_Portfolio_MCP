@@ -47,6 +47,29 @@ cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted Remote MCP may request the same logical run without arbitrary args"
 
 [[contracts]]
+id = "pipeline.held-instrument-classification-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 보유 해외 unknown 상품만 KIS 상품정보와 SEC exact ticker/CIK/SIC로 분류해 append-only instrument version을 만든다."
+decision_refs = ["DEC-005", "DEC-015", "DEC-018", "DEC-020", "DEC-030", "DEC-044", "DEC-049"]
+source_ids = ["source.kis-open-api", "source.sec-edgar"]
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.instrument-master"]
+output_dataset_ids = ["dataset.instrument-master"]
+stages = ["select-held-unknown", "resolve-sec-ticker", "fetch-exact-kis-sec", "classify", "append-version"]
+schedule_policy = "kr-1000 owned-portfolio run 뒤 unknown 해외 보유상품이 있을 때만 실행하고 분류 완료 뒤 no-op"
+calendar_gate = "current governed kr-1000 position scope only; unheld symbol and arbitrary input are prohibited"
+idempotency_key = "logical date, exact instrument identity, KIS content hash, SEC CIK and submissions content hash"
+timeout_policy = "maximum eight held unknown instruments, one SEC ticker map, eight KIS product calls and eight unique SEC issuer calls"
+retry_policy = "idempotent GET only; existing official current version is reused; ambiguous ticker, CIK or product identity fails closed"
+source_call_budget = "hard maximum seventeen calls per run; normal steady state is zero calls once all held instruments resolve"
+freshness_gates = ["classification evidence is known no later than the shadow evaluation", "new unknown holding remains suppressed until resolved"]
+quality_gates = ["exact KIS symbol and SEC ticker match", "SEC CIK and SIC retained", "name heuristic prohibited", "unknown never coerced", "prior version never rewritten"]
+secret_profile = "existing brokerage KIS credential plus public non-secret SEC fair-access user-agent; no Telegram secret"
+cost_class = "routine"
+trigger_policy = "composed only after fixed kr-1000 managed collection; no public MCP or arbitrary symbol trigger"
+
+[[contracts]]
 id = "pipeline.metric-evaluation-v2"
 version = "1.0.0"
 status = "approved"
@@ -235,13 +258,13 @@ id = "pipeline.alert-evaluation-v2"
 version = "1.0.0"
 status = "approved"
 owner = "owner"
-description = "승인 metric을 immutable rule version으로 평가하고 state transition과 transport-neutral shadow claim을 기록한다."
+description = "승인 metric contract를 point-in-time price/state에서 평가하고 immutable rule version, state transition과 DB-only shadow claim을 기록한다."
 decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-049"]
 source_ids = []
-input_dataset_ids = ["dataset.metric-value", "dataset.portfolio-daily-state"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily", "dataset.metric-value", "dataset.portfolio-daily-state"]
 output_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger"]
 stages = ["resolve-rule", "select-point-in-time-input", "evaluate", "quality", "transition", "claim-shadow"]
-schedule_policy = "evaluation contract follows 10:00, 14:30 and 16:00 KST plus one Korean-morning U.S. close slot; WI-028 creates no schedule"
+schedule_policy = "fixed V2 scale-to-zero jobs evaluate 10:00, 14:30 and 16:00 KST; kr-1000 also evaluates the exact prior U.S. close session"
 calendar_gate = "inherits the governed portfolio state market session and quality status; U.S. close uses its exact session key once"
 idempotency_key = "rule id/version, opaque subject, market session key and evaluation slot"
 timeout_policy = "bounded held-subject shards in an existing scale-to-zero job"

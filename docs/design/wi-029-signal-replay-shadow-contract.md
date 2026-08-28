@@ -59,6 +59,12 @@ is complete.
 shadow window. Approval does not itself enable Telegram; WI-030 owns destination verification, test message and the
 external delivery feature flag.
 
+S04 reuses the three fixed owned-portfolio Cloud Run Jobs. Each run lands both raw and adjusted operational-strict
+daily bars before evaluating; `kr-1000` also evaluates the exact prior U.S. close session. The runtime records only
+shadow-channel claims and internal completed attempts. The deploy target applies migration 0013 before updating those
+jobs and verifies a private GCS backup/download/fresh restore; neither the migration nor verify Job receives KIS or
+Telegram credentials.
+
 ## Cost and safety
 
 Replay reads governed MotherDuck rows and makes zero provider calls. It is a bounded, terminating analytical job.

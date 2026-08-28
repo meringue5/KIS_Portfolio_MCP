@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
 from datetime import UTC, date, datetime, time
 from decimal import Decimal, localcontext
@@ -87,16 +88,19 @@ def load_price_replay_observations(
     *,
     start_date: date,
     end_date: date,
+    price_basis: str = "adjusted",
 ) -> tuple[SignalObservation, ...]:
     """Read a bounded latest-revision price window without publishing metrics or candidates."""
     if end_date < start_date:
         raise ValueError("replay end precedes start")
+    if price_basis not in {"raw", "adjusted"}:
+        raise ValueError("price basis must be raw or adjusted")
     row_count = int(connection.execute(
         """
         SELECT count(*) FROM silver.price_bar_revisions_daily
-        WHERE price_basis='adjusted' AND session_date BETWEEN ? AND ?
+        WHERE price_basis=? AND session_date BETWEEN ? AND ?
         """,
-        [start_date, end_date],
+        [price_basis, start_date, end_date],
     ).fetchone()[0])
     if row_count > MAX_REPLAY_ROWS:
         raise RuntimeError("price replay exceeds the bounded row budget")
@@ -105,28 +109,28 @@ def load_price_replay_observations(
         WITH selected AS (
             SELECT p.*
             FROM silver.price_bar_revisions_daily p
-            WHERE p.price_basis='adjusted' AND p.session_date BETWEEN ? AND ?
+            WHERE p.price_basis=? AND p.session_date BETWEEN ? AND ?
             QUALIFY row_number() OVER (
                 PARTITION BY p.instrument_id,p.session_date,p.price_basis
                 ORDER BY p.knowledge_at DESC,p.recorded_at DESC,p.revision_hash DESC
             )=1
         )
-        SELECT s.instrument_id,s.session_date,s.close,s.volume,s.effective_at,
-               s.quality_status,s.reconstruction_mode,
+        SELECT s.instrument_id,s.session_date,s.close,s.volume,s.effective_at,s.knowledge_at,
+               s.quality_status,s.reconstruction_mode,s.revision_hash,
                coalesce(i.asset_type,'unknown') AS asset_type,
                coalesce(i.market,'UNKNOWN') AS market
         FROM selected s
         LEFT JOIN silver.instruments_current i USING(instrument_id)
         ORDER BY s.instrument_id,s.session_date
         """,
-        [start_date, end_date],
+        [price_basis, start_date, end_date],
     ).fetchall()
     grouped: dict[str, list[tuple[object, ...]]] = defaultdict(list)
     for row in rows:
         grouped[str(row[0])].append(row)
     observations: list[SignalObservation] = []
     for instrument_id in sorted(grouped):
-        history: list[tuple[date, Decimal, Decimal | None]] = []
+        history: list[tuple[date, Decimal, Decimal | None, str]] = []
         returns: list[Decimal] = []
         for row in grouped[instrument_id]:
             session_date = row[1]
@@ -138,7 +142,7 @@ def load_price_replay_observations(
             daily_return = None if prior_close is None else close / prior_close - Decimal("1")
             if daily_return is not None:
                 returns.append(daily_return)
-            history.append((session_date, close, volume))
+            history.append((session_date, close, volume, str(row[7])))
             closes = [item[1] for item in history]
             volumes = [item[2] for item in history[-20:] if item[2] is not None]
             volume_mean = _mean(volumes) if len(volumes) == min(20, len(history)) else None
@@ -147,16 +151,16 @@ def load_price_replay_observations(
                 if volume is not None and volume_mean not in {None, Decimal("0")} and len(history) >= 20
                 else None
             )
-            reconstruction_mode = str(row[6])
+            reconstruction_mode = str(row[7])
             provenance = (
                 "historical_live"
                 if reconstruction_mode == "operational_strict"
                 else "retrospective_reconstructed"
             )
-            quality = str(row[5])
+            quality = str(row[6])
             if reconstruction_mode not in {"operational_strict", "retrospective_reconstructed"}:
                 quality = "unsupported_reconstruction_mode"
-            market = str(row[8])
+            market = str(row[10])
             evaluation_slot = _slot(market)
             effective_at = datetime.combine(
                 session_date,
@@ -165,7 +169,7 @@ def load_price_replay_observations(
             )
             observations.append(SignalObservation(
                 subject_id=instrument_id,
-                asset_class=_asset_class(row[7]),
+                asset_class=_asset_class(row[9]),
                 evaluation_at=effective_at,
                 evaluation_slot=evaluation_slot,
                 session_key=f"{market.lower()}:{session_date.isoformat()}",
@@ -181,6 +185,10 @@ def load_price_replay_observations(
                 sma120=_mean(closes[-120:]) if len(closes) >= 120 else None,
                 rsi14=_wilder_rsi(closes),
                 bollinger_percent_b=_bollinger_percent_b(closes),
+                input_lineage_hash=hashlib.sha256(
+                    "|".join(item[3] for item in history[-120:]).encode()
+                ).hexdigest(),
+                input_known_at=row[5],
             ))
     return tuple(observations)
 
@@ -190,7 +198,8 @@ def calibrate_price_history(
     *,
     start_date: date,
     end_date: date,
+    price_basis: str = "adjusted",
 ) -> CalibrationResult:
     return calibrate_replay(load_price_replay_observations(
-        connection, start_date=start_date, end_date=end_date
+        connection, start_date=start_date, end_date=end_date, price_basis=price_basis
     ))

@@ -182,6 +182,18 @@ mode/channel은 DB `shadow`다. claim lease token은 digest만 저장하고 `unk
 calibration과 2주 shadow는 WI-029, Telegram API와 external mode는 WI-030이 담당한다. 상세 계약은
 [WI-028 alert state and delivery ledger](./design/wi-028-alert-state-delivery-ledger-contract.md)에 둔다.
 
+WI-029-S04는 기존 V2 scale-to-zero Job을 새 서비스 없이 확장한다. 각 Job은 raw와 adjusted 일봉을 동일한
+고정 보유범위에서 operational-strict revision으로 landing한 뒤, 승인된 일간수익률·vol20·SMA·거래량·RSI·
+Bollinger 계약을 메모리에서 평가하고 candidate lineage hash를 보존한다. 최신 bar만 live strict를 요구하며,
+cutoff 전에 알려진 3년 reconstructed adjusted history는 지표 window 입력으로 사용할 수 있지만 과거 live
+alert로 표시하지 않는다. `kr-1000`은 국내 10시와 전일 미국 close session을 함께 평가하고 다른 두 Job은
+각 국내 slot만 평가한다. transport는 `shadow` claim과 DB 내부 완료 기록뿐이며 Telegram adapter나 secret은
+이 실행 이미지·환경에 없다.
+
+같은 오전 Job은 현재 보유 해외 `unknown`만 최대 8개 골라 KIS 상품정보와 SEC exact ticker/CIK/SIC가 모두
+일치할 때 append-only instrument version을 추가한다. 최초 최대 17 calls 뒤 정상상태는 0 calls이며 이름
+heuristic, 임의 symbol, 기존 version rewrite는 금지한다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는
