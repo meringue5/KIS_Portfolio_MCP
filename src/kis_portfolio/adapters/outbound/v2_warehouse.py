@@ -128,61 +128,83 @@ class V2WarehouseRepository:
               payload["authored_at"], payload.get("expected_prior_revision")])
 
     def upsert_price_bar(self, payload: dict[str, Any], observation_id: str) -> None:
-        basis = str(payload.get("price_basis") or "").strip()
-        if basis not in {"raw", "adjusted"}:
-            raise ValueError("price_basis must be raw or adjusted")
-        session_date = payload["session_date"]
-        if isinstance(session_date, str):
-            session_date = date.fromisoformat(session_date)
-        effective_at = payload.get("effective_at") or datetime.combine(session_date, time.max, tzinfo=UTC)
-        knowledge_at = payload.get("knowledge_at")
-        if knowledge_at is None:
+        self.upsert_price_bars([payload], observation_id)
+
+    def upsert_price_bars(self, payloads: list[dict[str, Any]], observation_id: str) -> None:
+        """Write one landed page in two database round trips."""
+        if not payloads:
+            return
+        fallback_knowledge_at = None
+        if any(payload.get("knowledge_at") is None for payload in payloads):
             row = self.connection.execute(
                 "SELECT fetched_at FROM bronze.source_observations WHERE observation_id=?", [observation_id]
             ).fetchone()
             if not row:
                 raise ValueError("price revision requires a governed source observation")
-            knowledge_at = row[0]
-        endpoint = str(payload.get("endpoint") or "fixture-or-legacy")
-        request_option = str(payload.get("request_option") or basis)
-        volume_basis = str(payload.get("volume_basis") or "vendor_reported")
-        reconstruction_mode = str(payload.get("reconstruction_mode") or "operational_strict")
-        quality_status = str(payload.get("quality_status") or "pass")
-        revision_document = {
-            "instrument_id": payload["instrument_id"],
-            "session_date": session_date.isoformat(),
-            "price_basis": basis,
-            "open": str(payload.get("open")),
-            "high": str(payload.get("high")),
-            "low": str(payload.get("low")),
-            "close": str(payload.get("close")),
-            "volume": payload.get("volume"),
-            "endpoint": endpoint,
-            "request_option": request_option,
-            "volume_basis": volume_basis,
-            "quality_status": quality_status,
-        }
-        revision_hash = str(payload.get("revision_hash") or hashlib.sha256(
-            _json(revision_document).encode()
-        ).hexdigest())
-        self.connection.execute("""
+            fallback_knowledge_at = row[0]
+        revision_rows: list[list[Any]] = []
+        current_rows: list[list[Any]] = []
+        for payload in payloads:
+            basis = str(payload.get("price_basis") or "").strip()
+            if basis not in {"raw", "adjusted"}:
+                raise ValueError("price_basis must be raw or adjusted")
+            session_date = payload["session_date"]
+            if isinstance(session_date, str):
+                session_date = date.fromisoformat(session_date)
+            effective_at = payload.get("effective_at") or datetime.combine(session_date, time.max, tzinfo=UTC)
+            knowledge_at = payload.get("knowledge_at") or fallback_knowledge_at
+            endpoint = str(payload.get("endpoint") or "fixture-or-legacy")
+            request_option = str(payload.get("request_option") or basis)
+            volume_basis = str(payload.get("volume_basis") or "vendor_reported")
+            reconstruction_mode = str(payload.get("reconstruction_mode") or "operational_strict")
+            quality_status = str(payload.get("quality_status") or "pass")
+            revision_document = {
+                "instrument_id": payload["instrument_id"],
+                "session_date": session_date.isoformat(),
+                "price_basis": basis,
+                "open": str(payload.get("open")),
+                "high": str(payload.get("high")),
+                "low": str(payload.get("low")),
+                "close": str(payload.get("close")),
+                "volume": payload.get("volume"),
+                "endpoint": endpoint,
+                "request_option": request_option,
+                "volume_basis": volume_basis,
+                "quality_status": quality_status,
+            }
+            revision_hash = str(payload.get("revision_hash") or hashlib.sha256(
+                _json(revision_document).encode()
+            ).hexdigest())
+            shared = [
+                payload["instrument_id"], session_date, basis,
+                payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
+                payload.get("volume"), observation_id, quality_status, effective_at, knowledge_at,
+                revision_hash, endpoint, request_option, volume_basis, reconstruction_mode,
+            ]
+            current_rows.append(shared)
+            revision_rows.append(
+                shared[:3] + [revision_hash] + shared[3:8] + shared[10:12]
+                + [observation_id, endpoint, request_option, volume_basis, reconstruction_mode, quality_status,
+                   _json(payload.get("metadata", {}))]
+            )
+
+        revision_values = ",".join(["(" + ",".join(["?"] * 18) + ")"] * len(revision_rows))
+        self.connection.execute(f"""
             INSERT INTO silver.price_bar_revisions_daily(
                 instrument_id, session_date, price_basis, revision_hash,
                 open, high, low, close, volume, effective_at, knowledge_at,
                 source_observation_id, endpoint, request_option, volume_basis,
                 reconstruction_mode, quality_status, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES {revision_values}
             ON CONFLICT DO NOTHING
-        """, [payload["instrument_id"], session_date, basis, revision_hash,
-              payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
-              payload.get("volume"), effective_at, knowledge_at, observation_id, endpoint, request_option,
-              volume_basis, reconstruction_mode, quality_status, _json(payload.get("metadata", {}))])
-        self.connection.execute("""
+        """, [value for row in revision_rows for value in row])
+        current_values = ",".join(["(" + ",".join(["?"] * 17) + ")"] * len(current_rows))
+        self.connection.execute(f"""
             INSERT INTO silver.price_bars_daily(
                 instrument_id, session_date, price_basis, open, high, low, close, volume,
                 source_observation_id, quality_status, effective_at, knowledge_at, revision_hash,
                 endpoint, request_option, volume_basis, reconstruction_mode
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES {current_values}
             ON CONFLICT(instrument_id, session_date, price_basis) DO UPDATE SET
                 open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close,
                 volume=excluded.volume, source_observation_id=excluded.source_observation_id,
@@ -192,10 +214,7 @@ class V2WarehouseRepository:
                 volume_basis=excluded.volume_basis, reconstruction_mode=excluded.reconstruction_mode
             WHERE silver.price_bars_daily.knowledge_at IS NULL
                OR excluded.knowledge_at >= silver.price_bars_daily.knowledge_at
-        """, [payload["instrument_id"], session_date, basis,
-              payload.get("open"), payload.get("high"), payload.get("low"), payload.get("close"),
-              payload.get("volume"), observation_id, quality_status, effective_at, knowledge_at, revision_hash,
-              endpoint, request_option, volume_basis, reconstruction_mode])
+        """, [value for row in current_rows for value in row])
 
     def get_price_bars_as_of(
         self,

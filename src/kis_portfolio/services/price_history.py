@@ -273,11 +273,10 @@ async def collect_price_partition(
         observation_id = repository.record_observation(DATASET_ID, envelope, run_id)
         dated_rows = [(row, _row_date(row, partition.market)) for row in rows]
         in_range = [row for row, row_date in dated_rows if partition.start_date <= row_date <= partition.end_date]
-        for row in in_range:
-            bar = _normalized_bar(row, partition, fetched_at)
-            repository.upsert_price_bar(bar, observation_id)
-            session_dates.add(bar["session_date"])
-            normalized_count += 1
+        bars = [_normalized_bar(row, partition, fetched_at) for row in in_range]
+        repository.upsert_price_bars(bars, observation_id)
+        session_dates.update(bar["session_date"] for bar in bars)
+        normalized_count += len(bars)
 
         if not dated_rows:
             break

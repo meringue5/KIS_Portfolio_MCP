@@ -69,6 +69,9 @@ instrument/session/basis, so historical evaluation cannot select the revision kn
 - V1 migration test proves ambiguous KRX `adjusted=false` cache rows remain Bronze quarantine and are not promoted.
 - First production dry-run failed closed at 480/400 and exposed stale sold holdings in the planner; account-level latest
   snapshot scoping plus a regression fixture now exclude instruments absent from the current snapshot.
+- Corrected production dry-run: 18 held instruments, 36 dual-basis partitions, 288 estimated calls under the 400 cap.
+- First execution was interrupted after observing row-at-a-time MotherDuck latency; page writes now use two bulk
+  statements and the full 234-test gate passes after the optimization. The idempotent run is safe to resume.
 - Production migration, dry-run and bounded backfill evidence: pending.
 
 ## Closeout
