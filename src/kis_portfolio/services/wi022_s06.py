@@ -7,6 +7,7 @@ import json
 import os
 import tempfile
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -36,6 +37,25 @@ from kis_portfolio.services.v2_recovery import (
 
 MAX_LITE_STORAGE_BYTES = 10 * 1024**3
 MAX_RECOVERY_ELAPSED_SECONDS = 60 * 60
+
+
+class WI022S06PhaseError(RuntimeError):
+    """A safe operational phase marker that never embeds upstream detail."""
+
+    def __init__(self, phase: str, cause_type: str) -> None:
+        super().__init__(f"WI-022-S06 failed during {phase}")
+        self.phase = phase
+        self.cause_type = cause_type
+
+
+@contextmanager
+def _phase(name: str):
+    try:
+        yield
+    except WI022S06PhaseError:
+        raise
+    except Exception as exc:
+        raise WI022S06PhaseError(name, type(exc).__name__) from exc
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,70 +233,80 @@ def run_wi022_s06(
     workspace = tempfile.TemporaryDirectory(prefix="kis-wi022-s06-")
     root = Path(workspace.name)
     root.chmod(0o700)
-    store = store_factory(config.bucket)
-    connection = connection_factory()
-    MigrationRunner(connection).require("0010")
+    with _phase("store_init"):
+        store = store_factory(config.bucket)
+    with _phase("warehouse_connect"):
+        connection = connection_factory()
+    with _phase("schema_gate"):
+        MigrationRunner(connection).require("0010")
 
-    plan = build_reconstruction_execution_plan(
-        connection,
-        start_at=config.start_at,
-        cutoff_at=config.cutoff_at,
-    )
-    plan_report = _validate_plan(config, plan)
-    pre_manifest, pre_upload, _ = _backup_round_trip(
-        connection=connection,
-        store=store,
-        root=root,
-        label="pre",
-    )
+    with _phase("plan_gate"):
+        plan = build_reconstruction_execution_plan(
+            connection,
+            start_at=config.start_at,
+            cutoff_at=config.cutoff_at,
+        )
+        plan_report = _validate_plan(config, plan)
+    with _phase("pre_recovery"):
+        pre_manifest, pre_upload, _ = _backup_round_trip(
+            connection=connection,
+            store=store,
+            root=root,
+            label="pre",
+        )
 
     repository = PositionReconstructionWarehouseRepository(connection)
     run_id = "wi022-s06-" + hashlib.sha256(
         f"{config.expected_execution_hash}|{git_sha}".encode()
     ).hexdigest()[:24]
-    first = tuple(
-        repository.persist(
-            request=item.request,
-            plan=item.plan,
-            run_id=run_id,
-            knowledge_at=knowledge_at,
-            created_by="system:wi022-s06",
+    with _phase("append_only_apply"):
+        first = tuple(
+            repository.persist(
+                request=item.request,
+                plan=item.plan,
+                run_id=run_id,
+                knowledge_at=knowledge_at,
+                created_by="system:wi022-s06",
+            )
+            for item in plan.partitions
         )
-        for item in plan.partitions
-    )
-    live_reconciliation = reconcile_wi022_s06(connection, config, plan)
+    with _phase("live_reconciliation"):
+        live_reconciliation = reconcile_wi022_s06(connection, config, plan)
 
-    second = tuple(
-        repository.persist(
-            request=item.request,
-            plan=item.plan,
-            run_id=run_id + "-idempotency",
-            knowledge_at=knowledge_at,
-            created_by="system:wi022-s06",
+    with _phase("idempotency_replay"):
+        second = tuple(
+            repository.persist(
+                request=item.request,
+                plan=item.plan,
+                run_id=run_id + "-idempotency",
+                knowledge_at=knowledge_at,
+                created_by="system:wi022-s06",
+            )
+            for item in plan.partitions
         )
-        for item in plan.partitions
-    )
-    if any(item.inserted_revision_count or item.exceptions_resolved for item in second):
-        raise RuntimeError("WI-022-S06 identical replay was not idempotent")
+        if any(item.inserted_revision_count or item.exceptions_resolved for item in second):
+            raise RuntimeError("WI-022-S06 identical replay was not idempotent")
 
-    post_manifest, post_upload, restored_database = _backup_round_trip(
-        connection=connection,
-        store=store,
-        root=root,
-        label="post",
-    )
-    restored = duckdb.connect(str(restored_database), read_only=True)
-    try:
-        restored_plan = build_reconstruction_execution_plan(
-            restored,
-            start_at=config.start_at,
-            cutoff_at=config.cutoff_at,
+    with _phase("post_recovery"):
+        post_manifest, post_upload, restored_database = _backup_round_trip(
+            connection=connection,
+            store=store,
+            root=root,
+            label="post",
         )
-        restored_reconciliation = reconcile_wi022_s06(restored, config, restored_plan)
-    finally:
-        restored.close()
-    if restored_reconciliation != live_reconciliation:
-        raise RuntimeError("isolated restore reconciliation differs from live aggregate evidence")
+    with _phase("restore_reconciliation"):
+        restored = duckdb.connect(str(restored_database), read_only=True)
+        try:
+            restored_plan = build_reconstruction_execution_plan(
+                restored,
+                start_at=config.start_at,
+                cutoff_at=config.cutoff_at,
+            )
+            restored_reconciliation = reconcile_wi022_s06(restored, config, restored_plan)
+        finally:
+            restored.close()
+        if restored_reconciliation != live_reconciliation:
+            raise RuntimeError("isolated restore reconciliation differs from live aggregate evidence")
 
     elapsed = time.monotonic() - started
     if pre_upload["byte_size"] > MAX_LITE_STORAGE_BYTES or post_upload["byte_size"] > MAX_LITE_STORAGE_BYTES:
@@ -300,12 +330,13 @@ def run_wi022_s06(
         "release_image_digest": image_digest,
         "release_git_sha": git_sha,
     }
-    stored = store.put_bytes(
-        json.dumps(evidence, sort_keys=True).encode(),
-        dataset_id="backup.wi022-s06-evidence",
-        partition=post_manifest["created_at"].replace(":", "-").replace("+", "_").replace(".", "-"),
-        media_type="application/json",
-    )
+    with _phase("evidence_store"):
+        stored = store.put_bytes(
+            json.dumps(evidence, sort_keys=True).encode(),
+            dataset_id="backup.wi022-s06-evidence",
+            partition=post_manifest["created_at"].replace(":", "-").replace("+", "_").replace(".", "-"),
+            media_type="application/json",
+        )
     return {
         **evidence,
         "evidence_uri": stored.uri,

@@ -12,7 +12,7 @@ from kis_portfolio.ports.object_store import StoredObject
 from kis_portfolio.services.position_reconstruction_runtime import (
     build_reconstruction_execution_plan,
 )
-from kis_portfolio.services.wi022_s06 import WI022S06Config, run_wi022_s06
+from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
 from kis_portfolio.services import wi022_s06
 
 
@@ -146,13 +146,15 @@ def test_wi022_s06_hash_drift_stops_before_backup_or_write(
     store = MemoryStore()
     _release_environment(monkeypatch)
 
-    with pytest.raises(RuntimeError, match="input drifted"):
+    with pytest.raises(WI022S06PhaseError) as captured:
         run_wi022_s06(
             config,
             connection_factory=lambda: connection,
             store_factory=lambda _bucket: store,
         )
 
+    assert captured.value.phase == "plan_gate"
+    assert captured.value.cause_type == "RuntimeError"
     assert not store.objects
     assert connection.execute("SELECT count(*) FROM control.reconstruction_exceptions").fetchone()[0] == 0
     connection.close()

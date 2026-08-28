@@ -43,7 +43,7 @@ from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfi
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
-from kis_portfolio.services.wi022_s06 import WI022S06Config, run_wi022_s06
+from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -467,11 +467,15 @@ def _run_wi022_s06(args: argparse.Namespace) -> int:
             bucket=args.bucket,
         ))
     except Exception as exc:
-        print(json.dumps({
+        failure = {
             "status": "failed",
             "error_type": type(exc).__name__,
             "detail": "redacted; inspect aggregate recovery evidence before deliberate resume",
-        }))
+        }
+        if isinstance(exc, WI022S06PhaseError):
+            failure["phase"] = exc.phase
+            failure["cause_type"] = exc.cause_type
+        print(json.dumps(failure))
         return 1
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
