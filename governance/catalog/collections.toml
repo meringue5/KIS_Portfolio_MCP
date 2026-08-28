@@ -19,18 +19,18 @@ acceptance_rules = ["all configured accounts and currently held instruments cove
 
 [[contracts]]
 id = "collection.etf-lookthrough-v1"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
-description = "현재 보유 ETF만 대상으로 공식 issuer/KRX 구성자료를 보존하고 look-through impact를 계산하기 위한 권장 장바구니."
-decision_refs = ["DEC-005", "DEC-018", "DEC-019", "DEC-041"]
+description = "초기 V2에서 제외된 이후 권리 승인 시 재도입할 보유 ETF 공식 구성자료와 look-through 장바구니."
+decision_refs = ["DEC-005", "DEC-018", "DEC-019", "DEC-041", "DEC-049"]
 scope = "held Korean ETFs and held U.S. ETFs only; issuer adapters onboarded on demand through an allowlist"
 source_ids = ["source.krx-market-data", "source.kr-etf-issuers", "source.us-etf-issuers"]
 dataset_ids = ["dataset.instrument-master", "dataset.etf-constituent-snapshot"]
-priority = "recommended"
+priority = "later"
 history_policy = "target three years of daily source snapshots where the official source exposes history; otherwise start from activation and record unavailable backfill instead of reconstructing it"
-schedule_policy = "one retrieval per held ETF per applicable trading day before the relevant portfolio evaluation, respecting issuer publication lag"
-trigger_policy = "platform Scheduler primary; bounded manual or Remote MCP replay only for a declared ETF/date gap"
+schedule_policy = "disabled for initial V2; a future approved version may define one retrieval per held ETF and applicable trading day"
+trigger_policy = "no production trigger in initial V2; fixture-only parser verification remains allowed"
 cost_budget = "free official downloads only, conditional requests and content hashes; any licensed feed requires a new approved source version under the KRW 50000 platform ceiling"
 acceptance_rules = ["each held ETF maps to an allowlisted official issuer or explicit unsupported_source", "source date, URL, file hash and row coverage retained", "weights plus residual reconcile within declared tolerance", "cash, bonds, derivatives and nested ETFs preserve type", "nested expansion stops at three levels and reports unresolved residual"]
 

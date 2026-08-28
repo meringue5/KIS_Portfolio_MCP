@@ -4,12 +4,12 @@ title: Implement alert state and delivery ledger
 status: proposed
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-010, V2-ADR-012
-requirement_refs: DEC-026..028, DEC-030, DEC-038, DEC-041, DEC-044
+decision_refs: ADR-021, ADR-023, ADR-024, V2-ADR-007, V2-ADR-010, V2-ADR-012
+requirement_refs: DEC-026..028, DEC-030, DEC-038, DEC-041, DEC-044, DEC-049
 milestone_ref: MS-002
 delivery_refs: V2-W0507
 parent_work_item: none
-depends_on: WI-019, WI-023, WI-025, WI-027, WI-033
+depends_on: WI-019, WI-023, WI-025, WI-033
 architecture_impact: implements approved signal evaluation state separate from notification transport
 data_impact: versioned rules alert candidates state transitions dispatch claims and delivery ledger
 security_impact: redacted candidate metadata; no Telegram credential in analytics tables
@@ -31,7 +31,10 @@ Metrics do not yet produce governed alert candidates or stateful de-duplication,
 
 - Include rule versions, severity, fingerprints, transitions, recovery and delivery ledger/claims, consuming the
   separately governed WI-033 valuation-change contribution.
+- Include ETF securities using their own price, trend, valuation-change and lot/thread inputs; constituent exposure is
+  unavailable/missing coverage and must never be inferred.
 - Exclude Telegram API calls and final threshold activation.
+- Exclude ETF constituent, nested sector/country/currency and internal contribution alerts under DEC-049.
 
 ## Acceptance criteria
 

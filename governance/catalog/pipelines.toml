@@ -117,26 +117,26 @@ trigger_policy = "offline fixture rehearsal only in WI-036; no Scheduler, Remote
 
 [[contracts]]
 id = "pipeline.etf-lookthrough-v2"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
-description = "보유 ETF의 공식 issuer/KRX 파일을 content-addressed observation과 구성 snapshot으로 정규화한다."
-decision_refs = ["DEC-018", "DEC-019", "DEC-041", "DEC-044"]
+description = "권리 승인 뒤 보유 ETF 공식 파일을 정규화할 later pipeline; 초기 V2에서는 fixture-only이며 production 비활성."
+decision_refs = ["DEC-018", "DEC-019", "DEC-041", "DEC-044", "DEC-049"]
 source_ids = ["source.krx-market-data", "source.kr-etf-issuers", "source.us-etf-issuers"]
 input_dataset_ids = ["dataset.instrument-master"]
 output_dataset_ids = ["dataset.etf-constituent-snapshot"]
 stages = ["collect", "land", "parse", "normalize", "quality", "publish"]
-schedule_policy = "one retrieval per held ETF per applicable market day after issuer publication"
+schedule_policy = "disabled for initial V2; future activation requires a new approved contract version"
 calendar_gate = "relevant exchange session and issuer publication date"
 idempotency_key = "pipeline id, version, source date, ETF instrument and issuer partition"
 timeout_policy = "bounded file download and parser timeout"
 retry_policy = "conditional idempotent download retry with backoff; parser resumes from landed hash"
-source_call_budget = "one conditional request per held ETF and allowlisted issuer per session"
+source_call_budget = "zero production calls in initial V2; future activation must declare a bounded provider budget"
 freshness_gates = ["source date and prior snapshot age recorded"]
 quality_gates = ["official issuer allowlist", "weights plus residual reconcile", "nested ETF depth and cycles bounded"]
 secret_profile = "KRX API key only when an approved endpoint is activated"
 cost_class = "routine"
-trigger_policy = "Scheduler primary; declared ETF/date gap replay only"
+trigger_policy = "fixture-only local verification; no Scheduler, Remote MCP or production network trigger in initial V2"
 
 [[contracts]]
 id = "pipeline.fundamentals-dividends-v2"

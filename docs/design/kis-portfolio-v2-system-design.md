@@ -96,7 +96,8 @@ Streamable HTTP와 JSON response로 전환할 수 있다. 이 전환은 Claude·
 - Remote MCP와 직접 SQL이 같은 canonical fact와 metric version을 사용한다.
 - 모든 결과가 source observation, pipeline run, quality result와 계산 version까지 추적된다.
 - 평단가 포지션과 purchase lot·trade thread 분석을 동시에 제공한다.
-- 가격·ETF·실적·consensus·배당·매크로·신호를 point-in-time으로 재생할 수 있다.
+- 가격·실적·consensus·배당·매크로·신호를 point-in-time으로 재생할 수 있다. ETF constituent look-through는
+  DEC-049에 따라 초기 V2 밖의 future extension이며, 초기에는 ETF 자체 종목만 재생한다.
 - 필수 schedule과 LLM trigger가 같은 idempotent application use case를 실행한다.
 - cold start와 부분 장애를 감수하되 월 50,000원 상한 안에서 운영된다.
 - V1 데이터를 잃지 않고 dual-run, reconciliation, cutover, rollback이 가능하다.
@@ -383,7 +384,7 @@ V2는 raw KIS endpoint마다 tool을 만들지 않고 질문의 결과 단위로
 | read | `get-trade-thread` | thread·lot·journal revisions |
 | read | `get-dividend-summary` | declared/entitled/received reconciliation |
 | read | `get-fundamental-outlook` | actual·consensus·scenario·valuation |
-| read | `get-exposure-analysis` | direct·ETF look-through·macro exposure |
+| read | `get-exposure-analysis` | initial V2 direct·macro exposure; ETF look-through는 unsupported coverage로 표시 |
 | read | `get-signal-status` | signal state·rule·inputs·quality |
 | read | `get-data-catalog` | dataset/object/metric/lineage 설명 |
 | read | `get-data-quality` | freshness·completeness·known gap |

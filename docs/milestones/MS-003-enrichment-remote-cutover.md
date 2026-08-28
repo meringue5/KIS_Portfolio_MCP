@@ -30,7 +30,8 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 ## Readiness and acceptance gate
 
 - MS-002 metric, signal, shadow와 Telegram delivery가 닫혀 있다.
-- provider rights·비용·coverage와 point-in-time 조건이 승인돼 있다.
+- 초기 V2에 포함된 provider의 rights·비용·coverage와 point-in-time 조건이 승인돼 있다. ETF provider와
+  look-through는 DEC-049에 따라 이 gate에서 제외되며 unsupported coverage로 남는다.
 - Remote MCP tool budget, OAuth scope, stateless replica와 iPhone client compatibility가 검증된다.
 - V1/V2 dual-write/read reconciliation과 rollback evidence가 있고 V2 schedule SLO가 충족된다.
 - production cutover와 외부 resource 변경은 당시 승인 gate를 따른다.

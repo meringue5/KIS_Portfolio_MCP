@@ -108,7 +108,7 @@ id = "MS-GOV"
 title = "Project Operating System improvements"
 status = "closed"
 depends_on = []
-work_item_ids = ["WI-018", "WI-031", "WI-034"]
+work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052"]
 
 [[work_items]]
 id = "WI-009"
@@ -306,7 +306,7 @@ identity = "alert-state-delivery-ledger"
 title = "Implement alert state and delivery ledger"
 milestone_id = "MS-002"
 delivery_refs = ["V2-W0507"]
-depends_on = ["WI-019", "WI-023", "WI-025", "WI-027", "WI-033"]
+depends_on = ["WI-019", "WI-023", "WI-025", "WI-033"]
 parent_id = ""
 sequence = 17
 
@@ -540,6 +540,16 @@ depends_on = ["WI-031"]
 parent_id = ""
 sequence = 3
 
+[[work_items]]
+id = "WI-052"
+identity = "defer-etf-from-initial-v2"
+title = "Defer ETF constituent collection and look-through from initial V2 acceptance"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-034"]
+parent_id = ""
+sequence = 4
+
 [[subitems]]
 id = "WI-018-S01"
 parent_id = "WI-018"
@@ -622,22 +632,22 @@ status = "closed"
 id = "WI-026-S01"
 parent_id = "WI-026"
 title = "Review and activate the TIME ETF source profile"
-status = "blocked"
+status = "rejected"
 
 [[subitems]]
 id = "WI-026-S02"
 parent_id = "WI-026"
 title = "Review and activate the KoAct ETF source profile"
-status = "blocked"
+status = "rejected"
 
 [[subitems]]
 id = "WI-026-S03"
 parent_id = "WI-026"
 title = "Review and activate the RISE ETF source profile"
-status = "blocked"
+status = "rejected"
 
 [[subitems]]
 id = "WI-026-S04"
 parent_id = "WI-026"
 title = "Review and activate the PLUS ETF source profile"
-status = "blocked"
+status = "rejected"

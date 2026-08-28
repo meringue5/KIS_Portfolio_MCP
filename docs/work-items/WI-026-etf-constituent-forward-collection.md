@@ -1,11 +1,11 @@
 ---
 id: WI-026
 title: Activate rights-approved ETF constituent collection
-status: blocked
+status: rejected
 type: change
 owner: owner
-decision_refs: ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
-requirement_refs: DEC-018, DEC-019, DEC-025, DEC-030, DEC-038, DEC-041, DEC-044
+decision_refs: ADR-023, ADR-024, V2-ADR-006, V2-ADR-010, V2-ADR-012
+requirement_refs: DEC-018, DEC-019, DEC-025, DEC-030, DEC-038, DEC-041, DEC-044, DEC-049
 milestone_ref: MS-002
 delivery_refs: V2-W0405
 parent_work_item: none
@@ -66,10 +66,11 @@ cloud processing, raw retention and derived-use rights are unknown.
 
 ## Closeout
 
-- Result: blocked; production activation would violate the approved unknown-rights fail-closed gate.
+- Result: rejected from the initial V2 delivery path by the 2026-08-28 owner option-3 decision; no acceptance
+  criterion is claimed complete and no provider was activated.
 - Blocking condition: no applicable written grant for automation, cloud processing, private raw retention and derived use,
   and no approved KRX API/data product containing full ETF constituents.
-- Resume condition: record provider authorization or an approved licensed data product, owner-approved cost, allowed hosts,
-  request budget and evidence date before implementing a network adapter.
+- Resume condition: use a new Work Item and contract version after recording provider authorization or an approved
+  licensed data product, owner-approved cost, allowed hosts, request budget and evidence date.
 - Remaining risk: current-only source history cannot be recreated later.
-- Follow-up Work Item: WI-027 remains dependency-blocked; continue with dependency-ready WI-033.
+- Follow-up Work Item: WI-052 owns the initial-scope revision; future ETF reintroduction receives a new ID.

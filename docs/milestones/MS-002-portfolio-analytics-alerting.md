@@ -1,14 +1,15 @@
 # MS-002 — Portfolio analytics, risk signals and Telegram delivery
 
 > 상태: in progress
-> 기준선: 2026-08-28.4
+> 기준선: 2026-08-28.5
 > machine registry: `governance/project/milestones.toml`
 
 ## Outcome
 
-현재 보유 국내·미국 종목을 대상으로 수집된 point-in-time 데이터를 이용해 포트폴리오 성과, 추세,
-lot/thread 위험과 ETF 간접 노출을 계산하고, 3년 replay와 2주 shadow를 거친 `주의` 이상 신호만 승인된
-Telegram destination으로 전달한다.
+현재 보유 국내·미국 종목을 대상으로 수집된 point-in-time 데이터를 이용해 포트폴리오 성과, 추세와
+lot/thread 위험을 계산하고, 3년 replay와 2주 shadow를 거친 `주의` 이상 신호만 승인된 Telegram
+destination으로 전달한다. ETF는 초기 V2에서 자체 상장상품으로 감시하며 구성종목 look-through는
+DEC-049에 따라 후속 범위다.
 
 ## Baseline
 
@@ -30,10 +31,10 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 11 | WI-023 return/contribution/drawdown | V2-W0502 | WI-009, WI-015, WI-020..022 | closed; formula/replay/restore pass, production publish remains fail-closed on upstream quality |
 | 12 | WI-024 typed thread risk plan | V2-W0305, V2-W0306 | WI-010, WI-022 | closed; owner-only revision/review/restore pass, production migration not applied |
 | 13 | WI-025 lot/thread risk metrics | V2-W0504 | WI-015, WI-019, WI-022, WI-024 | closed; 8 PIT metrics, 6 focused/full 374 pass, production fail-closed |
-| 14 | WI-026 ETF constituent forward collection | V2-W0405 | WI-012, WI-017 | blocked; explicit rights or licensed full-composition API required |
-| 15 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | blocked by WI-026 |
+| 14 | WI-026 ETF constituent forward collection | V2-W0405 | WI-012, WI-017 | rejected from initial V2; evidence preserved for future intake |
+| 15 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | rejected from initial V2; no implementation claimed |
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
-| 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-027, WI-033 | proposed |
+| 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | proposed; ETF is opaque, no constituent inference |
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | proposed |
 | 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | proposed; external-send approval gate |
 
@@ -46,11 +47,12 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 `WI-026`의 provider별 권리 검토와 activation은 동일한 ETF forward-collection outcome 안에서
 `WI-026-S01` TIME, `S02` KoAct, `S03` RISE, `S04` PLUS로 관리한다. 특정 provider가 독립 infrastructure,
 별도 비용 또는 다른 rollback을 요구하면 그때 새 Work Item으로 승격하고 기존 sub-item은 발견 이력으로
-남긴다.
+남긴다. DEC-049 뒤 네 sub-item은 초기 V2에서 `rejected`이며 재사용하지 않는다.
 
 ## Acceptance gate
 
-- W0502~W0505 metric이 point-in-time 및 quality contract를 통과한다.
+- 초기범위 W0502~W0504와 W0510 metric이 point-in-time 및 quality contract를 통과한다. W0405/W0505는
+  DEC-049의 후속범위이며 initial gate가 아니다.
 - 3년 replay 결과와 자산유형별 threshold 근거가 있다.
 - 2주 DB-only shadow에서 중복, 누락, 민감정보와 최대 오탐 사례를 검토한다.
 - Telegram은 owner가 rule version, destination과 finance-free test message를 승인한 뒤에만 활성화한다.
@@ -66,6 +68,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-08-28.5 | 2026-08-28 | owner option 3으로 ETF 수집/look-through를 초기 V2에서 제외하고 WI-028의 WI-027 의존성을 제거 | WI-026/027와 sub-item ID·증거 보존, status rejected; dependency revision만 적용 |
 | 2026-08-28.3 | 2026-08-28 | 미배정 corporate-action identity를 WI-036으로 분리하고 후속 lot reconstruction 의존성에 연결 | 기존 ID 불변; WI-036 append, 후속 sequence만 이동 |
 | 2026-08-28.2 | 2026-08-28 | 원화 평가액 변화 기여도를 WI-033으로 분리하고 alert 선행조건에 추가 | 기존 ID 불변; WI-028~030 sequence만 16~18로 변경 |
 | 2026-08-28.1 | 2026-08-28 | WI-013~017 완료 이력을 고정하고 남은 작업을 WI-019~030으로 기준선화 | 기존 WI 변경 없음; Telegram은 WI-030으로 배정 |

@@ -280,7 +280,7 @@ Cloud Run service revision은 deploy 시 image copy를 보존하지만, 이것�
 | read | `get-trade-thread` | purchase lot, trade thread, sell allocation과 journal revision |
 | read | `get-dividend-summary` | declared, entitled, received와 월별 증감 |
 | read | `get-fundamental-outlook` | actual, pre-release consensus, surprise, guidance, scenario와 valuation assumptions |
-| read | `get-exposure-analysis` | direct holding, ETF constituent look-through와 macro exposure |
+| read | `get-exposure-analysis` | initial V2 direct holding과 macro exposure; ETF constituent look-through는 DEC-049 후속범위 |
 | read | `get-signal-status` | rule/version/input/quality를 포함한 현재·과거 signal 상태 |
 | read | `get-data-catalog` | dataset/object/metric grain, source, schedule, owner와 lineage 설명 |
 | read | `get-data-quality` | freshness, completeness, reconciliation과 known gap |

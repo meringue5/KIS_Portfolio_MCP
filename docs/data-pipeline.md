@@ -87,6 +87,10 @@ WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값
 구성종목 없이 이름만으로 canonical 값이 되지 않는다. ETF provider 선택은
 `governance/catalog/etf-instrument-routes.toml`의 exact route만 허용한다.
 
+DEC-049 이후 ETF constituent pipeline은 초기 V2의 `later` 범위다. fixture parser와 exact route는 보존하지만
+production source call, schedule, Silver publish와 look-through consumer는 비활성이다. 초기 V2는 ETF를
+자체 상장상품으로만 분석하며 내부 노출을 이름이나 KIS partial 구성으로 추정하지 않는다.
+
 WI-019의 trend metric evaluator는 `silver.price_bar_revisions_daily`의 adjusted 일봉을 evaluation cutoff로
 point-in-time 선택해 SMA20/50/120, volume SMA/ratio20, Wilder RSI14, population-standard-deviation Bollinger
 20/2 context와 Wilder ATR20을 `gold.metric_values`에 저장한다. 장중 slot은 마지막 완료 일봉까지만 사용한다.
