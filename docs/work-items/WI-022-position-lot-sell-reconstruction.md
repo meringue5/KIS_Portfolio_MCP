@@ -1,7 +1,7 @@
 ---
 id: WI-022
 title: Reconstruct positions lots and sell allocations
-status: in_progress
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-016
@@ -35,9 +35,9 @@ must be replayed without silently rewriting the preserved migration artifacts.
 
 ## Acceptance criteria
 
-- [ ] quantities reconcile or carry explicit exception/quality states.
-- [ ] ambiguous or missing opening history remains reviewable and reversible.
-- [ ] restore and idempotent replay evidence pass.
+- [x] quantities reconcile or carry explicit exception/quality states.
+- [x] ambiguous or missing opening history remains reviewable and reversible.
+- [x] restore and idempotent replay evidence pass.
 
 ## Change impact
 
@@ -75,12 +75,12 @@ must be replayed without silently rewriting the preserved migration artifacts.
   - [x] status, blocker and projected episode/lot/allocation/exception counts reconcile at aggregate level.
   - [x] missing migration/input/coverage or quantity mismatch blocks Silver projection rather than fabricating it.
   - [x] repeated inspection of the same cutoff produces the same reviewed execution hash.
-- `WI-022-S06` — separately approved bounded production apply and recovery evidence (`in_progress`).
-  - [ ] tested `master` builds one immutable image for migration and apply jobs.
-  - [ ] migration through `0010` and the exact S05 hash/count gate pass before publication.
-  - [ ] private pre-backup is uploaded, hash-downloaded and restored before any reconstruction write.
-  - [ ] only the 57 approved Control exceptions publish; V1 and Silver reconstruction rows remain unchanged.
-  - [ ] identical replay is a no-op and post-backup isolated restore matches live aggregate evidence.
+- `WI-022-S06` — separately approved bounded production apply and recovery evidence (`closed`).
+  - [x] tested `master` builds one immutable image for migration and apply jobs.
+  - [x] migration through `0010` and the exact S05 hash/count gate pass before publication.
+  - [x] private pre-backup is uploaded, hash-downloaded and restored before any reconstruction write.
+  - [x] only the 57 approved Control exceptions publish; V1 and Silver reconstruction rows remain unchanged.
+  - [x] identical replay is a no-op and post-backup isolated restore matches live aggregate evidence.
 
 ## Evidence
 
@@ -119,17 +119,32 @@ must be replayed without silently rewriting the preserved migration artifacts.
   evaluates each account/instrument partition and returns only aggregate counts plus a deterministic logical-input hash.
   Its public report contains no account, instrument, order, lot or source-observation identity.
 - Two identical read-only MotherDuck inspections of `2023-08-28T00:00:00+09:00` through the already elapsed
-  `2026-08-28T18:00:00+09:00` cutoff produced execution hash
-  canonical execution hash `096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b`: 57 partitions,
+  `2026-08-28T18:00:00+09:00` cutoff produced canonical execution hash
+  `096a01a53fdac9b5c35df13e25a1300c2df8af0c61fca4cbe29d8aa005afd50b`: 57 partitions,
   22 current-held,
   56 with trade history, 282 canonical trade inputs and zero source calls/writes.
 - Production has no passing corporate-action coverage rows for this window. All 57 partitions therefore remain
   `not_assessed` and are approved only for append-only Control exceptions; projected Silver episode, lot and allocation
   counts are all zero. This is a fail-closed result, not a claim that no corporate action occurred.
 - `docs/design/wi-022-s05-production-dry-run.md` records the reviewed aggregate impact and S06 exact-input gate.
+- GitHub Actions run `33163171218`, attempt 2, tested master
+  `38a376ccadb798ab086cb38de6b3753a87c0439f` deployed immutable image
+  `sha256:ed5ea8b...b42327`; migration `0010` and execution `kis-portfolio-wi022-s06-9zmm2` succeeded.
+- The apply inserted 57 Control exception identities and 57 first revisions, zero episode/lot/allocation rows and made
+  zero source calls. The immediate identical replay inserted or resolved zero rows. Live and restored reconciliation
+  both returned 57 partitions, 57 open exceptions and zero Silver reconstruction identities.
+- Private pre/post backups each contained 47 objects. Their verified index hashes were `91ac88ce...0295b`
+  (8,138,373 bytes) and `3ae8f818...72e53` (8,171,053 bytes). Aggregate evidence hash
+  `636d3846...615cd` exists in the private recovery bucket; elapsed execution time was 167.48 seconds.
+- Final read-only production inspection returned migration `0010`, 57 exception identities/revisions/current-open
+  exceptions and zero position episodes, purchase-lot identities or sell-allocation sets. V1 data was not rewritten.
+- `docs/operations/milestone-2-position-reconstruction-2026-08.md` records the failed-safe hash diagnosis and final
+  managed recovery evidence.
 
 ## Closeout
 
-- Result: in progress; S01~S05 are closed and S06 is active.
-- Remaining risk: owner review for ambiguous opening positions.
-- Follow-up sub-item: WI-022-S06 bounded append-only production apply and recovery proof.
+- Result: closed; S01~S06 and the production recovery proof passed.
+- Remaining risk: all 57 scopes require later governed corporate-action coverage before Silver reconstruction can be
+  published. The Control exceptions preserve that review queue without fabricating history.
+- Follow-up: WI-023 may consume only reconciled Silver projections; future coverage activation requires a new exact
+  S05 plan and separately governed apply.

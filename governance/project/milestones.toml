@@ -616,7 +616,7 @@ status = "closed"
 id = "WI-022-S06"
 parent_id = "WI-022"
 title = "Apply the approved bounded reconstruction and verify recovery"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-026-S01"
