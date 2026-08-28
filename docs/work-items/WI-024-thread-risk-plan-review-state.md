@@ -1,7 +1,7 @@
 ---
 id: WI-024
 title: Add typed thread risk plans and review state
-status: proposed
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -35,9 +35,9 @@ owner review workflow before risk metrics can claim completeness.
 
 ## Acceptance criteria
 
-- [ ] stop/reference/risk budget revisions are point-in-time and immutable.
-- [ ] unanswered review items remain explicit and do not invent intent.
-- [ ] concurrency, authorization boundary and restore tests pass.
+- [x] stop/reference/risk budget revisions are point-in-time and immutable.
+- [x] unanswered review items remain explicit and do not invent intent.
+- [x] concurrency, authorization boundary and restore tests pass.
 
 ## Change impact
 
@@ -55,10 +55,24 @@ owner review workflow before risk metrics can claim completeness.
 
 ## Evidence
 
-- Pending.
+- Project OS, Data Governance Harness, Warehouse Contract and portfolio operations procedures reviewed. WI-010 and
+  WI-022 are closed. Existing `silver.trade_threads`, `silver.trade_journal_revisions` and
+  `silver.sell_allocations_current` preserve identity and reconstruction evidence, but no typed owner-authoritative
+  stop/reference plan or shared append-only review queue exists.
+- Two approved dataset contracts, migration `0011`, three backed append-only tables, two rebuild views, pure typed
+  validation and an owner-authority/optimistic-concurrency repository are implemented. Journal/model prose is never
+  parsed into a stop; system discovery opens questions only and owner resolution cites a separate authoritative
+  revision.
+- `5` focused and `28` adjacent migration/reconstruction/recovery tests pass. Complete V2 Parquet export and fresh
+  restore retain plan and review revisions and rebuild both current views.
+- Production read-only evidence found 19 open threads, 0 owner journal revisions, 0 sell-allocation sets and 57 open
+  reconstruction exceptions. Migration `0011` and all five WI-024 objects remain unapplied, with 0 new owner-intent
+  rows and no source calls or writes. See `docs/operations/wi024-thread-review-readiness-2026-08.md`.
+- Full repository gate: `368` tests passed.
 
 ## Closeout
 
-- Result: proposed; depends on WI-022.
-- Remaining risk: later MCP journal/write workflow.
+- Result: closed; typed plan and review contracts, local migration, repository and recovery are complete.
+- Remaining risk: production migration/population and later MCP journal/write workflow remain separately gated; 57
+  reconstruction exceptions and 19 missing owner plans are not silently resolved.
 - Follow-up Work Item: WI-025.

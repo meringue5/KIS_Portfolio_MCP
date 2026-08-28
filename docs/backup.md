@@ -36,7 +36,8 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.purchase_lots`, `silver.purchase_lot_identities`, `silver.purchase_lot_revisions`,
   `silver.trade_threads`, `silver.trade_thread_lots`,
   `silver.sell_allocation_sets`, `silver.sell_allocation_revisions`,
-  `silver.trade_journal_revisions`, `silver.price_bars_daily`,
+  `silver.trade_journal_revisions`, `silver.trade_thread_risk_plan_revisions`,
+  `silver.price_bars_daily`,
   `silver.price_bar_revisions_daily`,
   `silver.corporate_actions`, `silver.corporate_action_revisions`,
   `silver.corporate_action_adjustment_effects`,
@@ -46,6 +47,7 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `control.metric_definitions`, `control.pipeline_runs`,
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`,
   `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`,
+  `control.owner_review_items`, `control.owner_review_item_revisions`,
   `control.etf_instrument_routes`.
 - Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
   `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
@@ -54,9 +56,11 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
 - Rebuild/excluded: `silver.instrument_versions_effective`, `silver.instruments_current`,
   `silver.trade_events_current`, `silver.cash_flow_events_current`, `silver.purchase_lots_current`,
   `silver.position_episodes_current`, `silver.purchase_lot_states_current`, `silver.sell_allocations_current`,
+  `silver.trade_thread_risk_plans_current`,
   `silver.corporate_actions_current`,
   `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.reconstruction_exceptions_current`,
+  `control.owner_review_items_current`,
   `control.schema_migrations`.
 
 owner research 원문과 추출물은 restricted다. local rehearsal에서는 owner-only directory의 0600 file로
