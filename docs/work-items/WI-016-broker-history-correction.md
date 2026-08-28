@@ -1,7 +1,7 @@
 ---
 id: WI-016
 title: Correct broker history semantics and append reversible trade corrections
-status: in_progress
+status: closed
 type: defect
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -35,13 +35,13 @@ continuation keys; and the V1→V2 lot migration labels every filled domestic or
 
 ## Acceptance criteria
 
-- [ ] domestic recent/old endpoint, TR ID and FK/NK continuation contracts have deterministic fixtures.
-- [ ] official side codes produce buys and sells; unknown codes never create a purchase lot.
-- [ ] overseas transactions normalize from `output1` with execution price, fee, FX and settlement provenance.
-- [ ] V2 trade natural identity includes market/product/execution dimensions needed to avoid false collisions.
-- [ ] existing polluted rows remain preserved and corrections are append-only, versioned and reversible.
-- [ ] production correction dry-run reports affected rows without confidential values.
-- [ ] limited production correction passes aggregate reconciliation, backup/restore and full Project OS gates.
+- [x] domestic recent/old endpoint, TR ID and FK/NK continuation contracts have deterministic fixtures.
+- [x] official side codes produce buys and sells; unknown codes never create a purchase lot.
+- [x] overseas transactions normalize from `output1` with execution price, fee, FX and settlement provenance.
+- [x] V2 trade natural identity includes market/product/execution dimensions needed to avoid false collisions.
+- [x] existing polluted rows remain preserved and corrections are append-only, versioned and reversible.
+- [x] production correction dry-run reports affected rows without confidential values.
+- [x] limited production correction passes aggregate reconciliation, backup/restore and full Project OS gates.
 
 ## Change impact
 
@@ -60,10 +60,13 @@ continuation keys; and the V1→V2 lot migration labels every filled domestic or
 ## Evidence
 
 - Read-only readiness audit: `docs/design/milestone-2-data-readiness-review.md`.
-- Commands/tests: pending.
+- `bash scripts/check.sh full`: 239 tests passed; Project OS, governance, architecture, warehouse and MCP gates passed.
+- Production dry-run: 19 source events, 19 known sides, zero unknown side/product and zero base-side mismatch.
+- Production correction: 19 append-only revisions; current projection has 19 buys, zero sells and zero suppressed lots.
+- Recovery evidence: `docs/operations/milestone-2-broker-correction-2026-08.md`.
 
 ## Closeout
 
-- Result: in progress.
+- Result: closed. Migration 0006 and correction-aware broker event projection are live and recovery-verified.
 - Remaining risk: IRP recent-period source gap remains provisional by approved DEC-011.
 - Follow-up Work Item: WI-017 held-instrument classification and rights-gated ETF connector fixtures.
