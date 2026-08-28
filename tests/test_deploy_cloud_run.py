@@ -299,6 +299,49 @@ def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
     assert "--as-of-date" not in fixed
 
 
+def test_wi022_s06_job_is_minimal_single_task_fixed_hash_and_immutable(monkeypatch):
+    commands = []
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi022-s06", dry_run=True,
+        secret_mode="secret-manager", job="kis-portfolio-wi022-s06",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_GCS_BUCKET": "private-bucket",
+    }
+    monkeypatch.setenv("GITHUB_SHA", "a" * 40)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_build_release_image",
+        lambda args, project: "image@sha256:" + "b" * 64,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run",
+        lambda command, dry_run: commands.append(command) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi022_s06_job(
+        args, env=env, project="grand-forge-279904",
+    )
+
+    assert result == 0 and len(commands) == 2
+    migration, command = commands
+    assert migration[4] == "kis-portfolio-wi022-s06-migration"
+    assert "--args=--motherduck,--through,0010" in migration
+    assert migration[migration.index("--image") + 1] == command[command.index("--image") + 1]
+    assert migration[migration.index("--tasks") + 1] == "1"
+    assert command[command.index("--tasks") + 1] == "1"
+    assert command[command.index("--parallelism") + 1] == "1"
+    assert command[command.index("--max-retries") + 1] == "0"
+    fixed = command[command.index("--args") + 1]
+    assert "--start-at,2023-08-28T00:00:00+09:00" in fixed
+    assert "--cutoff-at,2026-08-28T18:00:00+09:00" in fixed
+    assert "43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34" in fixed
+    secrets = command[command.index("--set-secrets") + 1]
+    assert secrets.startswith("MOTHERDUCK_TOKEN=")
+    assert "KIS_APP_" not in secrets and "KIS_CANO_" not in secrets
+
+
 def test_v2_schedulers_use_dedicated_invoker_instead_of_legacy_default(monkeypatch):
     calls = []
     args = argparse.Namespace(

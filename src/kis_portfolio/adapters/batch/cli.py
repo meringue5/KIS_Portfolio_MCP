@@ -43,6 +43,7 @@ from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfi
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
+from kis_portfolio.services.wi022_s06 import WI022S06Config, run_wi022_s06
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -226,6 +227,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--cutoff-at", required=True,
         help="Timezone-aware ISO-8601 reconstruction cutoff.",
     )
+    wi022_s06 = subparsers.add_parser(
+        "run-wi022-s06",
+        help="Apply the exact reviewed reconstruction with private recovery verification.",
+    )
+    wi022_s06.add_argument("--start-at", required=True, help="Timezone-aware ISO-8601 start")
+    wi022_s06.add_argument("--cutoff-at", required=True, help="Timezone-aware ISO-8601 cutoff")
+    wi022_s06.add_argument("--expected-execution-hash", required=True)
+    wi022_s06.add_argument("--project", required=True)
+    wi022_s06.add_argument("--bucket", required=True)
     return parser
 
 
@@ -447,6 +457,26 @@ def _run_position_reconstruction_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi022_s06(args: argparse.Namespace) -> int:
+    try:
+        result = run_wi022_s06(WI022S06Config(
+            start_at=datetime.fromisoformat(args.start_at),
+            cutoff_at=datetime.fromisoformat(args.cutoff_at),
+            expected_execution_hash=args.expected_execution_hash,
+            project=args.project,
+            bucket=args.bucket,
+        ))
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate recovery evidence before deliberate resume",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -472,6 +502,8 @@ def main() -> None:
         raise SystemExit(_run_wi021_s06(args))
     if args.command == "plan-position-reconstruction-v2":
         raise SystemExit(_run_position_reconstruction_plan(args))
+    if args.command == "run-wi022-s06":
+        raise SystemExit(_run_wi022_s06(args))
 
     parser.print_help()
     raise SystemExit(2)

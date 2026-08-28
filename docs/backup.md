@@ -24,9 +24,10 @@ uv run python scripts/backup_v2_motherduck.py
 uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS --database :memory:
 ```
 
-스크립트와 WI-021 managed recovery Job은 동일한 `kis_portfolio.services.v2_recovery` allowlist/export/upload/
-download/restore primitives를 호출한다. WI-021-S06은 pre/post 모두 명시적인 fresh DuckDB 파일로 복원하여
-Job 종료 전 aggregate reconciliation을 다시 수행한다.
+스크립트와 WI-021/WI-022 managed recovery Job은 동일한 `kis_portfolio.services.v2_recovery`
+allowlist/export/upload/download/restore primitives를 호출한다. 두 S06 Job 모두 pre/post를 명시적인 fresh
+DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 수행한다. WI-022-S06은 pre restore가
+끝나기 전 reconstruction row를 쓰지 않으며, 현재 승인 범위에서는 Control exception만 append한다.
 
 - Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`, `silver.instrument_versions`,
   `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.trade_event_revisions`, `silver.cash_flow_events`,

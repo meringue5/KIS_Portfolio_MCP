@@ -76,6 +76,11 @@ must be replayed without silently rewriting the preserved migration artifacts.
   - [x] missing migration/input/coverage or quantity mismatch blocks Silver projection rather than fabricating it.
   - [x] repeated inspection of the same cutoff produces the same reviewed execution hash.
 - `WI-022-S06` — separately approved bounded production apply and recovery evidence (`in_progress`).
+  - [ ] tested `master` builds one immutable image for migration and apply jobs.
+  - [ ] migration through `0010` and the exact S05 hash/count gate pass before publication.
+  - [ ] private pre-backup is uploaded, hash-downloaded and restored before any reconstruction write.
+  - [ ] only the 57 approved Control exceptions publish; V1 and Silver reconstruction rows remain unchanged.
+  - [ ] identical replay is a no-op and post-backup isolated restore matches live aggregate evidence.
 
 ## Evidence
 
@@ -113,9 +118,9 @@ must be replayed without silently rewriting the preserved migration artifacts.
 - `position_reconstruction_runtime.py` reads the passing production current-position and canonical-trade boundaries,
   evaluates each account/instrument partition and returns only aggregate counts plus a deterministic logical-input hash.
   Its public report contains no account, instrument, order, lot or source-observation identity.
-- Two identical read-only MotherDuck inspections of `2023-08-28T00:00:00+09:00` through
-  `2026-08-28T23:59:59+09:00` produced execution hash
-  `b0dfeb93e376520a0a864390276bf65620e2627b05cac834f139f8972e79ba96`: 57 partitions, 22 current-held,
+- Two identical read-only MotherDuck inspections of `2023-08-28T00:00:00+09:00` through the already elapsed
+  `2026-08-28T18:00:00+09:00` cutoff produced execution hash
+  `43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34`: 57 partitions, 22 current-held,
   56 with trade history, 282 canonical trade inputs and zero source calls/writes.
 - Production has no passing corporate-action coverage rows for this window. All 57 partitions therefore remain
   `not_assessed` and are approved only for append-only Control exceptions; projected Silver episode, lot and allocation

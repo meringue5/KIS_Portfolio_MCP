@@ -13,9 +13,9 @@ S02 physical objects before S06 must not alter the logical input identity.
 ## Reviewed production input
 
 - start: `2023-08-28T00:00:00+09:00`
-- cutoff: `2026-08-28T23:59:59+09:00`
+- cutoff: `2026-08-28T18:00:00+09:00` (already elapsed when inspected and applied)
 - observed schema version: `0008`
-- execution hash: `b0dfeb93e376520a0a864390276bf65620e2627b05cac834f139f8972e79ba96`
+- execution hash: `43b1269058f649823cd46e25acbabaea18f5f850d85513736f68595ba7e77a34`
 - partitions: 57
 - current-held partitions: 22
 - partitions with canonical trade history: 56

@@ -132,6 +132,13 @@ projection은 additive schema migration 여부와 무관하게 같은 execution 
 Silver episode/lot/allocation을 생성할 수 없고 append-only Control exception만 발행할 수 있다. 상세 근거는
 [WI-022-S05 production dry-run](./design/wi-022-s05-production-dry-run.md)에 둔다.
 
+WI-022-S06은 `all`에 포함되지 않는 one-off managed release다. tested `master`의 같은 immutable image로 migration
+`0010`과 apply Job을 배포하고, S05의 exact hash/count가 맞을 때만 pre-backup upload/download/fresh restore를
+완료한 뒤 append-only repository를 호출한다. 같은 plan을 두 번 적용해 두 번째 revision 증가가 0임을 확인하고,
+post-backup을 별도 fresh DuckDB로 복원해 live와 같은 aggregate reconciliation을 요구한다. 현재 승인 입력에서는
+Control exception 57건만 publish할 수 있고 Silver reconstruction row와 V1 row는 쓰지 않는다. 상세 계약은
+[WI-022-S06 production execution](./design/wi-022-s06-production-execution.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는
