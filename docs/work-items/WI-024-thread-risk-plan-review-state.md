@@ -7,7 +7,7 @@ owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
 requirement_refs: DEC-012..014, DEC-027, DEC-031, DEC-038, DEC-044
 milestone_ref: MS-002
-delivery_refs: V2-W0305
+delivery_refs: V2-W0305, V2-W0306
 parent_work_item: none
 depends_on: WI-010, WI-022
 architecture_impact: implements approved owner-authored risk-plan and review revisions

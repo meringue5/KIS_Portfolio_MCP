@@ -3,6 +3,71 @@ registry_id = "kis-portfolio-milestones"
 allocation_policy = "append_only_max_plus_one"
 status_owner = "docs/work-items"
 
+[[delivery_history]]
+delivery_ref = "V2-W0001"
+work_item_ids = ["WI-002"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0004"
+work_item_ids = ["WI-006"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0005"
+work_item_ids = ["WI-001"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0101"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0102"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0103"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0104"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0105"
+work_item_ids = ["WI-012"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0107"
+work_item_ids = ["WI-012"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0201"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0301"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0302"
+work_item_ids = ["WI-005"]
+status = "closed"
+
+[[delivery_history]]
+delivery_ref = "V2-W0308"
+work_item_ids = ["WI-006", "WI-007", "WI-008"]
+status = "closed"
+
 [[milestones]]
 id = "MS-001"
 title = "Canonical portfolio and managed collection foundation"
@@ -17,7 +82,7 @@ status = "in_progress"
 depends_on = ["MS-001"]
 work_item_ids = [
   "WI-013", "WI-014", "WI-015", "WI-016", "WI-017",
-  "WI-019", "WI-020", "WI-021", "WI-022", "WI-023", "WI-024",
+  "WI-019", "WI-020", "WI-021", "WI-036", "WI-022", "WI-023", "WI-024",
   "WI-025", "WI-026", "WI-027", "WI-033", "WI-028", "WI-029", "WI-030",
 ]
 
@@ -26,21 +91,24 @@ id = "MS-003"
 title = "Enrichment, stateless Remote MCP V2 and production cutover"
 status = "proposed"
 depends_on = ["MS-002"]
-work_item_ids = []
+work_item_ids = [
+  "WI-035", "WI-037", "WI-038", "WI-039", "WI-040", "WI-041",
+  "WI-042", "WI-043", "WI-044", "WI-045", "WI-046",
+]
 
 [[milestones]]
 id = "MS-004"
 title = "V2 canonicalization and V1 retirement"
 status = "proposed"
 depends_on = ["MS-003"]
-work_item_ids = ["WI-032"]
+work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032"]
 
 [[milestones]]
 id = "MS-GOV"
 title = "Project Operating System improvements"
 status = "closed"
 depends_on = []
-work_item_ids = ["WI-018", "WI-031"]
+work_item_ids = ["WI-018", "WI-031", "WI-034"]
 
 [[work_items]]
 id = "WI-009"
@@ -67,7 +135,7 @@ id = "WI-011"
 identity = "firestore-operational-state"
 title = "Move operational state behind Firestore ports and remove runtime DDL"
 milestone_id = "MS-001"
-delivery_refs = ["V2-W0202", "V2-W0203", "V2-W0204", "V2-W0205", "V2-W0206", "V2-W0207"]
+delivery_refs = ["V2-W0202", "V2-W0203", "V2-W0204", "V2-W0205", "V2-W0206", "V2-W0207", "V2-W0208"]
 depends_on = ["WI-009", "WI-010"]
 parent_id = ""
 sequence = 3
@@ -178,9 +246,9 @@ identity = "position-lot-sell-reconstruction"
 title = "Reconstruct positions lots and sell allocations"
 milestone_id = "MS-002"
 delivery_refs = ["V2-W0304", "V2-W0305"]
-depends_on = ["WI-010", "WI-021"]
+depends_on = ["WI-010", "WI-021", "WI-036"]
 parent_id = ""
-sequence = 9
+sequence = 10
 
 [[work_items]]
 id = "WI-023"
@@ -190,17 +258,17 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0502"]
 depends_on = ["WI-009", "WI-015", "WI-020", "WI-021", "WI-022"]
 parent_id = ""
-sequence = 10
+sequence = 11
 
 [[work_items]]
 id = "WI-024"
 identity = "thread-risk-plan-review-state"
 title = "Add typed thread risk plans and review state"
 milestone_id = "MS-002"
-delivery_refs = ["V2-W0305"]
+delivery_refs = ["V2-W0305", "V2-W0306"]
 depends_on = ["WI-010", "WI-022"]
 parent_id = ""
-sequence = 11
+sequence = 12
 
 [[work_items]]
 id = "WI-025"
@@ -210,7 +278,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0504"]
 depends_on = ["WI-015", "WI-019", "WI-022", "WI-024"]
 parent_id = ""
-sequence = 12
+sequence = 13
 
 [[work_items]]
 id = "WI-026"
@@ -220,7 +288,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0405"]
 depends_on = ["WI-012", "WI-017"]
 parent_id = ""
-sequence = 13
+sequence = 14
 
 [[work_items]]
 id = "WI-027"
@@ -230,7 +298,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0505"]
 depends_on = ["WI-009", "WI-017", "WI-026"]
 parent_id = ""
-sequence = 14
+sequence = 15
 
 [[work_items]]
 id = "WI-028"
@@ -240,7 +308,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0507"]
 depends_on = ["WI-019", "WI-023", "WI-025", "WI-027", "WI-033"]
 parent_id = ""
-sequence = 16
+sequence = 17
 
 [[work_items]]
 id = "WI-029"
@@ -250,7 +318,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0509"]
 depends_on = ["WI-028"]
 parent_id = ""
-sequence = 17
+sequence = 18
 
 [[work_items]]
 id = "WI-030"
@@ -260,7 +328,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0508"]
 depends_on = ["WI-029"]
 parent_id = ""
-sequence = 18
+sequence = 19
 
 [[work_items]]
 id = "WI-031"
@@ -278,9 +346,9 @@ identity = "v2-canonical-documentation-and-v1-retirement"
 title = "Consolidate V1 documentation and establish V2 as the canonical baseline"
 milestone_id = "MS-004"
 delivery_refs = ["V2-W0807"]
-depends_on = []
+depends_on = ["WI-051"]
 parent_id = ""
-sequence = 1
+sequence = 6
 
 [[work_items]]
 id = "WI-033"
@@ -290,7 +358,187 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0510"]
 depends_on = ["WI-009", "WI-013"]
 parent_id = ""
-sequence = 15
+sequence = 16
+
+[[work_items]]
+id = "WI-035"
+identity = "production-operations-cost-release-guardrails"
+title = "Complete production inventory cost and release cleanup guardrails"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0002", "V2-W0003", "V2-W0106"]
+depends_on = ["WI-012"]
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-036"
+identity = "corporate-action-ledger"
+title = "Establish corporate-action identity and adjustment lineage"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0307"]
+depends_on = ["WI-015"]
+parent_id = ""
+sequence = 9
+
+[[work_items]]
+id = "WI-037"
+identity = "filing-actual-fundamental-pipeline"
+title = "Build filing actual and fundamental fact pipeline"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0406"]
+depends_on = ["WI-012", "WI-017"]
+parent_id = ""
+sequence = 2
+
+[[work_items]]
+id = "WI-038"
+identity = "dividend-event-ledger"
+title = "Build declared entitled and received dividend ledger"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0407"]
+depends_on = ["WI-020", "WI-021", "WI-037"]
+parent_id = ""
+sequence = 3
+
+[[work_items]]
+id = "WI-039"
+identity = "macro-profile-pipeline"
+title = "Build the governed macro profile pipeline"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0408"]
+depends_on = ["WI-012"]
+parent_id = ""
+sequence = 4
+
+[[work_items]]
+id = "WI-040"
+identity = "catalog-quality-read-model"
+title = "Publish the DB-only catalog and quality read model"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0410"]
+depends_on = ["WI-012", "WI-019", "WI-020"]
+parent_id = ""
+sequence = 5
+
+[[work_items]]
+id = "WI-041"
+identity = "consensus-forward-outlook"
+title = "Implement point-in-time consensus and forward outlook analysis"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0506"]
+depends_on = ["WI-037"]
+parent_id = ""
+sequence = 6
+
+[[work_items]]
+id = "WI-042"
+identity = "remote-mcp-v2-read-surface"
+title = "Implement the stateless Remote MCP V2 read surface"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0601", "V2-W0602", "V2-W0603"]
+depends_on = ["WI-030", "WI-040", "WI-041"]
+parent_id = ""
+sequence = 7
+
+[[work_items]]
+id = "WI-043"
+identity = "remote-mcp-managed-commands"
+title = "Add governed collection and journal commands to Remote MCP V2"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0604", "V2-W0605"]
+depends_on = ["WI-024", "WI-042"]
+parent_id = ""
+sequence = 8
+
+[[work_items]]
+id = "WI-044"
+identity = "remote-mcp-client-compatibility"
+title = "Verify Remote MCP V2 clients and publish the migration guide"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0606", "V2-W0607"]
+depends_on = ["WI-042", "WI-043"]
+parent_id = ""
+sequence = 9
+
+[[work_items]]
+id = "WI-045"
+identity = "v1-v2-dual-run-readiness"
+title = "Complete V1 V2 dual-run recovery and cost readiness"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0701", "V2-W0702", "V2-W0703", "V2-W0706"]
+depends_on = ["WI-035", "WI-044"]
+parent_id = ""
+sequence = 10
+
+[[work_items]]
+id = "WI-046"
+identity = "remote-mcp-v2-production-cutover"
+title = "Cut production connectors and schedules over to Remote MCP V2"
+milestone_id = "MS-003"
+delivery_refs = ["V2-W0704", "V2-W0705", "V2-W0707"]
+depends_on = ["WI-045"]
+parent_id = ""
+sequence = 11
+
+[[work_items]]
+id = "WI-047"
+identity = "v1-public-surface-retirement"
+title = "Retire local setup and the V1 public MCP surface"
+milestone_id = "MS-004"
+delivery_refs = ["V2-W0801", "V2-W0802"]
+depends_on = ["WI-046"]
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-048"
+identity = "v1-main-consumer-transition"
+title = "Transition remaining V1 main consumers to archive or compatibility views"
+milestone_id = "MS-004"
+delivery_refs = ["V2-W0803"]
+depends_on = ["WI-046"]
+parent_id = ""
+sequence = 2
+
+[[work_items]]
+id = "WI-049"
+identity = "v1-runtime-resource-cleanup"
+title = "Approve and execute bounded V1 runtime resource cleanup"
+milestone_id = "MS-004"
+delivery_refs = ["V2-W0804"]
+depends_on = ["WI-047"]
+parent_id = ""
+sequence = 3
+
+[[work_items]]
+id = "WI-050"
+identity = "steady-state-operations-runbooks"
+title = "Finalize steady-state recovery cost and source review runbooks"
+milestone_id = "MS-004"
+delivery_refs = ["V2-W0805"]
+depends_on = ["WI-047", "WI-048"]
+parent_id = ""
+sequence = 4
+
+[[work_items]]
+id = "WI-051"
+identity = "final-v2-architecture-audit"
+title = "Remove obsolete shims and complete the final V2 architecture audit"
+milestone_id = "MS-004"
+delivery_refs = ["V2-W0806"]
+depends_on = ["WI-047", "WI-048", "WI-049", "WI-050"]
+parent_id = ""
+sequence = 5
+
+[[work_items]]
+id = "WI-034"
+identity = "remaining-delivery-work-identification"
+title = "Identify and baseline all remaining V2 delivery work"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-031"]
+parent_id = ""
+sequence = 3
 
 [[subitems]]
 id = "WI-018-S01"

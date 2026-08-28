@@ -149,6 +149,44 @@ def test_project_os_rejects_duplicate_delivery_item_ids(tmp_path: Path):
     assert any("duplicate delivery item ids V2-W0501" in error for error in errors)
 
 
+def test_project_os_rejects_delivery_item_without_owner(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "governance/project/milestones.toml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            'delivery_refs = ["V2-W0503"]',
+            'delivery_refs = []',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("delivery items without an owner V2-W0503" in error for error in errors)
+
+
+def test_project_os_rejects_unknown_historical_delivery_owner(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "governance/project/milestones.toml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            'work_item_ids = ["WI-002"]',
+            'work_item_ids = ["WI-999"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("V2-W0001 unknown historical owner WI-999" in error for error in errors)
+
+
 def test_project_os_rejects_dangling_milestone_dependency(tmp_path: Path):
     checker = _load_checker()
     target = tmp_path / "repo"

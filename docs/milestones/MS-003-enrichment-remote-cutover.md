@@ -9,14 +9,23 @@
 실적·consensus·배당·macro enrichment와 승인된 분석 결과를 stateless Remote MCP V2로 제공하고, dual-run과
 검증을 거쳐 사용자-facing MCP SSOT 및 필수 schedule을 V2 production으로 전환한다.
 
-## Baseline boundary
+## Baseline
 
-이 마일스톤은 현재 Work Item 번호를 선점하지 않는다. 시작 전 남아 있는 설계 항목을 당시 최댓값 다음
-번호로 발급하고 dependency·인수·production approval gate를 기준선화한다.
+| Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
+| ---: | --- | --- | --- | --- |
+| 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | proposed |
+| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed |
+| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed |
+| 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed |
+| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed |
+| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed |
+| 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed |
+| 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
+| 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | proposed |
+| 10 | WI-045 V1/V2 dual-run readiness | V2-W0701/0702/0703/0706 | WI-035, WI-044 | proposed |
+| 11 | WI-046 Remote MCP V2 production cutover | V2-W0704/0705/0707 | WI-045 | proposed; production gate |
 
-- Enrichment: V2-W0406~0410, V2-W0506
-- Remote MCP V2: V2-W0601~0607
-- dual-run/cutover: V2-W0701~0707
+V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며 이 milestone의 잔여 범위가 아니다.
 
 ## Readiness and acceptance gate
 
@@ -30,4 +39,5 @@
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-08-28.2 | 2026-08-28 | 잔여 delivery를 WI-035/037~046으로 배정하고 완료된 V2-W0409를 제외 | 신규 WI append; 기존 ID 불변 |
 | 2026-08-28.1 | 2026-08-28 | MS-002 밖의 승인 설계에서 MS-003 경계를 최초 기준선화 | Work Item 미발급 |

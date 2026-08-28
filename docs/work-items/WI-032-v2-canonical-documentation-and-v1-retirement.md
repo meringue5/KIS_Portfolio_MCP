@@ -9,7 +9,7 @@ requirement_refs: DEC-034, DEC-045, DEC-047, GOV-003, GOV-007
 milestone_ref: MS-004
 delivery_refs: V2-W0807
 parent_work_item: none
-depends_on: none
+depends_on: WI-051
 architecture_impact: final documentation cutover makes the implemented V2 architecture canonical and retires conflicting V1 guidance
 data_impact: reconciles catalog and migration documentation; no data deletion is implied
 security_impact: security and secrets documentation must remain canonical and must not expose values

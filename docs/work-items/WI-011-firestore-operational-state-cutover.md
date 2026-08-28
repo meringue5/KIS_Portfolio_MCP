@@ -7,7 +7,7 @@ owner: owner
 decision_refs: ADR-021, V2-ADR-005, V2-ADR-008, V2-ADR-017
 requirement_refs: DEC-037, DEC-040, DEC-045, DEC-046
 milestone_ref: MS-001
-delivery_refs: V2-W0202, V2-W0203, V2-W0204, V2-W0205, V2-W0206, V2-W0207
+delivery_refs: V2-W0202, V2-W0203, V2-W0204, V2-W0205, V2-W0206, V2-W0207, V2-W0208
 parent_work_item: none
 depends_on: WI-009, WI-010
 architecture_impact: approved operational-state boundary implementation

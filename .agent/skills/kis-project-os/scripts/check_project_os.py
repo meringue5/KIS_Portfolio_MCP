@@ -96,11 +96,11 @@ def split_refs(value: str) -> list[str]:
     return [part.strip() for part in value.split(",") if part.strip()]
 
 
-def check_delivery_item_ids(root: Path, errors: list[str]) -> None:
+def delivery_item_ids(root: Path, errors: list[str]) -> list[str]:
     path = root / "docs/design/kis-portfolio-v2-delivery-plan.md"
     if not path.is_file():
         errors.append(f"missing required file: {path.relative_to(root)}")
-        return
+        return []
     item_ids = re.findall(
         r"^\s*-\s+`(V2-W\d{4})`",
         path.read_text(encoding="utf-8"),
@@ -111,6 +111,7 @@ def check_delivery_item_ids(root: Path, errors: list[str]) -> None:
         errors.append(
             f"{path.relative_to(root)}: duplicate delivery item ids {', '.join(duplicates)}"
         )
+    return item_ids
 
 
 def check_milestone_registry(
@@ -139,6 +140,7 @@ def check_milestone_registry(
     milestones = registry.get("milestones", [])
     registered_items = registry.get("work_items", [])
     subitems = registry.get("subitems", [])
+    delivery_history = registry.get("delivery_history", [])
     if not isinstance(milestones, list) or not isinstance(registered_items, list):
         errors.append(f"{path.relative_to(root)}: milestones and work_items must be arrays")
         return
@@ -310,6 +312,74 @@ def check_milestone_registry(
     for item_id in item_by_id:
         visit(item_id, [])
 
+    delivery_plan_ids = delivery_item_ids(root, errors)
+    planned_delivery_ids = set(delivery_plan_ids)
+    current_owners: dict[str, set[str]] = {}
+    for item_id, item in item_by_id.items():
+        refs = item.get("delivery_refs", [])
+        if not isinstance(refs, list):
+            errors.append(f"{path.relative_to(root)}: {item_id} delivery_refs must be an array")
+            continue
+        for delivery_ref in refs:
+            if delivery_ref not in planned_delivery_ids:
+                errors.append(
+                    f"{path.relative_to(root)}: {item_id} unknown delivery ref {delivery_ref!r}"
+                )
+            current_owners.setdefault(delivery_ref, set()).add(item_id)
+
+    historical_owners: dict[str, set[str]] = {}
+    if not isinstance(delivery_history, list):
+        errors.append(f"{path.relative_to(root)}: delivery_history must be an array")
+        delivery_history = []
+    for entry in delivery_history:
+        delivery_ref = entry.get("delivery_ref", "") if isinstance(entry, dict) else ""
+        owner_ids = entry.get("work_item_ids", []) if isinstance(entry, dict) else []
+        if not re.fullmatch(r"V2-W\d{4}", delivery_ref):
+            errors.append(
+                f"{path.relative_to(root)}: invalid historical delivery ref {delivery_ref!r}"
+            )
+            continue
+        if delivery_ref not in planned_delivery_ids:
+            errors.append(
+                f"{path.relative_to(root)}: historical unknown delivery ref {delivery_ref!r}"
+            )
+        if delivery_ref in historical_owners:
+            errors.append(
+                f"{path.relative_to(root)}: duplicate delivery_history entry {delivery_ref}"
+            )
+        if not isinstance(owner_ids, list) or not owner_ids:
+            errors.append(
+                f"{path.relative_to(root)}: {delivery_ref} history requires work_item_ids"
+            )
+            owner_ids = []
+        valid_owners: set[str] = set()
+        for owner_id in owner_ids:
+            fields = work_item_fields.get(owner_id)
+            if fields is None:
+                errors.append(
+                    f"{path.relative_to(root)}: {delivery_ref} unknown historical owner {owner_id}"
+                )
+                continue
+            if fields.get("status") not in {"verified", "closed"}:
+                errors.append(
+                    f"{path.relative_to(root)}: {delivery_ref} historical owner {owner_id} "
+                    "must be verified or closed"
+                )
+            valid_owners.add(owner_id)
+        if entry.get("status") != "closed":
+            errors.append(
+                f"{path.relative_to(root)}: {delivery_ref} historical status must be closed"
+            )
+        historical_owners[delivery_ref] = valid_owners
+
+    owned_delivery_ids = set(current_owners) | set(historical_owners)
+    missing_delivery_ids = sorted(planned_delivery_ids - owned_delivery_ids)
+    if missing_delivery_ids:
+        errors.append(
+            f"{path.relative_to(root)}: delivery items without an owner "
+            f"{', '.join(missing_delivery_ids)}"
+        )
+
     subitem_ids: set[str] = set()
     for subitem in subitems if isinstance(subitems, list) else []:
         subitem_id = subitem.get("id", "") if isinstance(subitem, dict) else ""
@@ -450,7 +520,6 @@ def check(root: Path) -> list[str]:
             "only one Work Item may be in_progress; active=" + ", ".join(active)
         )
 
-    check_delivery_item_ids(root, errors)
     check_milestone_registry(root, work_item_fields, work_item_texts, errors)
 
     if not errors:
