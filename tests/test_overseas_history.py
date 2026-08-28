@@ -106,7 +106,7 @@ def test_get_overseas_transaction_history_falls_back_to_kis_and_saves(monkeypatc
     async def fake_fetch(*args, **kwargs):
         return {
             "raw": {
-                "output2": [
+                "output1": [
                     {
                         "erlm_dt": "20260423",
                         "ovrs_excg_cd": "NAS",
@@ -114,8 +114,12 @@ def test_get_overseas_transaction_history_falls_back_to_kis_and_saves(monkeypatc
                         "prdt_name": "Apple Inc",
                         "sll_buy_dvsn_cd": "02",
                         "tr_qty": "2",
-                        "tr_unpr": "170.5",
+                        "ft_ccld_unpr2": "170.5",
                         "tr_amt": "341",
+                        "frcr_fee1": "1.25",
+                        "dmst_frcr_fee1": "1800",
+                        "erlm_exrt": "1430.5",
+                        "sttl_dt": "20260425",
                         "crcy_cd": "USD",
                         "odno": "O-1",
                     }
@@ -143,6 +147,11 @@ def test_get_overseas_transaction_history_falls_back_to_kis_and_saves(monkeypatc
     assert result["rows"][0]["symbol"] == "AAPL"
     assert saved_rows["rows"][0]["account_product_code"] == "01"
     assert saved_rows["rows"][0]["last_transaction_history_id"] == "txn-history-1"
+    assert saved_rows["rows"][0]["price"] == 170.5
+    assert saved_rows["rows"][0]["fee"] == 1.25
+    assert saved_rows["rows"][0]["domestic_fee"] == 1800.0
+    assert saved_rows["rows"][0]["fx_rate"] == 1430.5
+    assert saved_rows["rows"][0]["settlement_date"] == "20260425"
 
 
 def test_get_overseas_order_history_db_mode_reports_cache_miss(monkeypatch):

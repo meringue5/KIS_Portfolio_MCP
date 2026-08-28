@@ -25,7 +25,7 @@ uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS
 ```
 
 - Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`,
-  `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.cash_flow_events`,
+  `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.trade_event_revisions`, `silver.cash_flow_events`,
   `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
   `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
   `silver.price_bar_revisions_daily`,
@@ -38,7 +38,8 @@ uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS
   `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
 - Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
   원문 backup이 됐다고 간주하지 않는다.
-- Rebuild/excluded: `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
+- Rebuild/excluded: `silver.trade_events_current`, `silver.purchase_lots_current`,
+  `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.schema_migrations`.
 
 owner research 원문과 추출물은 restricted다. local rehearsal에서는 owner-only directory의 0600 file로

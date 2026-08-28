@@ -79,7 +79,8 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | --- | --- | --- |
 | `silver.accounts`, `silver.instruments` | canonical account와 effective instrument identity | Parquet / confidential·internal |
 | `silver.position_snapshots`, `silver.cash_snapshots` | account/instrument 또는 currency/as-of 관측 | Parquet / confidential |
-| `silver.trade_events`, `silver.cash_flow_events` | broker order event version과 source cash event | Parquet / confidential |
+| `silver.trade_events`, `silver.trade_event_revisions`, `silver.cash_flow_events` | 원천 broker event, append-only correction revision과 source cash event | Parquet / confidential |
+| `silver.trade_events_current`, `silver.purchase_lots_current` | latest trade revision과 corrected buy-only lot projection | Rebuild / confidential |
 | `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots` | buy-order lot, investment thread와 versioned link | Parquet / confidential |
 | `silver.sell_allocation_revisions`, `silver.trade_journal_revisions` | sell-to-lot allocation 및 owner journal append-only revision | Parquet / confidential |
 | `silver.price_bars_daily`, `silver.fx_rates_daily` | current instrument/session/basis와 currency pair/date/rate type | Parquet / internal |
@@ -103,7 +104,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
 
-총 35개 V2 object는 33 tables + 2 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 38개 V2 object는 34 tables + 4 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

@@ -84,16 +84,51 @@ class V2WarehouseRepository:
               observation_id, payload.get("quality_status", "pass")])
 
     def record_trade_with_lot(self, payload: dict[str, Any], observation_id: str) -> tuple[str, str | None]:
-        identity = f"{payload['account_id']}|{payload['broker_order_id']}|{payload.get('event_version', 1)}"
+        side = str(payload.get("side") or "").lower()
+        if side not in {"buy", "sell"}:
+            raise ValueError("trade side must be buy or sell")
+        market = str(payload.get("market") or "").strip()
+        product_code = str(payload.get("account_product_code") or "").strip()
+        execution_sequence = str(payload.get("execution_sequence") or "aggregate").strip()
+        if not market or not product_code or not execution_sequence:
+            raise ValueError("trade identity requires market, account_product_code and execution_sequence")
+        identity = "|".join([
+            payload["account_id"], market, product_code, payload["instrument_id"],
+            payload["broker_order_id"], str(payload["executed_at"]), execution_sequence,
+        ])
         trade_id = hashlib.sha256(identity.encode()).hexdigest()
         self.connection.execute("""
             INSERT INTO silver.trade_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(account_id, broker_order_id, event_version) DO NOTHING
-        """, [trade_id, payload["account_id"], payload["instrument_id"], payload["side"],
+        """, [trade_id, payload["account_id"], payload["instrument_id"], side,
               payload["executed_at"], payload["quantity"], payload["price"], payload["currency"],
               payload["broker_order_id"], payload.get("event_version", 1), observation_id,
               payload.get("quality_status", "pass")])
-        if payload["side"].lower() != "buy":
+        knowledge_at = payload.get("knowledge_at")
+        if knowledge_at is None:
+            row = self.connection.execute(
+                "SELECT fetched_at FROM bronze.source_observations WHERE observation_id=?", [observation_id]
+            ).fetchone()
+            if not row:
+                raise ValueError("trade revision requires a governed source observation")
+            knowledge_at = row[0]
+        revision = int(payload.get("event_version", 1))
+        revision_id = hashlib.sha256(f"trade-revision|{trade_id}|{revision}".encode()).hexdigest()
+        self.connection.execute("""
+            INSERT INTO silver.trade_event_revisions(
+                trade_event_revision_id, source_trade_event_id, account_id, market, product_code,
+                instrument_id, broker_order_id, executed_at, execution_sequence, revision, side,
+                quantity, price, currency, knowledge_at, source_observation_id, correction_reason,
+                quality_status, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT DO NOTHING
+        """, [revision_id, trade_id, payload["account_id"], market, product_code,
+              payload["instrument_id"], payload["broker_order_id"], payload["executed_at"],
+              execution_sequence, revision, side, payload["quantity"], payload["price"],
+              payload["currency"], knowledge_at, observation_id,
+              payload.get("correction_reason", "source_event"), payload.get("quality_status", "pass"),
+              _json(payload.get("trade_metadata", {}))])
+        if side != "buy":
             return trade_id, None
         lot_id = hashlib.sha256(f"lot|{trade_id}".encode()).hexdigest()
         self.connection.execute("""
@@ -329,7 +364,9 @@ class V2WarehouseRepository:
         allowed = {
             "bronze.source_observations", "silver.accounts", "silver.instruments",
             "silver.position_snapshots", "silver.cash_snapshots", "silver.trade_events",
-            "silver.purchase_lots", "silver.trade_threads", "silver.trade_journal_revisions",
+            "silver.trade_event_revisions", "silver.trade_events_current",
+            "silver.purchase_lots", "silver.purchase_lots_current", "silver.trade_threads",
+            "silver.trade_journal_revisions",
             "silver.price_bars_daily", "silver.price_bar_revisions_daily", "silver.fx_rates_daily",
             "gold.portfolio_daily_state",
         }

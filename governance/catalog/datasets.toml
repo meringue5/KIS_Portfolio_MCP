@@ -45,7 +45,7 @@ retention_policy = "canonical facts retained; initial three-year backfill and no
 backup_policy = "parquet"
 freshness_slo = "domestic by the post-close run, overseas by the Korean-morning run, IRP gaps reconciled when the delayed source becomes available"
 quality_rules = ["source order identity unique within account and market", "executed quantity and price are never inferred from current average cost", "provisional, actual and reconciliation_exception states are explicit"]
-producer_pipeline_ids = []
+producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2"]
 consumer_ids = ["purchase lots", "trade threads", "trade journal review", "realized performance"]
 
 [[contracts]]

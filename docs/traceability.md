@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-009..014/030/041/044 broker history correction | V2-ADR-006/010/012 | WI-016 | side/pagination/source-field correction and append-only revisions | official fixtures, dry-run, reconciliation and restore gates | in_progress |
 | DEC-005/015..017/030/041/044 V2 dual-basis price history | V2-ADR-006/010/012 | WI-015 | price pipeline, revision ledger, bounded backfill | live 18 instruments, 15,152 dual-basis rows, 36/36 partitions, private backup/restore | closed |
 | DEC-015..019/026/038/041/044 Milestone 2 production data readiness | V2-ADR-006/010/012 | WI-014 | readiness review and prerequisite order | six read-only research tracks; price/trade/ETF-rights blockers documented | closed |
 | DEC-015..017/026/038/041/044 Milestone 2: point-in-time metric foundation | V2-ADR-006/010/012 | WI-013 | metric contracts, Gold value ledger, replay-safe evaluator | nullable unavailable outcome, idempotency, PIT and restore gates; 227 tests pass | closed |

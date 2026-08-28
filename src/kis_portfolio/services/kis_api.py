@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 
 import httpx
@@ -121,7 +122,7 @@ async def _get_paginated_kis_json(
     next_params = dict(params)
 
     async with httpx.AsyncClient() as client:
-        token = await get_access_token(client, DOMAIN)
+        token = await get_access_token(client, domain)
         for page_index in range(max_pages):
             headers = {
                 "content-type": CONTENT_TYPE,
@@ -180,7 +181,7 @@ class TrIdManager:
         "price": "FHKST01010100",  # 현재가조회
         "buy": "TTTC0802U",  # 주식매수
         "sell": "TTTC0801U",  # 주식매도
-        "order_list": "TTTC8001R",  # 일별주문체결조회
+        "order_list": "TTTC0081R",  # 주식일별주문체결조회(최근)
         "order_detail": "TTTC8036R",  # 주문체결내역조회
         "stock_info": "FHKST01010400",  # 일별주가조회
         "stock_history": "FHKST03010100",  # 국내주식기간별시세(일/주/월/년)
@@ -210,7 +211,7 @@ class TrIdManager:
         "price": "FHKST01010100",  # 현재가조회
         "buy": "VTTC0802U",  # 주식매수
         "sell": "VTTC0801U",  # 주식매도
-        "order_list": "VTTC8001R",  # 일별주문체결조회
+        "order_list": "VTTC0081R",  # 주식일별주문체결조회(최근)
         "order_detail": "VTTC8036R",  # 주문체결내역조회
         "stock_info": "FHKST01010400",  # 일별주가조회
         "stock_history": "FHKST03010100",  # 국내주식기간별시세(일/주/월/년)
@@ -387,6 +388,8 @@ async def inquery_order_list(
     end_date: str,
     save_history: bool = False,
     return_metadata: bool = False,
+    *,
+    today: date | None = None,
 ):
     """
     Get daily order list from Korea Investment & Securities
@@ -399,15 +402,38 @@ async def inquery_order_list(
         Dictionary containing order list information
     """
     acnt_prdt_cd = os.environ.get("KIS_ACNT_PRDT_CD", "01")
-    async with httpx.AsyncClient() as client:
-        token = await get_access_token(client, DOMAIN)
-        
-        # Prepare request data
+    start = datetime.strptime(start_date, "%Y%m%d").date()
+    end = datetime.strptime(end_date, "%Y%m%d").date()
+    if start > end:
+        raise ValueError("start_date must not be after end_date")
+    cutoff = (today or date.today()) - timedelta(days=90)
+    segments: list[tuple[str, date, date]] = []
+    if start < cutoff:
+        segments.append(("old", start, min(end, cutoff - timedelta(days=1))))
+    if end >= cutoff:
+        segments.append(("recent", max(start, cutoff), end))
+    aggregate: dict = {"output1": [], "output2": [], "segments": []}
+    total_pages = 0
+    account_type = os.environ.get("KIS_ACCOUNT_TYPE", "REAL").upper()
+    tr_ids = {
+        "recent": "VTTC0081R" if account_type == "VIRTUAL" else "TTTC0081R",
+        "old": "VTSC9215R" if account_type == "VIRTUAL" else "CTSC9215R",
+    }
+    for route, segment_start, segment_end in segments:
+        if route == "recent" and acnt_prdt_cd == "29":
+            aggregate["segments"].append({
+                "route": route,
+                "start_date": segment_start.strftime("%Y%m%d"),
+                "end_date": segment_end.strftime("%Y%m%d"),
+                "status": "provisional_source_gap",
+                "reason": "irp_recent_history_endpoint_unavailable",
+            })
+            continue
         request_data = {
             "CANO": os.environ["KIS_CANO"],  # 계좌번호
             "ACNT_PRDT_CD": acnt_prdt_cd,  # 계좌상품코드
-            "INQR_STRT_DT": start_date,  # 조회시작일자
-            "INQR_END_DT": end_date,  # 조회종료일자
+            "INQR_STRT_DT": segment_start.strftime("%Y%m%d"),
+            "INQR_END_DT": segment_end.strftime("%Y%m%d"),
             "SLL_BUY_DVSN_CD": "00",  # 매도매수구분
             "INQR_DVSN": "00",  # 조회구분
             "PDNO": "",  # 종목코드
@@ -420,25 +446,28 @@ async def inquery_order_list(
             "CTX_AREA_NK100": "",  # 연속조회키100
         }
         
-        response = await request_kis(
-            client,
-            "GET",
-            f"{TrIdManager.get_domain('order_list')}{ORDER_LIST_PATH}",
-            policy="history",
-            headers={
-                "content-type": CONTENT_TYPE,
-                "authorization": f"{AUTH_TYPE} {token}",
-                "appkey": os.environ["KIS_APP_KEY"],
-                "appsecret": os.environ["KIS_APP_SECRET"],
-                "tr_id": TrIdManager.get_tr_id("order_list")
-            },
-            params=request_data
+        page = await _get_paginated_kis_json(
+            ORDER_LIST_PATH,
+            tr_ids[route],
+            request_data,
+            output_keys=("output1", "output2"),
+            domain=TrIdManager.get_domain("order_list"),
+            context_size="100",
         )
-        
-        if response.status_code != 200:
-            raise Exception(f"Failed to get order list: {response.text}")
-
-        data = response.json()
+        aggregate["output1"].extend(page.get("output1") or [])
+        aggregate["output2"].extend(page.get("output2") or [])
+        page_count = (page.get("pagination") or {}).get("page_count", 0)
+        total_pages += page_count
+        aggregate["segments"].append({
+            "route": route,
+            "tr_id": tr_ids[route],
+            "start_date": segment_start.strftime("%Y%m%d"),
+            "end_date": segment_end.strftime("%Y%m%d"),
+            "status": "collected",
+            "page_count": page_count,
+        })
+    aggregate["pagination"] = {"page_count": total_pages, "max_pages_per_segment": 10}
+    data = aggregate
 
     saved_order_history_id = None
     if save_history:

@@ -43,6 +43,14 @@ revision을 함께 남긴다. 오늘 수집한 과거 일봉은 `retrospective_r
 input으로 승격하지 않는다. backfill은 instrument/basis당 최대 10 page, 전체 최대 400 physical call을 호출
 전에 예약하며 반복 cursor·continuation은 partial 성공이 아니라 실패다.
 
+WI-016부터 국내 주문 이력은 조회일 기준 recent/old TR을 분할하고 각 구간의 FK/NK continuation을 끝까지
+소비한다. 해외 기간거래는 거래행이 있는 `output1`을 정규화하며 체결가·수수료·적용환율·결제일의 원천
+필드를 보존한다. 국내 side code는 `01=sell`, `02=buy`만 승인하고 그 밖의 값은 lot을 만들지 않는다.
+V1의 all-buy 오염은 원행을 수정하거나 삭제하지 않고 `silver.trade_event_revisions`에 append한다.
+분석 소비자는 최신 revision인 `silver.trade_events_current`와 buy만 남긴
+`silver.purchase_lots_current`를 사용한다. 신규 canonical identity는 account, market, product code,
+instrument, broker order, executed time, execution sequence를 포함한다.
+
 `tests/fixtures/v2/`의 합성 KIS·공식 reference fixture는 credential과 실제 계좌번호를 포함하지 않는다.
 `src/kis_portfolio/platform/rehearsal.py`는 이 fixture를 Bronze→Silver→quality→Gold로 실행해 idempotency,
 lineage와 daily state를 검증한다. 이 rehearsal은 production source 호출이나 실제 3년 backfill이 아니다.

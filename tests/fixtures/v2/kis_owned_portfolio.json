@@ -53,6 +53,8 @@
       "payload": {
         "type": "trade",
         "account_id": "fixture-ria",
+        "account_product_code": "01",
+        "market": "KRX",
         "instrument_id": "KRX:005930",
         "side": "buy",
         "executed_at": "2026-08-01T01:15:00+00:00",
@@ -60,6 +62,7 @@
         "price": "70000",
         "currency": "KRW",
         "broker_order_id": "fixture-order-1",
+        "execution_sequence": "aggregate",
         "event_version": 1,
         "quality_status": "pass"
       }
