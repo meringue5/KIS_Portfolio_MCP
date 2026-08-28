@@ -2,20 +2,20 @@ schema_version = 1
 
 [[contracts]]
 id = "collection.owned-portfolio-core-v1"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
 description = "현재 보유 국내·미국 주식·ETF·REIT의 계좌, 거래, 가격, 환율, calendar와 매매일지를 구성하는 v1 필수 장바구니."
 decision_refs = ["DEC-003", "DEC-005", "DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014", "DEC-015", "DEC-030", "DEC-041"]
 scope = "all currently held Korean and U.S. listed stocks, ETFs and REITs across configured accounts; no unheld watchlist instruments"
 source_ids = ["source.kis-open-api", "source.portfolio-owner", "source.krx-market-data", "source.us-exchange-calendars"]
-dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.cash-transaction-event", "dataset.instrument-master", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.market-calendar", "dataset.trade-journal", "dataset.portfolio-daily-state"]
+dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.cash-transaction-event", "dataset.instrument-master", "dataset.price-bar-daily", "dataset.corporate-action-event", "dataset.fx-rate-daily", "dataset.market-calendar", "dataset.trade-journal", "dataset.portfolio-daily-state"]
 priority = "required"
-history_policy = "initial three-year backfill for daily prices and available domestic, IRP and overseas trade/cash history; current balances are observations and are not fabricated backward"
+history_policy = "initial three-year backfill for daily prices, available domestic/overseas corporate actions and available domestic, IRP and overseas trade/cash history; current balances are observations and unavailable action terms are not fabricated"
 schedule_policy = "platform Scheduler is SSOT; KR observations and evaluation at applicable 10:00, 14:30 and 16:00 KST slots, U.S. close summary on the next Korean morning, history reconciliation after close"
 trigger_policy = "Cloud Run Jobs and Scheduler primary; allowlisted Remote MCP collection request may enqueue an idempotent supplemental run but cannot replace the schedule"
 cost_budget = "existing KIS account/API and request-based GCP only; zero new paid provider, bounded calls by held-instrument scope, monthly total platform ceiling KRW 50000"
-acceptance_rules = ["all configured accounts and currently held instruments covered or a named gap is published", "three-year price and trade backfill coverage measured without inventing missing history", "daily portfolio state reconciles to source positions, prices, cash and FX", "source partial or stale status propagates to consumers", "no automatic order capability"]
+acceptance_rules = ["all configured accounts and currently held instruments covered or a named gap is published", "three-year price, corporate-action and trade backfill coverage measured without inventing missing history", "unknown or provisional corporate-action terms block false return and lot-adjustment claims", "daily portfolio state reconciles to source positions, prices, cash and FX", "source partial or stale status propagates to consumers", "no automatic order capability"]
 
 [[contracts]]
 id = "collection.etf-lookthrough-v1"

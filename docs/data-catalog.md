@@ -86,6 +86,8 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `silver.sell_allocation_revisions`, `silver.trade_journal_revisions` | sell-to-lot allocation 및 owner journal append-only revision | Parquet / confidential |
 | `silver.price_bars_daily`, `silver.fx_rates_daily` | current instrument/session/basis와 currency pair/date/rate type | Parquet / internal |
 | `silver.price_bar_revisions_daily` | instrument/session/basis/content revision과 effective/knowledge/request provenance | Parquet / internal |
+| `silver.corporate_actions`, `silver.corporate_action_revisions`, `silver.corporate_actions_current` | source action identity, point-in-time terms/status revision과 latest knowledge projection | Parquet tables + rebuild view / internal |
+| `silver.corporate_action_adjustment_effects` | action revision별 price·quantity·instrument successor effect; factor 방향과 적용시점 명시 | Parquet / internal |
 | `silver.etf_constituent_snapshots` | ETF/source date/file hash/constituent ordinal | Parquet / internal |
 | `silver.filing_events`, `silver.financial_facts` | filing document version과 point-in-time taxonomy fact | Parquet / internal |
 | `silver.dividend_events`, `silver.macro_observations` | dividend state event와 series/vintage/revision | Parquet / confidential·internal |
@@ -106,7 +108,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.etf_instrument_routes` | exact instrument→provider profile route; account·quantity·valuation fields prohibited | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
 
-총 44개 V2 object는 37 tables + 7 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 48개 V2 object는 40 tables + 8 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

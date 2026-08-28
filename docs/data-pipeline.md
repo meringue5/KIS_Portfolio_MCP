@@ -93,6 +93,14 @@ point-in-time 선택해 SMA20/50/120, volume SMA/ratio20, Wilder RSI14, populati
 필요 이력이 없으면 `insufficient_history`, 필드가 없으면 `missing_price_field`로 null을 기록한다. 오늘
 수집한 과거 일봉의 `retrospective_reconstructed` 상태는 그대로 보존하며 strict metric 값으로 승격하지 않는다.
 
+WI-036의 `pipeline.corporate-actions-v2`는 승인된 KIS 원천의 국내 예탁원 합병·분할/액면교체 일정과 해외
+기간별 권리조회를 보유상품 범위의 immutable observation과 `silver.corporate_action_revisions`로 정규화한다.
+같은 source identity의 동일 content는 no-op이고 예정→확정·조건 변경은 knowledge time이 증가하는 새 revision이다.
+확정되고 positive pre/post units가 있는 분할만 reciprocal quantity/price effect를 만들며, 종목변경은 결과
+instrument가 확인된 경우에만 identity effect를 만든다. action이 없다는 관측 coverage와 action 조건을 모른다는
+상태를 구분하고, unknown·provisional·incomplete terms는 lot/return 계산 가능 판정을 fail-closed로 유지한다.
+WI-036은 offline fixture와 local backup/restore까지만 수행하며 production source call과 schedule은 별도 gate다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는

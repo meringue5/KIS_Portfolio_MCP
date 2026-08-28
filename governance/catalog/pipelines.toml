@@ -93,6 +93,29 @@ cost_class = "backfill"
 trigger_policy = "fixed-argument managed Job for approved held scope; no arbitrary Remote MCP range or symbol"
 
 [[contracts]]
+id = "pipeline.corporate-actions-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유상품의 KIS 국내 예탁원 일정과 해외 기간별 권리를 immutable observation, revision-aware corporate-action ledger와 typed adjustment effect로 정규화한다."
+decision_refs = ["DEC-005", "DEC-015", "DEC-016", "DEC-017", "DEC-030", "DEC-041", "DEC-044"]
+source_ids = ["source.kis-open-api"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily"]
+output_dataset_ids = ["dataset.corporate-action-event"]
+stages = ["plan", "collect-land-normalize", "quality", "publish"]
+schedule_policy = "WI-036은 offline fixture와 local recovery까지만 수행한다; production은 별도 승인 뒤 held-instrument daily incremental과 bounded three-year replay로 활성화한다"
+calendar_gate = "instrument market and source effective interval; cancelled, provisional and future-known revisions remain non-pass"
+idempotency_key = "pipeline id, version, market, source endpoint, held instrument and bounded effective-date partition"
+timeout_policy = "bounded endpoint partition and page cap; no request-scoped or always-on execution"
+retry_policy = "idempotent GET only; landed observation resumes normalization and repeated continuation fails closed"
+source_call_budget = "zero production calls in WI-036; future activation must pre-reserve sampled endpoint page caps for the held-instrument scope"
+freshness_gates = ["source effective and fetched knowledge time retained", "provisional-to-confirmed changes append a new revision"]
+quality_gates = ["source identity and pagination coverage explicit", "action type and affected instrument resolved or blocked", "positive complete terms before price or quantity effects", "unknown terms block return and lot-adjustment publish claims"]
+secret_profile = "existing KIS quote/account runtime only after production approval; synthetic fixture has none"
+cost_class = "routine"
+trigger_policy = "offline fixture rehearsal only in WI-036; no Scheduler, Remote MCP or arbitrary symbol/date production trigger"
+
+[[contracts]]
 id = "pipeline.etf-lookthrough-v2"
 version = "1.0.0"
 status = "approved"

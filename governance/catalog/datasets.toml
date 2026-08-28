@@ -121,6 +121,30 @@ producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.price-his
 consumer_ids = ["trend metrics", "portfolio valuation", "signal replay"]
 
 [[contracts]]
+id = "dataset.corporate-action-event"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유 국내·미국 상품의 분할·병합·종목변경·합병·spin-off 기업행위 identity, point-in-time revision과 가격·수량·instrument adjustment effect."
+decision_refs = ["DEC-005", "DEC-015", "DEC-016", "DEC-017"]
+layer = "silver"
+source_ids = ["source.kis-open-api"]
+input_dataset_ids = ["dataset.instrument-master"]
+purpose = "수정·원주가 품질, lot 수량·원가 재구성과 성과 계산이 기업행위의 당시 알려진 확정 조건을 명시적으로 인용하게 한다."
+grain = "one source corporate-action identity and immutable content revision, with zero or more typed adjustment effects"
+natural_key = ["source_id", "source_record_id", "revision_hash"]
+time_semantics = "effective, record, ex and listing dates remain distinct; knowledge_at selects the revision known at an evaluation cutoff"
+write_mode = "append-only content revisions; identical content is a no-op and later corrections never overwrite prior knowledge"
+schema_contract = "logical corporate action v1 with action type/status, source/result instrument, pre/post units, terms status and price/quantity/identity effects"
+sensitivity = "internal"
+retention_policy = "canonical action identities, revisions and effects retained indefinitely"
+backup_policy = "parquet"
+freshness_slo = "held-instrument actions checked after each applicable market close; provisional or changed terms remain explicit revisions"
+quality_rules = ["source identity and provenance are immutable", "confirmed split ratios require positive pre and post units", "price and quantity effects are reciprocal and cite one action revision", "unknown, provisional or incomplete terms fail closed for return and lot adjustment", "future-known revisions are excluded from point-in-time reads"]
+producer_pipeline_ids = ["pipeline.corporate-actions-v2"]
+consumer_ids = ["price and volume quality", "position and lot reconstruction", "portfolio and lot performance"]
+
+[[contracts]]
 id = "dataset.fx-rate-daily"
 version = "1.0.0"
 status = "approved"
