@@ -223,7 +223,7 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
 
-      - name: Deploy WI-021-S06 one-off recovery job
+      - name: Deploy WI-021-S06 migration and recovery jobs
         if: github.event.inputs.target == 'wi021-s06'
         run: |
           uv run python scripts/deploy_cloud_run.py wi021-s06 \
@@ -231,6 +231,14 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI021_S06_JOB_NAME}" \
             --secret-mode secret-manager
+
+      - name: Apply WI-021-S06 migration 0008 once and wait
+        if: github.event.inputs.target == 'wi021-s06'
+        run: |
+          gcloud run jobs execute "${KIS_WI021_S06_JOB_NAME}-migration" \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --wait
 
       - name: Execute WI-021-S06 once and wait
         if: github.event.inputs.target == 'wi021-s06'

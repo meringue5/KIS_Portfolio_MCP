@@ -276,8 +276,18 @@ def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
         args, env=env, project="grand-forge-279904",
     )
 
-    assert result == 0 and len(commands) == 1
-    command = commands[0]
+    assert result == 0 and len(commands) == 2
+    migration, command = commands
+    assert migration[4] == "kis-portfolio-wi021-s06-migration"
+    assert migration[migration.index("--command") + 1] == "kis-portfolio-migrate"
+    assert "--args=--motherduck,--through,0008" in migration
+    assert migration[migration.index("--tasks") + 1] == "1"
+    assert migration[migration.index("--parallelism") + 1] == "1"
+    assert migration[migration.index("--max-retries") + 1] == "0"
+    assert migration[migration.index("--image") + 1] == command[command.index("--image") + 1]
+    migration_secrets = migration[migration.index("--set-secrets") + 1]
+    assert migration_secrets.startswith("MOTHERDUCK_TOKEN=")
+    assert "KIS_APP_" not in migration_secrets and "KIS_CANO_" not in migration_secrets
     assert command[command.index("--image") + 1].startswith("image@sha256:")
     assert command[command.index("--tasks") + 1] == "1"
     assert command[command.index("--parallelism") + 1] == "1"

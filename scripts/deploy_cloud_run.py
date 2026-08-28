@@ -894,6 +894,7 @@ def _deploy_wi021_s06_job(
         f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
     )
     job = args.job or env.get("KIS_WI021_S06_JOB_NAME") or DEFAULT_WI021_S06_JOB
+    migration_job = f"{job}-migration"
     command_args = (
         "run-wi021-s06,--start-date,20230828,--end-date,20260828,"
         "--expected-plan-hash,0755656ed8151a91,--expected-budget-hash,0a4abf9b795f9d73,"
@@ -901,6 +902,27 @@ def _deploy_wi021_s06_job(
     )
     env_yaml_path = _write_env_yaml(payload)
     try:
+        migration_command = [
+            "gcloud", "run", "jobs", "deploy", migration_job,
+            "--image", image,
+            "--region", args.region,
+            "--env-vars-file", env_yaml_path,
+            "--command", "kis-portfolio-migrate",
+            "--args=--motherduck,--through,0008",
+            "--tasks", "1",
+            "--parallelism", "1",
+            "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT,
+            "--max-retries", "0",
+            "--service-account", service_account,
+            *_build_secret_flags({
+                key: value for key, value in secret_refs.items() if key == "MOTHERDUCK_TOKEN"
+            }),
+            *_build_label_flags("wi021-s06-migration"),
+            "--project", project,
+        ]
+        migration_code = _run(migration_command, dry_run=args.dry_run)
+        if migration_code != 0:
+            return migration_code
         command = [
             "gcloud", "run", "jobs", "deploy", job,
             "--image", image,
