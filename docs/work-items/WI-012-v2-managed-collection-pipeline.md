@@ -1,7 +1,7 @@
 ---
 id: WI-012
 title: Run the first production V2 managed collection pipeline
-status: in_progress
+status: closed
 type: architecture
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-009..011
@@ -31,12 +31,12 @@ V2 계약과 과거 ledger는 있으나 recurring governed writer와 off-vendor 
 
 ## Acceptance criteria
 
-- [ ] approved pipeline contract가 production adapter, run/stage/quality/lineage/watermark를 남긴다.
-- [ ] GCS encryption/public-access prevention/lifecycle와 off-vendor restore evidence가 있다.
-- [ ] 동일 logical run은 no-op이고 failure resume/call-budget/pagination gate가 동작한다.
-- [ ] 10:00, 14:30, 16:00 및 미국 마감 입력 정책이 calendar-aware fixed schedule로 표현된다.
-- [ ] production deployment는 build-once digest, Secret Manager와 least-privilege identity를 사용한다.
-- [ ] V1 writer는 유지되며 5거래일 dual-write 관찰을 시작할 수 있다.
+- [x] approved pipeline contract가 production adapter, run/stage/quality/lineage/watermark를 남긴다.
+- [x] GCS encryption/public-access prevention/lifecycle와 off-vendor restore evidence가 있다.
+- [x] 동일 logical run은 no-op이고 failure resume/call-budget/pagination gate가 동작한다.
+- [x] 10:00, 14:30, 16:00 및 미국 마감 입력 정책이 calendar-aware fixed schedule로 표현된다.
+- [x] production deployment는 build-once digest, Secret Manager와 least-privilege identity를 사용한다.
+- [x] V1 writer는 유지되며 5거래일 dual-write 관찰을 시작할 수 있다.
 
 ## Change impact
 
@@ -57,11 +57,24 @@ V2 계약과 과거 ledger는 있으나 recurring governed writer와 off-vendor 
 - conditional Firestore IAM and bucket-only object IAM; dedicated runtime/scheduler identities.
 - managed adapter tests: calendar/no-op/resume/call budget/raw hash/quality/lineage/watermark/Gold.
 - build-once deploy dry-run: one digest, three fixed Jobs at 10:00/14:30/16:00 KST.
-- Project OS full gate: 221 passed.
-- pending explicit gates: confidential Parquet GCS upload; MotherDuck-token and token-encryption-key accessor IAM;
-  normal master/CI Job/Scheduler deployment and first production run.
+- confidential V2 backup upload: 30 objects, 3,459,255 bytes, immutable index
+  `sha256:86e068b30fa78c952dc4c4aab7e6757c396ab1b3b8e390a97e27464d235fef57`.
+- isolated restore downloaded and hash-verified all 30 objects, then restored 29 V2 tables into in-memory DuckDB.
+- runtime has per-secret accessor bindings for MotherDuck token and KIS token-encryption-key; no secret payload was read
+  during IAM verification.
+- normal master/CI deployments: Jobs [run 33128817209](https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/33128817209),
+  final dedicated-identity Schedulers [run 33129635924](https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/33129635924).
+- Scheduler identity drift was found before execution and corrected in
+  [PR #9](https://github.com/meringue5/KIS_Portfolio_MCP/pull/9); all three Schedulers now use the dedicated invoker.
+- first production execution `kis-portfolio-owned-core-v2-1000-x7fhp`: succeeded in 3m2s; one logical run,
+  four succeeded stages, 36/64 source calls, configured-account coverage pass, three lineage edges, current watermark,
+  and 31/31 Gold rows pass.
+- idempotency execution `kis-portfolio-owned-core-v2-1000-45nbg`: same logical run count 1, same run ID,
+  four stage rows with maximum attempt 1 and 103 source observations; no duplicate run or source recall.
+- Project OS full gate after Scheduler identity correction: 222 passed.
+- five-trading-day dual-write observation started on 2026-08-28; V1 writers remain enabled and unchanged.
 
 ## Closeout
 
-- 결과: 시작 전
+- 결과: production managed collection and recovery path verified; observation active
 - 후속 Work Item: analytics/signals milestone
