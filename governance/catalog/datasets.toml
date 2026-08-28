@@ -433,6 +433,30 @@ producer_pipeline_ids = []
 consumer_ids = ["asset trend", "portfolio impact", "signal evaluation", "Telegram alerting", "Remote MCP"]
 
 [[contracts]]
+id = "dataset.metric-value"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "승인된 formula version으로 point-in-time 계산한 재생 가능한 metric 값과 입력 lineage."
+decision_refs = ["DEC-015", "DEC-016", "DEC-017", "DEC-026", "DEC-038", "DEC-044"]
+layer = "gold"
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-event"]
+purpose = "signal, risk, contribution과 대화형 분석이 임의 SQL 대신 동일한 versioned metric을 사용하게 한다."
+grain = "one metric contract version, subject and evaluation timestamp or slot"
+natural_key = ["metric_id", "metric_version", "subject_type", "subject_id", "evaluation_at"]
+time_semantics = "evaluation_at is the stable logical cutoff; effective_at and knowledge_cutoff_at cannot exceed it; computed_at is audit metadata only"
+write_mode = "idempotent append by logical evaluation key; conflicting replay is rejected and formula versions are immutable"
+schema_contract = "Gold metric value v1 with decimal value, unit, quality, input refs, formula hash, lineage hash and evaluation run"
+sensitivity = "confidential"
+retention_policy = "canonical evaluated values retained with at least three years hot history; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "available after each quality-gated 10:00, 14:30 and 16:00 portfolio state publish"
+quality_rules = ["metric contract is approved", "future effective or knowledge time is rejected", "input quality gate is explicit", "same logical key cannot change value or lineage"]
+producer_pipeline_ids = ["pipeline.metric-evaluation-v2"]
+consumer_ids = ["signal evaluation", "risk analysis", "Telegram candidate generation", "Remote MCP analytics"]
+
+[[contracts]]
 id = "dataset.unlicensed-market-content"
 version = "1.0.0"
 status = "proposed"

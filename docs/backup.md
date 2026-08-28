@@ -30,7 +30,8 @@ uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS
   `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
   `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
   `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
-  `gold.portfolio_daily_state`, `control.pipeline_definitions`, `control.pipeline_runs`,
+  `gold.portfolio_daily_state`, `gold.metric_values`, `control.pipeline_definitions`,
+  `control.metric_definitions`, `control.pipeline_runs`,
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`.
 - Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
   `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.

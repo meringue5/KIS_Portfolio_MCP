@@ -11,12 +11,12 @@ from kis_portfolio.platform.migrations import MigrationError, MigrationRunner
 def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     con = duckdb.connect(str(tmp_path / "fresh.duckdb"))
     runner = MigrationRunner(con)
-    assert runner.apply() == ["0001", "0002", "0003"]
+    assert runner.apply() == ["0001", "0002", "0003", "0004"]
     assert runner.apply() == []
-    runner.require("0003")
+    runner.require("0004")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 3
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 4
     con.close()
 
 

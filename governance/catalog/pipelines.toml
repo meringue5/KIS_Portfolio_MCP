@@ -24,6 +24,29 @@ cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted Remote MCP may request the same logical run without arbitrary args"
 
 [[contracts]]
+id = "pipeline.metric-evaluation-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "quality-gated canonical state를 승인된 point-in-time metric contract로 평가하고 Gold value와 lineage를 보존한다."
+decision_refs = ["DEC-015", "DEC-016", "DEC-017", "DEC-026", "DEC-030", "DEC-038", "DEC-041", "DEC-044"]
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.price-bar-daily", "dataset.fx-rate-daily", "dataset.trade-event"]
+output_dataset_ids = ["dataset.metric-value"]
+stages = ["resolve-contract", "select-point-in-time-input", "evaluate", "quality", "publish"]
+schedule_policy = "runs after each governed portfolio evaluation slot; replay uses an explicit historical cutoff"
+calendar_gate = "inherits the upstream portfolio state market-session and quality status"
+idempotency_key = "metric id and version, subject type and id, evaluation timestamp"
+timeout_policy = "bounded per metric family and held-subject shard"
+retry_policy = "resume unpublished metric shards; identical logical values are no-op and conflicting replay fails"
+source_call_budget = "zero direct source calls; consumes governed MotherDuck inputs only"
+freshness_gates = ["upstream portfolio state and market inputs are terminal for the slot", "knowledge cutoff is no later than evaluation time"]
+quality_gates = ["approved metric contract", "no future input", "declared input quality policy", "stable formula and lineage hash"]
+secret_profile = "MotherDuck runtime only; no Telegram token during metric evaluation"
+cost_class = "routine"
+trigger_policy = "chained managed Job after portfolio publish; allowlisted historical replay only"
+
+[[contracts]]
 id = "pipeline.etf-lookthrough-v2"
 version = "1.0.0"
 status = "approved"

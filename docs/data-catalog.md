@@ -93,14 +93,16 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | Object | Grain / contract | Backup / sensitivity |
 | --- | --- | --- |
 | `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
+| `gold.metric_values` | metric/version/subject/evaluation-at point-in-time value, quality and lineage | Parquet / confidential |
 | `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
 | `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
+| `control.metric_definitions` | metric/version approved contract definition hash | Parquet / internal |
 | `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence | Parquet / internal |
 | `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
 
-총 32개 V2 object는 30 tables + 2 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 34개 V2 object는 32 tables + 2 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

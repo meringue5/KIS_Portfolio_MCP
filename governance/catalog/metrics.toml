@@ -1,1 +1,17 @@
 schema_version = 1
+
+[[contracts]]
+id = "metric.portfolio-value-krw"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "평가 slot의 quality-gated 계좌·종목·현금 가치를 합산한 원화 기준 포트폴리오 가치. Telegram payload에는 절대액을 노출하지 않는다."
+decision_refs = ["DEC-005", "DEC-015", "DEC-026", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.portfolio-daily-state"]
+grain = "one portfolio subject, evaluation timestamp and slot"
+formula_ref = "formula.portfolio-value-krw.v1"
+unit = "KRW"
+point_in_time = true
+quality_gate = "all component rows pass and their effective and knowledge timestamps do not exceed the evaluation cutoff"
+validation_policy = "Python Decimal golden fixture equals the governed SQL sum; future input and conflicting replay tests must fail"
+consumer_ids = ["portfolio return denominator", "drawdown and risk budget", "signal evaluation"]
