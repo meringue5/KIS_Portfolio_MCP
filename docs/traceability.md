@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-012..017/027/038/041/044 lot/thread path and risk | ADR-021/023 + V2-ADR-006/010/012 | WI-025 | 8 adjusted-price lot/episode and owner-stop thread/instrument risk metrics, PIT evaluator and readiness inspector | 6 focused/full 374 pass; complete restore; production 0 reconstructed lot, 0 adjusted price, 57 exceptions and no publish/write | closed |
 | DEC-012..014/027/031/038/044 typed thread risk and owner review | ADR-021/023 + V2-ADR-006/010/012 | WI-024 | two dataset contracts, migration 0011, owner-authoritative plan revisions and review queue repository | 5 focused / 28 adjacent tests and complete restore; production read-only inventory 19 open threads, 0 generated intent, migration unapplied | closed |
 | DEC-004/009..017/026/038/041/044 portfolio performance | ADR-021/023 + V2-ADR-006/010/012 | WI-023 | five versioned metrics, Modified Dietz evaluator, explicit residual and chain-linked drawdown | 9 focused / 22 adjacent tests; restore pass; production read-only gate blocks 889 non-pass state rows and missing exact cash coverage with zero writes/calls | closed |
 | DEC-009..014 reconstruction production apply | ADR-021/023 + V2-ADR-006/010/016 | WI-022 / WI-022-S06 | exact-hash append-only exception publish; pre/post private recovery and isolated reconciliation | run 33163171218 attempt 2 / execution `9zmm2`: 57 exceptions, 0 Silver, idempotent replay and restore pass | closed |
@@ -61,7 +62,7 @@
 | DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | closed; 57 review exceptions, 0 fabricated Silver, private recovery pass |
 | DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | closed; production values remain fail-closed on state/cash coverage quality |
 | DEC-012..014/027/031 thread risk plans/review queue | V2-W0305/0306 | WI-024 | WI-010, WI-022 | closed; production migration and owner responses remain gated |
-| DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | proposed |
+| DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | closed; production values remain fail-closed |
 | DEC-018/019/025 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | proposed; rights gate |
 | DEC-018/019/026 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | proposed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-W0510 | WI-033 | WI-009, WI-013 | ready |

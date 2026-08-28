@@ -1,6 +1,134 @@
 schema_version = 1
 
 [[contracts]]
+id = "metric.lot-mfe-adjusted-price"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "매수 lot의 effective adjusted cost 대비 보유 episode 경계 안 adjusted high의 최대 유리 구간."
+decision_refs = ["DEC-012", "DEC-015", "DEC-016", "DEC-017", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.purchase-lot-state", "dataset.price-bar-daily"]
+grain = "one purchase lot, evaluation cutoff and metric version"
+formula_ref = "formula.lot-mfe-adjusted-price.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "reconstructed pass lot and operational-strict adjusted highs known by cutoff within the lot episode lifecycle"
+validation_policy = "independent DuckDB max(high/entry-1) equals Decimal output; missing adjusted path, future revision and episode crossover fail closed"
+consumer_ids = ["lot path analysis", "thread review", "signal context"]
+
+[[contracts]]
+id = "metric.lot-mae-adjusted-price"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "매수 lot의 effective adjusted cost 대비 보유 episode 경계 안 adjusted low의 최대 불리 구간."
+decision_refs = ["DEC-012", "DEC-015", "DEC-016", "DEC-017", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.purchase-lot-state", "dataset.price-bar-daily"]
+grain = "one purchase lot, evaluation cutoff and metric version"
+formula_ref = "formula.lot-mae-adjusted-price.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "reconstructed pass lot and operational-strict adjusted lows known by cutoff within the lot episode lifecycle"
+validation_policy = "independent DuckDB min(low/entry-1) equals Decimal output; missing adjusted path, future revision and episode crossover fail closed"
+consumer_ids = ["lot path analysis", "thread review", "signal context"]
+
+[[contracts]]
+id = "metric.position-episode-high-adjusted-price"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "연속 non-zero position episode 안에서 알려진 adjusted high의 최고값."
+decision_refs = ["DEC-011", "DEC-015", "DEC-016", "DEC-017", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.position-episode", "dataset.price-bar-daily"]
+grain = "one position episode, evaluation cutoff and metric version"
+formula_ref = "formula.position-episode-high-adjusted-price.v1"
+unit = "price_currency"
+point_in_time = true
+quality_gate = "reconstructed episode and operational-strict adjusted high path known by cutoff; closed_at bounds the path"
+validation_policy = "independent SQL max adjusted high matches Decimal output and a later episode never changes the closed episode high"
+consumer_ids = ["position episode path", "drawdown context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.position-episode-drawdown-adjusted-price"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "position episode adjusted high 대비 episode 경계의 마지막 adjusted close 낙폭."
+decision_refs = ["DEC-011", "DEC-015", "DEC-016", "DEC-017", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.position-episode", "dataset.price-bar-daily", "dataset.metric-value"]
+grain = "one position episode, evaluation cutoff and metric version"
+formula_ref = "formula.position-episode-drawdown-adjusted-price.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "episode high and final in-episode adjusted close pass and high is positive"
+validation_policy = "independent SQL close/high-1 matches Decimal output; missing path and episode crossover fail closed"
+consumer_ids = ["position episode path", "drawdown context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.thread-planned-loss-krw"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "동일 thread open lot 수량과 owner reference/stop, point-in-time FX로 계산한 계획손실 원화액."
+decision_refs = ["DEC-012", "DEC-013", "DEC-014", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.purchase-lot-state", "dataset.trade-thread-risk-plan", "dataset.fx-rate-daily"]
+grain = "one open trade thread, evaluation cutoff and metric version"
+formula_ref = "formula.thread-planned-loss-krw.v1"
+unit = "KRW"
+point_in_time = true
+quality_gate = "all open lot quantities reconcile, exactly one thread link exists, owner plan is effective and known, and FX is pass"
+validation_policy = "independent SQL quantity*(reference-stop)*fx matches Decimal output; missing owner stop and ATR-only advice remain null"
+consumer_ids = ["thread risk analysis", "2 percent risk cap", "signal evaluation"]
+
+[[contracts]]
+id = "metric.thread-risk-ratio"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "thread planned loss를 동일 slot의 complete canonical total assets로 나눈 Turtle-inspired 위험 비율."
+decision_refs = ["DEC-012", "DEC-013", "DEC-014", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.metric-value", "dataset.portfolio-daily-state"]
+grain = "one open trade thread, evaluation cutoff and metric version"
+formula_ref = "formula.thread-risk-ratio.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "thread planned loss and complete positive canonical total assets at the same governed slot pass"
+validation_policy = "independent SQL planned_loss/total_assets matches Decimal output; incomplete assets and missing plan remain null"
+consumer_ids = ["thread risk analysis", "2 percent risk cap", "signal evaluation"]
+
+[[contracts]]
+id = "metric.instrument-planned-loss-krw"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "한 instrument의 모든 open thread planned loss 합계."
+decision_refs = ["DEC-012", "DEC-014", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.metric-value"]
+grain = "one canonical instrument, evaluation cutoff and metric version"
+formula_ref = "formula.instrument-planned-loss-krw.v1"
+unit = "KRW"
+point_in_time = true
+quality_gate = "all open lots reconcile to exactly one thread and every thread planned-loss metric passes"
+validation_policy = "sum of thread planned losses exactly equals instrument output; any missing thread plan makes the aggregate null"
+consumer_ids = ["instrument risk analysis", "portfolio risk context", "signal evaluation"]
+
+[[contracts]]
+id = "metric.instrument-risk-ratio"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "instrument planned loss 합계를 complete canonical total assets로 나눈 위험 비율."
+decision_refs = ["DEC-012", "DEC-014", "DEC-027", "DEC-038", "DEC-044"]
+input_dataset_ids = ["dataset.metric-value", "dataset.portfolio-daily-state"]
+grain = "one canonical instrument, evaluation cutoff and metric version"
+formula_ref = "formula.instrument-risk-ratio.v1"
+unit = "ratio"
+point_in_time = true
+quality_gate = "instrument planned loss and complete positive canonical total assets at the same governed slot pass"
+validation_policy = "independent SQL instrument_loss/total_assets matches Decimal output and equals the sum of passing thread risks"
+consumer_ids = ["instrument risk analysis", "portfolio risk context", "signal evaluation"]
+
+[[contracts]]
 id = "metric.portfolio-value-krw"
 version = "1.0.0"
 status = "approved"
