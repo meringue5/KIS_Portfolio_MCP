@@ -93,6 +93,52 @@ point-in-time 선택해 SMA20/50/120, volume SMA/ratio20, Wilder RSI14, populati
 필요 이력이 없으면 `insufficient_history`, 필드가 없으면 `missing_price_field`로 null을 기록한다. 오늘
 수집한 과거 일봉의 `retrospective_reconstructed` 상태는 그대로 보존하며 strict metric 값으로 승격하지 않는다.
 
+WI-036의 `pipeline.corporate-actions-v2`는 승인된 KIS 원천의 국내 예탁원 합병·분할/액면교체 일정과 해외
+기간별 권리조회를 보유상품 범위의 immutable observation과 `silver.corporate_action_revisions`로 정규화한다.
+같은 source identity의 동일 content는 no-op이고 예정→확정·조건 변경은 knowledge time이 증가하는 새 revision이다.
+확정되고 positive pre/post units가 있는 분할만 reciprocal quantity/price effect를 만들며, 종목변경은 결과
+instrument가 확인된 경우에만 identity effect를 만든다. action이 없다는 관측 coverage와 action 조건을 모른다는
+상태를 구분하고, unknown·provisional·incomplete terms는 lot/return 계산 가능 판정을 fail-closed로 유지한다.
+action이 없다는 판정도 `control.quality_results`의 종목·기간 coverage가 `pass`일 때만 허용하며, 생성한
+price·quantity·instrument effect는 공통 `control.lineage_edges`에서 원 action revision을 인용한다.
+WI-036은 offline fixture와 local backup/restore까지만 수행하며 production source call과 schedule은 별도 gate다.
+
+WI-022-S02의 migration `0010`은 기존 WI-010 `silver.purchase_lots`와
+`silver.sell_allocation_revisions` row를 수정하지 않는다. 새 canonical path는 position episode identity/revision,
+actual·manual·inferred-opening lot identity/state revision, sell allocation whole-revision header와 기존 lot slice,
+Control exception identity/revision을 additive object로 둔다. current view는 knowledge time과 revision으로 최신
+whole revision을 선택하며, 기존 compatibility lot view와 새 reconstructed lot-state view를 혼합하지 않는다.
+이 단계는 구조와 local recovery만 검증하고 trade replay, FIFO persistence와 production migration은 수행하지 않는다.
+
+WI-022-S03의 pure replay는 passing canonical trade revision과 governed corporate-action effect를 stable effective
+order로 재생한다. 현재 broker quantity에서 역산한 시작 잔량은 complete action coverage와 source gap 부재가
+확인된 경우에만 `inferred_opening` candidate가 되며 execution price/cost를 만들지 않는다. 전량 청산은 position
+episode를 닫고 후속 매수는 새 episode를 연다. 동일시각 tie, lineage 불일치, 수량 불일치와 evidence blocker는
+derived fact 없이 fail closed한다. 이 단계의 결과는 memory-only plan이며 S02 객체 저장은 S04까지 금지한다.
+상세 계약은 [WI-022-S03 deterministic replay](./design/wi-022-s03-deterministic-replay.md)에 둔다.
+
+WI-022-S04는 S03의 input `replay_hash`와 candidate-fact `projection_hash`를 모두 검증한 뒤 migration `0010`의
+episode, lot-state, whole sell-allocation, exception revision을 단일 transaction으로 publish한다. 같은 hash는
+revision/slice를 추가하지 않고, 변경된 input은 knowledge time이 증가할 때만 append한다. blocked plan은 Silver
+fact 없이 Control exception만 열며 같은 partition의 후속 reconciled plan이 이를 append-only로 resolve한다.
+commit 전 current view와 plan의 episode/lot/allocation 수량을 다시 대조하고 실패하면 전체 rollback한다.
+fresh DuckDB complete V2 Parquet restore까지 S04에서 검증하지만 production DB 적용은 S06까지 금지한다. 상세
+계약은 [WI-022-S04 append-only persistence](./design/wi-022-s04-append-only-persistence.md)에 둔다.
+
+WI-022-S05의 production planner는 passing current-position snapshot과 canonical trade current view를 read-only로
+읽고 account/instrument identity를 노출하지 않는 aggregate impact report만 만든다. 같은 logical input, replay 및
+projection은 additive schema migration 여부와 무관하게 같은 execution hash를 갖는다. 2026-08-28 cutoff의 실제
+검사에서는 corporate-action date-range coverage가 0건이므로 57개 partition 전부가 `not_assessed`다. 따라서 S06은
+Silver episode/lot/allocation을 생성할 수 없고 append-only Control exception만 발행할 수 있다. 상세 근거는
+[WI-022-S05 production dry-run](./design/wi-022-s05-production-dry-run.md)에 둔다.
+
+WI-022-S06은 `all`에 포함되지 않는 one-off managed release다. tested `master`의 같은 immutable image로 migration
+`0010`과 apply Job을 배포하고, S05의 exact hash/count가 맞을 때만 pre-backup upload/download/fresh restore를
+완료한 뒤 append-only repository를 호출한다. 같은 plan을 두 번 적용해 두 번째 revision 증가가 0임을 확인하고,
+post-backup을 별도 fresh DuckDB로 복원해 live와 같은 aggregate reconciliation을 요구한다. 현재 승인 입력에서는
+Control exception 57건만 publish할 수 있고 Silver reconstruction row와 V1 row는 쓰지 않는다. 상세 계약은
+[WI-022-S06 production execution](./design/wi-022-s06-production-execution.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는

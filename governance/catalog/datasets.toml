@@ -121,6 +121,30 @@ producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.price-his
 consumer_ids = ["trend metrics", "portfolio valuation", "signal replay"]
 
 [[contracts]]
+id = "dataset.corporate-action-event"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유 국내·미국 상품의 분할·병합·종목변경·합병·spin-off 기업행위 identity, point-in-time revision과 가격·수량·instrument adjustment effect."
+decision_refs = ["DEC-005", "DEC-015", "DEC-016", "DEC-017"]
+layer = "silver"
+source_ids = ["source.kis-open-api"]
+input_dataset_ids = ["dataset.instrument-master"]
+purpose = "수정·원주가 품질, lot 수량·원가 재구성과 성과 계산이 기업행위의 당시 알려진 확정 조건을 명시적으로 인용하게 한다."
+grain = "one source corporate-action identity and immutable content revision, with zero or more typed adjustment effects"
+natural_key = ["source_id", "source_record_id", "revision_hash"]
+time_semantics = "effective, record, ex and listing dates remain distinct; knowledge_at selects the revision known at an evaluation cutoff"
+write_mode = "append-only content revisions; identical content is a no-op and later corrections never overwrite prior knowledge"
+schema_contract = "logical corporate action v1 with action type/status, source/result instrument, pre/post units, terms status and price/quantity/identity effects"
+sensitivity = "internal"
+retention_policy = "canonical action identities, revisions and effects retained indefinitely"
+backup_policy = "parquet"
+freshness_slo = "held-instrument actions checked after each applicable market close; provisional or changed terms remain explicit revisions"
+quality_rules = ["source identity and provenance are immutable", "confirmed split ratios require positive pre and post units", "price and quantity effects are reciprocal and cite one action revision", "a no-action claim requires passing held-instrument date-range coverage evidence", "unknown, provisional or incomplete terms fail closed for return and lot adjustment", "future-known revisions are excluded from point-in-time reads"]
+producer_pipeline_ids = ["pipeline.corporate-actions-v2"]
+consumer_ids = ["price and volume quality", "position and lot reconstruction", "portfolio and lot performance"]
+
+[[contracts]]
 id = "dataset.fx-rate-daily"
 version = "1.0.0"
 status = "approved"
@@ -479,3 +503,75 @@ freshness_slo = "not applicable"
 quality_rules = ["row count must remain zero", "any proposed activation requires named source, rights, cost and owner approval"]
 producer_pipeline_ids = []
 consumer_ids = ["governance checker", "architecture review"]
+
+[[contracts]]
+id = "dataset.position-episode"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "계좌·상품의 보유수량이 0보다 큰 연속 구간과 그 재구성 품질·근거 revision."
+decision_refs = ["DEC-009", "DEC-011", "DEC-012", "DEC-014", "DEC-038", "DEC-044"]
+layer = "silver"
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.corporate-action-event"]
+purpose = "서로 다른 보유 생명주기를 섞지 않고 lot과 매도 배분의 account/instrument boundary를 제공한다."
+grain = "one account, canonical instrument and continuous non-zero ownership episode revision"
+natural_key = ["account_id", "instrument_id", "episode_id", "revision"]
+time_semantics = "episode open and close effective times, reconstruction knowledge cutoff and recorded time remain distinct"
+write_mode = "append-only episode revisions; current projection is rebuildable and prior reconstruction is never overwritten"
+schema_contract = "position episode v1 with opening/closing cause, evidence provenance, reconstruction status, source window and quality blockers"
+sensitivity = "confidential"
+retention_policy = "canonical reconstruction revisions retained with the underlying trade history; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "initial bounded reconstruction after approved history coverage; later incremental refresh follows governed trade ingestion"
+quality_rules = ["episode scope never crosses account or ungoverned instrument identity", "zero balance closes an episode before a later buy opens another", "unknown corporate-action identity transitions fail closed", "current broker position is reconciliation evidence and never invents a historical execution"]
+producer_pipeline_ids = ["pipeline.position-lot-reconstruction-v2"]
+consumer_ids = ["purchase lot state", "sell allocation", "thread review", "portfolio performance"]
+
+[[contracts]]
+id = "dataset.purchase-lot-state"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "실제 매수 주문 또는 명시적 inferred opening에서 파생된 purchase lot identity와 append-only 잔여수량·원가 revision."
+decision_refs = ["DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-014", "DEC-038", "DEC-044"]
+layer = "silver"
+source_ids = []
+input_dataset_ids = ["dataset.trade-event", "dataset.position-episode", "dataset.corporate-action-event"]
+purpose = "증권사 평단가 트랙과 분리된 개인 분석 lot을 재생 가능하고 정정 가능한 상태로 유지한다."
+grain = "one purchase lot identity and immutable state revision within one position episode"
+natural_key = ["lot_id", "revision"]
+time_semantics = "trade or opening effective time, corporate-action effective time, reconstruction knowledge cutoff and recorded time retained"
+write_mode = "immutable lot identity plus append-only state revisions; sells and corporate actions never rewrite the opening fact"
+schema_contract = "purchase lot state v1 with actual/manual/inferred_opening provenance, original and remaining quantity, unit cost basis, currency, episode and causal event references"
+sensitivity = "confidential"
+retention_policy = "all lot identities and revisions retained with canonical trade facts; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "available after the corresponding position reconstruction quality gate"
+quality_rules = ["only a governed buy or explicit opening residual creates a lot", "a sell never creates a purchase lot", "current average cost is never backdated as a historical execution price", "remaining quantity cannot be negative", "corporate-action adjustment cites a passing point-in-time action revision"]
+producer_pipeline_ids = ["pipeline.position-lot-reconstruction-v2"]
+consumer_ids = ["sell allocation", "lot and thread analytics", "trade journal review"]
+
+[[contracts]]
+id = "dataset.sell-allocation"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "매도 사건을 동일 position episode의 open lot에 명시적 또는 FIFO 방식으로 배분한 전체 revision snapshot."
+decision_refs = ["DEC-009", "DEC-013", "DEC-014", "DEC-038", "DEC-044"]
+layer = "silver"
+source_ids = []
+input_dataset_ids = ["dataset.trade-event", "dataset.position-episode", "dataset.purchase-lot-state"]
+purpose = "사용자 의도 미확정 상태에서도 분석 연속성을 제공하되 LLM/owner 수정이 원천 사건을 덮어쓰지 않게 한다."
+grain = "one sell allocation revision and its zero or more lot allocation slices"
+natural_key = ["sell_trade_event_id", "allocation_revision", "lot_id"]
+time_semantics = "sell effective time, allocation knowledge time and recorded time retained; point-in-time reads select one whole revision"
+write_mode = "append-only complete allocation revisions; explicit correction supersedes but never deletes inferred history"
+schema_contract = "sell allocation v1 with explicit_lot, explicit_thread_fifo or inferred_fifo method, allocated quantity, reviewer, reason, quality and unresolved remainder"
+sensitivity = "confidential"
+retention_policy = "all allocation revisions retained with the sell and lot facts; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "deterministic inferred FIFO after reconciled replay; explicit owner revision after review"
+quality_rules = ["allocation never crosses account instrument or position episode", "FIFO order is opened_at then lot_id", "allocation never exceeds open lot or sell quantity", "an explicit selector never silently falls back", "insufficient quantity is a reviewable reconciliation exception"]
+producer_pipeline_ids = ["pipeline.position-lot-reconstruction-v2"]
+consumer_ids = ["realized lot analysis", "thread lifecycle", "LLM allocation review"]

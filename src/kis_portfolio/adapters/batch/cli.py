@@ -9,16 +9,24 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import duckdb
 from dotenv import load_dotenv
 
 from kis_portfolio.account_registry import load_account_registry
-from kis_portfolio.config import get_db_mode
+from kis_portfolio.config import (
+    get_db_mode,
+    get_motherduck_database,
+    get_motherduck_token,
+)
 from kis_portfolio.db.connection import get_connection
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.price_history import run_held_price_backfill
+from kis_portfolio.services.position_reconstruction_runtime import (
+    build_reconstruction_execution_plan,
+)
 from kis_portfolio.services.trade_cash_backfill import (
     DEFAULT_PARTITION_DAYS,
     DOMESTIC_ORDER_HISTORY,
@@ -35,6 +43,7 @@ from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfi
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
+from kis_portfolio.services.wi022_s06 import WI022S06Config, run_wi022_s06
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -205,6 +214,28 @@ def build_parser() -> argparse.ArgumentParser:
     wi021_s06.add_argument("--expected-budget-hash", required=True)
     wi021_s06.add_argument("--project", required=True)
     wi021_s06.add_argument("--bucket", required=True)
+
+    reconstruction_plan = subparsers.add_parser(
+        "plan-position-reconstruction-v2",
+        help="Read production governed facts and print an aggregate-only reconstruction dry-run.",
+    )
+    reconstruction_plan.add_argument(
+        "--start-at", required=True,
+        help="Timezone-aware ISO-8601 reconstruction start, for example 2023-08-28T00:00:00+09:00",
+    )
+    reconstruction_plan.add_argument(
+        "--cutoff-at", required=True,
+        help="Timezone-aware ISO-8601 reconstruction cutoff.",
+    )
+    wi022_s06 = subparsers.add_parser(
+        "run-wi022-s06",
+        help="Apply the exact reviewed reconstruction with private recovery verification.",
+    )
+    wi022_s06.add_argument("--start-at", required=True, help="Timezone-aware ISO-8601 start")
+    wi022_s06.add_argument("--cutoff-at", required=True, help="Timezone-aware ISO-8601 cutoff")
+    wi022_s06.add_argument("--expected-execution-hash", required=True)
+    wi022_s06.add_argument("--project", required=True)
+    wi022_s06.add_argument("--bucket", required=True)
     return parser
 
 
@@ -402,6 +433,50 @@ def _run_wi021_s06(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_position_reconstruction_plan(args: argparse.Namespace) -> int:
+    if get_db_mode() != "motherduck":
+        raise RuntimeError("production reconstruction dry-run requires KIS_DB_MODE=motherduck")
+    token = get_motherduck_token()
+    if not token:
+        raise RuntimeError("production reconstruction dry-run requires MOTHERDUCK_TOKEN")
+    start_at = datetime.fromisoformat(args.start_at)
+    cutoff_at = datetime.fromisoformat(args.cutoff_at)
+    connection = duckdb.connect(
+        f"md:{get_motherduck_database()}?motherduck_token={token}",
+        read_only=True,
+    )
+    try:
+        report = build_reconstruction_execution_plan(
+            connection,
+            start_at=start_at,
+            cutoff_at=cutoff_at,
+        ).public_report()
+    finally:
+        connection.close()
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _run_wi022_s06(args: argparse.Namespace) -> int:
+    try:
+        result = run_wi022_s06(WI022S06Config(
+            start_at=datetime.fromisoformat(args.start_at),
+            cutoff_at=datetime.fromisoformat(args.cutoff_at),
+            expected_execution_hash=args.expected_execution_hash,
+            project=args.project,
+            bucket=args.bucket,
+        ))
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate recovery evidence before deliberate resume",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -425,6 +500,10 @@ def main() -> None:
         raise SystemExit(_run_trade_cash_backfill(args))
     if args.command == "run-wi021-s06":
         raise SystemExit(_run_wi021_s06(args))
+    if args.command == "plan-position-reconstruction-v2":
+        raise SystemExit(_run_position_reconstruction_plan(args))
+    if args.command == "run-wi022-s06":
+        raise SystemExit(_run_wi022_s06(args))
 
     parser.print_help()
     raise SystemExit(2)

@@ -280,6 +280,31 @@ vendor raw observation으로 보존하고 corporate action 보정 전에는 분�
 공식 근거:
 [KIS 공식 해외주식 기간별시세 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/overseas_stock/dailyprice/dailyprice.py)
 
+### SRC-KIS-CORPORATE-ACTION: 국내 예탁원 일정·해외 기간별 권리
+
+| 항목 | 조사 결과 |
+| --- | --- |
+| Provider | 한국투자증권 Open API |
+| 국내 Endpoint / TR ID | `/uapi/domestic-stock/v1/ksdinfo/merger-split` / `HHKDB669104C0`; `/uapi/domestic-stock/v1/ksdinfo/rev-split` / `HHKDB669105C0` |
+| 해외 Endpoint / TR ID | `/uapi/overseas-price/v1/quotations/period-rights` / `CTRGT011R` |
+| 요청 축 | 국내 종목·기간·시장; 해외 권리유형·현지기준일 기간·상품번호·상품유형 |
+| 반환 grain | source endpoint의 종목·권리유형·기준/적용일·sequence row |
+| 국내 주요 필드 | 기준일, 합병/분할 양측 회사코드, 합병사유·비율, 변경 전/후 액면가, 거래정지·상장일 |
+| 해외 주요 필드 | 권리유형코드, 상품/표준상품번호, 현지기준일, 주식·현금 배정비율, 확정여부 |
+| revision 계약 | stable source id가 없으므로 endpoint·market·source instrument·action code·effective dates·source sequence를 deterministic source record identity로 만들고 content 변경을 새 knowledge revision으로 보존 |
+| 품질 한계 | 해외 `주식배정비율`과 국내 자유형식 `합병비율`은 단위 의미를 검증하기 전 pre/post units로 추정하지 않음; 예정·미확정·대상 instrument 미해결은 계산 차단 |
+| 상태 | `official-confirmed`, `selected`; WI-036은 offline fixture·ledger·recovery만 구현하고 production sampling/schedule은 별도 gate |
+
+분할·병합 여부만 관측됐다는 사실과 가격·수량에 적용할 수 있는 확정 비율을 분리한다. 국내 액면교체의
+양의 변경 전/후 액면가는 방향이 명시되므로 reciprocal price/quantity effect를 만들 수 있다. 그 밖의
+자유형식 비율과 예정 권리는 raw provenance를 남기되 `unknown` 또는 `provisional`로 보존하여 lot과
+성과 계산이 그 조건을 사실처럼 사용하지 못하게 한다.
+
+공식 근거:
+[KIS 공식 국내 합병·분할일정 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/ksdinfo_merger_split/ksdinfo_merger_split.py),
+[KIS 공식 국내 액면교체일정 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/ksdinfo_rev_split/ksdinfo_rev_split.py),
+[KIS 공식 해외 기간별권리조회 예제](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/overseas_stock/period_rights/period_rights.py)
+
 ### SRC-KIS-ETF-COMPONENT: ETF 구성종목시세
 
 | 항목 | 조사 결과 |

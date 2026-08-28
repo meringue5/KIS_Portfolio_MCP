@@ -1,7 +1,7 @@
 ---
 id: WI-036
 title: Establish corporate-action identity and adjustment lineage
-status: proposed
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023
@@ -35,9 +35,9 @@ yet a governed ledger that downstream lot and performance logic can cite.
 
 ## Acceptance criteria
 
-- [ ] actions and revisions are point-in-time and idempotent.
-- [ ] price/quantity adjustment lineage is explicit; unknown action blocks false return claims.
-- [ ] migration, repository, backup/restore and full gates pass.
+- [x] actions and revisions are point-in-time and idempotent.
+- [x] price/quantity adjustment lineage is explicit; unknown action blocks false return claims.
+- [x] migration, repository, backup/restore and full gates pass.
 
 ## Change impact
 
@@ -53,10 +53,28 @@ yet a governed ledger that downstream lot and performance logic can cite.
 
 ## Evidence
 
-- Pending.
+- Source preflight found no new provider requirement: the approved `source.kis-open-api` exposes domestic KSD
+  merger/split and face-value replacement schedules plus overseas period-rights revisions for the held-instrument scope.
+- `dataset.corporate-action-event` and `pipeline.corporate-actions-v2` define immutable source identity, content
+  revisions, point-in-time terms, held-instrument coverage evidence and fail-closed publish rules; DGH passes with
+  86 registered contracts.
+- Migration `0009_corporate_action_ledger.sql` adds three backed-up Silver tables and one rebuild view. The V2 registry
+  and catalog agree on 48 objects: 40 tables and eight views; 39 tables are in the complete backup allowlist.
+- `CorporateActionWarehouseRepository` preserves identical content as a no-op, appends changed knowledge revisions,
+  selects revisions by cutoff and emits reciprocal quantity/price effects only for confirmed complete splits.
+- Every generated effect cites its action revision through `control.lineage_edges`. Return readiness also requires a
+  passing `held_instrument_date_range_coverage` result; no row is never silently interpreted as no action.
+- Conservative KIS normalizers preserve domestic free-form merger ratios and overseas allocation ratios as unresolved
+  rather than guessing their unit semantics.
+- Focused migration, revision, coverage, unknown-term and restore fixtures: 8 passed. `bash scripts/check.sh quick`
+  passed; `bash scripts/check.sh full` passed with 317 tests and the existing Authlib deprecation warning.
+- No production source call, Scheduler, live MotherDuck migration or external send was performed.
 
 ## Closeout
 
-- Result: proposed.
-- Remaining risk: source coverage varies by market.
-- Follow-up Work Item: WI-022.
+- Result: closed; the governed repository-local corporate-action ledger, adjustment effect and recovery contract are
+  complete.
+- Remaining risk: production endpoint sampling, page limits, source coverage evidence, migration `0009` application
+  and scheduling require their normal external/production approval gate. Until then readiness remains `not_assessed`.
+- Follow-up Work Item: WI-022 may preserve missing coverage as an explicit reconstruction exception; production
+  corporate-action activation must be tracked before any KIS source call.

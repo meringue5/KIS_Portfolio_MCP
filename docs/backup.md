@@ -24,21 +24,28 @@ uv run python scripts/backup_v2_motherduck.py
 uv run python scripts/restore_v2_backup.py var/backup/v2-parquet/YYYYMMDD_HHMMSS --database :memory:
 ```
 
-스크립트와 WI-021 managed recovery Job은 동일한 `kis_portfolio.services.v2_recovery` allowlist/export/upload/
-download/restore primitives를 호출한다. WI-021-S06은 pre/post 모두 명시적인 fresh DuckDB 파일로 복원하여
-Job 종료 전 aggregate reconciliation을 다시 수행한다.
+스크립트와 WI-021/WI-022 managed recovery Job은 동일한 `kis_portfolio.services.v2_recovery`
+allowlist/export/upload/download/restore primitives를 호출한다. 두 S06 Job 모두 pre/post를 명시적인 fresh
+DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 수행한다. WI-022-S06은 pre restore가
+끝나기 전 reconstruction row를 쓰지 않으며, 현재 승인 범위에서는 Control exception만 append한다.
 
 - Parquet: `bronze.source_observations`, `silver.accounts`, `silver.instruments`, `silver.instrument_versions`,
   `silver.position_snapshots`, `silver.cash_snapshots`, `silver.trade_events`, `silver.trade_event_revisions`, `silver.cash_flow_events`,
   `silver.cash_flow_event_revisions`,
-  `silver.purchase_lots`, `silver.trade_threads`, `silver.trade_thread_lots`,
-  `silver.sell_allocation_revisions`, `silver.trade_journal_revisions`, `silver.price_bars_daily`,
+  `silver.position_episodes`, `silver.position_episode_revisions`,
+  `silver.purchase_lots`, `silver.purchase_lot_identities`, `silver.purchase_lot_revisions`,
+  `silver.trade_threads`, `silver.trade_thread_lots`,
+  `silver.sell_allocation_sets`, `silver.sell_allocation_revisions`,
+  `silver.trade_journal_revisions`, `silver.price_bars_daily`,
   `silver.price_bar_revisions_daily`,
+  `silver.corporate_actions`, `silver.corporate_action_revisions`,
+  `silver.corporate_action_adjustment_effects`,
   `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
   `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
   `gold.portfolio_daily_state`, `gold.metric_values`, `control.pipeline_definitions`,
   `control.metric_definitions`, `control.pipeline_runs`,
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`,
+  `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`,
   `control.etf_instrument_routes`.
 - Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
   `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
@@ -46,7 +53,10 @@ Job 종료 전 aggregate reconciliation을 다시 수행한다.
   원문 backup이 됐다고 간주하지 않는다.
 - Rebuild/excluded: `silver.instrument_versions_effective`, `silver.instruments_current`,
   `silver.trade_events_current`, `silver.cash_flow_events_current`, `silver.purchase_lots_current`,
+  `silver.position_episodes_current`, `silver.purchase_lot_states_current`, `silver.sell_allocations_current`,
+  `silver.corporate_actions_current`,
   `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
+  `control.reconstruction_exceptions_current`,
   `control.schema_migrations`.
 
 owner research 원문과 추출물은 restricted다. local rehearsal에서는 owner-only directory의 0600 file로

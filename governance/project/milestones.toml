@@ -583,6 +583,42 @@ title = "Execute and recover the bounded production backfill"
 status = "closed"
 
 [[subitems]]
+id = "WI-022-S01"
+parent_id = "WI-022"
+title = "Define reconstruction boundaries quality states and deterministic FIFO allocation"
+status = "closed"
+
+[[subitems]]
+id = "WI-022-S02"
+parent_id = "WI-022"
+title = "Add position episode lot revision allocation and exception schema"
+status = "closed"
+
+[[subitems]]
+id = "WI-022-S03"
+parent_id = "WI-022"
+title = "Replay trades and corporate actions with inferred opening handling"
+status = "closed"
+
+[[subitems]]
+id = "WI-022-S04"
+parent_id = "WI-022"
+title = "Prove append-only sell allocation reconciliation idempotency and restore"
+status = "closed"
+
+[[subitems]]
+id = "WI-022-S05"
+parent_id = "WI-022"
+title = "Run an aggregate-only production reconstruction dry-run"
+status = "closed"
+
+[[subitems]]
+id = "WI-022-S06"
+parent_id = "WI-022"
+title = "Apply the approved bounded reconstruction and verify recovery"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-026-S01"
 parent_id = "WI-026"
 title = "Review and activate the TIME ETF source profile"
