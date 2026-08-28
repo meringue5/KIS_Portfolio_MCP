@@ -72,6 +72,12 @@ def inspect(connection: duckdb.DuckDBPyConnection) -> dict:
         "held_instruments": len(resolved), "classification_counts": dict(sorted(counts.items())),
         "exact_routes_for_held": routed, "registered_routes": len(routes),
         "production_network_profiles": len(production_network_profiles()),
+        "instrument_version_rows": connection.execute("SELECT count(*) FROM silver.instrument_versions").fetchone()[0],
+        "route_rows": connection.execute("SELECT count(*) FROM control.etf_instrument_routes").fetchone()[0],
+        "classification_observation_rows": connection.execute("""
+            SELECT count(*) FROM bronze.source_observations
+            WHERE pipeline_run_id='wi017-held-classification'
+        """).fetchone()[0],
     }
 
 
@@ -123,12 +129,7 @@ def apply(connection: duckdb.DuckDBPyConnection) -> dict:
             UPDATE silver.instruments SET asset_type=?,classification_quality=?
             WHERE instrument_id=?
         """, [classification.asset_type, classification.quality, row["instrument_id"]])
-    result = inspect(connection)
-    result.update({
-        "instrument_version_rows": connection.execute("SELECT count(*) FROM silver.instrument_versions").fetchone()[0],
-        "route_rows": connection.execute("SELECT count(*) FROM control.etf_instrument_routes").fetchone()[0],
-    })
-    return result
+    return inspect(connection)
 
 
 def main() -> None:

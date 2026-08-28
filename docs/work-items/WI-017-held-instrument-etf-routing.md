@@ -1,7 +1,7 @@
 ---
 id: WI-017
 title: Classify held instruments and establish rights-gated ETF routing
-status: in_progress
+status: closed
 type: defect
 owner: owner
 decision_refs: ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -39,14 +39,14 @@ provider rights are not machine-gated, so a generic heuristic or network connect
 
 ## Acceptance criteria
 
-- [ ] current held instruments resolve through governed precedence and unknown quality remains explicit.
-- [ ] instrument versions are point-in-time, replay-idempotent and reject overlapping conflicting intervals.
-- [ ] exact ETF routes contain no account, quantity or valuation data and have valid profile/product-key references.
-- [ ] unknown/prohibited rights structurally block production adapter registration.
-- [ ] TIME, KoAct, RISE and PLUS synthetic fixtures parse through provider-specific offline adapters.
-- [ ] malformed/incomplete inputs fail or remain partial; KIS composition cannot be a completeness fallback.
-- [ ] additive migration, catalog, backup/restore and full Project OS gates pass.
-- [ ] production classification/routing migration and held-scope reconciliation complete without external issuer calls.
+- [x] current held instruments resolve through governed precedence and unknown quality remains explicit.
+- [x] instrument versions are point-in-time, replay-idempotent and reject overlapping conflicting intervals.
+- [x] exact ETF routes contain no account, quantity or valuation data and have valid profile/product-key references.
+- [x] unknown/prohibited rights structurally block production adapter registration.
+- [x] TIME, KoAct, RISE and PLUS synthetic fixtures parse through provider-specific offline adapters.
+- [x] malformed/incomplete inputs fail or remain partial; KIS composition cannot be a completeness fallback.
+- [x] additive migration, catalog, backup/restore and full Project OS gates pass.
+- [x] production classification/routing migration and held-scope reconciliation complete without external issuer calls.
 
 ## Change impact
 
@@ -66,10 +66,13 @@ provider rights are not machine-gated, so a generic heuristic or network connect
 ## Evidence
 
 - Read-only readiness audit: `docs/design/milestone-2-data-readiness-review.md`.
-- Commands/tests: pending.
+- `bash scripts/check.sh full`: 248 tests passed before production apply; all Project OS contract gates passed.
+- Production dry-run/apply: 18 held instruments, 14 ETF and four explicit unknown; 18 versions and 14 exact routes.
+- Rights gate: four fixture-only profiles and zero production network profile.
+- Recovery evidence: `docs/operations/milestone-2-instrument-etf-routing-2026-08.md`.
 
 ## Closeout
 
-- Result: in progress.
+- Result: closed. Migration 0007, point-in-time classification and fixture-only exact ETF routing are live.
 - Remaining boundary: every provider remains fixture-only until a separate rights approval activates it.
 - Follow-up Work Item: W0503 trend/volatility metrics against the corrected price ledger.

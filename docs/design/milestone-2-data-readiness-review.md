@@ -138,6 +138,15 @@ never create a purchase lot. A balance difference is never promoted to a cash ev
 Only one item may change the repository at a time. Official-source/terms research, source-call planning and fixture
 design may run in parallel without writes.
 
+## WI-017 outcome
+
+Migration `0007` now preserves point-in-time instrument classification versions and exact ETF provider routes. The
+current held scope reconciles to 18 instruments: 14 classified ETFs with 14 exact routes and four explicit unknowns.
+TIME, KoAct, RISE and PLUS have provider-specific synthetic fixture parsers, while every provider profile remains
+`fixture_only` with unknown automation/cloud/raw-retention/derived-use rights. Therefore the production network
+profile registry is empty and no issuer call, constituent publish, Job or Scheduler was activated. W0505 remains
+production no-go until provider-specific rights approval and forward collection evidence exist.
+
 ## Telegram path remains a later gated consumer
 
 The safe delivery shape is `evaluate -> candidate -> dispatch claim -> render/redact -> send -> delivery ledger`.

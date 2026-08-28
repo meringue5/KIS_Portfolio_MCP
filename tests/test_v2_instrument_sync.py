@@ -57,12 +57,16 @@ def test_held_scope_classification_and_route_sync_are_idempotent():
         "exact_routes_for_held": 2,
         "registered_routes": 14,
         "production_network_profiles": 0,
+        "instrument_version_rows": 0,
+        "route_rows": 0,
+        "classification_observation_rows": 0,
     }
     first = module.apply(con)
     second = module.apply(con)
     assert first == second
     assert first["instrument_version_rows"] == 3
     assert first["route_rows"] == 14
+    assert first["classification_observation_rows"] == 3
     assert con.execute("select count(*) from bronze.source_observations").fetchone()[0] == 3
     assert con.execute("select asset_type from silver.instruments where instrument_id='v1|KRX|0185L0'").fetchone()[0] == "etf"
     con.close()
