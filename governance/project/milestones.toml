@@ -674,10 +674,10 @@ status = "closed"
 id = "WI-029-S04"
 parent_id = "WI-029"
 title = "Activate DB-only shadow schedules with transport disabled"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-029-S05"
 parent_id = "WI-029"
 title = "Collect two-week evidence and owner rule approval"
-status = "proposed"
+status = "in_progress"

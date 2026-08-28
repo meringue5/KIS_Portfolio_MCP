@@ -67,19 +67,19 @@ owner can approve external delivery.
 - `WI-029-S03` closed: bounded aggregate-only live audit and reconstructed replay are recorded in
   `docs/operations/wi-029-replay-readiness-2026-08.md`. The official-evidence replay hash is
   `a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d`; no DB or external-send write occurred.
-- `WI-029-S04` is active. Managed migrations, append-only classification evidence, immutable calibration persistence
-  and DB-only shadow scheduling remain before the elapsed observation window can start.
-- S04 repository implementation is release-ready: the three existing scale-to-zero jobs land operational-strict
+- `WI-029-S04` closed: the three existing scale-to-zero jobs land operational-strict
   raw/adjusted bars and compose KR slots plus morning U.S. close shadow evaluation; the morning job resolves only
   current overseas unknown holdings through bounded KIS+SEC evidence. The `wi029-s04` target enforces migration 0013,
   one initial morning run, zero external transport and private GCS backup/download/fresh restore. Live execution
-  evidence is recorded in `docs/operations/wi-029-shadow-activation-2026-08.md`: PR #26 and deployment run
-  `33180964201` completed; the first shadow evaluation produced 18 quality-suppressed candidates, zero transitions
-  and zero external sends, while the recovery check restored all 58 governed tables. The final S04 closeout patch
-  makes calibration and shadow-window persistence repeatable before the elapsed S05 clock is accepted.
+  evidence is recorded in `docs/operations/wi-029-shadow-activation-2026-08.md`: PRs #26/#27 and deployment runs
+  `33180964201`/`33182018996` completed; the first shadow evaluation produced 18 quality-suppressed candidates, zero
+  transitions and zero external sends, while the final recovery check restored all 58 governed tables. The approved
+  replay hash is persisted once and the 2026-08-28 through 2026-09-10 shadow window is `collecting`.
+- `WI-029-S05` is active. It is an elapsed-time and owner-review gate, not an implementation shortcut: scheduled
+  session evidence must accumulate through 2026-09-10 before reconciliation and explicit owner approval.
 
 ## Closeout
 
-- Result: in progress; S01-S03 are closed, S04 is active, and closure still requires elapsed S05 evidence.
+- Result: in progress; S01-S04 are closed and S05 is collecting elapsed evidence.
 - Remaining risk: reconstructed-history bias.
 - Follow-up Work Item: WI-030.
