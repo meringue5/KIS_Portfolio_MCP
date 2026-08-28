@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEC-015..017 corporate-action identity and adjustment lineage | ADR-021/023 + V2-ADR-006/010/012 | WI-036 | governed KIS source selection; dataset/pipeline, migration and repository pending | official KIS domestic KSD and overseas period-rights contracts identified; no new provider | in_progress |
+| DEC-015..017 corporate-action identity and adjustment lineage | ADR-021/023 + V2-ADR-006/010/012 | WI-036 | governed KIS source selection, dataset/pipeline, migration 0009, PIT repository and adjustment lineage | 8 focused; full 317 passed; complete local backup/restore; production source/migration not invoked | closed |
 | DEC-009..014 production trade/cash history | V2-ADR-006/010/012 | WI-021 / WI-021-S06 | fixed-hash migration/recovery Cloud Run Jobs; pre/post V2 backup, private GCS recovery and restored aggregate reconciliation | run 33145645614 / execution `8q7q6`: 131/131 partitions, 131 calls, 393 stages, 262 quality, 150 lineage, 11 watermarks; private restore pass | closed |
 | DEC-009..014 bounded physical broker history | V2-ADR-006/010/012 | WI-021 / WI-021-S05 | per-page KIS adapter and hash/backup-gated production command | 131 partitions, 6 gaps, 374/400 preflight; physical-page and negative CLI tests; full 303 passed | closed |
 | DEC-009..014 governed trade/cash normalization | V2-ADR-006/010/012 | WI-021 / WI-021-S04 | guarded fixture pages, immutable observations, trade/cash facts and reconciliation report | incomplete pagination blocks Silver/watermark; replay no-op; full 297 passed | closed |
@@ -49,7 +49,7 @@
 | DEC-015..017/026 trend and volatility | V2-W0503 | WI-019 | WI-013, WI-015 | closed |
 | DEC-009..014 canonical cash events | V2-W0304 | WI-020 | WI-013, WI-016 | closed |
 | DEC-009..014 three-year trade/cash history | V2-W0403 | WI-021 | WI-016, WI-020 | closed; live recovery evidence recorded |
-| DEC-015..017 corporate actions | V2-W0307 | WI-036 | WI-015 | in_progress |
+| DEC-015..017 corporate actions | V2-W0307 | WI-036 | WI-015 | closed; production activation remains gated |
 | DEC-009..014 position/lot/sell reconstruction | V2-W0304/0305 | WI-022 | WI-010, WI-021, WI-036 | proposed |
 | DEC-004/009..017/026 portfolio performance | V2-W0502 | WI-023 | WI-009, WI-015, WI-020..022 | proposed |
 | DEC-012..014/027/031 thread risk plans/review queue | V2-W0305/0306 | WI-024 | WI-010, WI-022 | proposed |
