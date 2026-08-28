@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from kis_portfolio.adapters.outbound.memory_state import InMemoryStateStore
 from kis_portfolio.db import kis_token_repository
@@ -9,7 +10,8 @@ def test_kis_token_repository_uses_document_state(monkeypatch):
     store = InMemoryStateStore()
     configure_state_store_for_tests(store)
     monkeypatch.setattr(kis_token_repository, "get_state_backend", lambda: "firestore")
-    issued = datetime.now()
+    # KIS expiry timestamps are intentionally stored as naive Asia/Seoul wall-clock values.
+    issued = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
     expires = issued + timedelta(hours=1)
     try:
         saved = kis_token_repository.upsert_kis_api_access_token(
