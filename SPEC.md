@@ -20,7 +20,7 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 | 전체 계좌 구성 조회 | `get-configured-accounts` |
 | 전체 계좌 국내/연금 잔고 스냅샷 | `refresh-all-account-snapshots` |
 | 국내/해외/환율 반영 전체 자산 요약 | `get-total-asset-overview` |
-| 총자산 일별 변화/추이/비중 이력 | `get-total-asset-daily-change`, `get-total-asset-trend`, `get-total-asset-allocation-history` |
+| 총자산 일별 변화/종목별 원화 평가액 변화 기여도/추이/비중 이력 | `get-total-asset-daily-change`, `get-total-asset-trend`, `get-total-asset-allocation-history` |
 | 단일 계좌 국내주식 잔고 조회 | `get-account-balance` |
 | 단일 계좌 해외주식 잔고 조회 | `get-overseas-balance` |
 | 해외 예수금 + 적용환율 조회 | `get-overseas-deposit` |
@@ -321,6 +321,12 @@ entrypoint로 제공한다. 기존 fork의 `inquery-*` tool alias와 계좌별 M
   - `get-total-asset-allocation-history`
 - 기존 `get-latest-portfolio-summary`, `get-portfolio-daily-change`, `get-portfolio-trend`,
   `get-portfolio-anomalies`는 국내/연금 feeder 분석으로 의미를 축소한다.
+
+`get-total-asset-daily-change`는 기존 aggregate 응답을 유지하면서
+`valuation_change_contribution`을 additive로 제공한다. 이는 양일 원화 평가액의 point-to-point 설명이며
+투자수익 기여도가 아니다. 양일 snapshot completeness, 동일 필수 계좌 coverage와 reconciliation을 모두
+통과하지 못하면 신규 편입·전량 매도 판정을 억제한다. 해외 종목은 환율 효과를 포함한 원화 평가액
+변화로 명시한다.
 
 ---
 
