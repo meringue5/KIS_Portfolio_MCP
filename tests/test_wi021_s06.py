@@ -20,6 +20,7 @@ from kis_portfolio.services.trade_cash_backfill_pipeline import (
 from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
 from kis_portfolio.services.wi021_s06 import WI021S06Config, reconcile_wi021_s06
 from kis_portfolio.services import wi021_s06
+from kis_portfolio.adapters.batch import cli as batch_cli
 
 
 def _config(plan, *, quality=6, lineage=3, watermarks=1):
@@ -77,6 +78,27 @@ def test_reconciliation_fails_on_incomplete_partition_set(tmp_path: Path) -> Non
 class _EvidenceStore:
     def put_bytes(self, payload, *, dataset_id, partition, media_type):
         return SimpleNamespace(uri="gs://private/evidence", content_hash="e" * 64)
+
+
+def test_cli_defaults_as_of_date_to_end_date(monkeypatch) -> None:
+    captured = []
+    args = batch_cli.build_parser().parse_args([
+        "run-wi021-s06",
+        "--start-date", "20230828",
+        "--end-date", "20260828",
+        "--expected-plan-hash", "plan",
+        "--expected-budget-hash", "budget",
+        "--project", "project",
+        "--bucket", "private",
+    ])
+    monkeypatch.setattr(
+        batch_cli,
+        "run_wi021_s06",
+        lambda config: captured.append(config) or {"status": "succeeded"},
+    )
+
+    assert batch_cli._run_wi021_s06(args) == 0
+    assert captured[0].as_of_date == date(2026, 8, 28)
 
 
 def _orchestration_fixture(monkeypatch, tmp_path: Path, *, upload_fails: bool = False):

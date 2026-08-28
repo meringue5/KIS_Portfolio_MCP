@@ -197,7 +197,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wi021_s06.add_argument("--start-date", required=True, help="Exact YYYYMMDD")
     wi021_s06.add_argument("--end-date", required=True, help="Exact YYYYMMDD")
-    wi021_s06.add_argument("--as-of-date", required=True, help="Exact YYYYMMDD")
+    wi021_s06.add_argument(
+        "--as-of-date",
+        help="Exact YYYYMMDD; defaults to --end-date for the fixed historical backfill",
+    )
     wi021_s06.add_argument("--expected-plan-hash", required=True)
     wi021_s06.add_argument("--expected-budget-hash", required=True)
     wi021_s06.add_argument("--project", required=True)
@@ -378,10 +381,11 @@ def _run_trade_cash_backfill(args: argparse.Namespace) -> int:
 
 def _run_wi021_s06(args: argparse.Namespace) -> int:
     try:
+        as_of_date = args.as_of_date or args.end_date
         result = run_wi021_s06(WI021S06Config(
             start_date=datetime.strptime(args.start_date, "%Y%m%d").date(),
             end_date=datetime.strptime(args.end_date, "%Y%m%d").date(),
-            as_of_date=datetime.strptime(args.as_of_date, "%Y%m%d").date(),
+            as_of_date=datetime.strptime(as_of_date, "%Y%m%d").date(),
             expected_plan_hash=args.expected_plan_hash,
             expected_budget_hash=args.expected_budget_hash,
             project=args.project,
