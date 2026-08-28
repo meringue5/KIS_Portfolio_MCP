@@ -35,8 +35,8 @@ reconstruction and return analysis has not been collected or reconciled.
 
 ## Acceptance criteria
 
-- [ ] call/page budgets fail closed and resumable partitions are idempotent.
-- [ ] known source gaps remain explicit.
+- [x] call/page budgets fail closed and resumable partitions are idempotent.
+- [x] known source gaps remain explicit.
 - [ ] approved live backfill, restore and aggregate reconciliation evidence exist before closeout.
 
 ## Change impact
@@ -66,6 +66,20 @@ reconstruction and return analysis has not been collected or reconciled.
   - [x] a failed partition resumes with the same run identity and persisted physical-call usage.
   - [x] watermark advances only after publish, rejects gaps and never moves backwards.
   - [x] the runtime uses existing governed Control objects and performs no production collection.
+- `WI-021-S04` — fixture page binding, canonical event normalization and reconciliation dry-run (`closed`).
+  - [x] every guarded fixture page lands immutable row observations and publishes only reconciled trade/cash facts.
+  - [x] official side, quantity, price, fee, tax and settlement fields are preserved without inferred fills.
+  - [x] source-row classification and canonical event counts reconcile; incomplete pagination fails closed.
+  - [x] this sub-item creates no purchase lot, source network call or production warehouse mutation.
+- `WI-021-S05` — physical KIS page adapter and fixed-argument production preflight (`ready`).
+  - [ ] each HTTP page is reserved before I/O and uses the approved route/TR/continuation contract.
+  - [ ] production execution requires an exact approved plan hash, account scope, database mode and explicit apply flag.
+  - [ ] preview and failure output contain no credential or raw account number.
+- `WI-021-S06` — bounded production execution, reconciliation and recovery evidence (`ready`).
+  - [ ] pre-backfill V2 backup exists before the first source call.
+  - [ ] all callable partitions terminate or retain an explicit resumable failure/known gap.
+  - [ ] aggregate reconciliation, private GCS upload and isolated restore pass before parent closeout.
+  - [ ] actual call, row, storage and elapsed-cost evidence remains within the approved bounds.
 
 ## Evidence
 
@@ -94,10 +108,17 @@ reconstruction and return analysis has not been collected or reconciled.
   no-op and a gap fails closed without moving the watermark.
 - `bash scripts/check.sh quick`: passed after S03 implementation and governance contract registration.
 - `bash scripts/check.sh full`: 295 tests passed; all common gates passed with the same existing Authlib warning.
+- WI-021-S04 binds guarded fixture pages to deterministic content-based row identities, Bronze observations and
+  Silver trade/cash facts. Domestic and overseas order aggregates preserve official side/quantity/price; overseas
+  period transactions remain separate trade candidates and only explicit settlement/fee/tax amounts become cash facts.
+- An incomplete-pagination fixture retains one Bronze observation but creates zero Silver trade rows and zero
+  watermark rows. The reconciled fixture creates two trades and three cash facts, zero purchase lots and is a no-op
+  on replay.
+- `bash scripts/check.sh full`: 297 tests passed; all common gates passed with the existing Authlib warning.
 
 ## Closeout
 
-- Result: WI-021-S01 through S03 closed; the parent remains active for reconciliation and approved execution.
+- Result: WI-021-S01 through S04 closed; the parent remains active for physical adapter and approved execution.
 - Remaining risk: broker retention and historical gaps.
-- Follow-up: source-adapter integration, reconciliation dry-run and separately approved live backfill remain inside
-  WI-021 before WI-022 can start.
+- Follow-up: S04 fixture reconciliation, S05 physical adapter/preflight and S06 approved live recovery evidence remain
+  inside WI-021 before WI-022 can start.

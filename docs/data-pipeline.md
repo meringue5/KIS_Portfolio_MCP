@@ -65,6 +65,17 @@ request도 `run_budgeted_physical_call`이 partition/global quota를 먼저 원�
 한도 소진, unknown partition과 known gap은 외부 호출 전에 실패한다. 상세 계약은
 [WI-021-S02 call budget](./design/wi-021-s02-call-budget.md)에 둔다.
 
+WI-021-S03은 `pipeline.trade-cash-backfill-v2`를 기존 Control runner에 별도 등록한다. logical identity는
+pipeline/version/end-date/backfill slot/partition key이며, 완료 partition은 재사용하고 실패 partition은 같은
+run id에서 재개한다. 각 physical-call reservation은 I/O 전에 stage row에 기록되어 process restart 뒤에도
+page/global budget에서 차감된다. source stream watermark는 quality 이후 publish에서만 연속·단조 증가한다.
+
+WI-021-S04는 guarded fixture page를 content-based immutable row observation으로 landing하고, 주문 source의
+official side·체결수량·가격만 Silver trade fact로 만든다. 해외 period transaction은 주문 fact와 병합하지
+않는 trade candidate observation으로 남기며, 원천에 명시된 settlement·fee·tax만 별도 cash fact로 만든다.
+pagination이 불완전하면 Bronze observation은 보존하지만 Silver publish와 watermark를 차단한다. 이 단계는
+purchase lot을 만들지 않으며 lot/position replay는 WI-022가 담당한다.
+
 WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
 `silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
 유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은

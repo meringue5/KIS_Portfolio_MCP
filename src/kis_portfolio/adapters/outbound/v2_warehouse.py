@@ -278,7 +278,9 @@ class V2WarehouseRepository:
         )
         return dict(zip(columns, row, strict=True))
 
-    def record_trade_with_lot(self, payload: dict[str, Any], observation_id: str) -> tuple[str, str | None]:
+    def record_trade(self, payload: dict[str, Any], observation_id: str) -> str:
+        """Persist one governed trade event without inferring a purchase lot."""
+
         side = str(payload.get("side") or "").lower()
         if side not in {"buy", "sell"}:
             raise ValueError("trade side must be buy or sell")
@@ -287,6 +289,18 @@ class V2WarehouseRepository:
         execution_sequence = str(payload.get("execution_sequence") or "aggregate").strip()
         if not market or not product_code or not execution_sequence:
             raise ValueError("trade identity requires market, account_product_code and execution_sequence")
+        observation = self.connection.execute(
+            """
+            SELECT dataset_id, fetched_at FROM bronze.source_observations
+            WHERE observation_id = ?
+            """,
+            [observation_id],
+        ).fetchone()
+        if not observation or observation[0] not in {
+            "dataset.trade-event",
+            "dataset.portfolio-position-observation",  # legacy fixture compatibility
+        }:
+            raise ValueError("trade event requires a governed trade observation")
         identity = "|".join([
             payload["account_id"], market, product_code, payload["instrument_id"],
             payload["broker_order_id"], str(payload["executed_at"]), execution_sequence,
@@ -301,12 +315,7 @@ class V2WarehouseRepository:
               payload.get("quality_status", "pass")])
         knowledge_at = payload.get("knowledge_at")
         if knowledge_at is None:
-            row = self.connection.execute(
-                "SELECT fetched_at FROM bronze.source_observations WHERE observation_id=?", [observation_id]
-            ).fetchone()
-            if not row:
-                raise ValueError("trade revision requires a governed source observation")
-            knowledge_at = row[0]
+            knowledge_at = observation[1]
         revision = int(payload.get("event_version", 1))
         revision_id = hashlib.sha256(f"trade-revision|{trade_id}|{revision}".encode()).hexdigest()
         self.connection.execute("""
@@ -323,6 +332,13 @@ class V2WarehouseRepository:
               payload["currency"], knowledge_at, observation_id,
               payload.get("correction_reason", "source_event"), payload.get("quality_status", "pass"),
               _json(payload.get("trade_metadata", {}))])
+        return trade_id
+
+    def record_trade_with_lot(self, payload: dict[str, Any], observation_id: str) -> tuple[str, str | None]:
+        """Persist a trade and retain the legacy buy-lot projection for existing callers."""
+
+        trade_id = self.record_trade(payload, observation_id)
+        side = str(payload.get("side") or "").lower()
         if side != "buy":
             return trade_id, None
         lot_id = hashlib.sha256(f"lot|{trade_id}".encode()).hexdigest()
