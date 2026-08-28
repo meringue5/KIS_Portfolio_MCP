@@ -26,7 +26,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 7 | WI-020 cash-event contract | V2-W0304 | WI-013, WI-016 | closed |
 | 8 | WI-021 three-year trade/cash history | V2-W0403 | WI-016, WI-020 | closed; 131 partitions, private recovery and reconciliation passed |
 | 9 | WI-036 corporate-action ledger | V2-W0307 | WI-015 | closed; repository-local PIT ledger and fail-closed coverage gate |
-| 10 | WI-022 position/lot/sell reconstruction | V2-W0304, V2-W0305 | WI-010, WI-021, WI-036 | in progress; S01~S02 closed, S03 next |
+| 10 | WI-022 position/lot/sell reconstruction | V2-W0304, V2-W0305 | WI-010, WI-021, WI-036 | in progress; S01~S03 closed, S04 next |
 | 11 | WI-023 return/contribution/drawdown | V2-W0502 | WI-009, WI-015, WI-020..022 | proposed |
 | 12 | WI-024 typed thread risk plan | V2-W0305, V2-W0306 | WI-010, WI-022 | proposed |
 | 13 | WI-025 lot/thread risk metrics | V2-W0504 | WI-015, WI-019, WI-022, WI-024 | proposed |

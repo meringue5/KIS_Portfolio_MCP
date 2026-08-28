@@ -110,6 +110,13 @@ Control exception identity/revision을 additive object로 둔다. current view�
 whole revision을 선택하며, 기존 compatibility lot view와 새 reconstructed lot-state view를 혼합하지 않는다.
 이 단계는 구조와 local recovery만 검증하고 trade replay, FIFO persistence와 production migration은 수행하지 않는다.
 
+WI-022-S03의 pure replay는 passing canonical trade revision과 governed corporate-action effect를 stable effective
+order로 재생한다. 현재 broker quantity에서 역산한 시작 잔량은 complete action coverage와 source gap 부재가
+확인된 경우에만 `inferred_opening` candidate가 되며 execution price/cost를 만들지 않는다. 전량 청산은 position
+episode를 닫고 후속 매수는 새 episode를 연다. 동일시각 tie, lineage 불일치, 수량 불일치와 evidence blocker는
+derived fact 없이 fail closed한다. 이 단계의 결과는 memory-only plan이며 S02 객체 저장은 S04까지 금지한다.
+상세 계약은 [WI-022-S03 deterministic replay](./design/wi-022-s03-deterministic-replay.md)에 둔다.
+
 TIME·KoAct·RISE·PLUS parser는 합성 fixture bytes만 처리하는 offline pipeline으로 먼저 검증한다. 현재 네
 profile의 rights와 activation은 `fixture_only`라 source call count는 항상 0이며 HTTP client, Cloud Run Job과
 Scheduler가 없다. 동일 source date의 다른 file hash는 quarantine하고, missing weight나 incomplete page는

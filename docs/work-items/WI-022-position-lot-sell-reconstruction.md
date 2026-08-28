@@ -57,7 +57,12 @@ must be replayed without silently rewriting the preserved migration artifacts.
   - [x] FIFO is deterministic within account, instrument and position episode and never creates a buy lot from a sell.
   - [x] the contract is pure and performs no source call, warehouse write or production mutation.
 - `WI-022-S02` — additive position-episode, lot-revision, allocation and exception schema (`closed`).
-- `WI-022-S03` — deterministic trade and corporate-action replay with inferred-opening handling (`proposed`).
+- `WI-022-S03` — deterministic trade and corporate-action replay with inferred-opening handling (`closed`).
+  - [x] canonical trades and governed action effects replay in stable effective order.
+  - [x] inferred opening is reverse-adjusted across complete quantity effects and never receives a fabricated cost.
+  - [x] zero balance closes an episode and a later buy opens a new stable episode.
+  - [x] missing coverage, source gaps, ambiguous order and insufficient opening quantity fail closed.
+  - [x] the replay is deterministic, pure and persists no S02 object.
 - `WI-022-S04` — append-only sell allocation, reconciliation, idempotency and restore proof (`proposed`).
 - `WI-022-S05` — aggregate-only production read-only dry-run and impact report (`proposed`).
 - `WI-022-S06` — separately approved bounded production apply and recovery evidence (`proposed`).
@@ -81,9 +86,15 @@ must be replayed without silently rewriting the preserved migration artifacts.
 - Thirteen focused migration/schema/recovery/corporate-action tests passed. `bash scripts/check.sh quick` and
   `bash scripts/check.sh full` passed with 329 tests and the existing Authlib deprecation warning.
 - No live MotherDuck migration, source call, replay, scheduler change or external send occurred.
+- `position_replay.py` performs exact reverse boundary derivation and deterministic forward replay without a source or
+  repository dependency. Ten synthetic tests cover input-order stability, FIFO, inferred opening, split adjustment,
+  governed successor identity, episode close/re-entry and fail-closed evidence/order/quantity boundaries.
+- `docs/design/wi-022-s03-deterministic-replay.md` fixes the algorithm, local episode quality and S04 persistence
+  handoff. `bash scripts/check.sh quick` and `bash scripts/check.sh full` passed with 339 tests and the existing Authlib
+  deprecation warning. No source call, database write, live migration, scheduler change or external send occurred.
 
 ## Closeout
 
-- Result: in progress; WI-010, WI-021 and repository-local WI-036 dependencies are closed.
+- Result: in progress; S01~S03 and dependencies WI-010, WI-021 and repository-local WI-036 are closed.
 - Remaining risk: owner review for ambiguous opening positions.
-- Follow-up Work Item: WI-023 and WI-024.
+- Follow-up sub-item: WI-022-S04 append-only persistence, reconciliation, idempotency and restore proof.

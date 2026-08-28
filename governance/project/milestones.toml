@@ -598,7 +598,7 @@ status = "closed"
 id = "WI-022-S03"
 parent_id = "WI-022"
 title = "Replay trades and corporate actions with inferred opening handling"
-status = "proposed"
+status = "closed"
 
 [[subitems]]
 id = "WI-022-S04"
