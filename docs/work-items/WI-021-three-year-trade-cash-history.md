@@ -126,6 +126,13 @@ reconstruction and return analysis has not been collected or reconciled.
 - `bash scripts/check.sh full`: 303 tests passed; all common gates passed with the existing Authlib warning.
 - WI-021-S06 production readiness preserves KIS `dmst_frcr_fee1` as a separate KRW fee rather than inheriting the
   overseas transaction currency. Targeted fixture/source tests (6 passed) and `bash scripts/check.sh quick` passed.
+- `run-wi021-s06` and the dedicated manual Cloud Run target enforce private pre-backup upload/download/restore before
+  the first KIS page, then post-backup and isolated aggregate reconciliation. The target is excluded from `all`, has no
+  Scheduler and fixes one task, parallelism one and automatic retries zero. Recovery/deploy/reconciliation tests pass.
+- Deployment dry-run resolved the fixed command, immutable digest shape, private bucket, dedicated pipeline service
+  account and Secret Manager references without exposing values. `bash scripts/check.sh full`: 310 tests passed; all
+  common gates passed with the existing Authlib warning.
+- Operational runbook: `docs/design/wi-021-s06-production-execution.md`.
 
 ## Closeout
 

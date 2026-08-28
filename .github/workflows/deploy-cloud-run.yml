@@ -20,6 +20,7 @@ on:
           - token-warmup-scheduler
           - v2-core-batch
           - v2-core-schedulers
+          - wi021-s06
 
 permissions:
   contents: read
@@ -87,6 +88,8 @@ jobs:
       KIS_GCS_BUCKET: ${{ vars.KIS_GCS_BUCKET || 'grand-forge-279904-kis-portfolio-private' }}
       KIS_FIRESTORE_DATABASE: ${{ vars.KIS_FIRESTORE_DATABASE || 'kis-portfolio-state' }}
       KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT: ${{ vars.KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT || 'kis-portfolio-pipeline@grand-forge-279904.iam.gserviceaccount.com' }}
+      KIS_WI021_S06_JOB_NAME: ${{ vars.KIS_WI021_S06_JOB_NAME || 'kis-portfolio-wi021-s06' }}
+      KIS_CLOUD_RUN_WI021_S06_TASK_TIMEOUT: ${{ vars.KIS_CLOUD_RUN_WI021_S06_TASK_TIMEOUT || '14400s' }}
       KIS_DEPLOY_SECRET_MODE: secret-manager
     steps:
       - name: Check out repository
@@ -219,3 +222,20 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
+
+      - name: Deploy WI-021-S06 one-off recovery job
+        if: github.event.inputs.target == 'wi021-s06'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi021-s06 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI021_S06_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Execute WI-021-S06 once and wait
+        if: github.event.inputs.target == 'wi021-s06'
+        run: |
+          gcloud run jobs execute "${KIS_WI021_S06_JOB_NAME}" \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --wait

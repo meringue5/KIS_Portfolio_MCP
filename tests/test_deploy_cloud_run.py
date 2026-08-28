@@ -251,6 +251,43 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
     }
 
 
+def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
+    commands = []
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi021-s06", dry_run=True,
+        secret_mode="secret-manager", job="kis-portfolio-wi021-s06",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_GCS_BUCKET": "private-bucket",
+    }
+    monkeypatch.setenv("GITHUB_SHA", "a" * 40)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_build_release_image",
+        lambda args, project: "image@sha256:" + "b" * 64,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run",
+        lambda command, dry_run: commands.append(command) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi021_s06_job(
+        args, env=env, project="grand-forge-279904",
+    )
+
+    assert result == 0 and len(commands) == 1
+    command = commands[0]
+    assert command[command.index("--image") + 1].startswith("image@sha256:")
+    assert command[command.index("--tasks") + 1] == "1"
+    assert command[command.index("--parallelism") + 1] == "1"
+    assert command[command.index("--max-retries") + 1] == "0"
+    fixed = command[command.index("--args") + 1]
+    assert "--expected-plan-hash,0755656ed8151a91" in fixed
+    assert "--expected-budget-hash,0a4abf9b795f9d73" in fixed
+    assert "--start-date,20230828,--end-date,20260828" in fixed
+
+
 def test_v2_schedulers_use_dedicated_invoker_instead_of_legacy_default(monkeypatch):
     calls = []
     args = argparse.Namespace(

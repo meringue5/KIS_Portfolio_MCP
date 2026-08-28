@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEC-009..014 production trade/cash history | V2-ADR-006/010/012 | WI-021 / WI-021-S06 | pre-backup, bounded apply, reconciliation, private recovery | production evidence collection active | in_progress |
+| DEC-009..014 production trade/cash history | V2-ADR-006/010/012 | WI-021 / WI-021-S06 | fixed-hash one-off Cloud Run Job; pre/post V2 backup, private GCS recovery and restored aggregate reconciliation | zero-source-call before verified pre-recovery; one task/parallelism one/retry zero tests; live execution pending reviewed master release | in_progress |
 | DEC-009..014 bounded physical broker history | V2-ADR-006/010/012 | WI-021 / WI-021-S05 | per-page KIS adapter and hash/backup-gated production command | 131 partitions, 6 gaps, 374/400 preflight; physical-page and negative CLI tests; full 303 passed | S05 closed; parent in_progress |
 | DEC-009..014 governed trade/cash normalization | V2-ADR-006/010/012 | WI-021 / WI-021-S04 | guarded fixture pages, immutable observations, trade/cash facts and reconciliation report | incomplete pagination blocks Silver/watermark; replay no-op; full 297 passed | S04 closed; parent in_progress |
 | DEC-009..014 resumable backfill control | V2-ADR-006/010/012 | WI-021 / WI-021-S03 | governed backfill pipeline identity, partition logical runs, pre-I/O persisted call usage and monotonic watermark | failure/resume, completed reuse, gap/no-regression tests; full 295 passed | S03 closed; parent in_progress |

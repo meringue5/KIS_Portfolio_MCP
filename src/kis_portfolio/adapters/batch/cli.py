@@ -34,6 +34,7 @@ from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cas
 from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
+from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -189,6 +190,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Perform guarded KIS reads and MotherDuck writes after all immutable preconditions match.",
     )
+
+    wi021_s06 = subparsers.add_parser(
+        "run-wi021-s06",
+        help="Run the fixed-hash one-off trade/cash backfill with private recovery verification.",
+    )
+    wi021_s06.add_argument("--start-date", required=True, help="Exact YYYYMMDD")
+    wi021_s06.add_argument("--end-date", required=True, help="Exact YYYYMMDD")
+    wi021_s06.add_argument("--as-of-date", required=True, help="Exact YYYYMMDD")
+    wi021_s06.add_argument("--expected-plan-hash", required=True)
+    wi021_s06.add_argument("--expected-budget-hash", required=True)
+    wi021_s06.add_argument("--project", required=True)
+    wi021_s06.add_argument("--bucket", required=True)
     return parser
 
 
@@ -363,6 +376,28 @@ def _run_trade_cash_backfill(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi021_s06(args: argparse.Namespace) -> int:
+    try:
+        result = run_wi021_s06(WI021S06Config(
+            start_date=datetime.strptime(args.start_date, "%Y%m%d").date(),
+            end_date=datetime.strptime(args.end_date, "%Y%m%d").date(),
+            as_of_date=datetime.strptime(args.as_of_date, "%Y%m%d").date(),
+            expected_plan_hash=args.expected_plan_hash,
+            expected_budget_hash=args.expected_budget_hash,
+            project=args.project,
+            bucket=args.bucket,
+        ))
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate control evidence before a deliberate resume",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -384,6 +419,8 @@ def main() -> None:
         raise SystemExit(_run_trade_cash_backfill_plan(args))
     if args.command == "backfill-trade-cash-history-v2":
         raise SystemExit(_run_trade_cash_backfill(args))
+    if args.command == "run-wi021-s06":
+        raise SystemExit(_run_wi021_s06(args))
 
     parser.print_help()
     raise SystemExit(2)
