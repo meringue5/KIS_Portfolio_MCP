@@ -10,13 +10,19 @@ from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
+from kis_portfolio.account_registry import load_account_registry
+from kis_portfolio.db.connection import get_connection
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.price_history import run_held_price_backfill
+from kis_portfolio.services.trade_cash_backfill import (
+    DEFAULT_PARTITION_DAYS,
+    account_scopes_from_registry,
+    plan_trade_cash_backfill,
+)
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
-from kis_portfolio.db.connection import get_connection
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -109,6 +115,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     price_backfill.add_argument("--max-pages-per-partition", type=int, default=10, choices=range(1, 11))
     price_backfill.add_argument("--max-physical-calls", type=int, default=400)
+
+    trade_cash_plan = subparsers.add_parser(
+        "plan-trade-cash-backfill-v2",
+        help="Print the deterministic trade/cash backfill partition plan without calls or writes.",
+    )
+    trade_cash_plan.add_argument("--start-date", help="YYYYMMDD; default is three calendar years before end date")
+    trade_cash_plan.add_argument("--end-date", default="today", help="YYYYMMDD or today")
+    trade_cash_plan.add_argument(
+        "--as-of-date",
+        default="today",
+        help="YYYYMMDD or today; fixes the domestic old/recent source boundary",
+    )
+    trade_cash_plan.add_argument(
+        "--partition-days",
+        type=int,
+        default=DEFAULT_PARTITION_DAYS,
+        choices=range(1, 91),
+    )
+    trade_cash_plan.add_argument(
+        "--overseas-account-label",
+        action="append",
+        dest="overseas_account_labels",
+        help="Repeat for each account with overseas history. Default: brokerage",
+    )
+    trade_cash_plan.add_argument(
+        "--exchange",
+        action="append",
+        dest="overseas_exchanges",
+        help="Repeat for each KIS overseas exchange code. Default: NAS",
+    )
     return parser
 
 
@@ -178,6 +214,32 @@ def _run_price_backfill(args: argparse.Namespace) -> int:
     return 0 if result["status"] in {"dry_run", "succeeded", "skipped"} else 1
 
 
+def _run_trade_cash_backfill_plan(args: argparse.Namespace) -> int:
+    today = datetime.now(ZoneInfo("Asia/Seoul")).date()
+    end_date = today if args.end_date == "today" else datetime.strptime(args.end_date, "%Y%m%d").date()
+    as_of_date = (
+        today if args.as_of_date == "today" else datetime.strptime(args.as_of_date, "%Y%m%d").date()
+    )
+    start_date = (
+        datetime.strptime(args.start_date, "%Y%m%d").date()
+        if args.start_date else None
+    )
+    scopes = account_scopes_from_registry(
+        load_account_registry(),
+        overseas_account_labels=args.overseas_account_labels or ("brokerage",),
+        overseas_exchanges=args.overseas_exchanges or ("NAS",),
+    )
+    plan = plan_trade_cash_backfill(
+        scopes,
+        start_date=start_date,
+        end_date=end_date,
+        as_of_date=as_of_date,
+        partition_days=args.partition_days,
+    )
+    print(json.dumps(plan.public_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -195,6 +257,8 @@ def main() -> None:
         raise SystemExit(_run_owned_portfolio_v2(args))
     if args.command == "backfill-held-price-history-v2":
         raise SystemExit(_run_price_backfill(args))
+    if args.command == "plan-trade-cash-backfill-v2":
+        raise SystemExit(_run_trade_cash_backfill_plan(args))
 
     parser.print_help()
     raise SystemExit(2)

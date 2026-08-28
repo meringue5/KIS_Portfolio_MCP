@@ -51,6 +51,13 @@ V1의 all-buy 오염은 원행을 수정하거나 삭제하지 않고 `silver.tr
 `silver.purchase_lots_current`를 사용한다. 신규 canonical identity는 account, market, product code,
 instrument, broker order, executed time, execution sequence를 포함한다.
 
+WI-021-S01은 이 원천 경계를 3년 backfill의 결정적 60일 partition으로 투영한다. 국내 shard는 조회일 기준
+90일 old/recent 경계를 넘지 않고, IRP recent와 승인된 국내 cash-history source 부재는 호출 대상이 아닌
+`known_gap`으로 보존한다. 해외 주문과 기간거래는 별도 partition이며 기간거래만 trade/cash 후보를 함께
+낸다. `plan-trade-cash-backfill-v2`는 공개 manifest만 출력하고 source call, DB write, 호출 예산 강제나
+resume을 수행하지 않는다. 상세 계약은
+[WI-021-S01 backfill partition plan](./design/wi-021-s01-backfill-partition-plan.md)에 둔다.
+
 WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
 `silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
 유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은

@@ -547,6 +547,12 @@ title = "Verify unique delivery-plan item IDs and enforce the check"
 status = "closed"
 
 [[subitems]]
+id = "WI-021-S01"
+parent_id = "WI-021"
+title = "Design deterministic three-year trade and cash backfill partitions"
+status = "closed"
+
+[[subitems]]
 id = "WI-026-S01"
 parent_id = "WI-026"
 title = "Review and activate the TIME ETF source profile"
