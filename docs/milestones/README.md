@@ -8,6 +8,8 @@ machine-readable SSOT는 `governance/project/milestones.toml`, 상태·작업·�
 
 - Work Item ID는 발급 뒤 삭제·재사용·재번호화하지 않는다.
 - 번호는 정렬이나 우선순위가 아니다. 실행순서는 `sequence`와 `depends_on`으로 관리한다.
+- milestone 간 실행순서도 registry의 `depends_on`으로 관리하며 알 수 없는 dependency와 cycle은 gate에서
+  실패한다.
 - 기존 outcome 안의 발견 작업은 `WI-NNN-SNN` sub-item으로 append한다.
 - 독립 acceptance 또는 rollback이 필요하면 현재 최댓값 다음의 새 WI를 발급한다.
 - 순서·의존관계 변경은 해당 milestone 문서의 revision log에 남긴다.

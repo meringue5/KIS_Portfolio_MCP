@@ -58,7 +58,7 @@ schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이
 | C | DEC-020~DEC-025 | OpenDART·SEC actual, point-in-time consensus, 배당 3상태, 표준 macro profile, licensed report gate |
 | D | DEC-026~DEC-032 | replay 기반 경보, Bollinger 보조지표, 2% risk cap, Telegram, consensus 위험 신호, journal review |
 | E | DEC-033~DEC-041 | Remote MCP SSOT, scale-to-zero·batch-first, 월 5만원 상한, versioned schema, off-site recovery |
-| F | DEC-042~DEC-045 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현과 합의된 GCP provisioning 권한 |
+| F | DEC-042~DEC-048 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현, GCP provisioning, final V2 정본화와 평가액 변화 기여도 |
 
 이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. DEC-044에 따라 승인 계약 안의 저장소 로컬
 구현과 검증은 진행할 수 있지만, 실제 적재·배포·provisioning과 외부 알림은 별도 gate를 유지한다.
@@ -399,6 +399,39 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   state 전환, WI-012 V2 managed collection pipeline을 순서대로 연속 실행한다.
 - 각 Work Item이 자동·운영 gate를 통과하면 별도 중간 승인을 기다리지 않고 다음 Work Item을 시작한다.
   기존 resource 삭제, V1 writer 중지, Remote MCP production cutover, 외부 Telegram 전송과 유료 provider는 제외한다.
+
+### DEC-047: final Milestone 4에서 V2 문서를 프로젝트 정본으로 확정한다
+
+- 프로젝트 delivery의 마지막 milestone은 `MS-004 V2 canonicalization and V1 retirement`로 둔다.
+- V2 cutover와 final audit 뒤 V1 시기에 작성한 문서를 전수 조사하여 `V2 정본`, `역사 증거 보존`,
+  `superseded redirect`, `승인된 삭제 후보`로 분류한다.
+- architecture, 요구·결정, public MCP, data catalog/pipeline, security/secrets, deployment, backup/restore, 비용과
+  onboarding은 서로 충돌하지 않는 하나의 V2 canonical path를 가져야 한다.
+- 과거 결정, migration mapping과 운영 증거는 V1이라는 이유만으로 삭제하거나 덮어쓰지 않는다. 현재
+  사용자가 따라야 하는 문서와 역사 자료의 지위를 명시적으로 구분한다.
+- fresh clone, Remote MCP와 iPhone 연결을 정본 문서대로 재현하고, local MCP가 제품 SSOT로 오인될 표현을
+  제거한 뒤에만 WI-032를 닫는다.
+
+### DEC-048: 종목별 총자산 원화 평가액 변화 기여도를 V2에 포함한다
+
+- 이 metric은 두 개의 comparable canonical daily state 사이에서 종목별 원화 평가액이 총자산 변화에
+  미친 금액 효과를 설명한다. `투자수익 기여도` 또는 WI-023의 cash-flow-adjusted return attribution과
+  동일시하지 않는다.
+- 종목별 `previous_value_krw`, `current_value_krw`, `valuation_change_krw`, 시작 총자산 대비
+  `total_asset_impact_pct`, 전체 증감 중 `share_of_total_change_pct`를 제공한다. 전체 증감이 0이면 기여
+  비율은 0으로 꾸미지 않고 사유가 있는 `null`로 둔다.
+- `valuation_change_krw = current_value_krw - previous_value_krw`,
+  `total_asset_impact_pct = valuation_change_krw / previous_total_asset_krw * 100`,
+  `share_of_total_change_pct = valuation_change_krw / total_asset_change_krw * 100`을 v1 공식으로 고정한다.
+- 같은 종목은 전체 계좌에서 합산하되 필요하면 마스킹된 계좌별 breakdown을 제공한다. 상승·하락 상위
+  종목, 현금 변화, 종목 변화 합계, 미설명 잔차와 tolerance 기반 reconciliation 상태를 함께 반환한다.
+- 양일 필수 계좌 coverage, snapshot 완전성, refresh 오류와 reconciliation이 comparable 조건을 통과할
+  때만 신규 편입·전량 매도를 판정한다. 누락·부분 수집이면 결과를 partial/degraded로 표시하고 그 판정을
+  억제하여 전량 매도나 급락으로 오인하지 않게 한다.
+- 해외 종목의 원화 변화에는 가격과 환율 효과가 함께 포함된다. 결과와 MCP 설명은 `환율 효과를 포함한
+  원화 평가액 변화 기여도`로 표시하며 FX-isolated return attribution을 암시하지 않는다.
+- 전환기에는 기존 `get-total-asset-daily-change`에 additive field로 제공하고, V2에서는 승인된 18-tool
+  budget 안의 `get-performance-history`/`get-portfolio-overview` read model로 제공한다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
@@ -959,6 +992,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-28 | 요구·계획 승인 | DEC-047 final MS-004 V2 문서 정본화와 DEC-048 종목별 총자산 원화 평가액 변화 기여도를 승인하고 WI-032/033으로 분리함 |
 | 2026-08-28 | Milestone 1 실행 승인 | DEC-046으로 private GCS 등 합의된 GCP provisioning과 WI-009~012 연속 실행 권한을 확정함 |
 | 2026-08-28 | provisioning 권한 승인 | DEC-045로 기존 MotherDuck 보존·병렬 V2 객체와 Secret Manager·Seoul Firestore 기반 provisioning 권한을 확정함 |
 | 2026-08-28 | 구현 권한 승인 | DEC-042 owner PDF 수동 반입, DEC-043 consensus later 진입조건, DEC-044 승인 범위의 repository-local 턴키 구현 권한을 확정함 |

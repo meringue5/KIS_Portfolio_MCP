@@ -9,7 +9,7 @@ requirement_refs: DEC-026..028, DEC-030, DEC-038, DEC-041, DEC-044
 milestone_ref: MS-002
 delivery_refs: V2-W0507
 parent_work_item: none
-depends_on: WI-019, WI-023, WI-025, WI-027
+depends_on: WI-019, WI-023, WI-025, WI-027, WI-033
 architecture_impact: implements approved signal evaluation state separate from notification transport
 data_impact: versioned rules alert candidates state transitions dispatch claims and delivery ledger
 security_impact: redacted candidate metadata; no Telegram credential in analytics tables
@@ -29,7 +29,8 @@ Metrics do not yet produce governed alert candidates or stateful de-duplication,
 
 ## Scope
 
-- Include rule versions, severity, fingerprints, transitions, recovery and delivery ledger/claims.
+- Include rule versions, severity, fingerprints, transitions, recovery and delivery ledger/claims, consuming the
+  separately governed WI-033 valuation-change contribution.
 - Exclude Telegram API calls and final threshold activation.
 
 ## Acceptance criteria

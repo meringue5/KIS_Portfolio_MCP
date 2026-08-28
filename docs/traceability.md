@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| DEC-047/048 final M4 V2 documentation SSOT and exact total-asset valuation-change contribution intake | ADR-022 + V2-ADR-006/015 | WI-031 | MS-003/004 baseline, WI-032/033 and metric/read-model contracts | 10 focused tests; full gate 252 passed; no product mutation | closed |
 | GOV-003/004/006/008 immutable milestone and Work Item control | ADR-022 | WI-018 | milestone registry, MS-002 baseline, stable relationships and checker | 5 focused tests; full gate 251 passed | closed |
 | DEC-005/018/019/030/041/044 held instrument and ETF routing | V2-ADR-006/010/012 | WI-017 | versioned classification, exact routes, rights-gated offline parsers | live 18 versions/14 routes, zero network profiles, private backup/restore, 248 tests | closed |
 | DEC-009..014/030/041/044 broker history correction | V2-ADR-006/010/012 | WI-016 | side/pagination/source-field correction and append-only revisions | live 19/19 revisions, zero unknown identity, private backup/restore, 239 tests | closed |
@@ -26,7 +27,7 @@
 | DEC-041 / V2-W0001: 현재 비용 baseline | ADR-021 + V2-ADR-013 | WI-002 | `docs/operations/cost-baseline-2026-08.md` | GCP 보수 정상월 5,100원; MotherDuck Lite 0원; `my_db` empty legacy 확인; 운영 변경 없음 | verified, acceptance pending |
 | DEC-002/004/029/030/033..041: V2 Architecture delta | ADR-021 + reviewed V2 ADR approved | WI-001 | `docs/design/v2-architecture-delta-review.md`, owner docs | 2026-08-28 사용자 승인 반영; full gate 190 passed; 구현·provisioning 미착수 | closed |
 | GOV-001..GOV-008: Project OS 도입 | ADR-022 | WI-000 | governance docs, templates, Skill, `scripts/check.sh`, hooks, CI | full gate 190 passed, Skill/YAML validation, state-independent duplicate-WIP negative test | closed |
-| DEC-001..DEC-044: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0806 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; delivery-plan Wave 1~4의 배포·cutover·3년 backfill은 후속 Work Item | in_progress |
+| DEC-001..DEC-048: KIS Portfolio data platform | ADR-021 approved architecture baseline | V2-W0001..V2-W0807 | `docs/design/kis-portfolio-v2-*.md` | WI-005 foundation closed; MS-002~004 and remaining delivery items tracked by immutable registry | in_progress |
 
 ## Planned Milestone Work
 
@@ -44,9 +45,11 @@
 | DEC-012..017/027 lot/thread risk | V2-W0504 | WI-025 | WI-015, WI-019, WI-022, WI-024 | proposed |
 | DEC-018/019/025 ETF forward collection | V2-W0405 | WI-026 | WI-012, WI-017 | proposed; rights gate |
 | DEC-018/019/026 ETF look-through | V2-W0505 | WI-027 | WI-009, WI-017, WI-026 | proposed |
-| DEC-026..028 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-027 | proposed |
+| DEC-026/038/048 total-asset KRW valuation-change contribution | V2-W0510 | WI-033 | WI-009, WI-013 | ready |
+| DEC-026..028 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-027, WI-033 | proposed |
 | DEC-026..028 replay and shadow | V2-W0509 | WI-029 | WI-028 | proposed |
 | DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030 | WI-029 | proposed; external-send gate |
+| DEC-047 final V2 documentation SSOT | V2-W0807 | WI-032 | MS-003 completion gate | proposed; final MS-004 |
 
 ## Governance Requirements
 

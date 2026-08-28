@@ -147,3 +147,24 @@ def test_project_os_rejects_duplicate_delivery_item_ids(tmp_path: Path):
     errors = checker.check(target)
 
     assert any("duplicate delivery item ids V2-W0501" in error for error in errors)
+
+
+def test_project_os_rejects_dangling_milestone_dependency(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "governance/project/milestones.toml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            'id = "MS-004"\ntitle = "V2 canonicalization and V1 retirement"\n'
+            'status = "proposed"\ndepends_on = ["MS-003"]',
+            'id = "MS-004"\ntitle = "V2 canonicalization and V1 retirement"\n'
+            'status = "proposed"\ndepends_on = ["MS-999"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("MS-004 unknown milestone dependency 'MS-999'" in error for error in errors)

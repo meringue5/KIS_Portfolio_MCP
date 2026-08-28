@@ -7,23 +7,40 @@ status_owner = "docs/work-items"
 id = "MS-001"
 title = "Canonical portfolio and managed collection foundation"
 status = "closed"
+depends_on = []
 work_item_ids = ["WI-009", "WI-010", "WI-011", "WI-012"]
 
 [[milestones]]
 id = "MS-002"
 title = "Portfolio analytics, risk signals and Telegram delivery"
 status = "in_progress"
+depends_on = ["MS-001"]
 work_item_ids = [
   "WI-013", "WI-014", "WI-015", "WI-016", "WI-017",
   "WI-019", "WI-020", "WI-021", "WI-022", "WI-023", "WI-024",
-  "WI-025", "WI-026", "WI-027", "WI-028", "WI-029", "WI-030",
+  "WI-025", "WI-026", "WI-027", "WI-033", "WI-028", "WI-029", "WI-030",
 ]
+
+[[milestones]]
+id = "MS-003"
+title = "Enrichment, stateless Remote MCP V2 and production cutover"
+status = "proposed"
+depends_on = ["MS-002"]
+work_item_ids = []
+
+[[milestones]]
+id = "MS-004"
+title = "V2 canonicalization and V1 retirement"
+status = "proposed"
+depends_on = ["MS-003"]
+work_item_ids = ["WI-032"]
 
 [[milestones]]
 id = "MS-GOV"
 title = "Project Operating System improvements"
 status = "closed"
-work_item_ids = ["WI-018"]
+depends_on = []
+work_item_ids = ["WI-018", "WI-031"]
 
 [[work_items]]
 id = "WI-009"
@@ -221,9 +238,9 @@ identity = "alert-state-delivery-ledger"
 title = "Implement alert state and delivery ledger"
 milestone_id = "MS-002"
 delivery_refs = ["V2-W0507"]
-depends_on = ["WI-019", "WI-023", "WI-025", "WI-027"]
+depends_on = ["WI-019", "WI-023", "WI-025", "WI-027", "WI-033"]
 parent_id = ""
-sequence = 15
+sequence = 16
 
 [[work_items]]
 id = "WI-029"
@@ -233,7 +250,7 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0509"]
 depends_on = ["WI-028"]
 parent_id = ""
-sequence = 16
+sequence = 17
 
 [[work_items]]
 id = "WI-030"
@@ -243,7 +260,37 @@ milestone_id = "MS-002"
 delivery_refs = ["V2-W0508"]
 depends_on = ["WI-029"]
 parent_id = ""
-sequence = 17
+sequence = 18
+
+[[work_items]]
+id = "WI-031"
+identity = "milestone-three-four-baseline-intake"
+title = "Baseline Milestones 3 and 4 and register newly approved work"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-018"]
+parent_id = ""
+sequence = 2
+
+[[work_items]]
+id = "WI-032"
+identity = "v2-canonical-documentation-and-v1-retirement"
+title = "Consolidate V1 documentation and establish V2 as the canonical baseline"
+milestone_id = "MS-004"
+delivery_refs = ["V2-W0807"]
+depends_on = []
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-033"
+identity = "total-asset-valuation-change-contribution"
+title = "Implement instrument-level total-asset valuation-change contribution"
+milestone_id = "MS-002"
+delivery_refs = ["V2-W0510"]
+depends_on = ["WI-009", "WI-013"]
+parent_id = ""
+sequence = 15
 
 [[subitems]]
 id = "WI-018-S01"

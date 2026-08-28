@@ -1,7 +1,7 @@
 # MS-002 — Portfolio analytics, risk signals and Telegram delivery
 
 > 상태: in progress
-> 기준선: 2026-08-28.1
+> 기준선: 2026-08-28.2
 > machine registry: `governance/project/milestones.toml`
 
 ## Outcome
@@ -31,9 +31,10 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 12 | WI-025 lot/thread risk metrics | V2-W0504 | WI-015, WI-019, WI-022, WI-024 | proposed |
 | 13 | WI-026 ETF constituent forward collection | V2-W0405 | WI-012, WI-017 | proposed; provider rights gate |
 | 14 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | proposed |
-| 15 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-027 | proposed |
-| 16 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | proposed |
-| 17 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | proposed; external-send approval gate |
+| 15 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | ready; return attribution과 분리 |
+| 16 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-027, WI-033 | proposed |
+| 17 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | proposed |
+| 18 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | proposed; external-send approval gate |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
@@ -65,10 +66,12 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 - V2-W0408: ECOS/FRED/ALFRED/Cboe macro profile
 - V2-W0410: Remote MCP catalog/quality read model
 - V2-W0601~0607: stateless Remote MCP, collection trigger, journal write와 client compatibility
-- V2-W0701~0806: dual-run, Remote SSOT cutover와 V1 retirement
+- V2-W0701~0707: dual-run과 Remote SSOT production cutover
+- V2-W0801~0807: final MS-004의 V1 retirement, audit와 V2 문서 정본화
 
 ## Revision log
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-08-28.2 | 2026-08-28 | 원화 평가액 변화 기여도를 WI-033으로 분리하고 alert 선행조건에 추가 | 기존 ID 불변; WI-028~030 sequence만 16~18로 변경 |
 | 2026-08-28.1 | 2026-08-28 | WI-013~017 완료 이력을 고정하고 남은 작업을 WI-019~030으로 기준선화 | 기존 WI 변경 없음; Telegram은 WI-030으로 배정 |

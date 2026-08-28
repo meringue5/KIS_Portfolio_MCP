@@ -153,6 +153,46 @@ def check_milestone_registry(
             errors.append(f"{path.relative_to(root)}: duplicate milestone id {milestone_id}")
         milestone_by_id[milestone_id] = milestone
 
+    for milestone_id, milestone in milestone_by_id.items():
+        if milestone.get("status") not in VALID_STATUSES:
+            errors.append(f"{path.relative_to(root)}: {milestone_id} invalid status")
+        dependencies = milestone.get("depends_on")
+        if not isinstance(dependencies, list):
+            errors.append(f"{path.relative_to(root)}: {milestone_id} depends_on must be an array")
+            continue
+        for dependency in dependencies:
+            if dependency not in milestone_by_id:
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} unknown milestone dependency "
+                    f"{dependency!r}"
+                )
+            if dependency == milestone_id:
+                errors.append(f"{path.relative_to(root)}: {milestone_id} cannot depend on itself")
+
+    visiting_milestones: set[str] = set()
+    visited_milestones: set[str] = set()
+
+    def visit_milestone(milestone_id: str, trail: list[str]) -> None:
+        if milestone_id in visited_milestones:
+            return
+        if milestone_id in visiting_milestones:
+            errors.append(
+                f"{path.relative_to(root)}: milestone dependency cycle "
+                f"{' -> '.join(trail + [milestone_id])}"
+            )
+            return
+        visiting_milestones.add(milestone_id)
+        dependencies = milestone_by_id[milestone_id].get("depends_on", [])
+        if isinstance(dependencies, list):
+            for dependency in dependencies:
+                if dependency in milestone_by_id:
+                    visit_milestone(dependency, trail + [milestone_id])
+        visiting_milestones.remove(milestone_id)
+        visited_milestones.add(milestone_id)
+
+    for milestone_id in milestone_by_id:
+        visit_milestone(milestone_id, [])
+
     item_by_id: dict[str, dict] = {}
     identity_owner: dict[str, str] = {}
     sequence_owner: dict[tuple[str, int], str] = {}

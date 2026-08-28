@@ -15,3 +15,19 @@ point_in_time = true
 quality_gate = "all component rows pass and their effective and knowledge timestamps do not exceed the evaluation cutoff"
 validation_policy = "Python Decimal golden fixture equals the governed SQL sum; future input and conflicting replay tests must fail"
 consumer_ids = ["portfolio return denominator", "drawdown and risk budget", "signal evaluation"]
+
+[[contracts]]
+id = "metric.total-asset-valuation-change-contribution-krw"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "Comparable canonical daily states 사이의 종목·현금별 원화 평가액 변화와 총자산 영향, 전체 변화 기여 비율 및 미설명 잔차. 해외 종목은 환율 효과를 포함하며 투자수익 기여도가 아니다."
+decision_refs = ["DEC-026", "DEC-038", "DEC-048"]
+input_dataset_ids = ["dataset.portfolio-daily-state"]
+grain = "one prior-current evaluation pair, consolidated instrument or cash component, and metric version"
+formula_ref = "formula.total-asset-valuation-change-contribution-krw.v1"
+unit = "KRW and percent"
+point_in_time = true
+quality_gate = "both selected daily states are complete and reconciled with equal required account coverage; otherwise publish degraded totals but suppress new and sold inference"
+validation_policy = "Decimal golden fixtures reconcile total change to instrument changes plus cash change plus residual; partial account, zero denominator, new, sold and foreign FX scenarios are mandatory"
+consumer_ids = ["Remote MCP portfolio overview", "Remote MCP performance history", "contribution-aware signal evaluation"]
