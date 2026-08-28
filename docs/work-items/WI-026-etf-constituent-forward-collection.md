@@ -1,7 +1,7 @@
 ---
 id: WI-026
 title: Activate rights-approved ETF constituent collection
-status: proposed
+status: blocked
 type: change
 owner: owner
 decision_refs: ADR-023, V2-ADR-006, V2-ADR-010, V2-ADR-012
@@ -58,10 +58,18 @@ cloud processing, raw retention and derived-use rights are unknown.
 
 ## Evidence
 
-- Pending.
+- `docs/operations/wi-026-etf-provider-rights-review-2026-08.md`
+- 2026-08-28 official-source review: all four providers expose composition data, but none supplied evidence that
+  satisfies all four production rights gates.
+- KRX Open API has an authorized application path, but its current service list does not expose full ETF composition.
+- Zero production calls, writes, schedules, secrets or cloud resources were created; all profiles remain fixture-only.
 
 ## Closeout
 
-- Result: proposed; provider rights evidence is pending.
+- Result: blocked; production activation would violate the approved unknown-rights fail-closed gate.
+- Blocking condition: no applicable written grant for automation, cloud processing, private raw retention and derived use,
+  and no approved KRX API/data product containing full ETF constituents.
+- Resume condition: record provider authorization or an approved licensed data product, owner-approved cost, allowed hosts,
+  request budget and evidence date before implementing a network adapter.
 - Remaining risk: current-only source history cannot be recreated later.
-- Follow-up Work Item: WI-027.
+- Follow-up Work Item: WI-027 remains dependency-blocked; continue with dependency-ready WI-033.
