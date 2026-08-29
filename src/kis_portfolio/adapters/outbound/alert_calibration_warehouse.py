@@ -158,16 +158,19 @@ class AlertCalibrationWarehouse:
         expected = tuple(sorted(set(expected_session_keys)))
         rows = self.connection.execute(
             """
-            SELECT c.candidate_id,c.session_key,c.evaluation_slot,c.quality_status,o.outcome_type
+            SELECT c.candidate_id,c.evaluation_date,c.evaluation_slot,c.quality_status,o.outcome_type
             FROM gold.alert_candidates c
             LEFT JOIN control.alert_candidate_outcomes o USING(candidate_id)
             WHERE c.rule_id=? AND c.rule_version=?
               AND c.evaluation_date BETWEEN ? AND ?
-            ORDER BY c.session_key,c.evaluation_slot,c.candidate_id
+            ORDER BY c.evaluation_date,c.evaluation_slot,c.candidate_id
             """,
             [rule_set_id, rule_set_version, window_start, window_end],
         ).fetchall()
-        observed = tuple(sorted({f"{row[1]}|{row[2]}" for row in rows}))
+        # Coverage is the Korean evaluation opportunity. A morning U.S. close
+        # can cite an earlier U.S. session, so its price session key is not the
+        # scheduled coverage identity.
+        observed = tuple(sorted({f"evaluation:{row[1].isoformat()}|{row[2]}" for row in rows}))
         duplicate_count = sum(row[4] == "no_change" for row in rows)
         quality_count = sum(row[4] == "suppressed_quality" for row in rows)
         external_send_count = int(self.connection.execute(
@@ -184,7 +187,8 @@ class AlertCalibrationWarehouse:
         missing = sorted(set(expected) - set(observed))
         unexpected = sorted(set(observed) - set(expected))
         summary: dict[str, object] = {
-            "summary_version": 1,
+            "summary_version": 2,
+            "coverage_key_version": "evaluation-date-slot-v1",
             "window_start": window_start.isoformat(),
             "window_end": window_end.isoformat(),
             "elapsed_days": (window_end - window_start).days + 1,

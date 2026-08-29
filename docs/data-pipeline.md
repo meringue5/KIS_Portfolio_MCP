@@ -190,6 +190,12 @@ alert로 표시하지 않는다. `kr-1000`은 국내 10시와 전일 미국 clos
 각 국내 slot만 평가한다. transport는 `shadow` claim과 DB 내부 완료 기록뿐이며 Telegram adapter나 secret은
 이 실행 이미지·환경에 없다.
 
+WI-029-S05는 KRX calendar와 고정 10:00, 14:30, 16:00 schedule(10:00의 prior U.S. close 포함)에서
+**due evaluation-date/slot**을 먼저 만들고, 그 뒤 후보의 evaluation date/slot과 대조한다. 따라서 후보가
+전혀 생성되지 않은 scheduled slot도 자기참조로 정상 처리되지 않는다. 이 refresh는 existing scale-to-zero
+Job 완료 후와 `kis-portfolio-batch review-wi029-s05`에서 실행하는 MotherDuck-only operation이며 provider
+또는 Telegram 호출을 하지 않는다.
+
 같은 오전 Job은 현재 보유 해외 `unknown`만 최대 8개 골라 KIS 상품정보와 SEC exact ticker/CIK/SIC가 모두
 일치할 때 append-only instrument version을 추가한다. 최초 최대 17 calls 뒤 정상상태는 0 calls이며 이름
 heuristic, 임의 symbol, 기존 version rewrite는 금지한다.

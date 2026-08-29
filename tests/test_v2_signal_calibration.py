@@ -197,7 +197,7 @@ def test_calibration_shadow_and_owner_approval_gates(tmp_path: Path) -> None:
         at = datetime(2026, 8, 1 + offset, 7, tzinfo=UTC)
         candidate = _candidate(at)
         alerts.apply_candidate(candidate)
-        expected.append(f"krx:{at.date().isoformat()}|kr-1600")
+        expected.append(f"evaluation:{at.date().isoformat()}|kr-1600")
     evidence = calibration.build_shadow_evidence(
         rule_set_id=rule.rule_id, rule_set_version=rule.version,
         window_start=shadow_start, window_end=date(2026, 8, 14),
