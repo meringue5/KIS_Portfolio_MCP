@@ -63,3 +63,19 @@ that hash and exactly one `collecting` shadow window for 2026-08-28 through 2026
 2 observed session keys, 18 candidates, 18 quality suppressions and zero external sends. S05 may not verify the window
 before 14 elapsed calendar days, governed-session reconciliation, zero-send proof and explicit owner
 false-positive/miss review.
+
+## S05 coverage-collector rollout
+
+On 2026-08-30, PR #29 was merged at `20c9f437dac174323a86a3a86ee5558d4c86abad` after its PR and `master` CI
+completed. Deployment run `33261574130` then rebuilt one immutable image
+`sha256:77b3694ce009ba157914c021c3f55243176a182a5b8ed291f15deb12739ba940` and deployed it to the three existing
+fixed-argument V2 core Jobs (`1000`, `1430`, `1600`). The Jobs carry `deploy-source=github-actions`,
+`deploy-target=v2-core-batch`, the merge SHA and that GitHub run ID as deployment labels.
+
+This rollout does not change schedules, credentials, provider calls or the shadow-only transport boundary. It adds a
+MotherDuck-only evidence refresh after each successful shadow evaluation and a manual
+`kis-portfolio-batch review-wi029-s05` read/recompute operation. Its expectation is derived from complete KRX
+calendar rows and due Korean evaluation slots, then reconciled independently against candidates. No Job was executed
+for this rollout because the deployment occurred on a KRX-closed weekend day; the next governed scheduled execution
+will produce the first updated S05 evidence. Any already missed slot remains visible as missing and cannot be
+backfilled as a production observation.

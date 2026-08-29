@@ -79,7 +79,9 @@ owner can approve external delivery.
   session evidence must accumulate through 2026-09-10 before reconciliation and explicit owner approval. During S05,
   the initial self-referential slot expectation was corrected to calendar-derived `evaluation-date/slot` coverage.
   The collector fails closed for incomplete KRX calendar coverage and records missing scheduled slots independently of
-  candidates; it remains DB-only and cannot approve or send alerts.
+  candidates; it remains DB-only and cannot approve or send alerts. PR #29 was merged and deployed to the three
+  existing V2 core Jobs in GitHub Actions run `33261574130`; runtime evidence is recorded in
+  `docs/operations/wi-029-shadow-activation-2026-08.md`.
 
 ## Closeout
 
