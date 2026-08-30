@@ -1,7 +1,7 @@
 ---
 id: WI-029
 title: Calibrate signals with replay and shadow evaluation
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-010, V2-ADR-012
@@ -75,7 +75,7 @@ owner can approve external delivery.
   `33180964201`/`33182018996` completed; the first shadow evaluation produced 18 quality-suppressed candidates, zero
   transitions and zero external sends, while the final recovery check restored all 58 governed tables. The approved
   replay hash is persisted once and the 2026-08-28 through 2026-09-10 shadow window is `collecting`.
-- `WI-029-S05` is active. It is an elapsed-time and owner-review gate, not an implementation shortcut: scheduled
+- `WI-029-S05` is collecting operational evidence. It is an elapsed-time and owner-review gate, not an implementation shortcut: scheduled
   session evidence must accumulate through 2026-09-10 before reconciliation and explicit owner approval. During S05,
   the initial self-referential slot expectation was corrected to calendar-derived `evaluation-date/slot` coverage.
   The collector fails closed for incomplete KRX calendar coverage and records missing scheduled slots independently of
@@ -85,6 +85,7 @@ owner can approve external delivery.
 
 ## Closeout
 
-- Result: in progress; S01-S04 are closed and S05 is collecting elapsed evidence.
+- Result: verified implementation; S01-S04 are closed and S05 is collecting elapsed operational evidence before
+  acceptance and closeout. This releases the single implementation WIP slot but does not satisfy WI-030 activation.
 - Remaining risk: reconstructed-history bias.
 - Follow-up Work Item: WI-030.

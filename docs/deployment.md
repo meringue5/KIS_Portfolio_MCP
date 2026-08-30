@@ -284,6 +284,16 @@ Job을 갱신하고 오전 Job을 한 번 실행한다. 마지막 verify Job은 
 전체 governed V2 table을 private GCS에 올렸다가 fresh DuckDB로 내려받아 복원한다. migration·verify Job에는
 MotherDuck token만 주입하며 KIS 계좌 secret은 verify Job에 주입하지 않는다.
 
+WI-030-S01의 Telegram adapter는 같은 이미지에 포함되지만 production core Job에는 Telegram secret과 enable
+flag를 아직 주입하지 않는다. 기본 `KIS_TELEGRAM_DELIVERY_ENABLED=false`는 claim 이전에 종료하므로 현재
+DB-only shadow 동작은 유지된다. WI-030-S02 release에서만 다음 값을 V2 pipeline identity에 제한해 주입한다.
+
+- secret: `KIS_TELEGRAM_BOT_TOKEN`, `KIS_TELEGRAM_CHAT_ID`
+- non-secret: `KIS_TELEGRAM_DELIVERY_ENABLED=true`, `KIS_TELEGRAM_DESTINATION_REF=dest.owner.primary`
+
+S02 release 전제는 verified WI-029 shadow, owner-approved rule revision, owner-verified private destination과 별도
+승인된 finance-free test message다. generic batch, auth와 Remote MCP에는 Telegram secret을 주지 않는다.
+
 V2 Scheduler는 기존 배치용 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 상속하지 않는다.
 따라서 기존 Scheduler identity를 변경하지 않고 V2 pipeline만 전용 계정으로 격리한다.
 

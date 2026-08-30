@@ -44,6 +44,7 @@ from kis_portfolio.services.trade_cash_backfill_pipeline import build_trade_cash
 from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
 from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
 from kis_portfolio.services.token_warmup import warm_token_cache
+from kis_portfolio.services.telegram_delivery import run_telegram_delivery
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
 from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
@@ -307,6 +308,7 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
             get_connection(), logical_date=logical_date, source_slot=args.slot,
         )
         result["shadow_evidence"] = refresh_wi029_s05_evidence(get_connection())
+        result["telegram_delivery"] = run_telegram_delivery(get_connection())
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
 

@@ -47,6 +47,11 @@ def test_secret_manager_uses_deterministic_secret_ids():
         deploy_cloud_run._secret_id_for_env_key("KIS_APP_SECRET_RIA")
         == "kis-portfolio-kis-app-secret-ria"
     )
+    assert (
+        deploy_cloud_run._secret_id_for_env_key("KIS_TELEGRAM_BOT_TOKEN")
+        == "kis-portfolio-kis-telegram-bot-token"
+    )
+    assert deploy_cloud_run._is_secret_env_key("KIS_TELEGRAM_CHAT_ID") is True
 
 
 def test_secret_manager_validation_allows_secret_values_to_live_in_gcp():

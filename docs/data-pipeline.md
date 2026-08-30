@@ -182,6 +182,19 @@ mode/channel은 DB `shadow`다. claim lease token은 digest만 저장하고 `unk
 calibration과 2주 shadow는 WI-029, Telegram API와 external mode는 WI-030이 담당한다. 상세 계약은
 [WI-028 alert state and delivery ledger](./design/wi-028-alert-state-delivery-ledger-contract.md)에 둔다.
 
+`pipeline.telegram-delivery-v2:1.0.0`은 기존 scale-to-zero monitoring Job 뒤에서만 합성되는 outbound-only
+consumer다. `KIS_TELEGRAM_DELIVERY_ENABLED`의 기본값은 `false`이며, 이 상태에서는 candidate 조회, dispatch
+claim과 network request를 모두 만들지 않는다. 활성 상태에서도 `active external` rule, 최신 owner approval,
+`pass` quality와 delivery-required transition이 모두 있어야 Telegram 후보가 된다.
+
+메시지는 `public_context` allowlist에서 plain text로 다시 렌더링하고 전체 계좌번호, 총자산 절대액,
+credential, raw source와 chat identifier를 거부한다. Telegram message ID는 원문 대신 hash로 delivery ledger에
+남긴다. 명시적인 429/5xx만 다음 scheduled run에서 retryable이고, post-send timeout과 transport ambiguity는
+terminal `unknown`이라 자동 재전송하지 않는다. WI-030-S01은 이 경로를 코드와 offline test로만 준비하며,
+Secret Manager 주입·destination test·external flag는 WI-029 인수 뒤 WI-030-S02가 소유한다.
+전체 payload, outcome과 activation 계약은
+[WI-030 Telegram delivery contract](./design/wi-030-telegram-delivery-contract.md)에 둔다.
+
 WI-029-S04는 기존 V2 scale-to-zero Job을 새 서비스 없이 확장한다. 각 Job은 raw와 adjusted 일봉을 동일한
 고정 보유범위에서 operational-strict revision으로 landing한 뒤, 승인된 일간수익률·vol20·SMA·거래량·RSI·
 Bollinger 계약을 메모리에서 평가하고 candidate lineage hash를 보존한다. 최신 bar만 live strict를 요구하며,
