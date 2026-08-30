@@ -1,6 +1,10 @@
 # KIS Portfolio V2 구현 설계와 전환 계획
 
 > 상태: 승인 architecture 구현 계획 v0.3 — 승인 범위 내 Work Item은 턴키 실행, 외부·운영 gate는 별도 승인
+
+> 실행 현황과 Work Item 선후관계의 사람이 읽는 그래프는
+> [`docs/milestones/README.md`](../milestones/README.md)를 사용한다. 관계의 machine-readable SSOT는
+> `governance/project/milestones.toml`이다.
 > 기준일: 2026-08-28
 > 상위 설계: `docs/design/kis-portfolio-v2-system-design.md`
 > 원칙: 각 Wave는 산출물·자동검증·운영증거·rollback gate가 모두 충족돼야 완료된다.

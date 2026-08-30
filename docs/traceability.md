@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| 사람이 읽는 milestone·Work Item 선후관계와 현재 실행 가능 범위 | ADR-022 | WI-053 | milestone README Mermaid map and V2 delivery-plan backlink | registry 관계 대조; quick pass and full 418 pass | closed |
 | owner option 3: ETF analysis outside initial V2 | ADR-024 / DEC-049 | WI-052 | DEC/ADR, DGH v1.1.0, rejected WI-026/027 and revised alert dependency | 14 focused and full shared gate pass; zero runtime/external change | closed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-ADR-006/010/012/015 | WI-033 | shared DTO, comparable-state gate, V1 additive MCP and V2 metric ledger projection | 14 focused/full gate pass; live read-only gate blocks stale V1 view and 889 non-pass V2 rows | closed; production publish remains fail-closed |
 | DEC-018/019/025/030/038/041/044/049 ETF provider rights activation | ADR-023/024 + V2-ADR-006/010/012 | WI-026 | provider-specific official-source rights review; production registry remains fail-closed | four provider reviews and KRX/KIS alternatives checked; 0 production calls/profiles/writes | rejected from initial V2; future new intake required |
