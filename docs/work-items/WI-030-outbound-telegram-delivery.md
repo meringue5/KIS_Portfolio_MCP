@@ -1,7 +1,7 @@
 ---
 id: WI-030
 title: Enable approved outbound Telegram delivery
-status: proposed
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012
@@ -21,16 +21,21 @@ cost_impact: negligible Bot API traffic from three scheduled slots; no always-on
 ## Problem and evidence
 
 The approved proactive channel is Telegram, but external sending must wait for replay, shadow, destination ownership,
-redaction and owner-approved test-message gates.
+redaction and owner-approved test-message gates. While WI-029-S05 accumulates elapsed operational evidence, the
+repository-local transport can be built and verified with the delivery flag disabled.
 
 ## Classification and contract
 
 - `change` implementing V2-W0508. This is the shifted, still-unfinished Telegram milestone item; WI-017 remains ETF routing.
 - Outbound-only `sendMessage`; no inbound command, journal or order surface.
+- The WI-029 dependency remains the production activation and closeout gate. It does not authorize S01 to read a
+  destination secret or send a message.
 
 ## Scope
 
-- Include destination verification, redacted rendering, one finance-free test message, retry/unknown outcome and flag activation.
+- S01 includes fail-closed configuration, redacted rendering, transport classification, delivery-ledger integration,
+  deployment preparation and offline tests with no Telegram request.
+- S02 includes destination verification, one finance-free test message, approved rule activation and operational proof.
 - Exclude inbound bot commands and any order capability.
 
 ## Acceptance criteria
@@ -39,6 +44,17 @@ redaction and owner-approved test-message gates.
 - [ ] account numbers, absolute total assets, credentials, raw source and chat ID never enter payload/log analytics.
 - [ ] 10:00, 14:30 and 16:00 KST slots send only `주의` or higher and preserve de-duplication.
 - [ ] uncertain post-send timeout is `UNKNOWN` and is not automatically resent.
+- [x] disabled or incompletely configured delivery fails closed before a claim or network request.
+
+### S01 preparation acceptance
+
+- [x] Disabled configuration exits before candidate query, claim or network request.
+- [x] Active external rule, latest owner approval, pass quality and delivery-required transition are rechecked before
+  a Telegram claim.
+- [x] Plain-text rendering rejects sensitive fields, identifiers, currency/absolute values and unsafe lengths.
+- [x] 429/5xx retryable, 4xx permanent and timeout/ambiguity terminal-unknown outcomes are ledgered without bodies.
+- [x] An expired Telegram lease is sealed as terminal unknown instead of being resent.
+- [x] Secret Manager names, environment template, DGH pipeline and S02 activation/rollback checklist are documented.
 
 ## Change impact
 
@@ -46,20 +62,30 @@ redaction and owner-approved test-message gates.
 
 ## Plan
 
-1. Verify Secret Manager metadata and destination ownership without logging values.
-2. Run separately approved finance-free test message.
-3. Enable delivery only after WI-029 acceptance and record operational evidence.
+1. Implement and offline-verify disabled-by-default outbound rendering, transport and ledger integration.
+2. Prepare Secret Manager/deployment references without reading values or deploying them.
+3. After WI-029 acceptance, verify destination ownership and run the separately approved finance-free test message.
+4. Enable delivery and record operational evidence.
 
 ## Sub-items
 
-- `none`.
+- `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
+- `WI-030-S02`: verify destination, send the approved finance-free test message and activate production delivery.
 
 ## Evidence
 
-- Pending.
+- WI-030-S01 closed: disabled-by-default adapter, renderer, owner-approval query/claim gate, bounded orchestration and
+  Secret Manager allowlist are implemented.
+- S01 contract and S02 checklist: `docs/design/wi-030-telegram-delivery-contract.md`.
+- Focused tests cover disabled/missing configuration, redaction, approval/revocation, success hash, explicit retry,
+  terminal timeout and expired-claim ambiguity. No real Telegram client, token, chat ID or external request was used.
+- `tests/test_telegram_delivery.py`: 13 passed.
+- `bash scripts/check.sh quick`: passed with 54 tracked Work Items, zero active implementation WIP and 114 governed
+  contracts.
+- `bash scripts/check.sh full`: 431 passed with one third-party Authlib deprecation warning.
 
 ## Closeout
 
-- Result: proposed; external send is not authorized by this planning record.
+- Result: verified preparation; S01 is closed and S02 remains proposed until WI-029 acceptance.
 - Remaining risk: destination and transport failure handling must be live-tested.
 - Follow-up Work Item: next milestone baseline after owner review.

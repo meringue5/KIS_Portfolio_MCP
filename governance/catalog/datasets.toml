@@ -650,7 +650,7 @@ consumer_ids = ["signal replay", "shadow delivery", "Remote MCP signal status", 
 
 [[contracts]]
 id = "dataset.alert-delivery-ledger"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
 description = "경보 state revision, idempotent dispatch claim과 redacted transport outcome 원장."
@@ -667,9 +667,9 @@ schema_contract = "Control alert ledger v1 with episodes, transitions, exact num
 sensitivity = "confidential"
 retention_policy = "retained with alert candidates and rule versions; no automatic deletion"
 backup_policy = "parquet"
-freshness_slo = "claim available immediately after a delivery-required state transition; WI-028 permits shadow only"
+freshness_slo = "claim available immediately after a delivery-required state transition; external consumption remains disabled until WI-030-S02"
 quality_rules = ["one claim per candidate channel destination", "identical fingerprint does not create another transition", "unknown outcome is terminal", "lease token and destination secret are never stored", "no arbitrary error text or provider response body is retained"]
-producer_pipeline_ids = ["pipeline.alert-evaluation-v2"]
+producer_pipeline_ids = ["pipeline.alert-evaluation-v2", "pipeline.telegram-delivery-v2"]
 consumer_ids = ["shadow report", "delivery audit", "Telegram adapter after owner approval"]
 
 [[contracts]]

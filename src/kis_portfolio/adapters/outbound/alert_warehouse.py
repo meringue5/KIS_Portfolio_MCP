@@ -64,6 +64,19 @@ class DispatchClaim:
     attempt_count: int
 
 
+@dataclass(frozen=True, slots=True)
+class TelegramDispatchCandidate:
+    candidate_id: str
+    rule_id: str
+    rule_version: str
+    evaluation_slot: str
+    session_key: str
+    evaluation_at: datetime
+    delivery_severity: str
+    transition_type: str
+    public_context: dict[str, object]
+
+
 class AlertWarehouseRepository:
     def __init__(self, connection: duckdb.DuckDBPyConnection) -> None:
         self.connection = connection
@@ -260,7 +273,7 @@ class AlertWarehouseRepository:
             raise AlertClaimError("claim requires a token and a lease of at most 900 seconds")
         row = self.connection.execute(
             """
-            SELECT r.delivery_mode,s.delivery_required
+            SELECT r.delivery_mode,r.contract_status,s.delivery_required
             FROM gold.alert_candidates c
             JOIN control.alert_rule_versions r
               ON r.rule_id=c.rule_id AND r.version=c.rule_version
@@ -269,13 +282,28 @@ class AlertWarehouseRepository:
             """,
             [candidate_id],
         ).fetchone()
-        if row is None or not bool(row[1]):
+        if row is None or not bool(row[2]):
             raise AlertClaimError("candidate is not eligible for delivery")
         delivery_mode = str(row[0])
         if channel not in {"shadow", "telegram"}:
             raise AlertClaimError("unsupported delivery channel")
         if channel == "telegram" and delivery_mode != "external":
             raise AlertClaimError("external delivery mode is not active")
+        if channel == "telegram" and str(row[1]) != "active":
+            raise AlertClaimError("external delivery rule is not active")
+        if channel == "telegram":
+            approval = self.connection.execute(
+                """
+                SELECT decision FROM control.alert_rule_approval_revisions
+                WHERE rule_id=(SELECT rule_id FROM gold.alert_candidates WHERE candidate_id=?)
+                  AND rule_version=(SELECT rule_version FROM gold.alert_candidates WHERE candidate_id=?)
+                ORDER BY revision DESC,decided_at DESC,approval_revision_id DESC
+                LIMIT 1
+                """,
+                [candidate_id, candidate_id],
+            ).fetchone()
+            if approval is None or str(approval[0]) != "approved":
+                raise AlertClaimError("external delivery rule lacks current owner approval")
         if channel == "shadow" and delivery_mode == "off":
             raise AlertClaimError("shadow delivery mode is not active")
         dispatch_id = _hash("alert-dispatch-v1", candidate_id, channel, destination_ref)
@@ -303,7 +331,9 @@ class AlertWarehouseRepository:
             )
             return DispatchClaim(dispatch_id, True, "claimed", 0)
         status, prior_expiry, attempts = str(prior[0]), prior[1], int(prior[2])
-        retryable = status == "retryable" or (status == "claimed" and prior_expiry <= claimed_at)
+        retryable = status == "retryable" or (
+            channel != "telegram" and status == "claimed" and prior_expiry <= claimed_at
+        )
         if not retryable:
             return DispatchClaim(dispatch_id, False, status, attempts)
         updated = self.connection.execute(
@@ -319,6 +349,72 @@ class AlertWarehouseRepository:
             [claimant_id, digest, expires_at, claimed_at, dispatch_id, claimed_at],
         ).fetchone()
         return DispatchClaim(dispatch_id, updated is not None, "claimed" if updated else status, attempts)
+
+    def eligible_telegram_dispatches(
+        self,
+        *,
+        as_of: datetime,
+        limit: int = 20,
+    ) -> tuple[TelegramDispatchCandidate, ...]:
+        """Return bounded owner-approved external candidates without destination data."""
+        _aware(as_of, "as_of")
+        if limit <= 0 or limit > 100:
+            raise ValueError("telegram dispatch limit must be between 1 and 100")
+        self.connection.execute(
+            """
+            UPDATE control.alert_dispatch_claims
+            SET claim_status='unknown',last_error_code='CLAIM_EXPIRED_UNKNOWN',updated_at=?
+            WHERE channel='telegram' AND claim_status='claimed' AND lease_expires_at<=?
+            """,
+            [as_of, as_of],
+        )
+        rows = self.connection.execute(
+            """
+            WITH latest_owner_decision AS (
+                SELECT rule_id,rule_version,decision
+                FROM control.alert_rule_approval_revisions
+                QUALIFY row_number() OVER (
+                    PARTITION BY rule_id,rule_version
+                    ORDER BY revision DESC,decided_at DESC,approval_revision_id DESC
+                ) = 1
+            )
+            SELECT c.candidate_id,c.rule_id,c.rule_version,c.evaluation_slot,c.session_key,
+                   c.evaluation_at,s.delivery_severity,s.transition_type,c.public_context
+            FROM gold.alert_candidates c
+            JOIN control.alert_rule_versions r
+              ON r.rule_id=c.rule_id AND r.version=c.rule_version
+            JOIN control.alert_state_revisions s ON s.candidate_id=c.candidate_id
+            JOIN latest_owner_decision a
+              ON a.rule_id=c.rule_id AND a.rule_version=c.rule_version
+            LEFT JOIN control.alert_dispatch_claims d
+              ON d.candidate_id=c.candidate_id AND d.channel='telegram'
+            WHERE r.contract_status='active'
+              AND r.delivery_mode='external'
+              AND a.decision='approved'
+              AND s.delivery_required
+              AND c.quality_status='pass'
+              AND (
+                  d.dispatch_id IS NULL OR d.claim_status='retryable'
+              )
+            ORDER BY c.evaluation_at,c.candidate_id
+            LIMIT ?
+            """,
+            [limit],
+        ).fetchall()
+        return tuple(
+            TelegramDispatchCandidate(
+                candidate_id=str(row[0]),
+                rule_id=str(row[1]),
+                rule_version=str(row[2]),
+                evaluation_slot=str(row[3]),
+                session_key=str(row[4]),
+                evaluation_at=row[5],
+                delivery_severity=str(row[6]),
+                transition_type=str(row[7]),
+                public_context=json.loads(str(row[8])),
+            )
+            for row in rows
+        )
 
     def record_attempt(
         self,

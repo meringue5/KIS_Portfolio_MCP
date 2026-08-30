@@ -138,8 +138,8 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph M2["MS-002 — 현재 실행 경로"]
-        W29["WI-029 / S05<br/>2주 shadow 증적 수집<br/>in progress"]
-        W30["WI-030<br/>Telegram delivery<br/>proposed"]
+        W29["WI-029 / S05<br/>2주 shadow 증적 수집<br/>verified / collecting"]
+        W30["WI-030 / S01<br/>disabled Telegram prep<br/>verified"]
         M2DONE{"MS-002<br/>acceptance complete"}
         W29 --> W30 --> M2DONE
     end
@@ -200,8 +200,7 @@ flowchart TB
     classDef blocked fill:#fde2e2,stroke:#b42318,color:#5b1712;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     classDef gate fill:#e8f1ff,stroke:#175cd3,color:#123b72;
-    class W29 active;
-    class W30 blocked;
+    class W29,W30 blocked;
     class W35,W37,W38,W39,W40,W41,W42,W43,W44,W45,W46,W47,W48,W49,W50,W51,W32 proposed;
     class M2DONE,M3OPEN gate;
 ```
@@ -211,7 +210,8 @@ flowchart TB
 | 구분 | 현재 가능한 범위 |
 | --- | --- |
 | 계속 자동 진행 | `WI-029-S05`: 2026-09-10까지 DB-only shadow 증적 축적 |
-| 다음 구현 | `WI-030`: S05 검토와 owner rule-version 승인 뒤 Telegram delivery |
+| 준비 완료 | `WI-030-S01`: secret을 읽거나 외부 전송하지 않는 Telegram delivery 경로 검증 완료 |
+| 2주 뒤 활성화 | `WI-030-S02`: S05 검토·owner rule-version·destination·test-message 승인 뒤 실행 |
 | MS-003 사전 준비 | `WI-035`, `WI-037`, `WI-039`, `WI-040`의 source·비용·권리·계약 read-only 조사 |
 | 현재 baseline에서 불가 | MS-003 production 구현·migration·배포. MS-002가 닫히거나 formal start gate가 개정돼야 함 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |

@@ -691,3 +691,15 @@ id = "WI-029-S05"
 parent_id = "WI-029"
 title = "Collect two-week evidence and owner rule approval"
 status = "in_progress"
+
+[[subitems]]
+id = "WI-030-S01"
+parent_id = "WI-030"
+title = "Implement and verify disabled outbound Telegram delivery"
+status = "closed"
+
+[[subitems]]
+id = "WI-030-S02"
+parent_id = "WI-030"
+title = "Verify destination test message and activate production delivery"
+status = "proposed"

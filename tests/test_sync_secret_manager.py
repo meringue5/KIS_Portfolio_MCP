@@ -23,6 +23,8 @@ def test_secret_manager_sync_plan_only_includes_allowlisted_secrets():
         "KIS_ACNT_PRDT_CD_RIA": "01",
         "MOTHERDUCK_DATABASE": "kis_portfolio",
         "MOTHERDUCK_TOKEN": "md-token",
+        "KIS_TELEGRAM_BOT_TOKEN": "telegram-token",
+        "KIS_TELEGRAM_CHAT_ID": "private-chat",
         "KIS_DEPLOY_ENV": "bundled-env",
     }
 
@@ -33,4 +35,6 @@ def test_secret_manager_sync_plan_only_includes_allowlisted_secrets():
         "KIS_APP_SECRET_RIA": "kis-portfolio-kis-app-secret-ria",
         "KIS_CANO_RIA": "kis-portfolio-kis-cano-ria",
         "MOTHERDUCK_TOKEN": "kis-portfolio-motherduck-token",
+        "KIS_TELEGRAM_BOT_TOKEN": "kis-portfolio-kis-telegram-bot-token",
+        "KIS_TELEGRAM_CHAT_ID": "kis-portfolio-kis-telegram-chat-id",
     }

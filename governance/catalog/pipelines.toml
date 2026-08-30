@@ -298,3 +298,26 @@ quality_gates = ["three-year span and asset-class coverage explicit", "daily med
 secret_profile = "MotherDuck runtime only; no Telegram token, destination or KIS source credential"
 cost_class = "backfill"
 trigger_policy = "manual bounded replay and existing Scheduler shadow slots; external transport is structurally unavailable until WI-030"
+
+[[contracts]]
+id = "pipeline.telegram-delivery-v2"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "owner-approved external alert transition을 allowlisted plain-text payload로 렌더링하고 Telegram sendMessage 결과를 redacted delivery ledger에 기록한다."
+decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044"]
+source_ids = []
+input_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger", "dataset.alert-calibration-evidence"]
+output_dataset_ids = ["dataset.alert-delivery-ledger"]
+stages = ["verify-owner-approval", "render-redacted-payload", "claim", "send-message", "record-outcome"]
+schedule_policy = "composed after the existing 10:00, 14:30 and 16:00 KST monitoring jobs; U.S. close remains morning-only"
+calendar_gate = "inherits the exact candidate evaluation slot and session; no independent delivery schedule"
+idempotency_key = "candidate id, telegram channel and opaque destination reference"
+timeout_policy = "one bounded HTTPS sendMessage request per acquired claim; post-send timeout is terminal unknown"
+retry_policy = "no in-process retry; explicit provider 429/5xx may be retried by a later scheduled run, terminal unknown and expired Telegram claims are never automatically retried"
+source_call_budget = "at most 20 Telegram sendMessage attempts per monitoring run after all activation gates pass"
+freshness_gates = ["candidate and delivery-required transition are terminal for the slot", "latest owner decision remains approved"]
+quality_gates = ["active external rule only", "pass-quality candidate only", "watch or higher only", "allowlisted payload excludes account number absolute total assets credentials raw source and chat identifier", "disabled or incomplete configuration creates no claim or request"]
+secret_profile = "GCP Secret Manager Telegram bot token and private chat id only after WI-030-S02; opaque destination alias is non-secret runtime config"
+cost_class = "routine"
+trigger_policy = "WI-030-S01 code path defaults disabled and receives no production secret; S02 requires WI-029 acceptance, destination verification, finance-free test approval and explicit release activation"

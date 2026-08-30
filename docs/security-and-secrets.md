@@ -99,6 +99,9 @@ Firestore 활성화 또는 token migration을 수행하지 않았다.
 | `KIS_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google Cloud OAuth app | auth server | No | ID in env, secret in Secret Manager | Rotate in Google Cloud, sync Secret Manager for the secret, redeploy auth. |
 | `KIS_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth app | auth server | No | ID in env, secret in Secret Manager | Rotate in GitHub, sync Secret Manager for the secret, redeploy auth. |
 | `KIS_REMOTE_AUTH_TOKEN` | Generated secret, GCP Secret Manager | remote bearer fallback only | No | env/secret manager only | Bearer mode is for experiments. Rotate token and update clients together. |
+| `KIS_TELEGRAM_BOT_TOKEN` | Telegram BotFather, GCP Secret Manager | V2 monitoring batch after WI-030-S02 activation | No | env/secret manager only | Rotate through BotFather, add a Secret Manager version and redeploy only the V2 monitoring jobs. |
+| `KIS_TELEGRAM_CHAT_ID` | Owner-verified private bot conversation, GCP Secret Manager | V2 monitoring batch after WI-030-S02 activation | No | env/secret manager only | Treat as a private destination secret; never store it in MotherDuck, logs, payload hashes or evidence. |
+| `KIS_TELEGRAM_DESTINATION_REF` | Config | V2 monitoring batch | Yes | non-secret opaque alias only | Must not equal or encode the chat ID; used only for idempotent delivery claims. |
 | `KIS_DEPLOY_ENV` | Deprecated GitHub Environment secret | None in current workflow | No | Deprecated GitHub secret | Do not add back to workflow. Remove after Secret Manager deployment is verified. |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | GitHub Environment secret | GitHub Actions auth | No | GitHub secret | Deployment control plane credential/config. Keep scoped to this repository/environment. |
 | `GCP_SERVICE_ACCOUNT` | GitHub Environment secret or var | GitHub Actions auth | No | GitHub secret/var | Not a password, but grants deployment authority through WIF. Keep least-privilege IAM. |
