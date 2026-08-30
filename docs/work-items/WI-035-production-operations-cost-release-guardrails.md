@@ -49,7 +49,7 @@ Registry cleanup remain separate delivery gaps.
 
 ## Sub-items
 
-- `WI-035-S01` — research production inventory, cost and rollback cleanup evidence (`in_progress`).
+- `WI-035-S01` — research production inventory, cost and rollback cleanup evidence (`closed`).
 
 ## Pre-research checkpoint
 
@@ -59,9 +59,9 @@ the MS-003 formal start gate.
 | Checkpoint | State | Evidence |
 | --- | --- | --- |
 | research start and boundary | complete | 2026-08-30; this Work Item and registry entry |
-| repository operations/cost/release audit | pending | no conclusion recorded yet |
-| live read-only resource metadata audit | pending | no conclusion recorded yet |
-| implementation inputs and unknowns | pending | no conclusion recorded yet |
+| repository operations/cost/release audit | complete | no executable inventory, cost evaluator, release manifest or cleanup planner found |
+| live read-only resource metadata audit | complete | 2 services, 12 jobs, 6 schedulers and two image repositories reconciled |
+| implementation inputs and unknowns | complete | `docs/operations/wi-035-pre-research-2026-08.md` |
 
 Allowed scope is read-only repository and live metadata inspection, current cost/budget observability assessment,
 active/rollback digest preservation inputs, and implementation-gap identification. It excludes GCP resource mutation,
@@ -70,9 +70,10 @@ database mutation, deploy/cleanup apply, code implementation and approved contra
 ## Evidence
 
 - `WI-035-S01` start checkpoint: 2026-08-30.
+- `docs/operations/wi-035-pre-research-2026-08.md`: closed read-only evidence and implementation inputs.
 
 ## Closeout
 
-- Result: proposed.
+- Result: parent proposed; `WI-035-S01` research closed without opening the MS-003 formal gate.
 - Remaining risk: current billing export granularity may remain limited.
 - Follow-up Work Item: WI-045.
