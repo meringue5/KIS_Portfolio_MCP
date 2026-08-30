@@ -49,11 +49,27 @@ Registry cleanup remain separate delivery gaps.
 
 ## Sub-items
 
-- `none`.
+- `WI-035-S01` — research production inventory, cost and rollback cleanup evidence (`in_progress`).
+
+## Pre-research checkpoint
+
+`WI-035-S01` is a research-only sub-item. The parent `WI-035` remains `proposed`, and this checkpoint does not open
+the MS-003 formal start gate.
+
+| Checkpoint | State | Evidence |
+| --- | --- | --- |
+| research start and boundary | complete | 2026-08-30; this Work Item and registry entry |
+| repository operations/cost/release audit | pending | no conclusion recorded yet |
+| live read-only resource metadata audit | pending | no conclusion recorded yet |
+| implementation inputs and unknowns | pending | no conclusion recorded yet |
+
+Allowed scope is read-only repository and live metadata inspection, current cost/budget observability assessment,
+active/rollback digest preservation inputs, and implementation-gap identification. It excludes GCP resource mutation,
+database mutation, deploy/cleanup apply, code implementation and approved contract changes.
 
 ## Evidence
 
-- Pending.
+- `WI-035-S01` start checkpoint: 2026-08-30.
 
 ## Closeout
 
