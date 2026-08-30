@@ -108,7 +108,7 @@ id = "MS-GOV"
 title = "Project Operating System improvements"
 status = "closed"
 depends_on = []
-work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052"]
+work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053"]
 
 [[work_items]]
 id = "WI-009"
@@ -549,6 +549,16 @@ delivery_refs = []
 depends_on = ["WI-034"]
 parent_id = ""
 sequence = 4
+
+[[work_items]]
+id = "WI-053"
+identity = "work-item-dependency-visualization"
+title = "Publish the human-readable Work Item dependency map"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-052"]
+parent_id = ""
+sequence = 5
 
 [[subitems]]
 id = "WI-018-S01"
