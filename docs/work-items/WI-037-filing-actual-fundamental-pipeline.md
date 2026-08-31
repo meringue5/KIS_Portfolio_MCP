@@ -47,11 +47,28 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 
 ## Sub-items
 
-- `none`.
+- `WI-037-S01` — research filing sources, issuer identity, taxonomy and point-in-time controls (`in_progress`).
+
+## Pre-research checkpoint
+
+`WI-037-S01` is a research-only sub-item. Parent `WI-037` remains `proposed`; MS-003's formal start gate remains
+closed.
+
+| Checkpoint | State | Evidence |
+| --- | --- | --- |
+| research start and boundary | complete | 2026-08-31; this Work Item and registry entry |
+| approved contract and current-code audit | pending | no conclusion recorded yet |
+| official OpenDART/SEC capability and rights audit | pending | no conclusion recorded yet |
+| implementation inputs and unknowns | pending | no conclusion recorded yet |
+
+Allowed scope is read-only repository and official-source research covering held-issuer identity, filing/correction
+semantics, taxonomy facts, knowledge time, source limits and permitted retention. It excludes external collection,
+credential use, fixtures containing provider payloads, DB/schema changes, contract lifecycle changes, deployment and
+scheduled activation.
 
 ## Evidence
 
-- Pending.
+- `WI-037-S01` start checkpoint: 2026-08-31.
 
 ## Closeout
 
