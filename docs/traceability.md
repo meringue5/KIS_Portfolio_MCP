@@ -75,7 +75,7 @@
 | DEC-026..028 replay and shadow | V2-W0509 | WI-029-S01..S05 | WI-028 | verified implementation; S05 evidence collecting through 2026-09-10 with calendar-derived due-slot reconciliation |
 | DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030-S01/S02 | WI-029 activation gate | verified preparation; S01 closed, S02 external-send gate |
 | DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 / WI-035-S01 | WI-012 | parent proposed; S01 read-only evidence closed; cleanup blocked until rollback manifest exists; MS-003 gate unchanged |
-| DEC-020..025 filing actual/fundamental facts | V2-W0406 | WI-037 / WI-037-S01 | WI-012, WI-017 | parent proposed; research-only S01 in progress; MS-003 gate unchanged |
+| DEC-020..025 filing actual/fundamental facts | V2-W0406 | WI-037 / WI-037-S01 | WI-012, WI-017 | parent proposed; S01 evidence closed; contract/layer/PIT hardening required before implementation; MS-003 gate unchanged |
 | DEC-020/024 dividend ledger | V2-W0407 | WI-038 | WI-020, WI-021, WI-037 | proposed; MS-003 |
 | DEC-022 macro profile | V2-W0408 | WI-039 | WI-012 | proposed; MS-003 |
 | DEC-031/032 catalog and quality read model | V2-W0410 | WI-040 | WI-012, WI-019, WI-020 | proposed; MS-003 |

@@ -47,7 +47,7 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 
 ## Sub-items
 
-- `WI-037-S01` — research filing sources, issuer identity, taxonomy and point-in-time controls (`in_progress`).
+- `WI-037-S01` — research filing sources, issuer identity, taxonomy and point-in-time controls (`closed`).
 
 ## Pre-research checkpoint
 
@@ -57,9 +57,9 @@ closed.
 | Checkpoint | State | Evidence |
 | --- | --- | --- |
 | research start and boundary | complete | 2026-08-31; this Work Item and registry entry |
-| approved contract and current-code audit | pending | no conclusion recorded yet |
-| official OpenDART/SEC capability and rights audit | pending | no conclusion recorded yet |
-| implementation inputs and unknowns | pending | no conclusion recorded yet |
+| approved contract and current-code audit | complete | logical/physical layer, grain and PIT gaps identified; live target tables empty |
+| official OpenDART/SEC capability and rights audit | complete | official API, fair-access, quota, taxonomy and private-retention boundaries recorded |
+| implementation inputs and unknowns | complete | `docs/operations/wi-037-pre-research-2026-08.md` |
 
 Allowed scope is read-only repository and official-source research covering held-issuer identity, filing/correction
 semantics, taxonomy facts, knowledge time, source limits and permitted retention. It excludes external collection,
@@ -69,9 +69,10 @@ scheduled activation.
 ## Evidence
 
 - `WI-037-S01` start checkpoint: 2026-08-31.
+- `docs/operations/wi-037-pre-research-2026-08.md`: closed evidence and contract-hardening inputs.
 
 ## Closeout
 
-- Result: proposed.
+- Result: parent proposed; `WI-037-S01` research closed without opening the MS-003 formal gate.
 - Remaining risk: taxonomy coverage requires incremental mapping.
 - Follow-up Work Item: WI-038 and WI-041.
