@@ -182,16 +182,23 @@ mode/channel은 DB `shadow`다. claim lease token은 digest만 저장하고 `unk
 calibration과 2주 shadow는 WI-029, Telegram API와 external mode는 WI-030이 담당한다. 상세 계약은
 [WI-028 alert state and delivery ledger](./design/wi-028-alert-state-delivery-ledger-contract.md)에 둔다.
 
-`pipeline.telegram-delivery-v2:1.0.0`은 기존 scale-to-zero monitoring Job 뒤에서만 합성되는 outbound-only
+`pipeline.telegram-delivery-v2:1.1.0`은 기존 scale-to-zero monitoring Job 뒤에서만 합성되는 outbound-only
 consumer다. `KIS_TELEGRAM_DELIVERY_ENABLED`의 기본값은 `false`이며, 이 상태에서는 candidate 조회, dispatch
 claim과 network request를 모두 만들지 않는다. 활성 상태에서도 `active external` rule, 최신 owner approval,
 `pass` quality와 delivery-required transition이 모두 있어야 Telegram 후보가 된다.
 
+DEC-050 bounded canary에서는 `bootstrap-1.0.0` shadow rule을 그대로 실행한 뒤 별도
+`canary-2026-09-01.1` external rule로 같은 point-in-time 입력을 평가한다. 두 rule의 candidate와 state identity는
+분리되며, external rule은 2026-09-01 00:00부터 2026-09-08 00:00 KST 전까지만 유효하다. eligibility와 claim
+양쪽이 dispatch time의 유효기간을 검사하므로 만료 뒤 retry나 새 전송은 fail closed한다. `주의` 이상
+상태전이는 false alarm 후보를 포함해 보내고, normal·non-pass·no-change는 DB 증거로만 남긴다.
+
 메시지는 `public_context` allowlist에서 plain text로 다시 렌더링하고 전체 계좌번호, 총자산 절대액,
 credential, raw source와 chat identifier를 거부한다. Telegram message ID는 원문 대신 hash로 delivery ledger에
 남긴다. 명시적인 429/5xx만 다음 scheduled run에서 retryable이고, post-send timeout과 transport ambiguity는
-terminal `unknown`이라 자동 재전송하지 않는다. WI-030-S01은 이 경로를 코드와 offline test로만 준비하며,
-Secret Manager 주입·destination test·external flag는 WI-029 인수 뒤 WI-030-S02가 소유한다.
+terminal `unknown`이라 자동 재전송하지 않는다. WI-030-S01은 이 경로를 code와 offline test로 준비했고,
+DEC-050이 destination test와 7일 canary external flag를 WI-030-S02에 승인했다. permanent rule은 WI-029 인수
+뒤에만 가능하다.
 전체 payload, outcome과 activation 계약은
 [WI-030 Telegram delivery contract](./design/wi-030-telegram-delivery-contract.md)에 둔다.
 

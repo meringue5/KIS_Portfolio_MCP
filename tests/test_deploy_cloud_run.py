@@ -49,7 +49,7 @@ def test_secret_manager_uses_deterministic_secret_ids():
     )
     assert (
         deploy_cloud_run._secret_id_for_env_key("KIS_TELEGRAM_BOT_TOKEN")
-        == "kis-portfolio-kis-telegram-bot-token"
+        == "kis-portfolio-telegram-bot-token"
     )
     assert deploy_cloud_run._is_secret_env_key("KIS_TELEGRAM_CHAT_ID") is True
 
@@ -235,6 +235,22 @@ def test_v2_pipeline_env_includes_public_sec_fair_access_identity():
         "grand-forge-279904",
     )
     assert payload["SEC_EDGAR_USER_AGENT"] == "KIS Portfolio mustafa@example.com"
+
+
+def test_v2_pipeline_env_includes_explicit_telegram_canary_flags():
+    payload = deploy_cloud_run._build_v2_pipeline_env(
+        {
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio",
+            "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+            "KIS_TELEGRAM_CANARY_ENABLED": "true",
+            "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+        },
+        "grand-forge-279904",
+    )
+    assert payload["KIS_TELEGRAM_DELIVERY_ENABLED"] == "true"
+    assert payload["KIS_TELEGRAM_CANARY_ENABLED"] == "true"
+    assert payload["KIS_TELEGRAM_DESTINATION_REF"] == "dest.owner.primary"
 
 
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
@@ -436,6 +452,59 @@ def test_wi029_s04_migrates_before_same_digest_core_and_verifies_private_restore
     assert secrets.startswith("MOTHERDUCK_TOKEN=")
     assert "KIS_APP_" not in secrets and "KIS_CANO_" not in secrets
     assert scheduler_calls
+
+
+def test_wi030_s02_pins_secrets_activates_once_and_reuses_one_core_digest(monkeypatch):
+    commands = []
+    builds = {"count": 0}
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi030-s02", dry_run=True,
+        secret_mode="secret-manager", job="kis-portfolio-wi030-s02",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_TELEGRAM_BOT_TOKEN_VERSION": "2",
+        "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+    }
+
+    def build(_args, *, project):
+        builds["count"] += 1
+        assert project == "grand-forge-279904"
+        return "image@sha256:" + "c" * 64
+
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", build)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, dry_run: commands.append(command) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi030_s02(
+        args, env=env, project="grand-forge-279904",
+    )
+
+    assert result == 0
+    assert builds["count"] == 1
+    assert len([command for command in commands if command[:3] == ["gcloud", "secrets", "add-iam-policy-binding"]]) == 2
+    activation = next(
+        command for command in commands
+        if command[:4] == ["gcloud", "run", "jobs", "deploy"]
+        and command[4] == "kis-portfolio-wi030-s02"
+    )
+    assert activation[activation.index("--args") + 1] == "activate-wi030-canary"
+    assert "MOTHERDUCK_TOKEN=" in activation[activation.index("--set-secrets") + 1]
+    core = [
+        command for command in commands
+        if command[:4] == ["gcloud", "run", "jobs", "deploy"]
+        and command[4].startswith("kis-portfolio-owned-core-v2-")
+    ]
+    assert len(core) == 3
+    assert {command[command.index("--image") + 1] for command in core} == {
+        "image@sha256:" + "c" * 64
+    }
+    for command in core:
+        secrets = command[command.index("--set-secrets") + 1]
+        assert "KIS_TELEGRAM_BOT_TOKEN=kis-portfolio-telegram-bot-token:2" in secrets
+        assert "KIS_TELEGRAM_CHAT_ID=kis-portfolio-telegram-chat-id:1" in secrets
 
 
 def test_overseas_batch_command_uses_default_account_and_exchange():

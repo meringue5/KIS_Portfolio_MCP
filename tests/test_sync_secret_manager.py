@@ -35,6 +35,6 @@ def test_secret_manager_sync_plan_only_includes_allowlisted_secrets():
         "KIS_APP_SECRET_RIA": "kis-portfolio-kis-app-secret-ria",
         "KIS_CANO_RIA": "kis-portfolio-kis-cano-ria",
         "MOTHERDUCK_TOKEN": "kis-portfolio-motherduck-token",
-        "KIS_TELEGRAM_BOT_TOKEN": "kis-portfolio-kis-telegram-bot-token",
-        "KIS_TELEGRAM_CHAT_ID": "kis-portfolio-kis-telegram-chat-id",
+        "KIS_TELEGRAM_BOT_TOKEN": "kis-portfolio-telegram-bot-token",
+        "KIS_TELEGRAM_CHAT_ID": "kis-portfolio-telegram-chat-id",
     }

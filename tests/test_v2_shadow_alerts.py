@@ -11,17 +11,26 @@ from kis_portfolio.adapters.outbound.instrument_warehouse import InstrumentWareh
 from kis_portfolio.adapters.outbound.v2_warehouse import V2WarehouseRepository
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.ports.source import SourceEnvelope
-from kis_portfolio.services.shadow_alerts import run_shadow_signal_evaluation
+from kis_portfolio.services.shadow_alerts import (
+    CANARY_RULE_VERSION,
+    run_external_canary_signal_evaluation,
+    run_shadow_signal_evaluation,
+)
 
 
 LOGICAL_DATE = date(2026, 8, 28)
 
 
-def _warehouse(*, include_us: bool = False, unknown: bool = False) -> duckdb.DuckDBPyConnection:
+def _warehouse(
+    *,
+    include_us: bool = False,
+    unknown: bool = False,
+    logical_date: date = LOGICAL_DATE,
+) -> duckdb.DuckDBPyConnection:
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
     repository = V2WarehouseRepository(connection)
-    fetched = datetime(2026, 8, 28, 7, tzinfo=UTC)
+    fetched = datetime.combine(logical_date, datetime.min.time(), tzinfo=UTC) + timedelta(hours=7)
     body = {"fixture": "shadow-alert"}
     observation_id = repository.record_observation(
         "dataset.price-bar-daily",
@@ -49,7 +58,7 @@ def _warehouse(*, include_us: bool = False, unknown: bool = False) -> duckdb.Duc
             "classification_quality": "unknown" if unknown else "official_reference",
         }, observation_id)
         for index in range(121):
-            session = LOGICAL_DATE - timedelta(days=120 - index)
+            session = logical_date - timedelta(days=120 - index)
             if market != "KRX":
                 session -= timedelta(days=1)
             close = Decimal("90") if index == 120 else Decimal("100")
@@ -79,7 +88,7 @@ def _warehouse(*, include_us: bool = False, unknown: bool = False) -> duckdb.Duc
                 NULL, NULL, ?, '{}', 'pass', ?
             )
             """,
-            [LOGICAL_DATE, instrument_id, fetched, f"lineage-{instrument_id}"],
+            [logical_date, instrument_id, fetched, f"lineage-{instrument_id}"],
         )
         if market == "KRX":
             connection.execute(
@@ -89,7 +98,7 @@ def _warehouse(*, include_us: bool = False, unknown: bool = False) -> duckdb.Duc
                     NULL, NULL, ?, '{}', 'pass', ?
                 )
                 """,
-                [LOGICAL_DATE, instrument_id, fetched, f"lineage-close-{instrument_id}"],
+                [logical_date, instrument_id, fetched, f"lineage-close-{instrument_id}"],
             )
     return connection
 
@@ -134,5 +143,47 @@ def test_morning_run_adds_us_close_and_unknown_class_fails_closed() -> None:
         """
         SELECT count(*) FROM control.alert_dispatch_claims WHERE channel='telegram'
         """
+    ).fetchone()[0] == 0
+    connection.close()
+
+
+def test_external_canary_uses_parallel_rule_and_creates_no_transport_claim() -> None:
+    logical_date = date(2026, 9, 1)
+    connection = _warehouse(logical_date=logical_date)
+
+    shadow = run_shadow_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+    canary = run_external_canary_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+
+    assert shadow["rule_version"] == "bootstrap-1.0.0"
+    assert canary["rule_version"] == CANARY_RULE_VERSION
+    assert canary["candidate_count"] == 1
+    assert canary["transition_count"] == 1
+    assert canary["shadow_claim_count"] == 0
+    assert canary["transport"] == "telegram-canary-pending"
+    assert connection.execute(
+        "SELECT count(*) FROM gold.alert_candidates"
+    ).fetchone()[0] == 2
+    assert connection.execute(
+        "SELECT count(*) FROM control.alert_dispatch_claims WHERE channel='telegram'"
+    ).fetchone()[0] == 0
+    connection.close()
+
+
+def test_external_canary_expires_without_creating_candidates() -> None:
+    logical_date = date(2026, 9, 8)
+    connection = _warehouse(logical_date=logical_date)
+
+    result = run_external_canary_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1000"
+    )
+
+    assert result["status"] == "expired"
+    assert result["candidate_count"] == 0
+    assert connection.execute(
+        "SELECT count(*) FROM gold.alert_candidates"
     ).fetchone()[0] == 0
     connection.close()

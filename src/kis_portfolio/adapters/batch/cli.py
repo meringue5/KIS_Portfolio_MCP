@@ -26,7 +26,10 @@ from kis_portfolio.services.order_history import collect_domestic_order_history,
 from kis_portfolio.services.overseas_classification_sync import sync_held_overseas_classifications
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.price_history import run_held_price_backfill
-from kis_portfolio.services.shadow_alerts import run_shadow_signal_evaluation
+from kis_portfolio.services.shadow_alerts import (
+    run_external_canary_signal_evaluation,
+    run_shadow_signal_evaluation,
+)
 from kis_portfolio.services.position_reconstruction_runtime import (
     build_reconstruction_execution_plan,
 )
@@ -50,6 +53,7 @@ from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
 from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
 from kis_portfolio.services.wi029_s04 import verify_wi029_s04
 from kis_portfolio.services.wi029_s05 import refresh_wi029_s05_evidence
+from kis_portfolio.services.wi030_s02 import activate_wi030_canary
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -252,6 +256,10 @@ def build_parser() -> argparse.ArgumentParser:
         "review-wi029-s05",
         help="Recompute DB-only shadow slot coverage; never sends an external alert.",
     )
+    subparsers.add_parser(
+        "activate-wi030-canary",
+        help="Activate the exact owner-approved DEC-050 bounded Telegram canary.",
+    )
     return parser
 
 
@@ -308,6 +316,10 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
             get_connection(), logical_date=logical_date, source_slot=args.slot,
         )
         result["shadow_evidence"] = refresh_wi029_s05_evidence(get_connection())
+        if os.environ.get("KIS_TELEGRAM_CANARY_ENABLED", "false").strip().lower() == "true":
+            result["telegram_canary"] = run_external_canary_signal_evaluation(
+                get_connection(), logical_date=logical_date, source_slot=args.slot,
+            )
         result["telegram_delivery"] = run_telegram_delivery(get_connection())
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
@@ -538,6 +550,19 @@ def _run_wi029_s05_review(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi030_canary_activation(_args: argparse.Namespace) -> int:
+    try:
+        result = activate_wi030_canary(get_connection())
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed", "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate canary activation evidence",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -569,6 +594,8 @@ def main() -> None:
         raise SystemExit(_run_wi029_s04_verify(args))
     if args.command == "review-wi029-s05":
         raise SystemExit(_run_wi029_s05_review(args))
+    if args.command == "activate-wi030-canary":
+        raise SystemExit(_run_wi030_canary_activation(args))
 
     parser.print_help()
     raise SystemExit(2)
