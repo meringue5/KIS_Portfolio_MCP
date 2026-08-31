@@ -701,8 +701,8 @@ status = "closed"
 [[subitems]]
 id = "WI-030-S02"
 parent_id = "WI-030"
-title = "Verify destination test message and activate production delivery"
-status = "proposed"
+title = "Verify destination and activate a bounded Telegram canary"
+status = "in_progress"
 
 [[subitems]]
 id = "WI-035-S01"

@@ -527,6 +527,11 @@ DEC-046는 private GCS를 포함한 합의된 GCP resource의 non-destructive pr
 WI-009~012 연속 실행을 추가 승인한다. Remote MCP traffic cutover, V1 중지·삭제, Telegram 외부 전송과
 유료 provider는 계속 별도 gate다.
 
+DEC-050은 2026-08-31 첫 정상 월요일 운영 증거 뒤 WI-030-S02에 한해 Telegram 외부 전송 gate를 열었다.
+허용 범위는 기존 shadow와 병행하는 7일 이하의 immutable experimental canary, `주의` 이상 pass-quality
+상태전이, 실행당 최대 20건과 owner가 확인한 private destination이다. 정식 2주 shadow와 영구 rule 승인은
+계속 별도 gate이며 canary는 자동 승격되지 않는다.
+
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
 - ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는
