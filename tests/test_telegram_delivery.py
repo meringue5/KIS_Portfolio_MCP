@@ -33,7 +33,9 @@ class FakeTelegramClient:
         return self.result
 
 
-def _external_candidate() -> tuple[duckdb.DuckDBPyConnection, AlertWarehouseRepository, AlertCandidate]:
+def _external_candidate(
+    *, valid_to: datetime | None = None,
+) -> tuple[duckdb.DuckDBPyConnection, AlertWarehouseRepository, AlertCandidate]:
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
     repository = AlertWarehouseRepository(connection)
@@ -44,7 +46,7 @@ def _external_candidate() -> tuple[duckdb.DuckDBPyConnection, AlertWarehouseRepo
         "minimum_delivery_severity": "watch",
         "delivery_mode": "external",
         "valid_from": NOW - timedelta(days=1),
-        "valid_to": None,
+        "valid_to": valid_to,
         "metric_refs": ["price-shock"],
         "thresholds": {"profile": "fixture"},
     })
@@ -223,6 +225,26 @@ def test_expired_claim_is_sealed_unknown_instead_of_being_resent() -> None:
 
     assert eligible == ()
     assert claim == ("unknown", "CLAIM_EXPIRED_UNKNOWN")
+
+
+def test_expired_rule_is_ineligible_and_fails_closed_at_claim() -> None:
+    connection, repository, candidate = _external_candidate(
+        valid_to=NOW + timedelta(minutes=1)
+    )
+
+    assert len(repository.eligible_telegram_dispatches(as_of=NOW)) == 1
+    assert repository.eligible_telegram_dispatches(
+        as_of=NOW + timedelta(minutes=2)
+    ) == ()
+    with pytest.raises(AlertClaimError, match="not valid"):
+        repository.claim_dispatch(
+            candidate_id=candidate.candidate_id,
+            channel="telegram",
+            destination_ref="dest.owner.primary",
+            claimant_id="worker.telegram.v1",
+            lease_token="expired-rule",
+            claimed_at=NOW + timedelta(minutes=2),
+        )
 
 
 def test_retryable_failure_is_only_retried_by_a_later_run() -> None:

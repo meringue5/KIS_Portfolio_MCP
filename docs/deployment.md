@@ -284,15 +284,17 @@ Job을 갱신하고 오전 Job을 한 번 실행한다. 마지막 verify Job은 
 전체 governed V2 table을 private GCS에 올렸다가 fresh DuckDB로 내려받아 복원한다. migration·verify Job에는
 MotherDuck token만 주입하며 KIS 계좌 secret은 verify Job에 주입하지 않는다.
 
-WI-030-S01의 Telegram adapter는 같은 이미지에 포함되지만 production core Job에는 Telegram secret과 enable
-flag를 아직 주입하지 않는다. 기본 `KIS_TELEGRAM_DELIVERY_ENABLED=false`는 claim 이전에 종료하므로 현재
-DB-only shadow 동작은 유지된다. WI-030-S02 release에서만 다음 값을 V2 pipeline identity에 제한해 주입한다.
+WI-030-S01의 Telegram adapter는 같은 이미지에 포함된다. 기본 `KIS_TELEGRAM_DELIVERY_ENABLED=false`는
+claim 이전에 종료하므로 DB-only shadow 동작을 유지한다. DEC-050의 WI-030-S02 bounded canary release에서만
+다음 값을 V2 pipeline identity에 제한해 주입한다.
 
 - secret: `KIS_TELEGRAM_BOT_TOKEN`, `KIS_TELEGRAM_CHAT_ID`
 - non-secret: `KIS_TELEGRAM_DELIVERY_ENABLED=true`, `KIS_TELEGRAM_DESTINATION_REF=dest.owner.primary`
+- non-secret: `KIS_TELEGRAM_CANARY_ENABLED=true`; immutable rule validity is enforced in DB eligibility and claim
 
-S02 release 전제는 verified WI-029 shadow, owner-approved rule revision, owner-verified private destination과 별도
-승인된 finance-free test message다. generic batch, auth와 Remote MCP에는 Telegram secret을 주지 않는다.
+Bounded S02 release 전제는 DEC-050 owner approval, one complete scheduled-day smoke, owner-verified private
+destination과 별도 승인된 finance-free test message다. permanent rule은 verified WI-029 shadow를 계속 요구한다.
+generic batch, auth와 Remote MCP에는 Telegram secret을 주지 않는다.
 
 V2 Scheduler는 기존 배치용 `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 상속하지 않는다.
 따라서 기존 Scheduler identity를 변경하지 않고 V2 pipeline만 전용 계정으로 격리한다.
@@ -334,6 +336,9 @@ Deploy workflow:
 - `wi021-s06`과 `wi022-s06`은 `all`에 포함되지 않는 수동 1회성 복구 Job target이다. Scheduler를 만들지 않으며 고정 hash/range, 단일 task, 병렬도 1, 자동 retry 0으로 deploy 후 즉시 `--wait` 실행한다. `wi022-s06`은 계좌/KIS API secret 없이 MotherDuck token만 주입하고 migration `0010`, private pre/post restore 및 exact reconstruction hash를 요구한다.
 - `wi029-s04`도 `all`에 포함되지 않는 수동 activation target이며 migration→core update→morning shadow→private
   backup/restore 순서를 한 실행 안에서 강제한다. external Telegram transport는 배포하지 않는다.
+- `wi030-s02`는 `all`에 포함되지 않는 수동 bounded-canary target이다. numeric Telegram secret version을
+  요구하고, V2 pipeline service account에 두 secret의 accessor를 부여한 뒤 DEC-050 DB activation Job을
+  성공시킨 동일 image digest만 세 core Job에 배포한다. Scheduler와 shadow rule은 변경하지 않는다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

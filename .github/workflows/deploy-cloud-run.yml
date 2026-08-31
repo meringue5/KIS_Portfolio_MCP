@@ -23,6 +23,7 @@ on:
           - wi021-s06
           - wi022-s06
           - wi029-s04
+          - wi030-s02
 
 permissions:
   contents: read
@@ -95,6 +96,9 @@ jobs:
       KIS_WI022_S06_JOB_NAME: ${{ vars.KIS_WI022_S06_JOB_NAME || 'kis-portfolio-wi022-s06' }}
       KIS_CLOUD_RUN_WI022_S06_TASK_TIMEOUT: ${{ vars.KIS_CLOUD_RUN_WI022_S06_TASK_TIMEOUT || '3600s' }}
       KIS_WI029_S04_JOB_NAME: ${{ vars.KIS_WI029_S04_JOB_NAME || 'kis-portfolio-wi029-s04' }}
+      KIS_WI030_S02_JOB_NAME: ${{ vars.KIS_WI030_S02_JOB_NAME || 'kis-portfolio-wi030-s02' }}
+      KIS_TELEGRAM_BOT_TOKEN_VERSION: ${{ vars.KIS_TELEGRAM_BOT_TOKEN_VERSION }}
+      KIS_TELEGRAM_CHAT_ID_VERSION: ${{ vars.KIS_TELEGRAM_CHAT_ID_VERSION }}
       SEC_EDGAR_USER_AGENT: ${{ vars.SEC_EDGAR_USER_AGENT }}
       KIS_DEPLOY_SECRET_MODE: secret-manager
     steps:
@@ -290,4 +294,13 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}" \
             --job "${KIS_WI029_S04_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Activate and deploy WI-030-S02 bounded Telegram canary
+        if: github.event.inputs.target == 'wi030-s02'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi030-s02 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI030_S02_JOB_NAME}" \
             --secret-mode secret-manager

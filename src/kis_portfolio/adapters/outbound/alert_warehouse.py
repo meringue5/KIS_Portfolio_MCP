@@ -273,7 +273,7 @@ class AlertWarehouseRepository:
             raise AlertClaimError("claim requires a token and a lease of at most 900 seconds")
         row = self.connection.execute(
             """
-            SELECT r.delivery_mode,r.contract_status,s.delivery_required
+            SELECT r.delivery_mode,r.contract_status,s.delivery_required,r.valid_from,r.valid_to
             FROM gold.alert_candidates c
             JOIN control.alert_rule_versions r
               ON r.rule_id=c.rule_id AND r.version=c.rule_version
@@ -284,6 +284,8 @@ class AlertWarehouseRepository:
         ).fetchone()
         if row is None or not bool(row[2]):
             raise AlertClaimError("candidate is not eligible for delivery")
+        if claimed_at < row[3] or (row[4] is not None and claimed_at >= row[4]):
+            raise AlertClaimError("candidate rule is not valid at claim time")
         delivery_mode = str(row[0])
         if channel not in {"shadow", "telegram"}:
             raise AlertClaimError("unsupported delivery channel")
@@ -390,6 +392,8 @@ class AlertWarehouseRepository:
               ON d.candidate_id=c.candidate_id AND d.channel='telegram'
             WHERE r.contract_status='active'
               AND r.delivery_mode='external'
+              AND r.valid_from<=?
+              AND (r.valid_to IS NULL OR ?<r.valid_to)
               AND a.decision='approved'
               AND s.delivery_required
               AND c.quality_status='pass'
@@ -399,7 +403,7 @@ class AlertWarehouseRepository:
             ORDER BY c.evaluation_at,c.candidate_id
             LIMIT ?
             """,
-            [limit],
+            [as_of, as_of, limit],
         ).fetchall()
         return tuple(
             TelegramDispatchCandidate(

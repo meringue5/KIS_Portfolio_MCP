@@ -650,7 +650,7 @@ consumer_ids = ["signal replay", "shadow delivery", "Remote MCP signal status", 
 
 [[contracts]]
 id = "dataset.alert-delivery-ledger"
-version = "1.1.0"
+version = "1.2.0"
 status = "approved"
 owner = "owner"
 description = "경보 state revision, idempotent dispatch claim과 redacted transport outcome 원장."
@@ -667,14 +667,14 @@ schema_contract = "Control alert ledger v1 with episodes, transitions, exact num
 sensitivity = "confidential"
 retention_policy = "retained with alert candidates and rule versions; no automatic deletion"
 backup_policy = "parquet"
-freshness_slo = "claim available immediately after a delivery-required state transition; external consumption remains disabled until WI-030-S02"
-quality_rules = ["one claim per candidate channel destination", "identical fingerprint does not create another transition", "unknown outcome is terminal", "lease token and destination secret are never stored", "no arbitrary error text or provider response body is retained"]
+freshness_slo = "claim available immediately after a delivery-required state transition; DEC-050 external canary is bounded to its immutable validity window and permanent consumption remains WI-029-gated"
+quality_rules = ["one claim per candidate channel destination", "identical fingerprint does not create another transition", "eligibility and claim both enforce rule validity", "unknown outcome is terminal", "lease token and destination secret are never stored", "no arbitrary error text or provider response body is retained"]
 producer_pipeline_ids = ["pipeline.alert-evaluation-v2", "pipeline.telegram-delivery-v2"]
 consumer_ids = ["shadow report", "delivery audit", "Telegram adapter after owner approval"]
 
 [[contracts]]
 id = "dataset.alert-calibration-evidence"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
 description = "3년 provenance-labelled replay, 자산유형 threshold proposal, 2주 DB-only shadow와 owner approval revision."
@@ -692,6 +692,6 @@ sensitivity = "confidential"
 retention_policy = "retained with used rule versions and delivery evidence; no automatic deletion"
 backup_policy = "parquet"
 freshness_slo = "one bounded replay after eligible history, then updates through at least fourteen elapsed shadow days"
-quality_rules = ["retrospective reconstruction never claims historical live alert status", "median watch-plus count is at most two and p95 at most five per observed slot", "false-positive and miss labels require owner review", "shadow external send and sensitive violation counts are zero", "approval cites a reviewed calibration run and verified shadow window"]
+quality_rules = ["retrospective reconstruction never claims historical live alert status", "median watch-plus count is at most two and p95 at most five per observed slot", "false-positive and miss labels require owner review", "shadow external send and sensitive violation counts are zero", "permanent approval cites a reviewed calibration run and verified shadow window", "DEC-050 bounded canary cites the approved smoke date and clean collecting shadow without changing permanent approval state"]
 producer_pipeline_ids = ["pipeline.signal-calibration-v2"]
 consumer_ids = ["owner threshold review", "Telegram activation gate", "audit and rollback"]

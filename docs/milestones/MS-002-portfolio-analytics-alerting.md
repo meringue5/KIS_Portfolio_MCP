@@ -36,7 +36,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
 | 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | closed; PR #25, shadow-only ledger |
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | verified implementation; S05 operational evidence collecting through 2026-09-10 |
-| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | verified preparation; S01 closed, S02 activation remains external-send gated |
+| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01 closed, DEC-050 bounded canary S02 approved |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
@@ -68,6 +68,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-08-31.1 | 2026-08-31 | 첫 정상 월요일 증거 뒤 `주의` 이상 7일 experimental Telegram canary를 DEC-050으로 승인 | WI-030-S02만 in progress; permanent WI-029 gate와 identity 불변 |
 | 2026-08-30.2 | 2026-08-30 | WI-029의 구현 WIP를 verified로 넘기고 WI-030을 disabled preparation과 external activation으로 분리 | WI-030 dependency와 MS-002 acceptance 불변; S01/S02 append, 외부 전송 없음 |
 | 2026-08-30.1 | 2026-08-30 | WI-029-S05 scheduled-slot evidence collector added; calendar-derived coverage replaces candidate-derived expectation | WI-029-S05 remains in progress; no ID/dependency/status change, no external transport |
 | 2026-08-28.6 | 2026-08-28 | WI-029 DB-only shadow를 운영 활성화하고 14일 evidence window 시작 | WI-029-S04 closed; WI-029-S05 in progress, 기존 ID 불변 |

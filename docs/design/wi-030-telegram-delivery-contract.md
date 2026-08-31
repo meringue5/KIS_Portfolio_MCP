@@ -1,6 +1,6 @@
 # WI-030 Telegram delivery contract
 
-> 상태: S01 repository preparation; production disabled
+> 상태: S01 closed; DEC-050 bounded canary S02 in progress
 > Work Item: WI-030-S01 / WI-030-S02
 > Data contracts: `pipeline.telegram-delivery-v2:1.0.0`, `dataset.alert-delivery-ledger:1.1.0`
 
@@ -19,8 +19,22 @@ approved point-in-time candidate
   -> redacted terminal/retryable ledger outcome
 ```
 
-S01 makes this path executable in offline tests but keeps `KIS_TELEGRAM_DELIVERY_ENABLED=false` and gives no Telegram
-secret to production jobs. S02 may enable it only after WI-029 closes.
+S01 makes this path executable in offline tests. DEC-050 authorizes S02 to add one immutable external canary rule for
+at most seven elapsed days while the original shadow rule and formal WI-029 evidence continue unchanged. Permanent
+external activation still requires WI-029 closeout.
+
+## Bounded canary exception
+
+- Canary rule version and alert state identity are separate from `bootstrap-1.0.0` shadow state.
+- The rule is `active/external`, has an explicit `valid_from` and `valid_to` no more than seven days apart, and cannot
+  be edited or automatically promoted.
+- `watch` or higher pass-quality transitions are sent, including signals later labelled false positive. `normal`,
+  non-pass and repeated `no_change` candidates remain DB evidence and are not individual Telegram messages.
+- Eligibility and claim paths both recheck rule validity at dispatch time. Expiry or owner revocation fails closed.
+- The normal owner approval method still requires verified replay/shadow evidence. A dedicated canary approval path
+  accepts only the exact bounded contract after at least one successful complete scheduled day, zero sensitive
+  violations and zero prior external sends.
+- Maximum delivery remains 20 attempts per monitoring run. Rollback is the enable flag; history is never deleted.
 
 ## Candidate and activation gates
 
@@ -83,17 +97,17 @@ response bodies do not enter command output, logs, PR evidence, MotherDuck or ba
 
 ## S02 activation checklist
 
-1. Close WI-029 after the full elapsed window, scheduled-slot reconciliation, sensitive-value review and owner rule
-   approval.
-2. Confirm the owner initiated the private bot conversation and verify destination without recording its raw ID.
-3. Owner separately approves this finance-free message before it is sent:
+1. Confirm the owner initiated the private bot conversation and verify destination without recording its raw ID.
+2. Owner separately approves this finance-free message before it is sent:
    `KIS Portfolio 알림 채널 연결 테스트입니다. 계좌·자산 데이터는 포함하지 않았습니다.`
-4. Confirm enabled Secret Manager versions and resource-level accessor for only the V2 pipeline runtime identity.
-5. Record the approved external rule as a new immutable version; never mutate the shadow rule in place.
-6. Run the finance-free test, inspect only redacted outcome, then deploy the three existing scale-to-zero jobs with the
+3. Confirm enabled Secret Manager versions and resource-level accessor for only the V2 pipeline runtime identity.
+4. Record the approved bounded canary as a new immutable version; never mutate the shadow rule in place.
+5. Run the finance-free test, inspect only redacted outcome, then deploy the three existing scale-to-zero jobs with the
    enable flag and pinned secret versions.
-7. Verify one eligible alert, deduplication, terminal ledger status, zero sensitive violations and no repeated U.S.
+6. Verify one eligible alert, deduplication, terminal ledger status, zero sensitive violations and no repeated U.S.
    close at 14:30/16:00.
-8. Roll back immediately by setting the enable flag to `false`; do not delete claims or attempts.
+7. Review false positives, misses and message volume after the canary. Expiry cannot create a permanent rule.
+8. Close WI-029 before permanent external activation.
+9. Roll back immediately by setting the enable flag to `false`; do not delete claims or attempts.
 
 Steps 2 through 7 are external/production actions and remain outside S01 authorization.

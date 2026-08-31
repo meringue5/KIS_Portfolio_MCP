@@ -26,6 +26,7 @@ DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
 DEFAULT_WI021_S06_JOB = "kis-portfolio-wi021-s06"
 DEFAULT_WI022_S06_JOB = "kis-portfolio-wi022-s06"
 DEFAULT_WI029_S04_JOB = "kis-portfolio-wi029-s04"
+DEFAULT_WI030_S02_JOB = "kis-portfolio-wi030-s02"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -284,6 +285,13 @@ def _build_v2_pipeline_env(env: dict[str, str], project: str) -> dict[str, str]:
         "KIS_FIRESTORE_DATABASE": env.get("KIS_FIRESTORE_DATABASE", "kis-portfolio-state"),
         "KIS_GCS_BUCKET": env.get("KIS_GCS_BUCKET", f"{project}-kis-portfolio-private"),
     })
+    for key in (
+        "KIS_TELEGRAM_DELIVERY_ENABLED",
+        "KIS_TELEGRAM_CANARY_ENABLED",
+        "KIS_TELEGRAM_DESTINATION_REF",
+    ):
+        if env.get(key, "") != "":
+            payload[key] = env[key]
     return payload
 
 
@@ -358,6 +366,12 @@ def _is_secret_env_key(key: str) -> bool:
 
 
 def _secret_id_for_env_key(key: str) -> str:
+    telegram = {
+        "KIS_TELEGRAM_BOT_TOKEN": "kis-portfolio-telegram-bot-token",
+        "KIS_TELEGRAM_CHAT_ID": "kis-portfolio-telegram-chat-id",
+    }
+    if key in telegram:
+        return telegram[key]
     return f"kis-portfolio-{key.lower().replace('_', '-')}"
 
 
@@ -407,7 +421,11 @@ def _split_runtime_env(
 
     plain_env = {key: value for key, value in payload.items() if not _is_secret_env_key(key)}
     secret_refs = {
-        key: _secret_id_for_env_key(key)
+        key: (
+            f"{_secret_id_for_env_key(key)}:{env[f'{key}_VERSION']}"
+            if env.get(f"{key}_VERSION", "").strip()
+            else _secret_id_for_env_key(key)
+        )
         for key in sorted(
             _target_secret_keys(
                 env=env,
@@ -424,7 +442,7 @@ def _build_secret_flags(secret_refs: dict[str, str]) -> list[str]:
     if not secret_refs:
         return []
     assignments = ",".join(
-        f"{key}={secret_id}:latest"
+        f"{key}={secret_id if ':' in secret_id else secret_id + ':latest'}"
         for key, secret_id in sorted(secret_refs.items())
     )
     return ["--set-secrets", assignments]
@@ -786,8 +804,11 @@ def _deploy_v2_core_jobs(
     env: dict[str, str],
     project: str,
     image: str | None = None,
+    deploy_label: str = "v2-core-batch",
 ) -> int:
     required = _required_keys_for_batch(env)
+    if env.get("KIS_TELEGRAM_DELIVERY_ENABLED", "").strip().lower() == "true":
+        required.extend(["KIS_TELEGRAM_BOT_TOKEN", "KIS_TELEGRAM_CHAT_ID"])
     payload, secret_refs = _split_runtime_env(
         env=env,
         payload=_build_v2_pipeline_env(env, project),
@@ -822,7 +843,7 @@ def _deploy_v2_core_jobs(
                 "--args", f"collect-owned-portfolio-v2,--date,today,--slot,{slot},--partition-key,all-accounts",
                 "--task-timeout", env.get("KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT", DEFAULT_BATCH_TASK_TIMEOUT),
                 "--max-retries", "0", "--service-account", service_account,
-                *_build_secret_flags(secret_refs), *_build_label_flags("v2-core-batch"),
+                *_build_secret_flags(secret_refs), *_build_label_flags(deploy_label),
                 "--project", project,
             ]
             if _run(command, dry_run=args.dry_run) != 0:
@@ -834,6 +855,98 @@ def _deploy_v2_core_jobs(
             pass
     print(f"build-once image digest deployed to {len(DEFAULT_V2_CORE_JOBS)} fixed-argument jobs: {image}")
     return 0
+
+
+def _deploy_wi030_s02(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Activate DEC-050 once, then deploy the same bounded canary image to core jobs."""
+    for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
+        if not env.get(key, "").strip().isdigit():
+            print(f"Missing or non-numeric pinned secret version: {key}")
+            return 1
+    image = _build_release_image(args, project=project)
+    if not image:
+        print("Failed to resolve the build-once image digest.")
+        return 1
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    for secret_id in (
+        _secret_id_for_env_key("KIS_TELEGRAM_BOT_TOKEN"),
+        _secret_id_for_env_key("KIS_TELEGRAM_CHAT_ID"),
+    ):
+        if _run([
+            "gcloud", "secrets", "add-iam-policy-binding", secret_id,
+            "--member", f"serviceAccount:{service_account}",
+            "--role", "roles/secretmanager.secretAccessor",
+            "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+
+    activation_job = args.job or DEFAULT_WI030_S02_JOB
+    required = _required_keys_for_batch(env)
+    payload, secret_refs = _split_runtime_env(
+        env=env,
+        payload=_build_v2_pipeline_env(env, project),
+        required=required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    activation_env = {
+        key: value for key, value in payload.items()
+        if key in {
+            "KIS_DB_MODE", "MOTHERDUCK_DATABASE", "KIS_DATA_DIR",
+            "KIS_STATE_BACKEND", "KIS_GCP_PROJECT", "KIS_FIRESTORE_DATABASE",
+        }
+    }
+    env_path = _write_env_yaml(activation_env)
+    try:
+        command = [
+            "gcloud", "run", "jobs", "deploy", activation_job,
+            "--image", image, "--region", args.region,
+            "--env-vars-file", env_path,
+            "--command", "kis-portfolio-batch",
+            "--args", "activate-wi030-canary",
+            "--tasks", "1", "--parallelism", "1",
+            "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT,
+            "--max-retries", "0", "--service-account", service_account,
+            *_build_secret_flags({
+                key: value for key, value in secret_refs.items() if key == "MOTHERDUCK_TOKEN"
+            }),
+            *_build_label_flags("wi030-s02-activation"),
+            "--project", project,
+        ]
+        if _run(command, dry_run=args.dry_run) != 0:
+            return 1
+        if _run([
+            "gcloud", "run", "jobs", "execute", activation_job,
+            "--region", args.region, "--wait", "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(env_path)
+        except FileNotFoundError:
+            pass
+
+    canary_env = dict(env)
+    canary_env.update({
+        "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+        "KIS_TELEGRAM_CANARY_ENABLED": "true",
+        "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+    })
+    return _deploy_v2_core_jobs(
+        args,
+        env=canary_env,
+        project=project,
+        image=image,
+        deploy_label="wi030-s02-canary",
+    )
 
 
 def _deploy_wi029_s04(
@@ -1231,6 +1344,7 @@ def main() -> int:
             "wi021-s06",
             "wi022-s06",
             "wi029-s04",
+            "wi030-s02",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1416,6 +1530,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi029_s04(args, env=env, project=project)
+
+    if args.target == "wi030-s02":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi030_s02(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

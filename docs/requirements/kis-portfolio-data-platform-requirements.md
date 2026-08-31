@@ -447,6 +447,20 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 향후 완전한 구성자료의 자동 처리·cloud processing·private raw retention·derived use 권리가 확인되고
   비용이 승인되면 새 Work Item과 contract version으로 다시 도입한다.
 
+### DEC-050: WI-030 Telegram을 1주 bounded canary로 조기 활성화한다
+
+- 2026-08-31 owner는 첫 월요일 10:00·14:30·16:00 수집과 미국 마감 평가가 모두 성공하고 품질검사,
+  MotherDuck 적재, DB-only delivery와 외부 전송 0건을 확인한 뒤 WI-030-S02의 조기 활성화를 승인했다.
+- 정식 2주 shadow와 영구 rule 승인은 계속 WI-029-S05가 소유한다. 그 전에 허용되는 외부 전송은
+  `experimental canary`로 표시된 7일 이하의 immutable rule version 하나뿐이다.
+- canary는 `주의(watch)` 이상 pass-quality 상태전이를 모두 전송해 false alarm도 숨기지 않는다. `정상`,
+  품질 실패와 반복 `no_change`는 Telegram으로 보내지 않고 MotherDuck 증거로 함께 검토한다.
+- 기존 shadow rule과 state는 변경하지 않는다. canary는 별도 rule version과 state identity를 사용하며,
+  실행당 최대 20건, outbound-only, 최소 payload, destination alias, 상태 기반 de-duplication을 유지한다.
+- private destination 확인과 owner가 승인한 비금융 테스트 메시지 1회 뒤에만 세 V2 Job에 secret과 enable
+  flag를 주입한다. 유효기간이 끝나거나 owner가 중단하면 전송은 fail closed하며 영구 rule로 자동 승격하지
+  않는다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1006,6 +1020,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-08-31 | 제한적 운영 승인 | DEC-050으로 첫 정상 월요일 증거 뒤 WI-030 Telegram을 `주의` 이상 7일 experimental canary로 조기 활성화하고, 정식 2주 shadow와 영구 rule 승인은 별도로 유지함 |
 | 2026-08-28 | 범위 변경 승인 | DEC-049로 ETF 구성종목 수집·look-through를 초기 V2 인수범위에서 제외하고, 별도 source 조사 뒤 새 Work Item으로 재도입하기로 함 |
 | 2026-08-28 | 요구·계획 승인 | DEC-047 final MS-004 V2 문서 정본화와 DEC-048 종목별 총자산 원화 평가액 변화 기여도를 승인하고 WI-032/033으로 분리함 |
 | 2026-08-28 | Milestone 1 실행 승인 | DEC-046으로 private GCS 등 합의된 GCP provisioning과 WI-009~012 연속 실행 권한을 확정함 |

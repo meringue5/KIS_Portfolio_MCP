@@ -27,6 +27,9 @@ from kis_portfolio.platform.migrations import MigrationRunner
 SEOUL = ZoneInfo("Asia/Seoul")
 RULE_ID = "rule-set.owned-portfolio-monitoring"
 RULE_VERSION = "bootstrap-1.0.0"
+CANARY_RULE_VERSION = "canary-2026-09-01.1"
+CANARY_VALID_FROM = datetime(2026, 9, 1, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+CANARY_VALID_TO = datetime(2026, 9, 8, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
 THRESHOLD_MULTIPLIER = Decimal("0.75")
 US_MARKETS = frozenset({"NAS", "NYS", "AMS"})
@@ -49,6 +52,30 @@ def _rule() -> AlertRuleVersion:
             "calibration_report_hash": CALIBRATION_REPORT_HASH,
         },
         "limitations": ["ETF constituent exposure unavailable", "shadow only"],
+    })
+
+
+def canary_rule() -> AlertRuleVersion:
+    """Return the immutable DEC-050 bounded external rule."""
+    return AlertRuleVersion.from_document({
+        "id": RULE_ID,
+        "version": CANARY_RULE_VERSION,
+        "status": "active",
+        "minimum_delivery_severity": "watch",
+        "delivery_mode": "external",
+        "valid_from": CANARY_VALID_FROM,
+        "valid_to": CANARY_VALID_TO,
+        "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+        "thresholds": {
+            "profile": "bootstrap-package-d",
+            "absolute_boundary_multiplier": str(THRESHOLD_MULTIPLIER),
+            "calibration_report_hash": CALIBRATION_REPORT_HASH,
+        },
+        "limitations": [
+            "experimental bounded canary",
+            "ETF constituent exposure unavailable",
+            "no automatic promotion",
+        ],
     })
 
 
@@ -219,22 +246,23 @@ def _candidate(
     ))
 
 
-def run_shadow_signal_evaluation(
+def _run_signal_evaluation(
     connection: duckdb.DuckDBPyConnection,
     *,
     logical_date: date,
     source_slot: str,
+    rule: AlertRuleVersion,
+    shadow_claims: bool,
 ) -> dict[str, Any]:
-    """Evaluate one KR slot and the morning U.S. close slot without any network adapter."""
+    """Evaluate one rule without performing an external network request."""
     if source_slot not in KR_SLOTS:
         raise ValueError("shadow source slot is not governed")
     MigrationRunner(connection).require("0013")
     repository = AlertWarehouseRepository(connection)
-    rule = _rule()
     repository.register_rule(rule)
     slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
     run_id = hashlib.sha256(
-        f"shadow-evaluation-v1|{logical_date}|{source_slot}|{RULE_VERSION}".encode()
+        f"signal-evaluation-v1|{logical_date}|{source_slot}|{rule.version}".encode()
     ).hexdigest()
     totals = {
         "candidate_count": 0,
@@ -260,7 +288,7 @@ def run_shadow_signal_evaluation(
             if write.transition is None:
                 continue
             totals["transition_count"] += 1
-            if not write.transition.delivery_required:
+            if not write.transition.delivery_required or not shadow_claims:
                 continue
             lease_token = hashlib.sha256(f"shadow-lease|{candidate.candidate_id}|{run_id}".encode()).hexdigest()
             claim = repository.claim_dispatch(
@@ -291,5 +319,59 @@ def run_shadow_signal_evaluation(
         **totals,
         "external_send_count": 0,
         "transport": "db-only-shadow",
+        "rule_version": rule.version,
         "run_id": run_id,
     }
+
+
+def run_shadow_signal_evaluation(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    logical_date: date,
+    source_slot: str,
+) -> dict[str, Any]:
+    """Evaluate the permanent DB-only shadow rule."""
+    return _run_signal_evaluation(
+        connection,
+        logical_date=logical_date,
+        source_slot=source_slot,
+        rule=_rule(),
+        shadow_claims=True,
+    )
+
+
+def run_external_canary_signal_evaluation(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    logical_date: date,
+    source_slot: str,
+) -> dict[str, Any]:
+    """Create bounded external candidates; Telegram delivery remains a later stage."""
+    rule = canary_rule()
+    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
+    if all(value < rule.valid_from for value in evaluation_times):
+        return {
+            "status": "not_yet_valid",
+            "logical_date": logical_date.isoformat(),
+            "source_slot": source_slot,
+            "rule_version": rule.version,
+            "candidate_count": 0,
+        }
+    if all(rule.valid_to is not None and value >= rule.valid_to for value in evaluation_times):
+        return {
+            "status": "expired",
+            "logical_date": logical_date.isoformat(),
+            "source_slot": source_slot,
+            "rule_version": rule.version,
+            "candidate_count": 0,
+        }
+    result = _run_signal_evaluation(
+        connection,
+        logical_date=logical_date,
+        source_slot=source_slot,
+        rule=rule,
+        shadow_claims=False,
+    )
+    result["transport"] = "telegram-canary-pending"
+    return result

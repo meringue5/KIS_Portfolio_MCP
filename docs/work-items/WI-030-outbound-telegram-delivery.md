@@ -1,10 +1,10 @@
 ---
 id: WI-030
 title: Enable approved outbound Telegram delivery
-status: verified
+status: in_progress
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012
+decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050
 requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044
 milestone_ref: MS-002
 delivery_refs: V2-W0508
@@ -20,22 +20,23 @@ cost_impact: negligible Bot API traffic from three scheduled slots; no always-on
 
 ## Problem and evidence
 
-The approved proactive channel is Telegram, but external sending must wait for replay, shadow, destination ownership,
-redaction and owner-approved test-message gates. While WI-029-S05 accumulates elapsed operational evidence, the
-repository-local transport can be built and verified with the delivery flag disabled.
+The approved proactive channel is Telegram. S01 prepared its fail-closed transport. On 2026-08-31 the first complete
+Monday schedule passed and the owner approved DEC-050: a bounded experimental canary may run while WI-029-S05 keeps
+collecting the separate formal shadow evidence.
 
 ## Classification and contract
 
 - `change` implementing V2-W0508. This is the shifted, still-unfinished Telegram milestone item; WI-017 remains ETF routing.
 - Outbound-only `sendMessage`; no inbound command, journal or order surface.
-- The WI-029 dependency remains the production activation and closeout gate. It does not authorize S01 to read a
-  destination secret or send a message.
+- WI-029 remains the permanent-rule gate. DEC-050 authorizes only a seven-day immutable canary with explicit expiry,
+  watch-or-higher transitions, at most 20 attempts per run and no automatic promotion.
 
 ## Scope
 
 - S01 includes fail-closed configuration, redacted rendering, transport classification, delivery-ledger integration,
   deployment preparation and offline tests with no Telegram request.
-- S02 includes destination verification, one finance-free test message, approved rule activation and operational proof.
+- S02 includes destination verification, one finance-free test message, a parallel immutable external canary rule,
+  deployment and operational proof while the original shadow rule continues unchanged.
 - Exclude inbound bot commands and any order capability.
 
 ## Acceptance criteria
@@ -44,6 +45,7 @@ repository-local transport can be built and verified with the delivery flag disa
 - [ ] account numbers, absolute total assets, credentials, raw source and chat ID never enter payload/log analytics.
 - [ ] 10:00, 14:30 and 16:00 KST slots send only `주의` or higher and preserve de-duplication.
 - [ ] uncertain post-send timeout is `UNKNOWN` and is not automatically resent.
+- [ ] canary expiry and owner revocation fail closed without changing the shadow rule or its evidence.
 - [x] disabled or incompletely configured delivery fails closed before a claim or network request.
 
 ### S01 preparation acceptance
@@ -64,13 +66,14 @@ repository-local transport can be built and verified with the delivery flag disa
 
 1. Implement and offline-verify disabled-by-default outbound rendering, transport and ledger integration.
 2. Prepare Secret Manager/deployment references without reading values or deploying them.
-3. After WI-029 acceptance, verify destination ownership and run the separately approved finance-free test message.
-4. Enable delivery and record operational evidence.
+3. Verify destination ownership and run the separately approved finance-free test message.
+4. Register the DEC-050 bounded canary independently of the permanent-rule approval path.
+5. Enable delivery, preserve the parallel shadow and record operational evidence.
 
 ## Sub-items
 
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
-- `WI-030-S02`: verify destination, send the approved finance-free test message and activate production delivery.
+- `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary.
 
 ## Evidence
 
@@ -86,6 +89,6 @@ repository-local transport can be built and verified with the delivery flag disa
 
 ## Closeout
 
-- Result: verified preparation; S01 is closed and S02 remains proposed until WI-029 acceptance.
+- Result: S01 is closed; S02 is in progress under the owner-approved DEC-050 bounded-canary exception.
 - Remaining risk: destination and transport failure handling must be live-tested.
 - Follow-up Work Item: next milestone baseline after owner review.

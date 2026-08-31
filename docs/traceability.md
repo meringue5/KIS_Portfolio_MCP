@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| 운영 증적 동안 Telegram delivery를 비활성 상태로 준비하고 MS-002는 2주 뒤 종결 | ADR-021/023 + V2-ADR-007/012 | WI-030-S01/S02 | fail-closed renderer, transport, owner gate and ledger orchestration; S02 retains destination/test/activation gate | 13 focused and full 431 pass; zero secret read/deploy/external message | verified preparation; S02 proposed |
+| 첫 정상 월요일 뒤 Telegram `주의` 이상 신호를 1주 experimental canary로 관찰 | ADR-021/023 + V2-ADR-007/012 + DEC-050 | WI-030-S01/S02 | fail-closed renderer/ledger plus parallel immutable canary rule; permanent WI-029 gate remains | 8/31 three schedules and four evaluation slots passed; S02 implementation and live proof pending | S01 closed; S02 in progress |
 | 사람이 읽는 milestone·Work Item 선후관계와 현재 실행 가능 범위 | ADR-022 | WI-053 | milestone README Mermaid map and V2 delivery-plan backlink | registry 관계 대조; quick pass and full 418 pass | closed |
 | owner option 3: ETF analysis outside initial V2 | ADR-024 / DEC-049 | WI-052 | DEC/ADR, DGH v1.1.0, rejected WI-026/027 and revised alert dependency | 14 focused and full shared gate pass; zero runtime/external change | closed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-ADR-006/010/012/015 | WI-033 | shared DTO, comparable-state gate, V1 additive MCP and V2 metric ledger projection | 14 focused/full gate pass; live read-only gate blocks stale V1 view and 889 non-pass V2 rows | closed; production publish remains fail-closed |
@@ -73,7 +73,7 @@
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-W0510 | WI-033 | WI-009, WI-013 | closed; production publish remains fail-closed on canonical quality |
 | DEC-026..028/049 alert state | V2-W0507 | WI-028 | WI-019, WI-023, WI-025, WI-033 | closed; shadow-only ledger, ETF treated as opaque security |
 | DEC-026..028 replay and shadow | V2-W0509 | WI-029-S01..S05 | WI-028 | verified implementation; S05 evidence collecting through 2026-09-10 with calendar-derived due-slot reconciliation |
-| DEC-006/026..030 Telegram delivery | V2-W0508 | WI-030-S01/S02 | WI-029 activation gate | verified preparation; S01 closed, S02 external-send gate |
+| DEC-006/026..030/050 Telegram delivery | V2-W0508 | WI-030-S01/S02 | permanent rule depends on WI-029; bounded canary approved by DEC-050 | S01 closed; S02 bounded canary in progress |
 | DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 / WI-035-S01 | WI-012 | parent proposed; S01 read-only evidence closed; cleanup blocked until rollback manifest exists; MS-003 gate unchanged |
 | DEC-020..025 filing actual/fundamental facts | V2-W0406 | WI-037 / WI-037-S01 | WI-012, WI-017 | parent proposed; S01 evidence closed; contract/layer/PIT hardening required before implementation; MS-003 gate unchanged |
 | DEC-020/024 dividend ledger | V2-W0407 | WI-038 | WI-020, WI-021, WI-037 | proposed; MS-003 |

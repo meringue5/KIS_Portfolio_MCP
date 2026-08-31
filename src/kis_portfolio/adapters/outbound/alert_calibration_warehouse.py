@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Iterable, Mapping
 
 import duckdb
@@ -342,4 +342,89 @@ class AlertCalibrationWarehouse:
                 "UPDATE control.alert_calibration_runs SET run_status='approved' WHERE calibration_run_id=?",
                 [calibration_run_id],
             )
+        return revision_id
+
+    def append_owner_canary_approval(
+        self,
+        *,
+        rule_id: str,
+        rule_version: str,
+        actor_type: str,
+        calibration_run_id: str,
+        shadow_window_id: str,
+        evidence_hash: str,
+        decided_at: datetime,
+        expected_prior_revision: int,
+    ) -> str:
+        """Approve only the exact DEC-050 bounded external exception."""
+        _aware(decided_at, "decided_at")
+        if actor_type != "owner":
+            raise CalibrationGateError("only owner may approve a bounded canary")
+        if len(evidence_hash) != 64:
+            raise CalibrationGateError("canary approval requires a SHA-256 evidence hash")
+        rule = self.connection.execute(
+            """
+            SELECT contract_status,delivery_mode,minimum_delivery_rank,valid_from,valid_to
+            FROM control.alert_rule_versions WHERE rule_id=? AND version=?
+            """,
+            [rule_id, rule_version],
+        ).fetchone()
+        if (
+            rule is None
+            or str(rule[0]) != "active"
+            or str(rule[1]) != "external"
+            or int(rule[2]) != 1
+            or rule[4] is None
+            or rule[4] - rule[3] > timedelta(days=7)
+            or decided_at >= rule[4]
+        ):
+            raise CalibrationGateError("canary rule is not active, external, watch-floor and bounded")
+        calibration = self.connection.execute(
+            "SELECT run_status FROM control.alert_calibration_runs WHERE calibration_run_id=?",
+            [calibration_run_id],
+        ).fetchone()
+        shadow = self.connection.execute(
+            """
+            SELECT window_status,observed_session_count,sensitive_violation_count,external_send_count
+            FROM control.alert_shadow_windows WHERE shadow_window_id=?
+            """,
+            [shadow_window_id],
+        ).fetchone()
+        if calibration is None or str(calibration[0]) not in {"draft", "review_ready", "approved"}:
+            raise CalibrationGateError("canary approval requires the governed replay evidence")
+        if (
+            shadow is None
+            or str(shadow[0]) not in {"collecting", "review_ready", "verified"}
+            or int(shadow[1]) <= 0
+            or int(shadow[2]) != 0
+            or int(shadow[3]) != 0
+        ):
+            raise CalibrationGateError("canary approval requires clean observed shadow evidence")
+        latest = self.connection.execute(
+            """
+            SELECT coalesce(max(revision),0) FROM control.alert_rule_approval_revisions
+            WHERE rule_id=? AND rule_version=?
+            """,
+            [rule_id, rule_version],
+        ).fetchone()[0]
+        if int(latest) != expected_prior_revision:
+            raise CalibrationGateError("owner canary decision revision changed")
+        revision = expected_prior_revision + 1
+        revision_id = _hash(
+            "alert-rule-owner-decision-v1", rule_id, rule_version, revision,
+            "approved", evidence_hash,
+        )
+        self.connection.execute(
+            """
+            INSERT INTO control.alert_rule_approval_revisions(
+                approval_revision_id,rule_id,rule_version,revision,decision,actor_type,
+                calibration_run_id,shadow_window_id,evidence_hash,rationale_code,decided_at
+            ) VALUES (?,?,?,?,?,'owner',?,?,?,?,?)
+            """,
+            [
+                revision_id, rule_id, rule_version, revision, "approved",
+                calibration_run_id, shadow_window_id, evidence_hash,
+                "OWNER_APPROVED_BOUNDED_CANARY", decided_at,
+            ],
+        )
         return revision_id
