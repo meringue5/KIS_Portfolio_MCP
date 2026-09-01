@@ -77,6 +77,15 @@ collecting the separate formal shadow evidence.
 
 ## Evidence
 
+- 2026-09-01 first scheduled execution `kis-portfolio-owned-core-v2-1000-6tnkp` ran from 10:00:03 to 10:18:57 KST.
+  It evaluated `kr-1000` and `us-close`, produced 21 canary candidates, attempted 8 eligible Telegram deliveries and
+  received 8 provider message IDs with zero unknown/retryable/permanent failures. The owner confirmed the portfolio
+  alerts in the intended `wyott_bot` private conversation after switching from a Wi-Fi network that left Telegram in
+  `연결중` state to LTE.
+- Incident mitigation temporarily disabled Telegram delivery/canary on all three core Jobs without stopping collection
+  or DB-only shadow. A GCP-side hashed probe confirmed pinned Secret v1 resolves to `wyott_bot`, the configured private
+  chat and the recent `/start` chat. The flags were restored to `true` after owner receipt, and the ephemeral probe Job
+  was deleted. Detail: `docs/operations/wi-030-scheduled-delivery-2026-09.md`.
 - GitHub Actions run `33454254322` deployed master SHA `17a085a` and one image digest to the activation Job and all
   three V2 core Jobs. Activation execution `kis-portfolio-wi030-s02-gt9g4` completed 1/1 successfully at
   2026-09-01 09:21 KST; delivery and canary flags are `true`, destination alias is non-secret, and both Telegram
@@ -99,6 +108,6 @@ collecting the separate formal shadow evidence.
 ## Closeout
 
 - Result: S01 is closed; S02 is in progress under the owner-approved DEC-050 bounded-canary exception.
-- Remaining risk: the first scheduled 10:00/14:30/16:00 canary results must prove eligible-alert delivery (when one
-  exists), de-duplication and absence of sensitive violations before S02 can close.
+- Remaining risk: 10:00 scheduled delivery and owner receipt passed; 14:30/16:00 results must still prove cross-slot
+  de-duplication, and expiry/revocation must fail closed before S02 can close.
 - Follow-up Work Item: next milestone baseline after owner review.
