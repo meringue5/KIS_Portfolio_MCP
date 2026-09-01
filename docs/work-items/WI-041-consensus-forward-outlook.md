@@ -48,14 +48,18 @@ historical point-in-time coverage.
 
 ## Sub-items
 
-- `none`; provider-specific sampling may be appended when selected.
+- `WI-041-S01` (closed): research provider fields, rights, cost, point-in-time semantics and contract gaps without
+  subscription, API call, DB write or implementation.
 
 ## Evidence
 
-- Pending.
+- `docs/operations/wi-041-pre-research-2026-09.md`
+- The research found no currently approvable canonical provider. Alpha Vantage is the first U.S. no-cost schema
+  sampling candidate; KIS remains the domestic bounded sampling candidate. Both require rights, semantic and PIT gates.
 
 ## Closeout
 
 - Result: proposed.
-- Remaining risk: U.S. licensed history may exceed budget.
+- Remaining risk: U.S. licensed history may exceed budget or prohibit retained PIT snapshots; the current dataset
+  backup exclusion also prevents replay.
 - Follow-up Work Item: WI-042.
