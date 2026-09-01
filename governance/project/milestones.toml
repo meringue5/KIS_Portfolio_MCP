@@ -717,6 +717,12 @@ title = "Research filing sources identity taxonomy and point-in-time controls"
 status = "closed"
 
 [[subitems]]
+id = "WI-039-S01"
+parent_id = "WI-039"
+title = "Research macro series scope vintages rights and call budgets"
+status = "closed"
+
+[[subitems]]
 id = "WI-040-S01"
 parent_id = "WI-040"
 title = "Research catalog quality lineage and pipeline read-model contracts"

@@ -47,14 +47,28 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 
 ## Sub-items
 
-- `none`.
+- `WI-039-S01` — closed: research exact-series candidates, source-specific vintage semantics, rights and call-budget
+  constraints without implementation or activation.
+
+## Research checkpoint — 2026-09-01
+
+- The U.S./global candidate IDs and native metadata were verified against official FRED pages; they remain candidates,
+  not an activated allowlist.
+- Exact ECOS table/item IDs remain gated on official metadata discovery and bounded samples; guessed codes are rejected.
+- Requirements and the approved collection basket disagree on Korean M2/exports and U.S. industrial activity versus
+  payrolls/real GDP/WTI, so the profile version must be reconciled before freeze.
+- The current all-source natural key cannot safely represent FRED vintages and latest-only/download sources without a
+  heterogeneous revision decision.
+- FRED third-party rights and Cboe automated-use/attribution require per-series/source review before publish.
+- Evidence: `docs/operations/wi-039-pre-research-2026-09.md`.
 
 ## Evidence
 
-- Pending.
+- `docs/operations/wi-039-pre-research-2026-09.md`
+- `bash scripts/check.sh quick`
 
 ## Closeout
 
-- Result: proposed.
-- Remaining risk: source revision policies differ.
+- Result: parent remains proposed; `WI-039-S01` research-only checkpoint closed.
+- Remaining risk: exact ECOS identity, profile-scope reconciliation, rights and heterogeneous source revision contract.
 - Follow-up Work Item: WI-040.
