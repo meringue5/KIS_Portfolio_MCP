@@ -1,7 +1,7 @@
 # WI-037-S02 filing contract design — 2026-09-02
 
 > Work Item: `WI-037-S02`
-> 상태: ready for owner architecture/data-contract decision
+> 상태: closed; owner architecture/data-contract approval recorded
 > 분류: architecture/data-contract clarification; design only
 > 선행 증거: `WI-037-S01`
 > 변경 경계: production code, DDL, migration, DB write, source call, credential, payload fixture, deployment와 schedule activation 없음
@@ -279,16 +279,19 @@ facts volume이다. conservative next-day boundary, verified-only supersession, 
 
 ## Acceptance criteria
 
-- [ ] Bronze/Silver dataset 경계, grain, natural key, time semantics와 compatibility가 명시된다.
-- [ ] issuer alias, filing correction, fact revision과 point-in-time selection이 source별로 정의된다.
-- [ ] raw object retention, restore, security와 consumer 경계가 정의된다.
-- [ ] routine/backfill call budget, partial/failure, idempotency와 watermark가 수치로 제안된다.
-- [ ] ADR 필요 여부, contract version delta, migration/rollback과 owner approval 항목이 제시된다.
-- [ ] 구현·DB·source·credential·deployment 변경이 없고 quick/full gate가 통과한다.
+- [x] Bronze/Silver dataset 경계, grain, natural key, time semantics와 compatibility가 명시된다.
+- [x] issuer alias, filing correction, fact revision과 point-in-time selection이 source별로 정의된다.
+- [x] raw object retention, restore, security와 consumer 경계가 정의된다.
+- [x] routine/backfill call budget, partial/failure, idempotency와 watermark가 수치로 제안된다.
+- [x] ADR 필요 여부, contract version delta, migration/rollback과 owner approval 항목이 제시된다.
+- [x] 구현·DB·source·credential·deployment 변경이 없고 quick/full gate가 통과한다.
 
 ## Current disposition
 
-S02 설계는 owner가 한 번에 검토할 수 있는 `ready` 상태다. parent `WI-037`과 MS-003은 `proposed`이고,
-현재 approved 계약은 active로 승격하지 않았다. catalog, SPEC, DDL, code, DB, source, credential와 deployment는
-변경하지 않았다. owner 승인 전 proposed ADR-025와 7-contract delta는 이 문서의 proposal일 뿐 결정 SSOT가
-아니다. Full verification은 118개 DGH contracts와 438 tests를 통과했다.
+2026-09-02 owner는 시계와 inactive umbrella 의미를 확인한 뒤 여섯 항목의 package를 승인했다. 추가로
+논리적 실패 격리만 분리하고 adapter, runner, repository, image와 deployment artifact를 복제하지 않으며,
+분리로 코드 중복이나 운영 구성이 불필요하게 증가하면 구현을 중단해 설계를 재검토한다는 조건을 고정했다.
+
+S02는 `closed`다. parent `WI-037`과 MS-003은 `proposed`이고 현재 계약은 active로 승격하지 않았다. canonical
+ADR/DGH 반영은 WI-037-S03으로 넘겼다. DDL, code, DB, source, credential와 deployment는 변경하지 않았다.
+Full verification은 118개 DGH contracts와 438 tests를 통과했다.

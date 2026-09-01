@@ -4,7 +4,7 @@ title: Build filing actual and fundamental fact pipeline
 status: proposed
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023
+decision_refs: ADR-021, ADR-023, ADR-025
 requirement_refs: DEC-020, DEC-022, DEC-025, DEC-032
 milestone_ref: MS-003
 delivery_refs: V2-W0406
@@ -50,7 +50,9 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 - `WI-037-S01` — research filing sources, issuer identity, taxonomy and point-in-time controls (`closed`).
 - `WI-037-S02` — freeze the implementation-ready issuer identity, filing/fact point-in-time, Bronze/Silver,
   correction, raw-object, source-budget and approval-gate design without code, DDL, source calls or activation
-  (`ready`; owner decision pending).
+  (`closed`; owner approved the package and shared-implementation constraint).
+- `WI-037-S03` — adopt ADR-025 and the seven approved-but-inactive filing contracts in their canonical SSOTs;
+  no implementation, DDL, source call, credential or activation (`in_progress`).
 
 ## Pre-research checkpoint
 
@@ -76,11 +78,13 @@ scheduled activation.
 - `WI-037-S02` start checkpoint: 2026-09-02.
 - `docs/operations/wi-037-s02-contract-design-2026-09.md`: implementation-ready compatibility, identity/time,
   object, budget, migration and approval package; no production mutation.
+- `WI-037-S03` start checkpoint: 2026-09-02.
+- `docs/operations/wi-037-s03-contract-adoption-2026-09.md`: canonical ADR/DGH adoption checkpoint.
 
 ## Closeout
 
 - Result: parent proposed; `WI-037-S01` research closed without opening the MS-003 formal gate.
-- Remaining risk: S02 requires owner approval of the proposed ADR/contract boundary; taxonomy coverage requires
-  incremental mapping and bounded fixtures.
+- Remaining risk: S03 must complete canonical ADR/contract adoption; taxonomy coverage requires incremental mapping
+  and bounded fixtures.
 - Follow-up Work Item: after approval, append a sequential WI-037 implementation sub-item; WI-038 and WI-041 remain
   downstream of the parent outcome.

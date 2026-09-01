@@ -762,4 +762,10 @@ status = "closed"
 id = "WI-037-S02"
 parent_id = "WI-037"
 title = "Freeze filing identity point-in-time and Bronze Silver contract design"
-status = "ready"
+status = "closed"
+
+[[subitems]]
+id = "WI-037-S03"
+parent_id = "WI-037"
+title = "Adopt ADR-025 and approved inactive filing data contracts"
+status = "in_progress"
