@@ -77,8 +77,8 @@
 | DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 / WI-035-S01 | WI-012 | parent proposed; S01 read-only evidence closed; cleanup blocked until rollback manifest exists; MS-003 gate unchanged |
 | DEC-020..025 filing actual/fundamental facts | V2-W0406 | WI-037 / WI-037-S01 | WI-012, WI-017 | parent proposed; S01 evidence closed; contract/layer/PIT hardening required before implementation; MS-003 gate unchanged |
 | DEC-020/024 dividend ledger | V2-W0407 | WI-038 | WI-020, WI-021, WI-037 | proposed; MS-003 |
-| DEC-022 macro profile | V2-W0408 | WI-039 | WI-012 | proposed; MS-003 |
-| DEC-031/032 catalog and quality read model | V2-W0410 | WI-040 | WI-012, WI-019, WI-020 | proposed; MS-003 |
+| DEC-022 macro profile | V2-W0408 | WI-039 / WI-039-S01 | WI-012 | S01 research closed; parent proposed; exact series, rights and revision-model hardening required |
+| DEC-031/032 catalog and quality read model | V2-W0410 | WI-040 / WI-040-S01 | WI-012, WI-019, WI-020 | S01 research closed; parent proposed; sensitivity and false-green hardening required |
 | DEC-020/021/023 forward consensus | V2-W0506 | WI-041 | WI-037 | proposed; MS-003 |
 | DEC-002/029/034 stateless Remote MCP reads | V2-W0601~0603 | WI-042 | WI-030, WI-040, WI-041 | proposed; MS-003 |
 | DEC-010..014/029 Remote managed commands | V2-W0604/0605 | WI-043 | WI-024, WI-042 | proposed; MS-003 |
