@@ -10,6 +10,11 @@
 Alpha Vantage 무료 key로 `EARNINGS_ESTIMATES`의 실제 schema를 처음 확인했지만, 현재 상태로는
 `dataset.consensus-snapshot`의 canonical point-in-time source로 승인할 수 없다.
 
+2026-09-01 owner는 provider에 별도 rights inquiry를 보내지 않기로 결정했다. 소규모 개인 연구 사용에서
+개별 support 답변을 구하는 편익이 낮고, 그 답변이 계약상 retention 권리를 확정한다고 보기도 어렵기 때문이다.
+이 결정은 불명확한 권리를 허용으로 추정하지 않는다. 대신 Alpha Vantage의 production activation, raw payload
+retention, backup과 internal MCP/LLM consumption을 계속 금지하는 fail-closed 경계를 유지한다.
+
 - owner가 무료 계정/API key 발급과 개인 이용 약관 수락을 승인했다. credential은 대화·repository·DB에
   출력하거나 저장하지 않고 GCP Secret Manager의 `kis-portfolio-alpha-vantage-api-key` version 1에만 저장했다.
   resource label은 `service=kis-portfolio`, `provider=alpha-vantage`, `environment=research`이고 runtime accessor나
@@ -66,33 +71,31 @@ production activation 전에 별도로 명시해야 하며 string을 암묵적�
 | revision signal | EPS rolling average와 revision counts 존재 | current signal candidate |
 | historical PIT/no leakage | publication/knowledge time, revision id와 historical payload lineage 없음 | failed |
 | held-issuer coverage | 1 actual payload / 4 physical calls | failed |
-| retention/backup/internal LLM right | 공개 약관은 명시적 답을 주지 않음 | written answer pending |
+| retention/backup/internal LLM right | 공개 약관은 명시적 답을 주지 않으며 owner가 개별 질의를 skip | unknown; production activation prohibited |
 | cost/call budget | 무료 key; 이번 조사 4 calls | research only; production unapproved |
 
 `source.consensus-provider-tbd`, `collection.consensus-research-later`와 `dataset.consensus-snapshot`은 계속
 `proposed`이며 `backup_policy = excluded`를 유지한다. Secret 생성은 source activation이나 production 수집
 승인이 아니다.
 
-## Provider에 보낼 rights inquiry 초안
+## Rights inquiry disposition
 
-아래 외부 질의는 아직 전송하지 않았다. owner가 representational communication을 별도 승인하면
-`support@alphavantage.co`에 보낸다.
-
-> I use the free Alpha Vantage API solely for a private, single-user portfolio-analysis project. May I retain
-> EARNINGS_ESTIMATES responses in a private cloud warehouse, keep encrypted/private backups, compute and retain
-> derived metrics, and let my private LLM/MCP tools analyze the retained data? If the API account or subscription
-> ends, may I continue retaining those private snapshots and derived results? Nothing will be redistributed or
-> exposed publicly. Please identify any plan or attribution requirements that apply.
+- `support@alphavantage.co`에는 아무 메시지도 보내지 않았다.
+- owner decision은 inquiry를 `skip`하고 이 sub-item을 negative research outcome으로 종료하는 것이다.
+- 이 결정은 Alpha Vantage의 이용권리를 확대하지 않으며, provider 계약을 `approved` 또는 `active`로 올리지
+  않는다.
+- 향후 Alpha Vantage를 다시 평가하려면 당시 공개 약관·plan·PIT semantics를 다시 조사하는 새 sub-item과
+  owner activation decision이 필요하다. 이번 S03의 outcome과 ID를 다시 열어 의미를 바꾸지 않는다.
 
 ## Remaining action
 
-1. owner approval을 받아 rights inquiry를 전송하고 provider의 written answer를 보존한다.
-2. 3개의 `Information` envelope 원인은 raw message를 저장하지 않은 이번 bounded run에서 단정하지 않는다.
+1. 3개의 `Information` envelope 원인은 raw message를 저장하지 않은 이번 bounded run에서 단정하지 않는다.
    추가 호출은 새 call budget과 retry spacing을 승인한 후에만 수행한다.
-3. rights가 허용돼도 historical PIT failure 때문에 Alpha Vantage를 DEC-021의 단독 canonical source로 채택하지
-   않는다. forward-only current signal로 범위를 축소할지는 별도 source/data-contract 결정으로 남긴다.
+2. historical PIT failure 때문에 Alpha Vantage를 DEC-021의 단독 canonical source로 채택하지 않는다.
+   forward-only current signal로 범위를 축소할지는 별도 source/data-contract 결정으로 남긴다.
 
 ## Closeout state
 
-`WI-041-S03`은 credential/schema 단계까지 진행됐지만 explicit rights evidence가 없고 held-scope coverage가
-부분적이므로 `in_progress`다. Parent `WI-041`과 MS-003은 `proposed`를 유지한다.
+`WI-041-S03`은 credential/schema 표본 증거를 보존했지만 rights inquiry와 provider activation을 owner가
+skip했으므로 `rejected`로 종료한다. 연구용 secret은 runtime accessor 없이 보존하고 external message는 보내지
+않았다. Parent `WI-041`과 MS-003은 `proposed`를 유지하며 U.S. canonical consensus source gap은 명시적으로 남는다.
