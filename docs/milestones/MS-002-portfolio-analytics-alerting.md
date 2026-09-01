@@ -36,7 +36,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
 | 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | closed; PR #25, shadow-only ledger |
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | verified implementation; S05 operational evidence collecting through 2026-09-10 |
-| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01 closed, DEC-050 bounded canary S02 approved |
+| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01 closed, S02 deployed in run 33454254322, scheduled proof pending |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해

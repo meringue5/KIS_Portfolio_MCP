@@ -41,8 +41,8 @@ collecting the separate formal shadow evidence.
 
 ## Acceptance criteria
 
-- [ ] owner approves rule version, private destination and finance-free test message.
-- [ ] account numbers, absolute total assets, credentials, raw source and chat ID never enter payload/log analytics.
+- [x] owner approves rule version, private destination and finance-free test message.
+- [x] account numbers, absolute total assets, credentials, raw source and chat ID never enter payload/log analytics.
 - [ ] 10:00, 14:30 and 16:00 KST slots send only `주의` or higher and preserve de-duplication.
 - [ ] uncertain post-send timeout is `UNKNOWN` and is not automatically resent.
 - [ ] canary expiry and owner revocation fail closed without changing the shadow rule or its evidence.
@@ -77,6 +77,10 @@ collecting the separate formal shadow evidence.
 
 ## Evidence
 
+- GitHub Actions run `33454254322` deployed master SHA `17a085a` and one image digest to the activation Job and all
+  three V2 core Jobs. Activation execution `kis-portfolio-wi030-s02-gt9g4` completed 1/1 successfully at
+  2026-09-01 09:21 KST; delivery and canary flags are `true`, destination alias is non-secret, and both Telegram
+  secret references are pinned to version `1`.
 - 2026-09-01 destination setup confirmed exactly one private chat, created pinned chat-ID secret version `1` and sent
   the approved finance-free test message. Raw token, chat ID and Telegram response body were not recorded.
 - GitHub Actions run `33453713586` built master SHA `760e2ad` successfully but stopped before activation because the
@@ -95,5 +99,6 @@ collecting the separate formal shadow evidence.
 ## Closeout
 
 - Result: S01 is closed; S02 is in progress under the owner-approved DEC-050 bounded-canary exception.
-- Remaining risk: destination and transport failure handling must be live-tested.
+- Remaining risk: the first scheduled 10:00/14:30/16:00 canary results must prove eligible-alert delivery (when one
+  exists), de-duplication and absence of sensitive violations before S02 can close.
 - Follow-up Work Item: next milestone baseline after owner review.

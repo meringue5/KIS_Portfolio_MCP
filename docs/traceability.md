@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| 첫 정상 월요일 뒤 Telegram `주의` 이상 신호를 1주 experimental canary로 관찰 | ADR-021/023 + V2-ADR-007/012 + DEC-050 | WI-030-S01/S02 | fail-closed renderer/ledger plus parallel immutable canary rule; permanent WI-029 gate remains | 8/31 three schedules and four evaluation slots passed; S02 implementation and live proof pending | S01 closed; S02 in progress |
+| 첫 정상 월요일 뒤 Telegram `주의` 이상 신호를 1주 experimental canary로 관찰 | ADR-021/023 + V2-ADR-007/012 + DEC-050 | WI-030-S01/S02 | fail-closed renderer/ledger plus parallel immutable canary rule; permanent WI-029 gate remains | test message sent; run 33454254322 / SHA 17a085a / activation 1/1; first scheduled delivery and dedup proof pending | S01 closed; S02 deployed/in progress |
 | 사람이 읽는 milestone·Work Item 선후관계와 현재 실행 가능 범위 | ADR-022 | WI-053 | milestone README Mermaid map and V2 delivery-plan backlink | registry 관계 대조; quick pass and full 418 pass | closed |
 | owner option 3: ETF analysis outside initial V2 | ADR-024 / DEC-049 | WI-052 | DEC/ADR, DGH v1.1.0, rejected WI-026/027 and revised alert dependency | 14 focused and full shared gate pass; zero runtime/external change | closed |
 | DEC-026/038/048 total-asset KRW valuation-change contribution | V2-ADR-006/010/012/015 | WI-033 | shared DTO, comparable-state gate, V1 additive MCP and V2 metric ledger projection | 14 focused/full gate pass; live read-only gate blocks stale V1 view and 889 non-pass V2 rows | closed; production publish remains fail-closed |
