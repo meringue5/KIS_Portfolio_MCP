@@ -744,4 +744,10 @@ status = "closed"
 id = "WI-041-S02"
 parent_id = "WI-041"
 title = "Execute bounded domestic KIS and U.S. Alpha Vantage schema and rights sampling"
-status = "in_progress"
+status = "closed"
+
+[[subitems]]
+id = "WI-041-S03"
+parent_id = "WI-041"
+title = "Run owner-credentialed U.S. consensus sampling and obtain explicit retention rights"
+status = "proposed"

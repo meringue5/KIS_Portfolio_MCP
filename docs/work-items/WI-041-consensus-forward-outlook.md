@@ -50,14 +50,19 @@ historical point-in-time coverage.
 
 - `WI-041-S01` (closed): research provider fields, rights, cost, point-in-time semantics and contract gaps without
   subscription, API call, DB write or implementation.
-- `WI-041-S02` (in progress): execute bounded domestic KIS and U.S. Alpha Vantage schema/rights sampling without
-  subscription, raw-payload persistence, contract activation or production collection.
+- `WI-041-S02` (closed): bounded KIS sampling completed at 6 calls; Alpha Vantage public demo failed closed because
+  the endpoint requires an owner-issued free key. No raw payload was persisted and no provider was activated.
+- `WI-041-S03` (proposed): sample current U.S. direct issuers with an owner-controlled Alpha Vantage free key and
+  obtain explicit private-retention, backup, derived-use and internal LLM/MCP rights evidence.
 
 ## Evidence
 
 - `docs/operations/wi-041-pre-research-2026-09.md`
+- `docs/operations/wi-041-s02-bounded-sampling-2026-09.md`
 - The research found no currently approvable canonical provider. Alpha Vantage is the first U.S. no-cost schema
   sampling candidate; KIS remains the domestic bounded sampling candidate. Both require rights, semantic and PIT gates.
+- KIS live sampling confirmed endpoint connectivity but failed metric identity, analyst count/distribution and PIT
+  requirements. Alpha Vantage requires owner credential issuance before a live schema sample.
 
 ## Closeout
 
