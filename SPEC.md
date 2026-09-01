@@ -638,6 +638,53 @@ backfill 또는 deployment 권한이 아니다.
 
 ---
 
+### ADR-025: Official filing actual은 Bronze artifact와 Silver revision ledger를 dual-clock으로 분리한다
+
+**결정**: OpenDART와 SEC EDGAR actual의 canonical data path를 filing-specific Bronze source artifact,
+bitemporal issuer alias, Silver filing identity/content revision, immutable financial fact revision과 versioned
+concept mapping으로 구성한다. point-in-time query는 시스템이 실제로 알게 된 `system_as_of`와 당시 공식
+source 공개시각을 사용하는 명시적 `retrospective_source_as_of`를 분리한다.
+
+**상태**: 2026-09-02 사용자 승인. 상세 grain, key, source budget, object guardrail과 migration proposal은
+`docs/operations/wi-037-s02-contract-design-2026-09.md`, canonical contract는 `governance/catalog/`가 소유한다.
+이 승인은 contract를 `approved`로 만들 뿐 migration, credential accessor, source sampling, backfill,
+Scheduler, production collection과 MCP 노출을 활성화하지 않는다.
+
+**이유**:
+
+- 기존 `dataset.filing-event` 1.0은 논리 Bronze였지만 빈 physical foundation은 Silver여서 SSOT와 layer가
+  일치하지 않았다.
+- SEC accepted time이나 OpenDART receipt date는 시장 공개시점이고, backfill로 시스템이 처음 수집한 시각과
+  다르다. 둘을 한 `knowledge_at`으로 합치면 historical research 또는 운영 재현 중 하나가 거짓이 된다.
+- amendment/correction과 taxonomy mapping은 이전 원문 사실을 덮어쓰지 않고 독립 revision과 provenance로
+  선택돼야 한다.
+- filing actual과 dividend reconciliation은 source, schedule, watermark와 완료조건이 달라 실패 상태를
+  분리해야 하지만, 이를 별도 서비스와 중복 구현으로 확대할 이유는 없다.
+
+**계약**:
+
+- canonical issuer identity는 국내 OpenDART `corp_code`, 미국 SEC zero-padded CIK다. ticker, name과 heuristic은
+  authority가 아니며 missing/ambiguous alias partition은 fail closed다.
+- Bronze official artifact와 private object hash가 검증된 뒤에만 Silver filing/fact를 publish한다. raw object는
+  MCP와 Telegram에 노출하지 않는다.
+- `system_as_of`는 monotonic system `knowledge_at`을 사용하고 live signal·운영 재현의 기본값이다.
+  `retrospective_source_as_of`는 source availability와 precision을 표시한 historical research에만 사용한다.
+  OpenDART가 day-grain receipt date만 제공하면 같은 날 장중에 사용하지 않고 다음 KST 00:00을 안전 경계로 둔다.
+- correction target은 explicit 또는 deterministic verified evidence만 supersede한다. candidate/unresolved relation과
+  unmapped/ambiguous concept는 partial로 남고 공식 분석 입력이 되지 않는다.
+- initial scope는 직접보유 국내 equity 3개와 미국 equity/REIT 4개, 5 fiscal years와 최소 8 quarters다.
+  ETF/look-through, consensus와 dividend receipt는 이 filing collection에서 제외한다.
+- OpenDART routine/backfill은 100/250 physical calls, SEC는 64/320 calls, concurrency 1과 최대 1 request/sec다.
+  object 5 GiB와 typed fact 2,000,000 rows가 initial stop line이다.
+- filing actual과 dividend는 logical pipeline ID, watermark, quality와 failure state를 분리한다. 구현은 동일한
+  modular-monolith image, managed runner, source adapter, Bronze landing, repository, MotherDuck, GCS와 release
+  artifact를 재사용한다. 분리로 코드 중복이나 운영 구성이 불필요하게 증가하면 구현을 중단하고 ADR을
+  재검토한다. 별도 service, repository와 always-on worker를 만들지 않는다.
+- migration 0014는 additive new object만 허용한다. 기존 empty foundation이 non-zero거나 consumer가 발견되면
+  자동 변환하지 않고 별도 mapping/reconciliation gate에서 중단한다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

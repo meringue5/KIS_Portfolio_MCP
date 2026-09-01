@@ -52,6 +52,23 @@ cost_budget = "OpenDART and SEC free APIs plus existing KIS access; object stora
 acceptance_rules = ["Korean actuals originate from OpenDART and U.S. actuals from SEC EDGAR", "filing corrections preserve prior versions and knowledge time", "financial facts retain original taxonomy and mapping provenance", "dividend state gaps are explicit and manual evidence cannot overwrite broker events", "licensed research full text is not collected"]
 
 [[contracts]]
+id = "collection.filing-actual-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 직접보유 국내·미국 equity/REIT의 official filing artifact, issuer alias와 actual fact만 수집하는 bounded 장바구니."
+decision_refs = ["ADR-025", "DEC-005", "DEC-020", "DEC-022", "DEC-025", "DEC-032", "DEC-037", "DEC-041", "DEC-049"]
+scope = "latest canonical holdings의 directly held Korean and U.S. equity and REIT issuers only; current 3 OpenDART and 4 SEC issuers; ETF, look-through, dividend receipt and consensus excluded"
+source_ids = ["source.opendart", "source.sec-edgar"]
+dataset_ids = ["dataset.instrument-master", "dataset.filing-source-artifact", "dataset.issuer-source-alias", "dataset.filing-event", "dataset.financial-fact", "dataset.fundamental-concept-mapping"]
+priority = "recommended"
+history_policy = "initial five fiscal years and at least eight quarters; backfill retains source_available_at separately from first governed knowledge_at; collected canonical artifacts and revisions are not auto-deleted"
+schedule_policy = "OpenDART incremental candidate KRX business day 18:10 KST and SEC incremental candidate 08:10 KST after a completed U.S. session; actual Scheduler activation remains a release decision"
+trigger_policy = "approved but inactive; future platform Scheduler or allowlisted managed refresh only, with no arbitrary issuer, URL or date range input"
+cost_budget = "free official sources, existing MotherDuck and private GCS, scale-to-zero shared application image; OpenDART routine/backfill 100/250 calls, SEC 64/320 calls, total filing objects 5 GiB and typed facts 2000000-row stop lines under the KRW 50000 platform ceiling"
+acceptance_rules = ["official OpenDART and SEC sources only", "direct held equity and REIT exact issuer alias required", "ETF and look-through issuer excluded", "Bronze artifact hash and private restore lineage precede Silver publish", "system-as-of and retrospective-source-as-of modes are labeled and never silently mixed", "verified-only correction supersession", "source taxonomy and context retained while mapping remains versioned", "partial missing ambiguous and quarantined coverage explicit", "filing and dividend failure states are logically isolated", "adapter runner repository image and deployment artifact are shared rather than duplicated", "implementation stops for architecture review if logical separation causes unnecessary code or operating duplication"]
+
+[[contracts]]
 id = "collection.macro-profile-v1"
 version = "1.0.0"
 status = "approved"

@@ -1,7 +1,7 @@
 # WI-037-S03 filing contract adoption — 2026-09-02
 
 > Work Item: `WI-037-S03`
-> 상태: in progress
+> 상태: closed
 > 분류: architecture/data-contract adoption
 > 승인 근거: 2026-09-02 owner approval of the WI-037-S02 six-item package
 > 변경 경계: SPEC and DGH canonical contracts only; code, DDL, DB, source call, credential, fixture, deployment and activation 없음
@@ -35,12 +35,18 @@ repository, MotherDuck, GCS와 release artifact를 재사용해야 한다. 별�
 
 ## Acceptance criteria
 
-- [ ] SPEC에 owner-approved ADR-025와 shared implementation constraint가 기록된다.
-- [ ] 7개 DGH delta가 approved/inactive 상태와 상호 참조 무결성을 가진다.
-- [ ] existing umbrella contract가 active로 오해되지 않으며 dedicated filing 경로만 future implementation을 소유한다.
-- [ ] requirement review, Work Item, milestone과 traceability가 같은 승인 상태를 가리킨다.
-- [ ] quick/full gate가 통과하고 runtime/DB/external mutation이 없다.
+- [x] SPEC에 owner-approved ADR-025와 shared implementation constraint가 기록된다.
+- [x] 7개 DGH delta가 approved/inactive 상태와 상호 참조 무결성을 가진다.
+- [x] existing umbrella contract가 active로 오해되지 않으며 dedicated filing 경로만 future implementation을 소유한다.
+- [x] requirement review, Work Item, milestone과 traceability가 같은 승인 상태를 가리킨다.
+- [x] quick/full gate가 통과하고 runtime/DB/external mutation이 없다; 123 DGH contracts and 438 tests.
 
 ## Current disposition
 
-S03 canonical adoption을 시작했다. 승인과 activation은 분리되며 이 Work Item은 production 권한을 부여하지 않는다.
+S03는 canonical adoption을 완료하고 `closed`다. ADR-025, requirements clarification, V2 system design과 7개
+DGH delta가 같은 owner-approved 경계를 가리킨다. 모든 filing contract는 `approved`이고 `active`가 아니다.
+기존 umbrella도 active가 아니며 dedicated filing path만 future implementation을 소유한다.
+
+DDL, migration, code, DB, source call, credential/accessor, fixture, deployment와 schedule은 변경하지 않았다.
+Project OS, DGH, architecture, warehouse, MCP surface와 full 438-test gate가 통과했다. 다음 단계는 MS-003 formal
+gate 뒤 contract/fixture/schema 구현용 순차 sub-item이며, source sampling과 production activation은 계속 별도다.

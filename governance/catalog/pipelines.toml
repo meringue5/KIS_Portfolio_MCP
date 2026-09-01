@@ -185,6 +185,29 @@ cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted issuer refresh or gap reconciliation"
 
 [[contracts]]
+id = "pipeline.filing-actual-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "공통 modular-monolith image와 managed runner에서 OpenDART·SEC filing actual을 source별 bounded partition으로 처리하는 approved-but-inactive logical pipeline."
+decision_refs = ["ADR-021", "ADR-023", "ADR-025", "DEC-020", "DEC-022", "DEC-025", "DEC-032", "DEC-037", "DEC-041", "DEC-044", "DEC-049"]
+source_ids = ["source.opendart", "source.sec-edgar"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.fundamental-concept-mapping"]
+output_dataset_ids = ["dataset.filing-source-artifact", "dataset.issuer-source-alias", "dataset.filing-event", "dataset.financial-fact"]
+stages = ["resolve-held-issuer", "collect", "land", "parse", "normalize", "reconcile", "quality", "publish"]
+schedule_policy = "OpenDART partition candidate KRX business day 18:10 KST and SEC partition candidate 08:10 KST after a completed U.S. session; empty allowlist or closed source partition is a recorded no-op"
+calendar_gate = "governed KRX and U.S. calendars plus source publication cadence; OpenDART day-only receipt uses next-KST-day retrospective availability boundary"
+idempotency_key = "pipeline id, version, source, logical date, issuer partition, source filing identity and content hash; backfill also includes immutable plan and budget hash"
+timeout_policy = "bounded source/issuer partition; single object 50 MiB, expanded archive 200 MiB or 2000 members, total object 5 GiB and typed fact 2000000-row stop lines"
+retry_policy = "idempotent GET/download only; maximum two exponential retries for timeout network 429 or 5xx, honor Retry-After and count every physical attempt; auth identity schema media and other 4xx fail without same-run retry"
+source_call_budget = "routine OpenDART global 100/day issuer 20 search 2 pages; initial OpenDART 250 total; routine SEC global 64/day issuer 16 concurrency 1 maximum 1 request/sec; initial SEC 320 total; reserve durably before every physical attempt and fail closed before an over-budget plan"
+freshness_gates = ["exact held issuer allowlist and source calendar partition", "source available time precision observed fetched and knowledge clocks retained", "new and corrected filing attempt by next eligible source-specific run", "missing issuer page document and fact coverage explicit"]
+quality_gates = ["exact official issuer alias", "complete bounded pagination and document inventory", "private object upload and hash verified", "verified-only correction supersession", "source fact reconciles to filing revision", "source taxonomy context unit period and statement scope retained", "mapping version reviewed or unmapped explicit", "partial quarantine and failure never advance publish watermark", "query mode and timestamp precision explicit"]
+secret_profile = "future OpenDART API key from Secret Manager after separate runtime-access approval; SEC uses a contact-bearing non-secret fair-access User-Agent; no KIS account or Telegram secret"
+cost_class = "routine"
+trigger_policy = "approved but inactive; fixed Scheduler or allowlisted managed refresh only; reuse the common image runner adapters landing repositories warehouse and GCS, prohibit arbitrary issuer URL date args and stop for architecture review if separation causes duplicated code or operations"
+
+[[contracts]]
 id = "pipeline.alpha-vantage-consensus-forward-v1"
 version = "1.0.0"
 status = "approved"

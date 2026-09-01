@@ -10,8 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0406
 parent_work_item: none
 depends_on: WI-012, WI-017
-architecture_impact: proposed ADR-025 required before implementation because layer, grain, key and time semantics change
-data_impact: proposed Bronze filing artifacts, issuer aliases, filing/fact revisions and point-in-time views
+architecture_impact: ADR-025 approved; shared modular-monolith runtime with filing-specific SSOT and dual clocks
+data_impact: approved inactive Bronze filing artifacts, issuer aliases, filing/fact revisions and point-in-time views
 security_impact: official public filings; private storage remains access controlled
 cost_impact: bounded held-issuer daily batch
 ---
@@ -52,7 +52,7 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
   correction, raw-object, source-budget and approval-gate design without code, DDL, source calls or activation
   (`closed`; owner approved the package and shared-implementation constraint).
 - `WI-037-S03` — adopt ADR-025 and the seven approved-but-inactive filing contracts in their canonical SSOTs;
-  no implementation, DDL, source call, credential or activation (`in_progress`).
+  no implementation, DDL, source call, credential or activation (`closed`).
 
 ## Pre-research checkpoint
 
@@ -79,12 +79,12 @@ scheduled activation.
 - `docs/operations/wi-037-s02-contract-design-2026-09.md`: implementation-ready compatibility, identity/time,
   object, budget, migration and approval package; no production mutation.
 - `WI-037-S03` start checkpoint: 2026-09-02.
-- `docs/operations/wi-037-s03-contract-adoption-2026-09.md`: canonical ADR/DGH adoption checkpoint.
+- `docs/operations/wi-037-s03-contract-adoption-2026-09.md`: canonical ADR/DGH adoption and full verification.
 
 ## Closeout
 
 - Result: parent proposed; `WI-037-S01` research closed without opening the MS-003 formal gate.
-- Remaining risk: S03 must complete canonical ADR/contract adoption; taxonomy coverage requires incremental mapping
-  and bounded fixtures.
+- Remaining risk: taxonomy coverage, source payload shape and object volume require bounded fixtures and sampling;
+  no filing contract is active.
 - Follow-up Work Item: after approval, append a sequential WI-037 implementation sub-item; WI-038 and WI-041 remain
   downstream of the parent outcome.

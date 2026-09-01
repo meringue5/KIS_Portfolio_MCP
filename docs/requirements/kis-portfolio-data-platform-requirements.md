@@ -314,6 +314,15 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   지표는 source·metric contract 승인으로 확장한다.
 - `DEC-025`: 리서치는 이용권한 확인 전 metadata·link·허용된 구조화 사실만 보존한다.
 
+2026-09-02 filing actual clarification:
+
+- 공식 source가 공개한 시점과 시스템이 실제 수집한 시점을 분리한다. live signal과 운영 재현은 system
+  knowledge를 기본으로 하고, historical source-time 분석은 retrospective label과 timestamp precision을
+  반드시 표시한다.
+- filing actual과 dividend reconciliation은 schedule, watermark, quality와 실패 상태만 논리적으로 격리한다.
+  동일 image, runner, adapter, landing, repository와 deployment artifact를 재사용하고, 불필요한 code/운영
+  복제가 발생하면 구현을 중단해 architecture를 재검토한다.
+
 ### DEC-026~DEC-032: 감시·신호·대화 계약
 
 - `DEC-026`: 가격 충격·변동성·기여도·추세를 결합하고 3년 replay와 2주 shadow를 통과한 rule version만
@@ -1026,6 +1035,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-02 | filing architecture 승인 | WI-037-S02의 ADR-025, 7-contract delta, dual as-of, additive migration, bounded call/object/fact budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-01 | 제한적 source 계약 승인 | DEC-043 clarification으로 Alpha Vantage owner-only normalized forward 경로의 source·collection·dataset·pipeline 계약을 승인함. historical PIT와 production activation은 미승인 |
 | 2026-08-31 | 제한적 운영 승인 | DEC-050으로 첫 정상 월요일 증거 뒤 WI-030 Telegram을 `주의` 이상 7일 experimental canary로 조기 활성화하고, 정식 2주 shadow와 영구 rule 승인은 별도로 유지함 |
 | 2026-08-28 | 범위 변경 승인 | DEC-049로 ETF 구성종목 수집·look-through를 초기 V2 인수범위에서 제외하고, 별도 source 조사 뒤 새 Work Item으로 재도입하기로 함 |

@@ -14,7 +14,7 @@
 | Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- | --- |
 | 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | proposed; S01 research-only closed |
-| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01/S02 closed; S03 adopting approved ADR/contracts; no implementation or formal gate change |
+| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01 research-only closed; contract hardening gate |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01 research-only closed; contract hardening gate |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
@@ -40,6 +40,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-02.4 | 2026-09-02 | WI-037-S03 adopted ADR-025, requirements/system-design clarification and seven approved-inactive filing contracts with shared implementation constraint | S03 closed; no implementation, source, activation, parent or milestone status change |
 | 2026-09-02.3 | 2026-09-02 | Owner approved WI-037-S02 package and shared implementation constraint; WI-037-S03 appended for canonical ADR/DGH adoption | S02 closed, S03 in progress; no code, DDL, source, activation, parent or milestone status change |
 | 2026-09-02.2 | 2026-09-02 | WI-037-S02 completed the proposed ADR-025 and seven-contract filing design with additive migration, dual as-of semantics, bounded source budgets and rollback gates | S02 ready for owner decision; no contract lifecycle, parent or milestone status change |
 | 2026-09-02.1 | 2026-09-02 | WI-037-S02 appended to freeze filing issuer identity, Bronze/Silver, correction, point-in-time, raw-object and call-budget contracts before implementation | parent WI and milestone status unchanged; implementation, source call, DDL and activation excluded |
