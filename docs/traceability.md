@@ -79,7 +79,7 @@
 | DEC-023 dividend ledger | V2-W0407 | WI-038 / WI-038-S01 | WI-020, WI-021, WI-037 | S01 research closed; parent proposed; action/entitlement/receipt identity and PIT contract hardening required |
 | DEC-022 macro profile | V2-W0408 | WI-039 / WI-039-S01 | WI-012 | S01 research closed; parent proposed; exact series, rights and revision-model hardening required |
 | DEC-031/032 catalog and quality read model | V2-W0410 | WI-040 / WI-040-S01 | WI-012, WI-019, WI-020 | S01 research closed; parent proposed; sensitivity and false-green hardening required |
-| DEC-021/022/032/041/043 forward consensus | V2-W0506 | WI-041 / WI-041-S01 | WI-037 | S01 research closed; parent proposed; provider rights/cost/PIT and retained-replay contract hardening required |
+| DEC-021/022/032/041/043 forward consensus | V2-W0506 | WI-041 / WI-041-S01/S02 | WI-037 | S01 closed; S02 bounded KIS/Alpha Vantage schema-rights sampling in progress; parent proposed |
 | DEC-002/029/034 stateless Remote MCP reads | V2-W0601~0603 | WI-042 | WI-030, WI-040, WI-041 | proposed; MS-003 |
 | DEC-010..014/029 Remote managed commands | V2-W0604/0605 | WI-043 | WI-024, WI-042 | proposed; MS-003 |
 | DEC-002/029 client compatibility | V2-W0606/0607 | WI-044 | WI-042, WI-043 | proposed; MS-003 |

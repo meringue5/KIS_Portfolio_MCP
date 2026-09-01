@@ -50,6 +50,8 @@ historical point-in-time coverage.
 
 - `WI-041-S01` (closed): research provider fields, rights, cost, point-in-time semantics and contract gaps without
   subscription, API call, DB write or implementation.
+- `WI-041-S02` (in progress): execute bounded domestic KIS and U.S. Alpha Vantage schema/rights sampling without
+  subscription, raw-payload persistence, contract activation or production collection.
 
 ## Evidence
 
