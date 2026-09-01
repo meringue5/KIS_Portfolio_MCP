@@ -55,12 +55,16 @@ historical point-in-time coverage.
 - `WI-041-S03` (rejected): the owner-approved Alpha free key was secured and a four-call schema sample completed,
   but only 1/4 issuers returned payload and historical PIT semantics failed. The owner chose to skip a low-value
   provider rights inquiry; Alpha remains research-only with no production, raw retention, backup or MCP/LLM use.
+- `WI-041-S04` (in progress): correct S03's over-broad enterprise rights gate without rewriting its history. Map the
+  published personal-use API license to bounded owner-only collection, normalized forward snapshots and explicit
+  no-crawling/no-redistribution controls; production activation remains separately gated.
 
 ## Evidence
 
 - `docs/operations/wi-041-pre-research-2026-09.md`
 - `docs/operations/wi-041-s02-bounded-sampling-2026-09.md`
 - `docs/operations/wi-041-s03-owner-credentialed-sampling-2026-09.md`
+- `docs/operations/wi-041-s04-bounded-personal-use-review-2026-09.md`
 - The research found no currently approvable canonical provider. Alpha Vantage is the first U.S. no-cost schema
   sampling candidate; KIS remains the domestic bounded sampling candidate. Both require rights, semantic and PIT gates.
 - KIS live sampling confirmed endpoint connectivity but failed metric identity, analyst count/distribution and PIT
@@ -69,6 +73,8 @@ historical point-in-time coverage.
   One issuer returned the 41-row live schema and three returned provider information envelopes. The schema offers
   current rolling comparisons but no historical payload/revision lineage. No rights inquiry was sent; S03 closed as
   a rejected provider-activation path and any future reconsideration requires a new sub-item.
+- S04 records the corrective Project OS path: published personal-use terms and official API/MCP support must be
+  evaluated proportionately, while raw mirroring, redistribution and historical PIT claims remain fail-closed.
 
 ## Closeout
 
