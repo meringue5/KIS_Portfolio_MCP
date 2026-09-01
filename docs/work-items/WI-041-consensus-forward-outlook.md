@@ -61,10 +61,14 @@ historical point-in-time coverage.
 
 - `docs/operations/wi-041-pre-research-2026-09.md`
 - `docs/operations/wi-041-s02-bounded-sampling-2026-09.md`
+- `docs/operations/wi-041-s03-owner-credentialed-sampling-2026-09.md`
 - The research found no currently approvable canonical provider. Alpha Vantage is the first U.S. no-cost schema
   sampling candidate; KIS remains the domestic bounded sampling candidate. Both require rights, semantic and PIT gates.
 - KIS live sampling confirmed endpoint connectivity but failed metric identity, analyst count/distribution and PIT
   requirements. Alpha Vantage requires owner credential issuance before a live schema sample.
+- S03 stored the owner-issued free key in a research-only Secret Manager resource and consumed exactly four calls.
+  One issuer returned the 41-row live schema and three returned provider information envelopes. The schema offers
+  current rolling comparisons but no historical payload/revision lineage, while written retention rights remain open.
 
 ## Closeout
 
