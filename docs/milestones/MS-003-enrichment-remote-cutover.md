@@ -18,7 +18,7 @@
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01 research-only closed; contract hardening gate |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01 research-only closed; contract hardening gate |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
-| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01 research-only closed; provider/contract hardening gate |
+| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 owner credential/rights gate |
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | proposed |
@@ -40,6 +40,8 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-01.6 | 2026-09-01 | WI-041-S02 closed with bounded KIS evidence and Alpha demo denial; WI-041-S03 appended for owner credential and rights evidence | parent WI and milestone status unchanged |
+| 2026-09-01.5 | 2026-09-01 | WI-041-S02 opened for bounded domestic KIS and U.S. Alpha Vantage schema/rights sampling | parent WI and milestone status unchanged |
 | 2026-09-01.4 | 2026-09-01 | WI-041-S01 recorded provider rights, cost, PIT semantics and retained-replay contract gaps | parent WI and milestone status unchanged |
 | 2026-09-01.3 | 2026-09-01 | WI-038-S01 recorded state identity, receipt reconciliation and account/source coverage gaps | parent WI and milestone status unchanged |
 | 2026-09-01.2 | 2026-09-01 | WI-039-S01 recorded series-scope, vintage identity, rights and call-budget gaps | parent WI and milestone status unchanged |
