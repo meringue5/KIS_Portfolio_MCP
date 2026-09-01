@@ -10,7 +10,7 @@ milestone_ref: MS-003
 delivery_refs: V2-W0407
 parent_work_item: none
 depends_on: WI-020, WI-021, WI-037
-architecture_impact: none
+architecture_impact: pending owner decision on proposed ADR-026 data boundary and point-in-time semantics
 data_impact: append-only dividend states and reconciliation links
 security_impact: account-level received amounts remain confidential
 cost_impact: bounded filing and account-history processing
@@ -50,6 +50,8 @@ reconciled to positions and cash events.
 
 - `WI-038-S01` — closed: research dividend action, account entitlement, received cash, correction, reconciliation and
   source/account coverage boundaries without implementation or activation.
+- `WI-038-S02` — ready: freeze the implementation-ready action/entitlement/receipt-link, cash SSOT, PIT,
+  correction, coverage, migration, source-budget and capacity contract design without adoption or implementation.
 
 ## Research checkpoint — 2026-09-01
 
@@ -76,3 +78,19 @@ reconciled to positions and cash events.
 - Remaining risk: action/entitlement grain, KIS domestic field semantics, historical PIT positions and overseas/IRP
   receipt coverage require formal contract decisions and bounded fixtures.
 - Follow-up Work Item: formal WI-038 contract hardening after WI-037.
+
+## Contract design checkpoint — 2026-09-02
+
+- WI-037/ADR-025 is now closed as the filing prerequisite design. The proposed dividend architecture uses separate
+  issuer action, account entitlement and cash receipt-link revision ledgers; cash events remain monetary SSOT.
+- Proposed ADR-026 defines system-as-of, correction versus reversal, source/coverage fail-closed behavior and shared
+  modular-monolith implementation without a separate service or duplicated runtime.
+- The owner package proposes eight approved-but-inactive DGH deltas, additive migration 0015, KIS routine/backfill
+  caps of 64/320 calls, a 10-page partition cap and 1 GiB/500,000-row stop lines.
+- IRP and U.S. actual receipt remain explicit `source_gap` until broker or owner-private statement evidence exists;
+  estimates never become received cash.
+- Evidence: `docs/operations/wi-038-s02-contract-design-2026-09.md`.
+- Result: `WI-038-S02` is ready for owner decision. Parent `WI-038` and MS-003 remain proposed; no contract adoption,
+  code, DDL, source call, credential, data, infrastructure, schedule or MCP change occurred.
+- Follow-up Work Item: after owner approval, append `WI-038-S03` for canonical ADR/requirements/DGH adoption. Runtime
+  implementation remains behind the MS-002 → MS-003 formal gate.
