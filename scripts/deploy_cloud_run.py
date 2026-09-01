@@ -876,18 +876,6 @@ def _deploy_wi030_s02(
         "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
         f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
     )
-    for secret_id in (
-        _secret_id_for_env_key("KIS_TELEGRAM_BOT_TOKEN"),
-        _secret_id_for_env_key("KIS_TELEGRAM_CHAT_ID"),
-    ):
-        if _run([
-            "gcloud", "secrets", "add-iam-policy-binding", secret_id,
-            "--member", f"serviceAccount:{service_account}",
-            "--role", "roles/secretmanager.secretAccessor",
-            "--project", project,
-        ], dry_run=args.dry_run) != 0:
-            return 1
-
     activation_job = args.job or DEFAULT_WI030_S02_JOB
     required = _required_keys_for_batch(env)
     payload, secret_refs = _split_runtime_env(

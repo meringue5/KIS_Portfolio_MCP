@@ -337,8 +337,9 @@ Deploy workflow:
 - `wi029-s04`도 `all`에 포함되지 않는 수동 activation target이며 migration→core update→morning shadow→private
   backup/restore 순서를 한 실행 안에서 강제한다. external Telegram transport는 배포하지 않는다.
 - `wi030-s02`는 `all`에 포함되지 않는 수동 bounded-canary target이다. numeric Telegram secret version을
-  요구하고, V2 pipeline service account에 두 secret의 accessor를 부여한 뒤 DEC-050 DB activation Job을
-  성공시킨 동일 image digest만 세 core Job에 배포한다. Scheduler와 shadow rule은 변경하지 않는다.
+  요구한다. 두 Telegram secret의 resource-level accessor는 운영자가 V2 pipeline service account에 사전
+  프로비저닝하며, least-privilege GitHub 배포 계정은 secret IAM을 변경하지 않는다. DEC-050 DB activation
+  Job을 성공시킨 동일 image digest만 세 core Job에 배포한다. Scheduler와 shadow rule은 변경하지 않는다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.
