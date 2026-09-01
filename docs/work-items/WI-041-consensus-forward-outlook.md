@@ -52,8 +52,10 @@ historical point-in-time coverage.
   subscription, API call, DB write or implementation.
 - `WI-041-S02` (closed): bounded KIS sampling completed at 6 calls; Alpha Vantage public demo failed closed because
   the endpoint requires an owner-issued free key. No raw payload was persisted and no provider was activated.
-- `WI-041-S03` (proposed): sample current U.S. direct issuers with an owner-controlled Alpha Vantage free key and
-  obtain explicit private-retention, backup, derived-use and internal LLM/MCP rights evidence.
+- `WI-041-S03` (in progress): the owner approved Alpha Vantage free-account/API-key issuance and personal EULA
+  acceptance on 2026-09-01. Sample current U.S. direct issuers with the owner-controlled key and obtain explicit
+  private-retention, backup, derived-use and internal LLM/MCP rights evidence. Paid activation, production collection
+  and raw-payload persistence remain excluded.
 
 ## Evidence
 
