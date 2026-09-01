@@ -717,6 +717,12 @@ title = "Research filing sources identity taxonomy and point-in-time controls"
 status = "closed"
 
 [[subitems]]
+id = "WI-038-S01"
+parent_id = "WI-038"
+title = "Research dividend states receipt reconciliation and source coverage"
+status = "closed"
+
+[[subitems]]
 id = "WI-039-S01"
 parent_id = "WI-039"
 title = "Research macro series scope vintages rights and call budgets"

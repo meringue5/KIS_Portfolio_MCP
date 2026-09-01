@@ -76,7 +76,7 @@
 | DEC-006/026..030/050 Telegram delivery | V2-W0508 | WI-030-S01/S02 | permanent rule depends on WI-029; bounded canary approved by DEC-050 | 10:00 scheduled 8/8 provider sends and owner receipt passed; 14:30/16:00 dedup and expiry evidence pending |
 | DEC-033..041 production cost/release controls | V2-W0002/0003/0106 | WI-035 / WI-035-S01 | WI-012 | parent proposed; S01 read-only evidence closed; cleanup blocked until rollback manifest exists; MS-003 gate unchanged |
 | DEC-020..025 filing actual/fundamental facts | V2-W0406 | WI-037 / WI-037-S01 | WI-012, WI-017 | parent proposed; S01 evidence closed; contract/layer/PIT hardening required before implementation; MS-003 gate unchanged |
-| DEC-020/024 dividend ledger | V2-W0407 | WI-038 | WI-020, WI-021, WI-037 | proposed; MS-003 |
+| DEC-023 dividend ledger | V2-W0407 | WI-038 / WI-038-S01 | WI-020, WI-021, WI-037 | S01 research closed; parent proposed; action/entitlement/receipt identity and PIT contract hardening required |
 | DEC-022 macro profile | V2-W0408 | WI-039 / WI-039-S01 | WI-012 | S01 research closed; parent proposed; exact series, rights and revision-model hardening required |
 | DEC-031/032 catalog and quality read model | V2-W0410 | WI-040 / WI-040-S01 | WI-012, WI-019, WI-020 | S01 research closed; parent proposed; sensitivity and false-green hardening required |
 | DEC-020/021/023 forward consensus | V2-W0506 | WI-041 | WI-037 | proposed; MS-003 |
