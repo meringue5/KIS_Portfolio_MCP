@@ -1,7 +1,7 @@
 # WI-041-S04 bounded Alpha Vantage personal-use review — 2026-09-01
 
 > Work Item: `WI-041-S04`
-> 상태: ready for owner contract decision
+> 상태: closed; owner contract approval recorded
 > 분류: clarification/change; research and contract design only
 > 선행 증거: `WI-041-S01`~`S03`
 > 변경 경계: production call, DB write, raw retention, DDL, pipeline, MCP, deployment와 외부 메시지 없음
@@ -72,8 +72,9 @@ risk acceptance다. 공개 약관이 바뀌거나 사용자가 늘어나면 자�
 - [x] forward-only time semantics, no historical backfill와 missing coverage가 dataset 계약에 반영된다.
 - [x] source-call budget, spacing, partial/failure와 terms-change kill switch가 정의된다.
 - [x] source/collection/dataset/pipeline contract delta가 versioned proposal로 제시된다.
-- [x] owner가 contract와 residual risk를 승인하기 전 production 활성화·DB write·MCP 노출이 없다.
-- [x] `bash scripts/check.sh quick`과 `bash scripts/check.sh full`이 통과한다; 117 DGH contracts and 438 tests.
+- [x] owner가 contract와 residual risk를 승인했고 approved와 active 상태를 분리했다.
+- [x] 승인만으로 production 활성화·DB write·MCP 노출이 발생하지 않는다.
+- [x] `bash scripts/check.sh quick`과 `bash scripts/check.sh full`이 통과한다; 118 DGH contracts and 438 tests.
 
 ## Initial plan
 
@@ -82,14 +83,15 @@ risk acceptance다. 공개 약관이 바뀌거나 사용자가 늘어나면 자�
 3. user approval package에서 retention, backup, schedule/call budget과 residual risk를 한 번에 제시한다.
 4. 승인 후에만 contracts를 approved로 올리고 구현은 별도 순차 sub-item으로 진행한다.
 
-## Proposed DGH delta
+## Approved DGH delta
 
 | Contract | Version/status | Role and boundary |
 | --- | --- | --- |
-| `source.alpha-vantage-personal` | 1.0.0 / proposed | official API only, owner-only personal/non-commercial, secondary, no crawling/redistribution |
-| `collection.consensus-research-later` | 1.1.0 / proposed | retains KIS/historical-provider gaps and adds Alpha forward-only candidate |
-| `dataset.alpha-vantage-consensus-forward-snapshot` | 1.0.0 / proposed | restricted normalized Silver snapshots, three-year rolling retention, private Parquet backup, zero raw retention |
-| `pipeline.alpha-vantage-consensus-forward-v1` | 1.0.0 / proposed | scale-to-zero U.S.-morning collection, memory normalization, bounded quality/publish |
+| `source.alpha-vantage-personal` | 1.0.0 / approved | official API only, owner-only personal/non-commercial, secondary, no crawling/redistribution |
+| `collection.alpha-vantage-consensus-forward-v1` | 1.0.0 / approved | Alpha-only bounded scope; approved but inactive until a later implementation and activation gate |
+| `dataset.alpha-vantage-consensus-forward-snapshot` | 1.0.0 / approved | restricted normalized Silver snapshots, three-year rolling retention, private Parquet backup, zero raw retention |
+| `pipeline.alpha-vantage-consensus-forward-v1` | 1.0.0 / approved | scale-to-zero U.S.-morning collection, memory normalization, bounded quality/publish |
+| `collection.consensus-research-later` | 1.1.0 / proposed | retains unresolved KIS/historical-provider gaps; not promoted by the bounded Alpha approval |
 
 기존 `source.consensus-provider-tbd`와 `dataset.consensus-snapshot`은 수정하지 않았다. 전자는 historical
 licensed provider gap을, 후자는 실제 provider knowledge snapshots를 요구하는 canonical PIT 계약을 계속
@@ -141,9 +143,15 @@ Residual risk는 provider가 private normalized retention을 명시적으로 설
 revocable하다는 점이다. 보완 통제는 single owner, official API, zero raw retention, restricted dataset,
 three-year rolling retention, private backup, quarterly terms review와 즉시 kill switch다.
 
-## Current disposition
+## Owner approval and current disposition
 
-S04의 contract design은 검토 가능한 `ready` 상태다. Alpha key는 research-only Secret Manager resource에
-남아 있고 runtime accessor는 없다. owner가 위 package를 승인하기 전 모든 새 DGH contract는 `proposed`이며,
-S03 rejected history, parent `WI-041` proposed 상태와 MS-003 formal gate는 변경하지 않는다. Full verification은
-117개 DGH contracts와 438 tests를 통과했다.
+2026-09-01 owner는 네 항목의 권고안과 residual risk를 한 묶음으로 승인했다. 혼합 장바구니 전체를
+승인하면 아직 미정인 KIS/historical provider 경로까지 승인되는 scope leak가 생기므로, Alpha 전용
+`collection.alpha-vantage-consensus-forward-v1`을 분리해 source/dataset/pipeline과 함께 `approved`로
+기록했다. `collection.consensus-research-later` 1.1.0은 계속 `proposed`다.
+
+S04는 `closed`다. 승인된 계약은 active가 아니며 Alpha key는 research-only Secret Manager resource에 남아
+있고 runtime accessor는 없다. production call, DB write, raw retention, DDL, MCP 노출, Scheduler와 deployment는
+발생하지 않았다. 구현은 MS-003 formal gate 뒤 새 순차 sub-item으로만 시작한다. S03 rejected history,
+parent `WI-041` proposed 상태와 milestone 상태는 변경하지 않는다. Full verification은 118개 DGH contracts와
+438 tests를 통과했다.

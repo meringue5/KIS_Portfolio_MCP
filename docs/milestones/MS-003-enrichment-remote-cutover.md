@@ -18,7 +18,7 @@
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01 research-only closed; contract hardening gate |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01 research-only closed; contract hardening gate |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
-| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 bounded personal-use contracts ready for owner decision |
+| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | proposed |
@@ -40,6 +40,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-01.12 | 2026-09-01 | Owner approved the bounded Alpha personal-use contract and residual-risk package; source, dedicated collection, normalized dataset and pipeline are approved but inactive | S04 closed; mixed consensus collection stays proposed; no activation or parent/milestone status change |
 | 2026-09-01.11 | 2026-09-01 | WI-041-S04 proposed a secondary Alpha source, forward-only normalized dataset and bounded pipeline with a three-year capacity/risk package | S04 ready for owner contract decision; no activation or parent/milestone status change |
 | 2026-09-01.10 | 2026-09-01 | WI-041-S04 appended to correct S03's over-broad rights gate through proportionate published-license, normalized-retention and no-redistribution contract review | S03 history preserved; parent WI and milestone status unchanged |
 | 2026-09-01.9 | 2026-09-01 | Owner skipped the low-value Alpha rights inquiry; no message was sent and S03 closed rejected with production/raw-retention gates fail-closed | parent WI and milestone status unchanged; future reconsideration needs a new sub-item |

@@ -187,9 +187,9 @@ trigger_policy = "Scheduler primary; allowlisted issuer refresh or gap reconcili
 [[contracts]]
 id = "pipeline.alpha-vantage-consensus-forward-v1"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
-description = "Alpha Vantage EARNINGS_ESTIMATES를 current held U.S. direct issuers에 bounded 호출하고 raw landing 없이 owner-only normalized forward snapshot을 publish하는 scale-to-zero 후보."
+description = "Alpha Vantage EARNINGS_ESTIMATES를 current held U.S. direct issuers에 bounded 호출하고 raw landing 없이 owner-only normalized forward snapshot을 publish하는 approved-but-inactive scale-to-zero pipeline."
 decision_refs = ["DEC-021", "DEC-022", "DEC-032", "DEC-041", "DEC-043"]
 source_ids = ["source.alpha-vantage-personal"]
 input_dataset_ids = ["dataset.instrument-master", "dataset.portfolio-position-observation"]

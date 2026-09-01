@@ -369,6 +369,12 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - provider activation은 point-in-time history, 분포 또는 dispersion, analyst count, revision, 개인 내부
   저장·분석 권리와 정상·backfill·장애월 비용이 확인돼야 한다.
 - 유료 provider는 사용자의 명시적 구독·비용 승인 전에는 계약·호출·데이터 적재를 하지 않는다.
+- 2026-09-01 clarification: Alpha Vantage 공식 API는 single-owner, personal/non-commercial, private 분석을 위한
+  secondary forward-only source로 승인한다. raw response·crawling·재배포·Telegram·public/multi-user MCP·상업
+  사용은 금지하고, normalized snapshot만 activation 이후 3년 rolling 보존과 private Parquet backup을 허용한다.
+  현재 4·hard maximum 8 calls/day, account-wide 25/day 이내, 15초 직렬 간격, same-run retry 없음과 분기별
+  약관 review/kill switch를 적용한다. 이는 historical PIT canonical provider 승인이 아니며 계약 승인만으로
+  runtime secret access, 수집·DB write·MCP 노출·배포를 활성화하지 않는다.
 
 ### DEC-044: 승인된 설계 범위의 구현은 턴키로 진행할 수 있다
 
@@ -1020,6 +1026,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-01 | 제한적 source 계약 승인 | DEC-043 clarification으로 Alpha Vantage owner-only normalized forward 경로의 source·collection·dataset·pipeline 계약을 승인함. historical PIT와 production activation은 미승인 |
 | 2026-08-31 | 제한적 운영 승인 | DEC-050으로 첫 정상 월요일 증거 뒤 WI-030 Telegram을 `주의` 이상 7일 experimental canary로 조기 활성화하고, 정식 2주 shadow와 영구 rule 승인은 별도로 유지함 |
 | 2026-08-28 | 범위 변경 승인 | DEC-049로 ETF 구성종목 수집·look-through를 초기 V2 인수범위에서 제외하고, 별도 source 조사 뒤 새 Work Item으로 재도입하기로 함 |
 | 2026-08-28 | 요구·계획 승인 | DEC-047 final MS-004 V2 문서 정본화와 DEC-048 종목별 총자산 원화 평가액 변화 기여도를 승인하고 WI-032/033으로 분리함 |

@@ -309,9 +309,9 @@ availability_slo = "unknown; must support pre-event snapshots and post-event rev
 [[contracts]]
 id = "source.alpha-vantage-personal"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
-description = "Alpha Vantage 공식 EARNINGS_ESTIMATES API의 owner-only personal non-commercial 사용 후보. 공개 Terms of Service가 investment analysis, research, testing과 monitoring을 허용하는 범위에서만 사용하며 crawling, redistribution, multi-user와 commercial use를 금지한다."
+description = "Alpha Vantage 공식 EARNINGS_ESTIMATES API의 owner-only personal non-commercial 보조 source. 공개 Terms of Service가 investment analysis, research, testing과 monitoring을 허용하는 범위에서만 사용하며 crawling, redistribution, multi-user와 commercial use를 금지한다."
 decision_refs = ["DEC-021", "DEC-022", "DEC-025", "DEC-032", "DEC-041", "DEC-043"]
 provider = "Alpha Vantage Inc."
 canonical_role = "secondary"

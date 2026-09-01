@@ -363,7 +363,7 @@ consumer_ids = ["earnings risk signal", "forward valuation", "interactive analys
 [[contracts]]
 id = "dataset.alpha-vantage-consensus-forward-snapshot"
 version = "1.0.0"
-status = "proposed"
+status = "approved"
 owner = "owner"
 description = "Alpha Vantage 공식 API에서 owner-only로 수집한 allowlisted EPS·revenue consensus field의 forward-only normalized snapshot. raw response와 과거 provider PIT를 보존했다고 주장하지 않는다."
 decision_refs = ["DEC-021", "DEC-022", "DEC-032", "DEC-041", "DEC-043"]

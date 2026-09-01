@@ -55,10 +55,10 @@ historical point-in-time coverage.
 - `WI-041-S03` (rejected): the owner-approved Alpha free key was secured and a four-call schema sample completed,
   but only 1/4 issuers returned payload and historical PIT semantics failed. The owner chose to skip a low-value
   provider rights inquiry; Alpha remains research-only with no production, raw retention, backup or MCP/LLM use.
-- `WI-041-S04` (ready): correct S03's over-broad enterprise rights gate without rewriting its history. Map the
+- `WI-041-S04` (closed): corrected S03's over-broad enterprise rights gate without rewriting its history. Mapped the
   published personal-use API license to bounded owner-only collection, normalized forward snapshots and explicit
-  no-crawling/no-redistribution controls. Proposed DGH contracts and the capacity/risk package await owner approval;
-  production activation remains separately gated.
+  no-crawling/no-redistribution controls. The owner approved the bounded contract and residual-risk package;
+  four Alpha-specific DGH contracts are approved but inactive, while production activation remains separately gated.
 
 ## Evidence
 
@@ -76,13 +76,16 @@ historical point-in-time coverage.
   a rejected provider-activation path and any future reconsideration requires a new sub-item.
 - S04 records the corrective Project OS path: published personal-use terms and official API/MCP support must be
   evaluated proportionately, while raw mirroring, redistribution and historical PIT claims remain fail-closed.
-- S04 proposes a secondary Alpha source, a separate forward-only restricted dataset and a scale-to-zero pipeline.
+- S04 approves a secondary Alpha source, a dedicated collection, a separate forward-only restricted dataset and a
+  scale-to-zero pipeline.
   Current 4 and maximum 8 calls/day, 15-second pacing, three-year normalized retention and private Parquet backup are
-  ready for one owner contract decision; all contracts remain proposed.
+  owner-approved. The mixed `collection.consensus-research-later` stays proposed because KIS and historical-provider
+  gaps remain unresolved. Approved does not mean active: there is no runtime accessor, collection, DB write, MCP
+  exposure or deployment, and implementation requires a later sub-item after the MS-003 formal gate.
 
 ## Closeout
 
 - Result: proposed.
-- Remaining risk: U.S. licensed history may exceed budget or prohibit retained PIT snapshots; the current dataset
-  backup exclusion also prevents replay.
+- Remaining risk: Alpha's revocable personal-use license does not explicitly describe private normalized retention;
+  quarterly terms review and a kill switch bound that risk. U.S. licensed historical PIT remains unresolved.
 - Follow-up Work Item: WI-042.

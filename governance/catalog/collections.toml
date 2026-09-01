@@ -103,6 +103,23 @@ cost_budget = "Alpha free tier only with maximum 8 of the account-wide 25 daily 
 acceptance_rules = ["KIS remains unapproved when semantic or PIT fields fail", "historical U.S. canonical consensus still requires a provider with preserved knowledge time", "Alpha uses official API only and stores no raw response", "Alpha normalized snapshots are owner-only, forward-only and never redistributed", "analyst count and observed range are explicit while missing distribution remains visible", "Information, empty, rate-limit and shape drift are partial or failed", "user and model scenarios are separate from consensus", "research full text is excluded unless expressly licensed"]
 
 [[contracts]]
+id = "collection.alpha-vantage-consensus-forward-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "공식 Alpha Vantage API로 현재 보유 미국 직접주식의 owner-only normalized consensus forward snapshot만 축적하는 bounded 개인용 수집 장바구니. historical PIT canonical 경로와 분리한다."
+decision_refs = ["DEC-021", "DEC-022", "DEC-032", "DEC-041", "DEC-043"]
+scope = "latest canonical holdings 중 NASD, overseas_direct, equity, USD인 현재 미국 직접주식; current 4 issuers and hard maximum 8 physical calls per provider day"
+source_ids = ["source.alpha-vantage-personal"]
+dataset_ids = ["dataset.alpha-vantage-consensus-forward-snapshot"]
+priority = "recommended"
+history_policy = "activation 이후 fetched_at부터 forward-only로 축적하며 pre-activation backfill과 historical provider knowledge claim을 금지한다; normalized snapshots는 rolling three years 보존한다"
+schedule_policy = "governed calendar의 직전 완료 U.S. session 뒤 한국 오전에 한 번; 장중 polling 없음"
+trigger_policy = "approved but inactive; MS-003 formal gate 뒤 별도 implementation Work Item에서 runtime accessor, Scheduler와 activation을 승인하기 전까지 호출과 publish를 금지한다"
+cost_budget = "Alpha free tier, current 4 and hard maximum 8 of the account-wide 25 daily calls, minimum 15-second serial spacing, no same-run retry and scale-to-zero execution; paid plan requires separate approval"
+acceptance_rules = ["official EARNINGS_ESTIMATES API and approved held-issuer allowlist only", "raw response and provider free-text are never persisted or backed up", "normalized snapshot is restricted, owner-only and not redistributed or sent to Telegram", "current 4 and hard maximum 8 physical calls per provider day stay below the account-wide 25/day limit", "calls are serialized with at least 15 seconds spacing and no same-run retry", "Information, empty, timeout, rate-limit and shape drift fail closed as partial or failed", "coverage and missing issuers are explicit and partial coverage is never canonical", "no pre-activation backfill or historical PIT claim", "quarterly or terms-change review expiry stops collection and publish", "implementation, runtime secret access and production activation remain separate gates"]
+
+[[contracts]]
 id = "collection.unlicensed-market-content-excluded"
 version = "1.0.0"
 status = "proposed"
