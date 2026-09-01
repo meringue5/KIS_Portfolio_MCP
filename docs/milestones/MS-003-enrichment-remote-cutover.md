@@ -17,7 +17,7 @@
 | 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01 research-only closed; contract hardening gate |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed |
-| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed |
+| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
 | 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed |
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
@@ -40,6 +40,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-01.1 | 2026-09-01 | WI-040-S01 recorded catalog/quality sensitivity, false-green and Control dataset contract gaps | parent WI and milestone status unchanged |
 | 2026-08-31.2 | 2026-08-31 | WI-037-S01 recorded official-source, live identity coverage and point-in-time contract gaps | parent WI and milestone status unchanged |
 | 2026-08-31.1 | 2026-08-31 | WI-037-S01 filing source and point-in-time pre-research started without opening the formal gate | parent WI and milestone status unchanged |
 | 2026-08-30.2 | 2026-08-30 | WI-035-S01 recorded live inventory, cost-observability limits and fail-closed cleanup inputs | parent WI and milestone status unchanged |

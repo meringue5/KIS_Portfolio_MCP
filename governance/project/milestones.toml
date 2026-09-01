@@ -715,3 +715,9 @@ id = "WI-037-S01"
 parent_id = "WI-037"
 title = "Research filing sources identity taxonomy and point-in-time controls"
 status = "closed"
+
+[[subitems]]
+id = "WI-040-S01"
+parent_id = "WI-040"
+title = "Research catalog quality lineage and pipeline read-model contracts"
+status = "closed"
