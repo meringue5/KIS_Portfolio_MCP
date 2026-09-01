@@ -87,20 +87,20 @@ acceptance_rules = ["owner asserts lawful possession and personal processing rig
 
 [[contracts]]
 id = "collection.consensus-research-later"
-version = "1.0.0"
+version = "1.1.0"
 status = "proposed"
 owner = "owner"
-description = "point-in-time consensus와 analyst research metadata의 후순위 장바구니. KIS 국내 coverage를 먼저 표본검증하고 미국 licensed gap은 provider 선정 전 유지한다."
+description = "point-in-time consensus와 analyst research metadata의 후순위 장바구니. KIS와 licensed historical provider gap은 유지하되 Alpha Vantage owner-only forward snapshot을 별도 secondary 후보로 검토한다."
 decision_refs = ["DEC-021", "DEC-022", "DEC-025", "DEC-032", "DEC-041"]
 scope = "held issuers only; consensus distributions, analyst counts, revisions and rights-approved research metadata"
-source_ids = ["source.kis-open-api", "source.consensus-provider-tbd"]
-dataset_ids = ["dataset.consensus-snapshot", "dataset.research-reference"]
+source_ids = ["source.kis-open-api", "source.consensus-provider-tbd", "source.alpha-vantage-personal"]
+dataset_ids = ["dataset.consensus-snapshot", "dataset.alpha-vantage-consensus-forward-snapshot", "dataset.research-reference"]
 priority = "later"
-history_policy = "no collection until a sample proves point-in-time fields and provider rights; desired history includes pre-event snapshots and post-event revisions, not present-day reconstructed consensus"
-schedule_policy = "later design must align snapshots to earnings events and provider update cadence"
-trigger_policy = "disabled until source approval; future platform schedule primary with allowlisted issuer refresh only"
-cost_budget = "KRW 0 during discovery; any subscription must fit the total monthly KRW 50000 ceiling and state normal, backfill and failure-month cost before approval"
-acceptance_rules = ["KIS domestic estimate and opinion endpoints pass recorded coverage and field-shape sampling", "U.S. coverage names a licensed provider and preserves knowledge time", "analyst count and distribution or dispersion are available", "user and model scenarios are separate from consensus", "research full text is excluded unless expressly licensed"]
+history_policy = "canonical historical PIT remains disabled until a provider proves past knowledge snapshots; Alpha Vantage never backfills pre-activation knowledge and may only accumulate normalized forward snapshots from its approved activation date"
+schedule_policy = "proposed Alpha path runs once after each completed U.S. session in the Korean morning; canonical event-relative snapshots remain a later design"
+trigger_policy = "disabled until source, dataset and pipeline approval; future platform Scheduler primary with current-held issuer allowlist only"
+cost_budget = "Alpha free tier only with maximum 8 of the account-wide 25 daily calls and scale-to-zero execution; any subscription or larger scope must fit the total monthly KRW 50000 ceiling and receive separate approval"
+acceptance_rules = ["KIS remains unapproved when semantic or PIT fields fail", "historical U.S. canonical consensus still requires a provider with preserved knowledge time", "Alpha uses official API only and stores no raw response", "Alpha normalized snapshots are owner-only, forward-only and never redistributed", "analyst count and observed range are explicit while missing distribution remains visible", "Information, empty, rate-limit and shape drift are partial or failed", "user and model scenarios are separate from consensus", "research full text is excluded unless expressly licensed"]
 
 [[contracts]]
 id = "collection.unlicensed-market-content-excluded"

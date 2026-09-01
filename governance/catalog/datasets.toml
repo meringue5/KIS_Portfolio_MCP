@@ -361,6 +361,30 @@ producer_pipeline_ids = []
 consumer_ids = ["earnings risk signal", "forward valuation", "interactive analysis"]
 
 [[contracts]]
+id = "dataset.alpha-vantage-consensus-forward-snapshot"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Alpha Vantage 공식 API에서 owner-only로 수집한 allowlisted EPS·revenue consensus field의 forward-only normalized snapshot. raw response와 과거 provider PIT를 보존했다고 주장하지 않는다."
+decision_refs = ["DEC-021", "DEC-022", "DEC-032", "DEC-041", "DEC-043"]
+layer = "silver"
+source_ids = ["source.alpha-vantage-personal"]
+input_dataset_ids = []
+purpose = "activation 이후 미국 보유 직접주식의 current forward outlook, analyst count/range와 EPS rolling revision signal을 개인 분석에 제공한다."
+grain = "one held U.S. issuer, forecast period, metric, Alpha Vantage response horizon and fetched-at snapshot"
+natural_key = ["issuer_id", "forecast_period", "metric", "horizon", "fetched_at"]
+time_semantics = "fetched_at is the earliest system knowledge time; provider date and horizon are retained, but 7/30/60/90-day comparison fields are attributes of the fetched response and never reconstructed as historical knowledge snapshots"
+write_mode = "append-only allowlisted normalized fields after complete response validation; raw body and provider message are never persisted"
+schema_contract = "Alpha forward consensus v1 with provider date, horizon, metric, average, high, low, analyst count, EPS 7/30/60/90-day averages, EPS trailing 7/30-day up/down revision counts, fetched_at, coverage and quality; strings require explicit typed parsing"
+sensitivity = "restricted"
+retention_policy = "rolling three years of owner-only normalized snapshots while the personal-use terms remain approved; raw responses have zero retention; revocation stops collection and routes retained normalized snapshots and backups to owner review rather than silent deletion"
+backup_policy = "parquet"
+freshness_slo = "one best-effort snapshot by the Korean-morning run after each completed U.S. trading session; provider publication lag and unavailable issuers remain explicit"
+quality_rules = ["official API and approved held-issuer allowlist only", "raw response and provider free-text message are not retained", "provider date horizon metric typed values and fetched_at pass", "Information rate-limit empty and shape drift fail closed", "coverage count and missing issuers are explicit", "no pre-activation backfill or historical PIT claim", "owner-only consumer and no redistribution"]
+producer_pipeline_ids = ["pipeline.alpha-vantage-consensus-forward-v1"]
+consumer_ids = ["owner-only forward outlook analysis", "private Remote MCP normalized read model after approval"]
+
+[[contracts]]
 id = "dataset.dividend-event"
 version = "1.0.0"
 status = "approved"

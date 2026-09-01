@@ -185,6 +185,29 @@ cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted issuer refresh or gap reconciliation"
 
 [[contracts]]
+id = "pipeline.alpha-vantage-consensus-forward-v1"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "Alpha Vantage EARNINGS_ESTIMATES를 current held U.S. direct issuers에 bounded 호출하고 raw landing 없이 owner-only normalized forward snapshot을 publish하는 scale-to-zero 후보."
+decision_refs = ["DEC-021", "DEC-022", "DEC-032", "DEC-041", "DEC-043"]
+source_ids = ["source.alpha-vantage-personal"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.portfolio-position-observation"]
+output_dataset_ids = ["dataset.alpha-vantage-consensus-forward-snapshot"]
+stages = ["resolve-held-allowlist", "collect-memory", "normalize", "quality", "publish"]
+schedule_policy = "once in the Korean morning after each completed U.S. trading session; no intraday polling and no run when the held allowlist is empty"
+calendar_gate = "exact prior completed U.S. session from the governed market calendar; DST-safe Korean execution time is a deployment decision"
+idempotency_key = "pipeline id, version, provider, issuer, U.S. session key and Korean-morning slot"
+timeout_policy = "one bounded request per issuer with total run deadline; at least 15 seconds between physical calls"
+retry_policy = "no same-run retry for Information, 429, empty, timeout or shape drift; record partial or failed and wait for the next eligible scheduled session"
+source_call_budget = "current scope 4 held U.S. direct issuers; hard maximum 8 physical calls per provider day and never more than the account-wide free 25/day; more than 8 issuers fails closed pending a contract version change"
+freshness_gates = ["exact completed U.S. session selected", "fetched_at and provider date retained", "missing issuer count explicit", "terms review and owner activation still valid"]
+quality_gates = ["official endpoint and held allowlist", "complete top-level and estimate schema", "typed metric values", "no raw or provider free-text persistence", "partial coverage never canonical", "no historical PIT claim", "owner-only consumer"]
+secret_profile = "GCP Secret Manager kis-portfolio-alpha-vantage-api-key; runtime accessor granted only after separate activation approval"
+cost_class = "routine"
+trigger_policy = "disabled while proposed; future scale-to-zero Scheduler primary and no arbitrary MCP issuer or parameter input"
+
+[[contracts]]
 id = "pipeline.macro-profile-v2"
 version = "1.0.0"
 status = "approved"
