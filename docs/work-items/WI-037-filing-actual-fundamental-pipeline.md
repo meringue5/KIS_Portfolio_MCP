@@ -10,8 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0406
 parent_work_item: none
 depends_on: WI-012, WI-017
-architecture_impact: none; activates approved source adapters
-data_impact: filing events and point-in-time financial facts
+architecture_impact: proposed ADR-025 required before implementation because layer, grain, key and time semantics change
+data_impact: proposed Bronze filing artifacts, issuer aliases, filing/fact revisions and point-in-time views
 security_impact: official public filings; private storage remains access controlled
 cost_impact: bounded held-issuer daily batch
 ---
@@ -50,7 +50,7 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 - `WI-037-S01` — research filing sources, issuer identity, taxonomy and point-in-time controls (`closed`).
 - `WI-037-S02` — freeze the implementation-ready issuer identity, filing/fact point-in-time, Bronze/Silver,
   correction, raw-object, source-budget and approval-gate design without code, DDL, source calls or activation
-  (`in_progress`).
+  (`ready`; owner decision pending).
 
 ## Pre-research checkpoint
 
@@ -74,10 +74,13 @@ scheduled activation.
 - `WI-037-S01` start checkpoint: 2026-08-31.
 - `docs/operations/wi-037-pre-research-2026-08.md`: closed evidence and contract-hardening inputs.
 - `WI-037-S02` start checkpoint: 2026-09-02.
-- `docs/operations/wi-037-s02-contract-design-2026-09.md`: in-progress design checkpoint and decision inventory.
+- `docs/operations/wi-037-s02-contract-design-2026-09.md`: implementation-ready compatibility, identity/time,
+  object, budget, migration and approval package; no production mutation.
 
 ## Closeout
 
 - Result: parent proposed; `WI-037-S01` research closed without opening the MS-003 formal gate.
-- Remaining risk: taxonomy coverage requires incremental mapping.
-- Follow-up Work Item: WI-038 and WI-041.
+- Remaining risk: S02 requires owner approval of the proposed ADR/contract boundary; taxonomy coverage requires
+  incremental mapping and bounded fixtures.
+- Follow-up Work Item: after approval, append a sequential WI-037 implementation sub-item; WI-038 and WI-041 remain
+  downstream of the parent outcome.
