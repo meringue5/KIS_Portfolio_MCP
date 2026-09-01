@@ -484,7 +484,10 @@ def test_wi030_s02_pins_secrets_activates_once_and_reuses_one_core_digest(monkey
 
     assert result == 0
     assert builds["count"] == 1
-    assert len([command for command in commands if command[:3] == ["gcloud", "secrets", "add-iam-policy-binding"]]) == 2
+    assert not [
+        command for command in commands
+        if command[:3] == ["gcloud", "secrets", "add-iam-policy-binding"]
+    ]
     activation = next(
         command for command in commands
         if command[:4] == ["gcloud", "run", "jobs", "deploy"]

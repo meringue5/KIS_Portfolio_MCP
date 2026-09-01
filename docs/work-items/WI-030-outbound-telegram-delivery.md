@@ -77,6 +77,11 @@ collecting the separate formal shadow evidence.
 
 ## Evidence
 
+- 2026-09-01 destination setup confirmed exactly one private chat, created pinned chat-ID secret version `1` and sent
+  the approved finance-free test message. Raw token, chat ID and Telegram response body were not recorded.
+- GitHub Actions run `33453713586` built master SHA `760e2ad` successfully but stopped before activation because the
+  least-privilege deployment identity cannot mutate Secret Manager IAM. Both resource-level accessor bindings were
+  pre-provisioned by the owner operator; the deploy target was corrected to consume, not grant, those permissions.
 - WI-030-S01 closed: disabled-by-default adapter, renderer, owner-approval query/claim gate, bounded orchestration and
   Secret Manager allowlist are implemented.
 - S01 contract and S02 checklist: `docs/design/wi-030-telegram-delivery-contract.md`.
