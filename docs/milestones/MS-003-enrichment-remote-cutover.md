@@ -14,7 +14,7 @@
 | Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- | --- |
 | 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | proposed; S01 research-only closed |
-| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01 research-only closed; contract hardening gate |
+| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01 closed; S02 contract design in progress; no implementation or formal gate change |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01 research-only closed; contract hardening gate |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01 research-only closed; contract hardening gate |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
@@ -40,6 +40,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-02.1 | 2026-09-02 | WI-037-S02 appended to freeze filing issuer identity, Bronze/Silver, correction, point-in-time, raw-object and call-budget contracts before implementation | parent WI and milestone status unchanged; implementation, source call, DDL and activation excluded |
 | 2026-09-01.12 | 2026-09-01 | Owner approved the bounded Alpha personal-use contract and residual-risk package; source, dedicated collection, normalized dataset and pipeline are approved but inactive | S04 closed; mixed consensus collection stays proposed; no activation or parent/milestone status change |
 | 2026-09-01.11 | 2026-09-01 | WI-041-S04 proposed a secondary Alpha source, forward-only normalized dataset and bounded pipeline with a three-year capacity/risk package | S04 ready for owner contract decision; no activation or parent/milestone status change |
 | 2026-09-01.10 | 2026-09-01 | WI-041-S04 appended to correct S03's over-broad rights gate through proportionate published-license, normalized-retention and no-redistribution contract review | S03 history preserved; parent WI and milestone status unchanged |

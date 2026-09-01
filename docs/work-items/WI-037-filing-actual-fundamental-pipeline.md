@@ -48,6 +48,9 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 ## Sub-items
 
 - `WI-037-S01` — research filing sources, issuer identity, taxonomy and point-in-time controls (`closed`).
+- `WI-037-S02` — freeze the implementation-ready issuer identity, filing/fact point-in-time, Bronze/Silver,
+  correction, raw-object, source-budget and approval-gate design without code, DDL, source calls or activation
+  (`in_progress`).
 
 ## Pre-research checkpoint
 
@@ -70,6 +73,8 @@ scheduled activation.
 
 - `WI-037-S01` start checkpoint: 2026-08-31.
 - `docs/operations/wi-037-pre-research-2026-08.md`: closed evidence and contract-hardening inputs.
+- `WI-037-S02` start checkpoint: 2026-09-02.
+- `docs/operations/wi-037-s02-contract-design-2026-09.md`: in-progress design checkpoint and decision inventory.
 
 ## Closeout
 

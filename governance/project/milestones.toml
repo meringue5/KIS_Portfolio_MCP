@@ -757,3 +757,9 @@ id = "WI-041-S04"
 parent_id = "WI-041"
 title = "Define bounded personal-use Alpha Vantage source and retention contracts"
 status = "closed"
+
+[[subitems]]
+id = "WI-037-S02"
+parent_id = "WI-037"
+title = "Freeze filing identity point-in-time and Bronze Silver contract design"
+status = "in_progress"
