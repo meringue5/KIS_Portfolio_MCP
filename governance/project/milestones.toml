@@ -729,6 +729,12 @@ title = "Research macro series scope vintages rights and call budgets"
 status = "closed"
 
 [[subitems]]
+id = "WI-039-S02"
+parent_id = "WI-039"
+title = "Freeze macro profile series revision rights budget and interpretation contract design"
+status = "ready"
+
+[[subitems]]
 id = "WI-040-S01"
 parent_id = "WI-040"
 title = "Research catalog quality lineage and pipeline read-model contracts"

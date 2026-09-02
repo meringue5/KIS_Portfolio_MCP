@@ -10,7 +10,7 @@ milestone_ref: MS-003
 delivery_refs: V2-W0408
 parent_work_item: none
 depends_on: WI-012
-architecture_impact: none
+architecture_impact: pending owner decision on proposed ADR-027 profile source revision and time semantics
 data_impact: versioned macro observations and vintages
 security_impact: API keys remain in Secret Manager
 cost_impact: small allowlisted series set and source budgets
@@ -49,6 +49,8 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 
 - `WI-039-S01` — closed: research exact-series candidates, source-specific vintage semantics, rights and call-budget
   constraints without implementation or activation.
+- `WI-039-S02` — ready: freeze the implementation-ready profile scope, transport, series registry, heterogeneous
+  revision, interpretation, migration, rights, source-budget and capacity design without adoption or implementation.
 
 ## Research checkpoint — 2026-09-01
 
@@ -71,4 +73,20 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 
 - Result: parent remains proposed; `WI-039-S01` research-only checkpoint closed.
 - Remaining risk: exact ECOS identity, profile-scope reconciliation, rights and heterogeneous source revision contract.
-- Follow-up Work Item: WI-040.
+- Follow-up Work Item: formal WI-039 contract hardening after owner review.
+
+## Contract design checkpoint — 2026-09-02
+
+- The recommended `macro_profile_v1` follows C-5 exactly: five Korean and twelve U.S./global concepts. Korean M2 and
+  U.S. industrial production remain later profile-version additions.
+- The proposed ADR-027 uses FRED/ALFRED for all U.S./global transport, including Cboe-owned/copyrighted `VIXCLS`, and
+  keeps direct Cboe collection dormant. Raw values remain owner-only with source-specific attribution.
+- A typed heterogeneous revision ledger replaces fabricated realtime fields. `system_as_of` is the default and
+  backfilled/latest-only history remains labeled retrospective.
+- The package proposes a checked `macro_series` registry, five transparent metrics, additive migration 0016, FRED
+  32/256 and ECOS 16/96 budgets, 10-page caps and 512 MiB/500k/100k capacity stop lines.
+- Exact ECOS table/item IDs remain gated on `WI-039-S03` official metadata discovery plus one bounded sample per concept;
+  canonical adoption is reserved for S04 after that evidence.
+- Evidence: `docs/operations/wi-039-s02-contract-design-2026-09.md`.
+- Result: `WI-039-S02` is ready for owner decision. Parent `WI-039` and MS-003 remain proposed; no contract adoption,
+  code, DDL, source call, credential, data, infrastructure, schedule or MCP change occurred.
