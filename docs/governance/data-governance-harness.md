@@ -44,6 +44,7 @@ DGH는 product data plane을 대신하지 않는다. 정책과 계약은 DGH가 
 | dataset 계약 | `governance/catalog/datasets.toml` | DGH + warehouse checker |
 | metric 계약 | `governance/catalog/metrics.toml` | DGH + analytics tests |
 | pipeline 계약 | `governance/catalog/pipelines.toml` | DGH + pipeline runner |
+| application read-model 계약 | `governance/catalog/read-models.toml` | DGH bounds·sensitivity·activation gate |
 | macro exact-series registry | `governance/catalog/macro-series.toml` | DGH identity·rights·activation gate |
 | ETF provider 실행 profile | `governance/catalog/etf-source-profiles.toml` | DGH rights/host gate |
 | ETF exact instrument route | `governance/catalog/etf-instrument-routes.toml` | DGH route/reference gate |
@@ -72,6 +73,7 @@ Phase 1 source inventory에서 기존 V1 producer/consumer도 DGH contract로 �
 | `dataset` | 어떤 의미와 grain으로 보존·공개하는가? | source/input, key, 시간, schema, layer, 품질·보존·backup·consumer |
 | `metric` | 어떤 시점의 입력으로 무엇을 계산하는가? | formula version, unit, point-in-time, quality와 검증 계약 |
 | `pipeline` | 어떤 입력을 어떤 통제로 출력하는가? | stage, schedule, idempotency, retry, call budget, quality/publish gate |
+| `read_model` | 승인된 manifest와 운영 증거를 소비자에게 어떤 제한으로 투영하는가? | input, response schema, allow/suppress fields, query/status/unavailable policy, size/page/lookback와 activation gate |
 | `macro_series` | 승인된 macro 개념을 어느 provider identity와 권리·단위·빈티지로 고정하는가? | exact source/series identity, native metadata, rights, transform와 inactive/production gate |
 | `etf_profile` | 해당 provider를 어떤 형식·host·권리로 실행할 수 있는가? | parser/version, media type, host, history와 rights tri-state, activation |
 | `etf_route` | 어떤 ETF를 어느 provider product에 연결하는가? | exact canonical instrument, provider key와 유효시점; holding fact 금지 |
@@ -106,9 +108,13 @@ proposed → approved → active → deprecated → retired
 7. contract가 approved/active가 되기 전 production DDL, schedule, backfill과 public MCP 노출을 금지한다.
 8. 계약 변경은 새 version과 compatibility 판정을 남긴다. 과거 의미를 같은 version으로 바꾸지 않는다.
 
-필수 ID namespace는 `source.`, `collection.`, `dataset.`, `metric.`, `pipeline.`, `macro.`, `etf_profile.`,
-`etf_route.`이다. version은 semantic
+필수 ID namespace는 `source.`, `collection.`, `dataset.`, `metric.`, `pipeline.`, `read_model.`, `macro.`,
+`etf_profile.`, `etf_route.`이다. version은 semantic
 version 문자열을 사용한다. v1 manifest의 필수 필드와 enum은 `governance/contract-schema.toml`이 소유한다.
+
+외부 source나 upstream dataset이 없는 runtime Control 증거는 예외적으로 `layer=control`이면서
+`control_origin=managed-pipeline-runtime`인 dataset만 허용한다. 이는 managed pipeline 자체가 생성하는 run
+ledger에만 적용되며 source-less analytics dataset을 허용하지 않는다.
 
 ETF provider rights는 `allowed`, `prohibited`, `unknown`의 tri-state다. production profile은 automation,
 cloud processing, raw retention과 derived use가 모두 `allowed`여야 한다. exact route에는 계좌, 보유수량,
@@ -123,6 +129,9 @@ payload parser 검증에만 사용할 수 있고 network registry에는 등록�
 - 중복 ID와 존재하지 않는 cross-reference 거부
 - 승인 근거 없는 approved/active 계약 거부
 - source 없는 collection, 입력 없는 metric, 출력 없는 pipeline 거부
+- source/input 없는 dataset은 allowlisted managed-runtime Control origin이 아니면 거부
+- read model의 allow/suppress field 중복, 256 KiB 초과 응답, 비양수 page·음수 lookback과 active input 없는
+  production activation 거부
 - 중복 macro provider identity, source가 누락된 profile 참조와 active source 없는 production macro series 거부
 - physical object 변경 시 dataset contract와 data catalog 동시 변경 요구
 - SSOT, grain, key, retention, lineage, provider, 비용 단계 변경 시 ADR gate 요구
@@ -165,13 +174,21 @@ metric, signal과 Telegram은 해당 계약의 quality gate를 통과해야 한�
 
 Remote MCP의 관리 데이터 조회는 다음 read model을 목표로 한다.
 
-- `get-data-catalog`: source/dataset/metric/pipeline의 grain, version, owner와 지원 범위
+- `get-data-catalog`: source/dataset/metric/pipeline/macro series와 physical object의 grain, version, owner와 지원 범위
 - `get-data-quality`: freshness, completeness, reconciliation, known gap
-- `get-pipeline-status`: run/stage/watermark와 재처리 가능 상태
+- `get-pipeline-run`: run/stage/watermark와 재처리 가능 상태
 
 분석 응답은 `schema_version`, `as_of`, `source`, `freshness`, `quality`, `missing_coverage`, `lineage_ref`,
 `request_id`를 공통 envelope로 가진다. LLM은 임의 SQL writer나 임의 Job argument를 받지 않고 승인된
 read model과 allowlisted managed pipeline만 사용한다.
+
+초기 계약은 `read_model.data-catalog-v1`, `read_model.data-quality-v1`, `read_model.pipeline-run-v1`이며 모두
+owner 승인 상태지만 runtime `inactive`다. 요청 중 provider call을 하지 않고 packaged canonical manifest와
+MotherDuck Control 증거만 읽는다. serialized response는 256 KiB 이하이고 query page/lookback은 계약 상한을
+넘지 않는다. raw JSON, error text, partition key, raw lineage/object locator, secret/auth/cost internals은
+suppressed field다. 전체 상태는 `unavailable > failed > partial > stale > not_assessed > pass` 순서로 합성하며
+succeeded run, 빈 결과나 증거 부재만으로 `pass`를 만들지 않는다. Public MCP 등록과 OAuth adapter는 WI-042가
+별도로 소유한다.
 
 ## 6. 권한, 보안과 예외
 

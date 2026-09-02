@@ -432,6 +432,15 @@ V2는 raw KIS endpoint마다 tool을 만들지 않고 질문의 결과 단위로
 | journal.write | `upsert-trade-journal` | expected revision 기반 작성·수정 |
 | journal.write | `revise-trade-thread` | lot/thread/sell allocation revision |
 
+WI-040 application read-model authority는 packaged `governance/catalog/` 및 physical object registry와
+MotherDuck Control evidence의 결합이다. catalog manifest를 DB에 복제하지 않고 요청 중 provider를 호출하지
+않는다. `data-catalog-v1`, `data-quality-v1`, `pipeline-run-v1`은 승인됐지만 inactive이며, WI-042가 thin public
+adapter와 `mcp:read` 검증을 소유한다. 각 DTO는 allowlisted typed projection, suppressed raw/error/partition/
+locator/secret fields, 256 KiB와 bounded page/lookback을 강제한다. overall status는
+`unavailable > failed > partial > stale > not_assessed > pass`이고 compatibility summary의 succeeded 값이나
+증거 없는 empty result는 green 근거가 아니다. 따라서 새 `get-pipeline-status`를 추가하지 않고 기존
+18-tool budget의 `get-pipeline-run`에 해당 의미를 유지한다.
+
 원화 평가액 변화 기여도는 cash-flow-adjusted return attribution과 별도 metric/version을 가진다. 양일
 canonical daily state가 complete·reconciled이고 필수 계좌 coverage가 같을 때만 신규 편입·전량 매도를
 판정한다. 현금 delta와 미설명 residual을 포함하며, 해외 종목은 `KRW valuation change including FX`로

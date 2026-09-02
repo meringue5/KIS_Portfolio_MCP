@@ -40,6 +40,7 @@ def _copy_harness(target: Path) -> None:
         "governance/catalog/datasets.toml",
         "governance/catalog/metrics.toml",
         "governance/catalog/pipelines.toml",
+        "governance/catalog/read-models.toml",
         "governance/catalog/macro-series.toml",
         "governance/catalog/etf-source-profiles.toml",
         "governance/catalog/etf-instrument-routes.toml",
@@ -55,6 +56,7 @@ def _copy_harness(target: Path) -> None:
     # leak unresolved references into these isolated positive/negative cases.
     (target / "governance/catalog/metrics.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/pipelines.toml").write_text("schema_version = 1\n", encoding="utf-8")
+    (target / "governance/catalog/read-models.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/macro-series.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/etf-source-profiles.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/etf-instrument-routes.toml").write_text("schema_version = 1\n", encoding="utf-8")
@@ -64,6 +66,22 @@ def test_current_repository_satisfies_data_governance_contract():
     checker = _load_checker()
 
     assert checker.check(REPO_ROOT) == []
+
+
+def test_catalog_quality_and_pipeline_read_models_are_approved_but_inactive():
+    read_models = tomllib.loads(
+        (REPO_ROOT / "governance/catalog/read-models.toml").read_text(encoding="utf-8")
+    )["contracts"]
+
+    assert {item["id"] for item in read_models} == {
+        "read_model.data-catalog-v1",
+        "read_model.data-quality-v1",
+        "read_model.pipeline-run-v1",
+    }
+    assert all(item["status"] == "approved" for item in read_models)
+    assert all(item["activation_state"] == "inactive" for item in read_models)
+    assert all(item["max_response_bytes"] == 262_144 for item in read_models)
+    assert all(not set(item["allowed_fields"]).intersection(item["suppressed_fields"]) for item in read_models)
 
 
 def test_macro_profile_has_exact_approved_inactive_series_registry():
@@ -241,6 +259,108 @@ consumer_ids = ["fixture"]
 
     assert any("requires decision_refs" in error for error in errors)
     assert any("references unknown id 'source.missing'" in error for error in errors)
+
+
+def test_governance_rejects_control_origin_outside_managed_control_dataset(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_harness(target)
+    (target / "governance/catalog/datasets.toml").write_text(
+        '''schema_version = 1
+
+[[contracts]]
+id = "dataset.invalid-runtime-origin"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "Invalid source-less Silver fixture."
+decision_refs = ["DEC-038"]
+layer = "silver"
+source_ids = []
+input_dataset_ids = []
+control_origin = "managed-pipeline-runtime"
+purpose = "Exercise the bounded Control-origin exception."
+grain = "one fixture row"
+natural_key = ["id"]
+time_semantics = "recorded_at"
+write_mode = "append-only"
+schema_contract = "fixture"
+sensitivity = "internal"
+retention_policy = "fixture"
+backup_policy = "parquet"
+freshness_slo = "fixture"
+quality_rules = ["id unique"]
+producer_pipeline_ids = []
+consumer_ids = ["fixture"]
+''',
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("control_origin is allowed only" in error for error in errors)
+
+
+def test_governance_rejects_unsafe_read_model_activation_and_field_overlap(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_harness(target)
+    (target / "governance/catalog/read-models.toml").write_text(
+        '''schema_version = 1
+
+[[contracts]]
+id = "read_model.unsafe-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "Unsafe production read-model fixture."
+decision_refs = ["DEC-038"]
+input_dataset_ids = []
+registry_input_kinds = ["dataset"]
+consumer_scope = "mcp-read"
+response_schema_ref = "fixture-v1"
+allowed_fields = ["id", "raw_json"]
+suppressed_fields = ["raw_json"]
+query_policy = "bounded fixture query"
+status_policy = "fail closed"
+unavailable_policy = "unavailable"
+activation_state = "production"
+max_response_bytes = 262145
+max_page_size = 0
+max_lookback_days = -1
+
+[[contracts]]
+id = "read_model.premature-input-v1"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "Production read model with an inactive input fixture."
+decision_refs = ["DEC-038"]
+input_dataset_ids = ["dataset.pipeline-run-evidence"]
+registry_input_kinds = []
+consumer_scope = "mcp-read"
+response_schema_ref = "fixture-v1"
+allowed_fields = ["id"]
+suppressed_fields = ["raw_json"]
+query_policy = "bounded fixture query"
+status_policy = "fail closed"
+unavailable_policy = "unavailable"
+activation_state = "production"
+max_response_bytes = 1024
+max_page_size = 1
+max_lookback_days = 0
+''',
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("allowed_fields and suppressed_fields overlap" in error for error in errors)
+    assert any("max_response_bytes must be between 1 and 262144" in error for error in errors)
+    assert any("max_page_size must be positive" in error for error in errors)
+    assert any("max_lookback_days must be nonnegative" in error for error in errors)
+    assert any("production read model must have active lifecycle status" in error for error in errors)
+    assert any("production read model requires active input 'dataset.pipeline-run-evidence'" in error for error in errors)
 
 
 def test_governance_rejects_production_etf_profile_with_unknown_rights(tmp_path: Path):

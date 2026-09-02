@@ -17,7 +17,7 @@
 | 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01~S04 closed; ADR-027 and 23 new approved-inactive macro contracts adopted; implementation/formal gate unchanged |
-| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 closed; S02 owner-decision-ready with DB-only authority, 6 Control datasets, 3 read models and false-green contract; S03 adoption pending |
+| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01~S03 closed; owner-approved DB-only authority, 6 approved Control datasets and 3 approved-inactive read models adopted; implementation/formal gate unchanged |
 | 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
@@ -40,6 +40,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-02.11 | 2026-09-02 | Owner approved all WI-040-S02 recommendations; S03 adopted six Control dataset and three inactive read-model contracts plus bounded fail-closed checker rules | S03 closed; 161 DGH contracts and full 443 pass; no DTO, DDL, DB, source, credential, infrastructure, schedule, MCP activation, parent or milestone status change |
 | 2026-09-02.10 | 2026-09-02 | WI-040-S02 froze DB-only authority, six Control evidence datasets, three typed read models, sensitivity suppression, query bounds and fail-closed status composition | S02 ready for owner decision; WI-042-S01 identified as next useful research after adoption; no contract lifecycle, code, DDL, DB, MCP, infrastructure or milestone status change |
 | 2026-09-02.9 | 2026-09-02 | WI-039-S04 adopted ADR-027, requirements/system-design clarification, exact 17-series registry, Gold snapshot and five transparent metrics | S04 closed; 152 DGH contracts; no DDL, DB, credential, infrastructure, source call, schedule, deployment, MCP activation, parent or milestone status change |
 | 2026-09-02.8 | 2026-09-02 | Owner approved WI-039-S02 and S03 verified five exact ECOS identities and observed-content time boundary within the 16-call ceiling | S02/S03 closed; S04 adoption pending; no code, DDL, DB, credential, infrastructure, schedule, activation, parent or milestone status change |

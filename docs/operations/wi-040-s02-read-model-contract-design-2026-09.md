@@ -1,7 +1,7 @@
 # WI-040-S02 catalog, quality and pipeline read-model contract design — 2026-09-02
 
 > Work Item: `WI-040-S02`
-> 상태: owner decision ready
+> 상태: owner approved; canonical adoption tracked by `WI-040-S03`
 > 변경 분류: data-contract and consumer-boundary clarification
 > 범위: WI-040-S01 evidence, current DGH manifests, V2 Control objects and approved Remote MCP V2 boundary
 > 제외: contract adoption, DTO/query implementation, DDL, DB write, public MCP registration, deployment, live query
@@ -239,9 +239,9 @@ tables or view opportunistically.
 7. raw JSON, error text, partition key, lineage refs, secret/auth/cost internals을 suppress하고 opaque refs만 제공한다.
 8. WI-040은 application read model까지만 소유하고 public tool/OAuth/client behavior는 WI-042 이후로 유지한다.
 
-승인 뒤 `WI-040-S03`에서 DGH schema, six dataset contracts, three read-model contracts와 requirements/system-design
-clarification을 canonical SSOT에 채택한다. MS-002가 닫히고 MS-003 formal gate가 열린 뒤에만 DTO/query 구현을
-시작한다.
+Owner는 여덟 항목을 2026-09-02 승인했다. `WI-040-S03`이 DGH schema, six dataset contracts, three read-model
+contracts와 requirements/system-design clarification을 canonical SSOT에 채택한다. MS-002가 닫히고 MS-003
+formal gate가 열린 뒤에만 DTO/query 구현을 시작한다.
 
 ## Verification boundary
 

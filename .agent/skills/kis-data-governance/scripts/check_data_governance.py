@@ -83,6 +83,10 @@ def _validate_contract(
         if field in contract and not isinstance(contract[field], bool):
             errors.append(f"{label}: field {field!r} must be a boolean")
 
+    for field in type_schema.get("int_fields", []):
+        if field in contract and (not isinstance(contract[field], int) or isinstance(contract[field], bool)):
+            errors.append(f"{label}: field {field!r} must be an integer")
+
     for field in type_schema.get("scalar_reference_fields", []):
         if field in contract and not isinstance(contract[field], str):
             errors.append(f"{label}: field {field!r} must be a string reference")
@@ -93,8 +97,21 @@ def _validate_contract(
             errors.append(f"{label}: field {field!r} must be a non-empty list")
 
     alternatives = type_schema.get("one_of_non_empty", [])
-    if alternatives and not any(isinstance(contract.get(field), list) and contract[field] for field in alternatives):
+    source_less_control = (
+        kind == "dataset"
+        and contract.get("layer") == "control"
+        and contract.get("control_origin") == "managed-pipeline-runtime"
+    )
+    if alternatives and not source_less_control and not any(
+        isinstance(contract.get(field), list) and contract[field] for field in alternatives
+    ):
         errors.append(f"{label}: at least one of {alternatives!r} must be non-empty")
+
+    if kind == "dataset" and "control_origin" in contract and not source_less_control:
+        errors.append(
+            f"{label}: control_origin is allowed only for layer='control' "
+            "and control_origin='managed-pipeline-runtime'"
+        )
 
     for field, choices in type_schema.get("enums", {}).items():
         if field in contract and contract[field] not in choices:
@@ -260,6 +277,34 @@ def check(root: Path) -> list[str]:
                     errors.append(
                         f"{contract.get('id')!r}: macro series {series_id!r} source is absent from source_ids"
                     )
+
+    for read_model in contracts_by_kind.get("read_model", []):
+        read_model_id = read_model.get("id", "read_model[unknown]")
+        allowed = read_model.get("allowed_fields", [])
+        suppressed = read_model.get("suppressed_fields", [])
+        if isinstance(allowed, list) and isinstance(suppressed, list):
+            overlap = sorted(set(allowed).intersection(suppressed))
+            if overlap:
+                errors.append(f"{read_model_id!r}: allowed_fields and suppressed_fields overlap: {overlap}")
+        if not read_model.get("input_dataset_ids") and not read_model.get("registry_input_kinds"):
+            errors.append(f"{read_model_id!r}: at least one governed input must be declared")
+        max_response_bytes = read_model.get("max_response_bytes")
+        if isinstance(max_response_bytes, int) and not isinstance(max_response_bytes, bool):
+            if max_response_bytes <= 0 or max_response_bytes > 262_144:
+                errors.append(f"{read_model_id!r}: max_response_bytes must be between 1 and 262144")
+        max_page_size = read_model.get("max_page_size")
+        if isinstance(max_page_size, int) and not isinstance(max_page_size, bool) and max_page_size <= 0:
+            errors.append(f"{read_model_id!r}: max_page_size must be positive")
+        max_lookback_days = read_model.get("max_lookback_days")
+        if isinstance(max_lookback_days, int) and not isinstance(max_lookback_days, bool) and max_lookback_days < 0:
+            errors.append(f"{read_model_id!r}: max_lookback_days must be nonnegative")
+        if read_model.get("activation_state") == "production":
+            if read_model.get("status") != "active":
+                errors.append(f"{read_model_id!r}: production read model must have active lifecycle status")
+            for dataset_id in read_model.get("input_dataset_ids", []):
+                target = contracts_by_id.get(dataset_id)
+                if target and target[1].get("status") != "active":
+                    errors.append(f"{read_model_id!r}: production read model requires active input {dataset_id!r}")
 
     rights_fields = (
         "automation_right", "cloud_processing_right", "raw_retention_right", "derived_use_right",

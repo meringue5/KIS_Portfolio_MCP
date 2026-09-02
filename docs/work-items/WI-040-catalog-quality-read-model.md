@@ -50,7 +50,9 @@ lineage and pipeline status to Remote MCP.
 
 - `WI-040-S01` — research catalog, quality, lineage and pipeline read-model contracts (`closed`).
 - `WI-040-S02` — freeze DB-only authority, Control evidence datasets, DTOs, sensitivity, false-green status and bounded
-  query contracts without implementation or public MCP registration (`ready for owner decision`).
+  query contracts without implementation or public MCP registration (`closed after owner approval`).
+- `WI-040-S03` — adopt the approved DGH schema, six Control evidence datasets, three inactive read models and canonical
+  requirements/system-design clarification without implementation or public MCP registration (`closed`).
 
 ## Pre-research checkpoint
 
@@ -95,7 +97,19 @@ calls.
   evidence cannot independently produce green.
 - Evidence: `docs/operations/wi-040-s02-read-model-contract-design-2026-09.md`.
 - Verification: Project OS/DGH/architecture/warehouse/MCP gates and full 440-test suite passed.
-- Result: S02 is ready for owner decision. Parent WI-040 and MS-003 remain proposed; no contract adoption, code, DDL,
-  DB, source, secret, infrastructure, schedule, public MCP or deployment change occurred.
-- Remaining prework: after S02 approval/S03 adoption, WI-042-S01 is the next useful research checkpoint. WI-043~046
+- Result: owner approved all eight recommendations and S03 adopted them without application/runtime activation.
+  Parent WI-040 and MS-003 remain proposed.
+- Remaining prework: WI-042-S01 is the next useful research checkpoint. WI-043~046
   should wait for their upstream contract/evidence gates rather than produce stale research.
+
+## Canonical adoption checkpoint — 2026-09-02
+
+- Six existing Control objects/views now have approved logical dataset contracts. No DDL, migration or physical object
+  change occurred.
+- DGH now owns three `approved + inactive` read-model contracts and rejects unsafe source-less origins, overlapping
+  allowed/suppressed fields, unbounded sizes and premature production activation.
+- Requirements, system design, DGH policy and physical catalog links now express one DB-only authority and false-green
+  rule. Public MCP/OAuth behavior remains WI-042 scope.
+- Evidence: `docs/operations/wi-040-s03-contract-adoption-2026-09.md`.
+- Verification: DGH 161 contracts, focused 10 tests, quick passed, full 443 passed with one existing warning.
+- Result: S03 closed; parent WI-040 and MS-003 remain proposed and implementation stays gated.

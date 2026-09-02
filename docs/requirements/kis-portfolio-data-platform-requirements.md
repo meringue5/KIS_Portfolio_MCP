@@ -373,6 +373,12 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   Parquet에 둔다.
 - `DEC-038`: source·pipeline·run·watermark·quality·metric·lineage catalog를 Remote MCP와 직접 SQL이
   공유한다.
+  - catalog 결정 SSOT는 배포 이미지의 canonical manifest와 physical object registry이고 MotherDuck
+    Control은 run/stage/quality/lineage/watermark 운영 증거를 소유한다. 요청 중 provider call이나 별도 DB
+    catalog 복제본을 만들지 않는다.
+  - application read model은 versioned allowlist/suppression, 256 KiB 응답 상한과 bounded page/lookback을
+    가진다. 상태는 `unavailable > failed > partial > stale > not_assessed > pass`로 합성하고 성공 run·빈 결과·
+    증거 부재를 단독 green 근거로 쓰지 않는다. 초기 계약은 승인됐지만 WI-042 공개 전까지 inactive다.
 - `DEC-039`: 3년은 최소 hot history와 초도 적재 범위이며 canonical 사실은 자동 삭제하지 않는다.
 - `DEC-040`: 매일 off-site Parquet, 분기 복원 rehearsal, RPO 24시간·RTO 4시간을 목표로 한다.
 - `DEC-041`: 전체 월 실제 지출 상한은 50,000원이다. request-based `min-instances=0`, 명시적 max instances,
