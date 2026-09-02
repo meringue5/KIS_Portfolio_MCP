@@ -47,14 +47,21 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Sub-items
 
-- `none`.
+- `WI-042-S01` — audit the existing 35-tool surface, OAuth scope enforcement, approved V2 18-tool mapping and
+  WI-040 thin read-adapter boundary without implementation (`closed`).
 
 ## Evidence
 
-- Pending.
+- `docs/operations/wi-042-s01-remote-read-surface-audit-2026-09.md`: exact 35-to-18 migration grouping, current
+  endpoint-wide read scope gap, parallel V2 builder, request actor, official stateless transport and implementation
+  gate inputs.
+- Current surface audit passed with 35 tools and disabled order stubs; focused OAuth/MCP/package baseline passed
+  44 tests and full gate passed 443 tests with one existing Authlib deprecation warning.
+- S01 changed no DTO/handler, public catalog, OAuth grant, transport, deployment, live client or production state.
 
 ## Closeout
 
-- Result: proposed.
+- Result: parent proposed; S01 research closed. This is the last planned MS-003 pre-research checkpoint before MS-002
+  close; subsequent implementation remains dependency-gated.
 - Remaining risk: real client behavior belongs to WI-044.
 - Follow-up Work Item: WI-043.

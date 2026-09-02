@@ -811,3 +811,9 @@ id = "WI-038-S03"
 parent_id = "WI-038"
 title = "Adopt ADR-026 and approved inactive dividend data contracts"
 status = "closed"
+
+[[subitems]]
+id = "WI-042-S01"
+parent_id = "WI-042"
+title = "Audit V1 tools OAuth scopes V2 budget and thin read-adapter boundaries"
+status = "closed"
