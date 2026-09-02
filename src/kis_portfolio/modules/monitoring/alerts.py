@@ -12,9 +12,12 @@ from typing import Mapping
 
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600", "us-close"})
 SEVERITY_RANK = {"normal": 0, "watch": 1, "warning": 2, "critical": 3}
-PUBLIC_CONTEXT_KEYS = frozenset(
-    {"subject_label", "summary", "reason_codes", "change_percent", "metric_refs", "quality_status"}
-)
+PUBLIC_CONTEXT_KEYS = frozenset({
+    "presentation_version", "subject_label", "market_label", "asset_type_label", "summary",
+    "reason_codes", "change_percent", "sma20_relation", "sma50_relation", "sma120_relation",
+    "volume_ratio20", "rsi14", "bollinger_state", "episode_drawdown_percent",
+    "portfolio_impact_percent", "unavailable_codes", "source_at", "metric_refs", "quality_status",
+})
 _SENSITIVE_KEY = re.compile(r"account|cano|token|secret|chat.?id|total.?asset|total.?value", re.I)
 _SENSITIVE_TEXT = re.compile(r"account.?number|cano|token|secret|chat.?id", re.I)
 _ACCOUNT_NUMBER = re.compile(r"(?<!\d)\d{8,}(?!\d)")

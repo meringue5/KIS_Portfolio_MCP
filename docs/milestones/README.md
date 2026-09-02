@@ -139,9 +139,13 @@ flowchart LR
 flowchart TB
     subgraph M2["MS-002 — 현재 실행 경로"]
         W29["WI-029 / S05<br/>2주 shadow 증적 수집<br/>verified / collecting"]
-        W30["WI-030 / S01<br/>disabled Telegram prep<br/>verified"]
+        W30["WI-030 / S02<br/>transport canary<br/>in progress"]
+        W54["WI-054<br/>production readiness audit<br/>closed"]
+        W30S3["WI-030 / S03<br/>production-value real use<br/>ready"]
         M2DONE{"MS-002<br/>acceptance complete"}
-        W29 --> W30 --> M2DONE
+        W29 --> W30S3
+        W30 --> W30S3
+        W54 --> W30S3 --> M2DONE
     end
 
     subgraph M3["MS-003 — enrichment, Remote MCP V2, cutover"]
@@ -201,6 +205,8 @@ flowchart TB
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     classDef gate fill:#e8f1ff,stroke:#175cd3,color:#123b72;
     class W29,W30 blocked;
+    class W54 closed;
+    class W30S3 proposed;
     class W35,W37,W38,W39,W40,W41,W42,W43,W44,W45,W46,W47,W48,W49,W50,W51,W32 proposed;
     class M2DONE,M3OPEN gate;
 ```
@@ -210,8 +216,9 @@ flowchart TB
 | 구분 | 현재 가능한 범위 |
 | --- | --- |
 | 계속 자동 진행 | `WI-029-S05`: 2026-09-10까지 DB-only shadow 증적 축적 |
-| 준비 완료 | `WI-030-S01`: secret을 읽거나 외부 전송하지 않는 Telegram delivery 경로 검증 완료 |
-| 2주 뒤 활성화 | `WI-030-S02`: S05 검토·owner rule-version·destination·test-message 승인 뒤 실행 |
+| 운영 중 | `WI-030-S02`: immutable transport canary; 기술 증거로 보존하되 제품 인수로 간주하지 않음 |
+| 즉시 다음 구현 | `WI-030-S03`: production-value 메시지로 실사용하고 발견 문제를 안정화 |
+| 인수 전 필수 | `WI-054` readiness matrix의 drawdown·valuation contribution production blocker 해소와 owner acceptance |
 | MS-003 사전 준비 | `WI-035`, `WI-037`, `WI-039`, `WI-040`의 source·비용·권리·계약 read-only 조사 |
 | 현재 baseline에서 불가 | MS-003 production 구현·migration·배포. MS-002가 닫히거나 formal start gate가 개정돼야 함 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |

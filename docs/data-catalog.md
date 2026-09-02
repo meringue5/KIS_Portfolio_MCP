@@ -114,12 +114,12 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.alert_dispatch_claims`, `control.alert_delivery_attempts` | candidate/channel/opaque destination leased claim과 redacted terminal/retry outcome | Parquet / confidential |
 | `control.alert_calibration_runs`, `control.alert_shadow_windows` | provenance-labelled 3년 replay·자산유형 threshold report와 2주 DB-only coverage/de-dup/zero-send evidence | Parquet / confidential |
 | `control.alert_rule_approval_revisions` | calibration·verified shadow를 인용하는 owner approval/rejection/revocation revision | Parquet / confidential |
-| `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence | Parquet / internal |
-| `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark | Parquet / internal |
+| `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence; `dataset.pipeline-run-evidence`, `dataset.pipeline-stage-evidence` | Parquet / internal |
+| `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark; `dataset.data-quality-evidence`, `dataset.data-lineage-evidence`, `dataset.pipeline-watermark-state` | Parquet / internal |
 | `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`, `control.reconstruction_exceptions_current` | 비식별 partition/episode 예외 identity, append-only 검토·해결 이력과 latest projection | Parquet tables + rebuild view / internal |
 | `control.owner_review_items`, `control.owner_review_item_revisions`, `control.owner_review_items_current` | 누락 thread plan/journal·미확정 sell allocation review identity, append-only 상태와 latest projection | Parquet tables + rebuild view / confidential |
 | `control.etf_instrument_routes` | exact instrument→provider profile route; account·quantity·valuation fields prohibited | Parquet / internal |
-| `control.pipeline_run_summary` | run/stage terminal-state read model | rebuild view / internal |
+| `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
 총 74개 V2 object는 59 tables + 15 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을

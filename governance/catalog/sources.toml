@@ -236,11 +236,11 @@ availability_slo = "next scheduled daily run after source publication; series fr
 
 [[contracts]]
 id = "source.fred-alfred"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
-description = "FRED observations와 ALFRED vintage dates. 승인된 미국 macro_profile_v1 series의 point-in-time 원천이며 각 series 원저작권과 재배포 조건을 별도 allowlist한다."
-decision_refs = ["DEC-024"]
+description = "FRED observations와 ALFRED vintage dates. 미국·글로벌 macro_profile_v1의 단일 transport이며 VIXCLS를 포함한 각 series의 원소유자·저작권·재배포 조건을 별도 allowlist한다."
+decision_refs = ["ADR-027", "DEC-024"]
 provider = "Federal Reserve Bank of St. Louis FRED and ALFRED"
 canonical_role = "canonical"
 access_method = "Official FRED and ALFRED REST APIs"
@@ -254,21 +254,21 @@ availability_slo = "next scheduled daily run after observation or vintage public
 
 [[contracts]]
 id = "source.cboe-vix"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
-description = "Cboe가 공개하는 VIX 지수 일별 historical data. macro_profile_v1의 시장 변동성 관측에만 사용한다."
-decision_refs = ["DEC-024", "DEC-026"]
+description = "Cboe VIX 원소유권과 attribution을 보존하는 dormant reference source. 초기 macro_profile_v1은 FRED VIXCLS transport만 사용하고 direct download를 호출하지 않는다."
+decision_refs = ["ADR-027", "DEC-024", "DEC-026"]
 provider = "Cboe Global Markets"
-canonical_role = "canonical"
-access_method = "Official Cboe historical data download"
+canonical_role = "reference"
+access_method = "Official Cboe reference metadata; direct historical download dormant"
 auth_class = "none"
 license_class = "restricted"
 sensitivity = "public"
 region = "US"
 cost_class = "free"
-rate_limit_policy = "at most one daily retrieval with conditional download; Cboe attribution and usage terms reviewed before activation"
-availability_slo = "daily history by the next Korean-morning run after Cboe publishes it"
+rate_limit_policy = "zero direct production calls in macro_profile_v1; any future direct adapter requires a new rights and activation review"
+availability_slo = "no production availability claim while dormant; VIXCLS transport follows source.fred-alfred"
 
 [[contracts]]
 id = "source.owner-provided-research-document"
@@ -305,6 +305,24 @@ region = "MULTI"
 cost_class = "unknown"
 rate_limit_policy = "unknown until a provider proposal includes quota, history depth, point-in-time fields and redistribution rights"
 availability_slo = "unknown; must support pre-event snapshots and post-event revision tracking before approval"
+
+[[contracts]]
+id = "source.alpha-vantage-personal"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "Alpha Vantage 공식 EARNINGS_ESTIMATES API의 owner-only personal non-commercial 보조 source. 공개 Terms of Service가 investment analysis, research, testing과 monitoring을 허용하는 범위에서만 사용하며 crawling, redistribution, multi-user와 commercial use를 금지한다."
+decision_refs = ["DEC-021", "DEC-022", "DEC-025", "DEC-032", "DEC-041", "DEC-043"]
+provider = "Alpha Vantage Inc."
+canonical_role = "secondary"
+access_method = "Official HTTPS EARNINGS_ESTIMATES API only; no crawling or scraping"
+auth_class = "api-key"
+license_class = "account-private"
+sensitivity = "restricted"
+region = "US"
+cost_class = "free"
+rate_limit_policy = "owner-only normalized use under terms reviewed 2026-09-01; current held U.S. direct issuers only; maximum 8 calls per provider day, never exceed the account-wide 25/day free limit, serialize at least 15 seconds apart, no same-run retry; quarterly and terms-change review kills collection until reapproved"
+availability_slo = "best effort with no provider SLO; Information, rate-limit, empty or shape-drift envelopes are partial or failed and never published as complete"
 
 [[contracts]]
 id = "source.unlicensed-market-content"

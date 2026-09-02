@@ -52,21 +52,56 @@ cost_budget = "OpenDART and SEC free APIs plus existing KIS access; object stora
 acceptance_rules = ["Korean actuals originate from OpenDART and U.S. actuals from SEC EDGAR", "filing corrections preserve prior versions and knowledge time", "financial facts retain original taxonomy and mapping provenance", "dividend state gaps are explicit and manual evidence cannot overwrite broker events", "licensed research full text is not collected"]
 
 [[contracts]]
-id = "collection.macro-profile-v1"
+id = "collection.dividend-ledger-v1"
 version = "1.0.0"
 status = "approved"
 owner = "owner"
-description = "ECOS·FRED/ALFRED·Cboe의 승인된 최소 series로 macro_profile_v1을 구성하는 권장 장바구니."
-decision_refs = ["DEC-024", "DEC-026", "DEC-041"]
-scope = "versioned allowlist of Korean and U.S. rates, inflation, liquidity, activity, FX context and daily VIX needed by owned-instrument analysis"
-source_ids = ["source.bok-ecos", "source.fred-alfred", "source.cboe-vix"]
-dataset_ids = ["dataset.macro-observation"]
+description = "보유종목의 issuer action, 계좌 entitlement, cash receipt link와 월별 read model을 위한 approved-but-inactive 배당 장바구니."
+decision_refs = ["ADR-025", "ADR-026", "DEC-023"]
+scope = "currently held Korean and U.S. direct equities and REITs plus account-private receipts; ETF distribution action only when exact instrument evidence exists; no inferred receipt"
+source_ids = ["source.opendart", "source.kis-open-api", "source.portfolio-owner"]
+dataset_ids = ["dataset.instrument-master", "dataset.filing-event", "dataset.portfolio-position-observation", "dataset.trade-event", "dataset.corporate-action-event", "dataset.cash-transaction-event", "dataset.fx-rate-daily", "dataset.dividend-source-observation", "dataset.dividend-event", "dataset.dividend-entitlement", "dataset.dividend-reconciliation", "dataset.dividend-monthly-summary"]
 priority = "recommended"
-history_policy = "source-available history sufficient for regime calibration, with ALFRED vintages when provided; series-specific rights and frequency govern retention and publish"
-schedule_policy = "daily incremental check, but each series is fetched and evaluated only according to its native publication frequency"
-trigger_policy = "platform Scheduler primary; allowlisted Remote MCP refresh only after the source publication window"
-cost_budget = "free official APIs/downloads only; small allowlisted series set and cached metadata; no paid macro terminal"
-acceptance_rules = ["every series has source, unit, frequency, interpretation and license metadata", "FRED third-party series rights are reviewed individually", "vintage-aware analysis cannot use future revisions", "missing releases and revisions remain explicit", "new series requires a source and metric contract change"]
+history_policy = "initial three years of available action, entitlement and account cash evidence; unavailable IRP or U.S. receipt history remains source_gap and is never reconstructed from schedule times quantity"
+schedule_policy = "daily bounded action/right candidate plus post-account-history receipt reconciliation; no polling faster than source publication or account-history cadence"
+trigger_policy = "approved but inactive; no Scheduler, Remote MCP, backfill or production publish until the MS-002 to MS-003 formal gate, migration 0015 and fixture/recovery evidence are approved"
+cost_budget = "existing KIS and OpenDART access, shared scale-to-zero image, MotherDuck and private GCS only; KIS routine/backfill 64/320 physical calls, maximum 10 pages per partition, 1 GiB private Bronze object and 500000 Silver-row stop lines under the KRW 50000 platform ceiling"
+acceptance_rules = ["cash transaction is the monetary SSOT", "action entitlement and receipt link identities are separate append-only revisions", "system_as_of is the default and retrospective source mode is labeled", "correction and cash reversal remain distinct", "estimated entitlement never becomes received cash", "IRP and U.S. unsupported receipt coverage remains source_gap with owner-private manual fallback only", "source calls and capacity stop before exceeding approved ceilings", "filing and dividend logical failures remain isolated while image runner adapters landing repositories warehouse GCS and release artifact are shared", "no separate service repository or always-on worker"]
+
+[[contracts]]
+id = "collection.filing-actual-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "현재 직접보유 국내·미국 equity/REIT의 official filing artifact, issuer alias와 actual fact만 수집하는 bounded 장바구니."
+decision_refs = ["ADR-025", "DEC-005", "DEC-020", "DEC-022", "DEC-025", "DEC-032", "DEC-037", "DEC-041", "DEC-049"]
+scope = "latest canonical holdings의 directly held Korean and U.S. equity and REIT issuers only; current 3 OpenDART and 4 SEC issuers; ETF, look-through, dividend receipt and consensus excluded"
+source_ids = ["source.opendart", "source.sec-edgar"]
+dataset_ids = ["dataset.instrument-master", "dataset.filing-source-artifact", "dataset.issuer-source-alias", "dataset.filing-event", "dataset.financial-fact", "dataset.fundamental-concept-mapping"]
+priority = "recommended"
+history_policy = "initial five fiscal years and at least eight quarters; backfill retains source_available_at separately from first governed knowledge_at; collected canonical artifacts and revisions are not auto-deleted"
+schedule_policy = "OpenDART incremental candidate KRX business day 18:10 KST and SEC incremental candidate 08:10 KST after a completed U.S. session; actual Scheduler activation remains a release decision"
+trigger_policy = "approved but inactive; future platform Scheduler or allowlisted managed refresh only, with no arbitrary issuer, URL or date range input"
+cost_budget = "free official sources, existing MotherDuck and private GCS, scale-to-zero shared application image; OpenDART routine/backfill 100/250 calls, SEC 64/320 calls, total filing objects 5 GiB and typed facts 2000000-row stop lines under the KRW 50000 platform ceiling"
+acceptance_rules = ["official OpenDART and SEC sources only", "direct held equity and REIT exact issuer alias required", "ETF and look-through issuer excluded", "Bronze artifact hash and private restore lineage precede Silver publish", "system-as-of and retrospective-source-as-of modes are labeled and never silently mixed", "verified-only correction supersession", "source taxonomy and context retained while mapping remains versioned", "partial missing ambiguous and quarantined coverage explicit", "filing and dividend failure states are logically isolated", "adapter runner repository image and deployment artifact are shared rather than duplicated", "implementation stops for architecture review if logical separation causes unnecessary code or operating duplication"]
+
+[[contracts]]
+id = "collection.macro-profile-v1"
+version = "2.0.0"
+status = "approved"
+owner = "owner"
+description = "ECOS 5개와 FRED/ALFRED 12개의 exact approved-inactive series로 고정한 macro_profile_v1 장바구니."
+decision_refs = ["ADR-027", "DEC-024", "DEC-026", "DEC-041"]
+scope = "Korean base rate, USD/KRW, headline CPI, seasonally-adjusted industrial production and customs exports plus U.S./global DFF, 2Y, 10Y, 10Y-2Y, headline/core CPI, unemployment, payrolls, real GDP, broad dollar, WTI and Cboe-owned VIXCLS; Korean M2 and U.S. industrial production excluded"
+source_ids = ["source.bok-ecos", "source.fred-alfred"]
+dataset_ids = ["dataset.macro-observation", "dataset.macro-profile-snapshot"]
+macro_series_ids = ["macro.kr.base-rate", "macro.kr.usd-krw", "macro.kr.cpi-headline", "macro.kr.industrial-production", "macro.kr.exports", "macro.us.effective-fed-funds", "macro.us.treasury-2y", "macro.us.treasury-10y", "macro.us.treasury-10y-minus-2y", "macro.us.cpi-headline", "macro.us.cpi-core", "macro.us.unemployment", "macro.us.nonfarm-payrolls", "macro.us.real-gdp", "macro.us.broad-dollar", "macro.global.wti-spot", "macro.us.vix-close"]
+priority = "recommended"
+history_policy = "three-year initial history plus bounded ALFRED vintages for monthly and quarterly series; initial backfill is retrospective_reconstructed and collected revisions are not auto-deleted"
+schedule_policy = "candidate weekday 09:00 KST scale-to-zero run; each series is checked only under native release cadence and activation remains a release decision"
+trigger_policy = "approved but inactive; future platform Scheduler or allowlisted managed refresh only, with no arbitrary provider series, URL, transform or date-range input"
+cost_budget = "free official APIs only; FRED routine/backfill 32/256 and ECOS 16/96 physical-call ceilings, 10 pages per series partition, no direct Cboe calls and no paid macro terminal under the KRW 50000 platform ceiling"
+acceptance_rules = ["exact 17-series registry only", "every series preserves source owner unit frequency seasonal adjustment rights and attribution", "FRED and ALFRED provider vintages are point-in-time selected", "ECOS uses observed-content revisions without fabricated realtime intervals", "system_as_of is the operational default and retrospective mode is labeled", "missing stale rights-blocked and insufficient-history inputs remain explicit", "raw facts and transparent metrics remain separate", "VIXCLS raw history is owner-private and Telegram receives at most an approved attributed regime label", "new series requires a profile version and source metric contract approval", "shared scale-to-zero application image with no separate service repository or always-on worker"]
 
 [[contracts]]
 id = "collection.owner-research-pdf-v1"
@@ -87,20 +122,37 @@ acceptance_rules = ["owner asserts lawful possession and personal processing rig
 
 [[contracts]]
 id = "collection.consensus-research-later"
-version = "1.0.0"
+version = "1.1.0"
 status = "proposed"
 owner = "owner"
-description = "point-in-time consensus와 analyst research metadata의 후순위 장바구니. KIS 국내 coverage를 먼저 표본검증하고 미국 licensed gap은 provider 선정 전 유지한다."
+description = "point-in-time consensus와 analyst research metadata의 후순위 장바구니. KIS와 licensed historical provider gap은 유지하되 Alpha Vantage owner-only forward snapshot을 별도 secondary 후보로 검토한다."
 decision_refs = ["DEC-021", "DEC-022", "DEC-025", "DEC-032", "DEC-041"]
 scope = "held issuers only; consensus distributions, analyst counts, revisions and rights-approved research metadata"
-source_ids = ["source.kis-open-api", "source.consensus-provider-tbd"]
-dataset_ids = ["dataset.consensus-snapshot", "dataset.research-reference"]
+source_ids = ["source.kis-open-api", "source.consensus-provider-tbd", "source.alpha-vantage-personal"]
+dataset_ids = ["dataset.consensus-snapshot", "dataset.alpha-vantage-consensus-forward-snapshot", "dataset.research-reference"]
 priority = "later"
-history_policy = "no collection until a sample proves point-in-time fields and provider rights; desired history includes pre-event snapshots and post-event revisions, not present-day reconstructed consensus"
-schedule_policy = "later design must align snapshots to earnings events and provider update cadence"
-trigger_policy = "disabled until source approval; future platform schedule primary with allowlisted issuer refresh only"
-cost_budget = "KRW 0 during discovery; any subscription must fit the total monthly KRW 50000 ceiling and state normal, backfill and failure-month cost before approval"
-acceptance_rules = ["KIS domestic estimate and opinion endpoints pass recorded coverage and field-shape sampling", "U.S. coverage names a licensed provider and preserves knowledge time", "analyst count and distribution or dispersion are available", "user and model scenarios are separate from consensus", "research full text is excluded unless expressly licensed"]
+history_policy = "canonical historical PIT remains disabled until a provider proves past knowledge snapshots; Alpha Vantage never backfills pre-activation knowledge and may only accumulate normalized forward snapshots from its approved activation date"
+schedule_policy = "proposed Alpha path runs once after each completed U.S. session in the Korean morning; canonical event-relative snapshots remain a later design"
+trigger_policy = "disabled until source, dataset and pipeline approval; future platform Scheduler primary with current-held issuer allowlist only"
+cost_budget = "Alpha free tier only with maximum 8 of the account-wide 25 daily calls and scale-to-zero execution; any subscription or larger scope must fit the total monthly KRW 50000 ceiling and receive separate approval"
+acceptance_rules = ["KIS remains unapproved when semantic or PIT fields fail", "historical U.S. canonical consensus still requires a provider with preserved knowledge time", "Alpha uses official API only and stores no raw response", "Alpha normalized snapshots are owner-only, forward-only and never redistributed", "analyst count and observed range are explicit while missing distribution remains visible", "Information, empty, rate-limit and shape drift are partial or failed", "user and model scenarios are separate from consensus", "research full text is excluded unless expressly licensed"]
+
+[[contracts]]
+id = "collection.alpha-vantage-consensus-forward-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "공식 Alpha Vantage API로 현재 보유 미국 직접주식의 owner-only normalized consensus forward snapshot만 축적하는 bounded 개인용 수집 장바구니. historical PIT canonical 경로와 분리한다."
+decision_refs = ["DEC-021", "DEC-022", "DEC-032", "DEC-041", "DEC-043"]
+scope = "latest canonical holdings 중 NASD, overseas_direct, equity, USD인 현재 미국 직접주식; current 4 issuers and hard maximum 8 physical calls per provider day"
+source_ids = ["source.alpha-vantage-personal"]
+dataset_ids = ["dataset.alpha-vantage-consensus-forward-snapshot"]
+priority = "recommended"
+history_policy = "activation 이후 fetched_at부터 forward-only로 축적하며 pre-activation backfill과 historical provider knowledge claim을 금지한다; normalized snapshots는 rolling three years 보존한다"
+schedule_policy = "governed calendar의 직전 완료 U.S. session 뒤 한국 오전에 한 번; 장중 polling 없음"
+trigger_policy = "approved but inactive; MS-003 formal gate 뒤 별도 implementation Work Item에서 runtime accessor, Scheduler와 activation을 승인하기 전까지 호출과 publish를 금지한다"
+cost_budget = "Alpha free tier, current 4 and hard maximum 8 of the account-wide 25 daily calls, minimum 15-second serial spacing, no same-run retry and scale-to-zero execution; paid plan requires separate approval"
+acceptance_rules = ["official EARNINGS_ESTIMATES API and approved held-issuer allowlist only", "raw response and provider free-text are never persisted or backed up", "normalized snapshot is restricted, owner-only and not redistributed or sent to Telegram", "current 4 and hard maximum 8 physical calls per provider day stay below the account-wide 25/day limit", "calls are serialized with at least 15 seconds spacing and no same-run retry", "Information, empty, timeout, rate-limit and shape drift fail closed as partial or failed", "coverage and missing issuers are explicit and partial coverage is never canonical", "no pre-activation backfill or historical PIT claim", "quarterly or terms-change review expiry stops collection and publish", "implementation, runtime secret access and production activation remain separate gates"]
 
 [[contracts]]
 id = "collection.unlicensed-market-content-excluded"

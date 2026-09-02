@@ -14,12 +14,12 @@
 | Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- | --- |
 | 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | proposed; S01 research-only closed |
-| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01 research-only closed; contract hardening gate |
-| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01 research-only closed; contract hardening gate |
-| 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01 research-only closed; contract hardening gate |
-| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
-| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 owner credential/rights gate |
-| 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed |
+| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
+| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
+| 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01~S04 closed; ADR-027 and 23 new approved-inactive macro contracts adopted; implementation/formal gate unchanged |
+| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01~S03 closed; owner-approved DB-only authority, 6 approved Control datasets and 3 approved-inactive read models adopted; implementation/formal gate unchanged |
+| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
+| 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed; S01 research-only audit closed with parallel V2 builder, scope/context and stateless transport boundaries; implementation gate unchanged |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | proposed |
 | 10 | WI-045 V1/V2 dual-run readiness | V2-W0701/0702/0703/0706 | WI-035, WI-044 | proposed |
@@ -40,6 +40,25 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-02.13 | 2026-09-02 | WI-042-S01 completed exact 35-to-18 grouping and froze research inputs for parallel V2 catalog, request actor, scope and official stateless JSON transport | S01 closed as final planned MS-003 pre-research before MS-002 close; no implementation, OAuth grant, public catalog, client, deployment, parent or milestone status change |
+| 2026-09-02.12 | 2026-09-02 | WI-042-S01 opened for research-only V1 tool, OAuth, V2 budget and thin read-adapter audit | parent, milestone and implementation gate unchanged; no public MCP, OAuth, code, deployment or runtime change |
+| 2026-09-02.11 | 2026-09-02 | Owner approved all WI-040-S02 recommendations; S03 adopted six Control dataset and three inactive read-model contracts plus bounded fail-closed checker rules | S03 closed; 161 DGH contracts and full 443 pass; no DTO, DDL, DB, source, credential, infrastructure, schedule, MCP activation, parent or milestone status change |
+| 2026-09-02.10 | 2026-09-02 | WI-040-S02 froze DB-only authority, six Control evidence datasets, three typed read models, sensitivity suppression, query bounds and fail-closed status composition | S02 ready for owner decision; WI-042-S01 identified as next useful research after adoption; no contract lifecycle, code, DDL, DB, MCP, infrastructure or milestone status change |
+| 2026-09-02.9 | 2026-09-02 | WI-039-S04 adopted ADR-027, requirements/system-design clarification, exact 17-series registry, Gold snapshot and five transparent metrics | S04 closed; 152 DGH contracts; no DDL, DB, credential, infrastructure, source call, schedule, deployment, MCP activation, parent or milestone status change |
+| 2026-09-02.8 | 2026-09-02 | Owner approved WI-039-S02 and S03 verified five exact ECOS identities and observed-content time boundary within the 16-call ceiling | S02/S03 closed; S04 adoption pending; no code, DDL, DB, credential, infrastructure, schedule, activation, parent or milestone status change |
+| 2026-09-02.7 | 2026-09-02 | WI-039-S02 froze the proposed exact profile, FRED/VIX transport, heterogeneous revision, series registry, metrics, migration, rights, budget and capacity design | S02 ready for owner decision; S03 exact ECOS evidence and S04 adoption remain; no implementation, source, activation, parent or milestone status change |
+| 2026-09-02.6 | 2026-09-02 | Owner approved WI-038-S02 and WI-038-S03 adopted ADR-026, requirements/system-design clarification and eight approved-inactive dividend contract deltas | S02/S03 closed; no implementation, DDL, source, activation, parent or milestone status change |
+| 2026-09-02.5 | 2026-09-02 | WI-038-S02 froze the proposed action/entitlement/receipt-link, cash SSOT, PIT, coverage, migration, call-budget and capacity design | S02 ready for owner decision; no contract adoption, implementation, source, activation, parent or milestone status change |
+| 2026-09-02.4 | 2026-09-02 | WI-037-S03 adopted ADR-025, requirements/system-design clarification and seven approved-inactive filing contracts with shared implementation constraint | S03 closed; no implementation, source, activation, parent or milestone status change |
+| 2026-09-02.3 | 2026-09-02 | Owner approved WI-037-S02 package and shared implementation constraint; WI-037-S03 appended for canonical ADR/DGH adoption | S02 closed, S03 in progress; no code, DDL, source, activation, parent or milestone status change |
+| 2026-09-02.2 | 2026-09-02 | WI-037-S02 completed the proposed ADR-025 and seven-contract filing design with additive migration, dual as-of semantics, bounded source budgets and rollback gates | S02 ready for owner decision; no contract lifecycle, parent or milestone status change |
+| 2026-09-02.1 | 2026-09-02 | WI-037-S02 appended to freeze filing issuer identity, Bronze/Silver, correction, point-in-time, raw-object and call-budget contracts before implementation | parent WI and milestone status unchanged; implementation, source call, DDL and activation excluded |
+| 2026-09-01.12 | 2026-09-01 | Owner approved the bounded Alpha personal-use contract and residual-risk package; source, dedicated collection, normalized dataset and pipeline are approved but inactive | S04 closed; mixed consensus collection stays proposed; no activation or parent/milestone status change |
+| 2026-09-01.11 | 2026-09-01 | WI-041-S04 proposed a secondary Alpha source, forward-only normalized dataset and bounded pipeline with a three-year capacity/risk package | S04 ready for owner contract decision; no activation or parent/milestone status change |
+| 2026-09-01.10 | 2026-09-01 | WI-041-S04 appended to correct S03's over-broad rights gate through proportionate published-license, normalized-retention and no-redistribution contract review | S03 history preserved; parent WI and milestone status unchanged |
+| 2026-09-01.9 | 2026-09-01 | Owner skipped the low-value Alpha rights inquiry; no message was sent and S03 closed rejected with production/raw-retention gates fail-closed | parent WI and milestone status unchanged; future reconsideration needs a new sub-item |
+| 2026-09-01.8 | 2026-09-01 | WI-041-S03 stored a research-only Alpha key and completed four-call sanitized sampling; 1/4 coverage and historical PIT gates failed, rights inquiry remains pending | parent WI and milestone status unchanged |
+| 2026-09-01.7 | 2026-09-01 | Owner approved Alpha Vantage free account, personal EULA and credential issuance; WI-041-S03 opened with paid, production and raw-payload boundaries unchanged | parent WI and milestone status unchanged |
 | 2026-09-01.6 | 2026-09-01 | WI-041-S02 closed with bounded KIS evidence and Alpha demo denial; WI-041-S03 appended for owner credential and rights evidence | parent WI and milestone status unchanged |
 | 2026-09-01.5 | 2026-09-01 | WI-041-S02 opened for bounded domestic KIS and U.S. Alpha Vantage schema/rights sampling | parent WI and milestone status unchanged |
 | 2026-09-01.4 | 2026-09-01 | WI-041-S01 recorded provider rights, cost, PIT semantics and retained-replay contract gaps | parent WI and milestone status unchanged |

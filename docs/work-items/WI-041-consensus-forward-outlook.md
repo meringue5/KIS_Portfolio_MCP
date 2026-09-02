@@ -52,21 +52,40 @@ historical point-in-time coverage.
   subscription, API call, DB write or implementation.
 - `WI-041-S02` (closed): bounded KIS sampling completed at 6 calls; Alpha Vantage public demo failed closed because
   the endpoint requires an owner-issued free key. No raw payload was persisted and no provider was activated.
-- `WI-041-S03` (proposed): sample current U.S. direct issuers with an owner-controlled Alpha Vantage free key and
-  obtain explicit private-retention, backup, derived-use and internal LLM/MCP rights evidence.
+- `WI-041-S03` (rejected): the owner-approved Alpha free key was secured and a four-call schema sample completed,
+  but only 1/4 issuers returned payload and historical PIT semantics failed. The owner chose to skip a low-value
+  provider rights inquiry; Alpha remains research-only with no production, raw retention, backup or MCP/LLM use.
+- `WI-041-S04` (closed): corrected S03's over-broad enterprise rights gate without rewriting its history. Mapped the
+  published personal-use API license to bounded owner-only collection, normalized forward snapshots and explicit
+  no-crawling/no-redistribution controls. The owner approved the bounded contract and residual-risk package;
+  four Alpha-specific DGH contracts are approved but inactive, while production activation remains separately gated.
 
 ## Evidence
 
 - `docs/operations/wi-041-pre-research-2026-09.md`
 - `docs/operations/wi-041-s02-bounded-sampling-2026-09.md`
+- `docs/operations/wi-041-s03-owner-credentialed-sampling-2026-09.md`
+- `docs/operations/wi-041-s04-bounded-personal-use-review-2026-09.md`
 - The research found no currently approvable canonical provider. Alpha Vantage is the first U.S. no-cost schema
   sampling candidate; KIS remains the domestic bounded sampling candidate. Both require rights, semantic and PIT gates.
 - KIS live sampling confirmed endpoint connectivity but failed metric identity, analyst count/distribution and PIT
   requirements. Alpha Vantage requires owner credential issuance before a live schema sample.
+- S03 stored the owner-issued free key in a research-only Secret Manager resource and consumed exactly four calls.
+  One issuer returned the 41-row live schema and three returned provider information envelopes. The schema offers
+  current rolling comparisons but no historical payload/revision lineage. No rights inquiry was sent; S03 closed as
+  a rejected provider-activation path and any future reconsideration requires a new sub-item.
+- S04 records the corrective Project OS path: published personal-use terms and official API/MCP support must be
+  evaluated proportionately, while raw mirroring, redistribution and historical PIT claims remain fail-closed.
+- S04 approves a secondary Alpha source, a dedicated collection, a separate forward-only restricted dataset and a
+  scale-to-zero pipeline.
+  Current 4 and maximum 8 calls/day, 15-second pacing, three-year normalized retention and private Parquet backup are
+  owner-approved. The mixed `collection.consensus-research-later` stays proposed because KIS and historical-provider
+  gaps remain unresolved. Approved does not mean active: there is no runtime accessor, collection, DB write, MCP
+  exposure or deployment, and implementation requires a later sub-item after the MS-003 formal gate.
 
 ## Closeout
 
 - Result: proposed.
-- Remaining risk: U.S. licensed history may exceed budget or prohibit retained PIT snapshots; the current dataset
-  backup exclusion also prevents replay.
+- Remaining risk: Alpha's revocable personal-use license does not explicitly describe private normalized retention;
+  quarterly terms review and a kill switch bound that risk. U.S. licensed historical PIT remains unresolved.
 - Follow-up Work Item: WI-042.

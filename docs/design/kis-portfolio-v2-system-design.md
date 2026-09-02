@@ -270,8 +270,9 @@ collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위�
 | Silver | `journal_revision`, `journal_review_item` | trade/thread revision·queue item |
 | Silver | `price_bar`, `fx_rate`, `corporate_action` | basis·instrument·date |
 | Silver | `etf_constituent_snapshot`, `etf_constituent` | ETF·effective date·component |
-| Silver | `filing`, `financial_fact`, `consensus_snapshot`, `guidance_event` | issuer·period·as-of·metric |
-| Silver | `dividend_event`, `dividend_entitlement`, `dividend_receipt` | event/account/payment state |
+| Silver | `issuer_source_alias`, `filing_identity`, `filing_revision`, `financial_fact_revision` | source issuer/filing/fact revision·system/source as-of |
+| Silver | `consensus_snapshot`, `guidance_event` | issuer·period·as-of·metric |
+| Silver | `dividend_action_revision`, `dividend_entitlement_revision`, `dividend_receipt_link_revision` | action/account/cash-link revision |
 | Silver | `macro_observation`, `market_event`, `event_exposure_link` | series/event/effective time |
 | Gold | `portfolio_daily`, `position_performance_daily`, `lot_performance_daily` | day·portfolio/position/lot |
 | Gold | `thread_performance_daily`, `exposure_snapshot`, `dividend_monthly` | day/month·thread/exposure |
@@ -281,6 +282,32 @@ collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위�
 
 `price_bar` natural key에는 `price_basis`를 포함해 adjusted/raw를 병렬 보존한다. consensus와 signal은
 계산 당시 보였던 snapshot을 사용하며 최신 값으로 과거를 덮어쓰지 않는다.
+
+ADR-025에 따라 filing source artifact는 generic Bronze observation과 private content-addressed object를
+재사용하고, canonical filing/fact는 Silver identity/revision ledger로 분리한다. `system_as_of`는 실제 system
+knowledge를, 표시된 `retrospective_source_as_of`는 공식 source availability를 사용한다. source taxonomy와
+context는 immutable fact에 보존하고 normalized concept mapping은 versioned Control input으로 결합한다.
+
+ADR-026에 따라 dividend action, account entitlement와 receipt reconciliation은 별도 append-only revision
+ledger다. `cash-transaction-event`가 gross·tax·net·native-currency monetary SSOT이고 receipt ledger는 금액을
+복제하지 않는 reversible many-to-many link를 가진다. 월별 Gold는 `system_as_of`를 기본으로 재생성하며
+source-effective historical mode는 별도 label을 사용한다. 일정·주당액·수량 추정은 received가 아니고,
+IRP·미국 actual receipt는 broker 또는 owner-private evidence 전까지 `source_gap`이다.
+
+목표 migration 0015는 Bronze observation/object manifest, action, entitlement, receipt-link revision과 current/as-of,
+monthly read model을 additive object로 추가한다. 기존 dividend foundation에 row 또는 unknown consumer가 있으면
+자동 변환하지 않는다. 이는 target schema 설계이며 WI-038 구현 gate 전에는 DDL이나 live DB를 변경하지 않는다.
+
+ADR-027에 따라 macro는 Control exact-series definition, Silver append-only observation revision과 Gold rebuildable
+profile snapshot으로 구성한다. FRED/ALFRED `provider-vintage`와 ECOS `observed-content` revision을 같은 ledger의
+typed variant로 보존하되 없는 provider realtime interval을 만들지 않는다. operational query는
+`system_as_of`, historical research는 표시된 retrospective mode를 사용한다. raw native value와 five transparent
+metrics를 분리하고 causal/trade interpretation은 초기 profile에 없다.
+
+목표 migration 0016은 `macro_series_definitions`, `macro_observation_revisions`, current/as-of views와
+`macro_profile_snapshots`를 additive object로 추가한다. legacy foundation이 non-zero거나 unknown consumer가
+있으면 자동 변환하지 않는다. 이는 target schema 설계이며 WI-039 implementation gate 전에는 DDL, credential,
+source call, schedule, DB와 MCP를 변경하지 않는다.
 
 ### 6.4 Migration contract
 
@@ -300,6 +327,12 @@ collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위�
 각 pipeline은 `docs/governance/data-governance-harness.md`의 승인된 source·collection·dataset 계약을 참조하는
 code-reviewed manifest와 application registry를 함께 가진다. 수집 장바구니는 pipeline TODO가 아니라
 versioned collection contract다.
+
+`pipeline.filing-actual-v1`과 `pipeline.dividend-ledger-v1`은 각각의 watermark, budget, quality와 failure state를
+갖는 dedicated logical pipeline이다. 그러나 동일 modular-monolith image, managed runner, source adapter,
+Bronze landing, repository, MotherDuck, GCS와 release artifact를 재사용한다. dividend pipeline은 action 수집,
+entitlement 파생, cash receipt link, monthly materialization을 순서대로 수행하며 approved-but-inactive 상태다.
+별도 service/repository/always-on worker는 만들지 않고, 분리 때문에 구현·운영 중복이 생기면 ADR을 재검토한다.
 
 ```text
 pipeline_id
@@ -350,13 +383,18 @@ pipeline이 모든 stage를 가질 필요는 없지만 생략 이유를 manifest
 | `monitor-preclose` | KRX 거래일 14:30 | 국내 마감 전 risk·signal |
 | `monitor-close` | KRX 거래일 16:00 | 국내 종가·총자산·일일 signal |
 | `reference-daily` | 일 1회 | calendar, instrument, ETF constituent, FX |
-| `fundamental-daily` | 일 1회 | new filing, dividend, guidance, macro release |
+| `filing-actual` | source별 일 1회 | direct held issuer의 new/corrected official filing과 actual fact |
+| `fundamental-daily` umbrella | 비활성 | filing, dividend, guidance, macro의 logical orchestration 후보 |
 | `quality-daily` | monitor-close 후 | freshness·reconciliation·gap report |
 | `backup-daily` | 일 1회 | governed Parquet + manifest |
 | `backfill-managed` | 승인된 on-demand request | 3년 shard, checkpoint, cost budget |
 
 실제 시각은 source availability와 replay 결과로 조정할 수 있다. Telegram 평가 시각 10:00·14:30·16:00은
 제품 계약으로 유지한다.
+
+`filing-actual`과 후속 dividend reconciliation은 별도 logical run identity, watermark, quality와 failure state를
+갖지만 동일한 image, managed runner, adapters, Bronze landing, repositories와 deployment artifact를 재사용한다.
+logical separation을 이유로 service 또는 공통 code를 복제하지 않는다.
 
 ## 8. Remote MCP V2
 
@@ -393,6 +431,15 @@ V2는 raw KIS endpoint마다 tool을 만들지 않고 질문의 결과 단위로
 | collect | `run-managed-pipeline` | allowlisted Job trigger |
 | journal.write | `upsert-trade-journal` | expected revision 기반 작성·수정 |
 | journal.write | `revise-trade-thread` | lot/thread/sell allocation revision |
+
+WI-040 application read-model authority는 packaged `governance/catalog/` 및 physical object registry와
+MotherDuck Control evidence의 결합이다. catalog manifest를 DB에 복제하지 않고 요청 중 provider를 호출하지
+않는다. `data-catalog-v1`, `data-quality-v1`, `pipeline-run-v1`은 승인됐지만 inactive이며, WI-042가 thin public
+adapter와 `mcp:read` 검증을 소유한다. 각 DTO는 allowlisted typed projection, suppressed raw/error/partition/
+locator/secret fields, 256 KiB와 bounded page/lookback을 강제한다. overall status는
+`unavailable > failed > partial > stale > not_assessed > pass`이고 compatibility summary의 succeeded 값이나
+증거 없는 empty result는 green 근거가 아니다. 따라서 새 `get-pipeline-status`를 추가하지 않고 기존
+18-tool budget의 `get-pipeline-run`에 해당 의미를 유지한다.
 
 원화 평가액 변화 기여도는 cash-flow-adjusted return attribution과 별도 metric/version을 가진다. 양일
 canonical daily state가 complete·reconciled이고 필수 계좌 coverage가 같을 때만 신규 편입·전량 매도를

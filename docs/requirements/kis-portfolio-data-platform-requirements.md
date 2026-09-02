@@ -314,6 +314,39 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   지표는 source·metric contract 승인으로 확장한다.
 - `DEC-025`: 리서치는 이용권한 확인 전 metadata·link·허용된 구조화 사실만 보존한다.
 
+2026-09-02 filing actual clarification:
+
+- 공식 source가 공개한 시점과 시스템이 실제 수집한 시점을 분리한다. live signal과 운영 재현은 system
+  knowledge를 기본으로 하고, historical source-time 분석은 retrospective label과 timestamp precision을
+  반드시 표시한다.
+- filing actual과 dividend reconciliation은 schedule, watermark, quality와 실패 상태만 논리적으로 격리한다.
+  동일 image, runner, adapter, landing, repository와 deployment artifact를 재사용하고, 불필요한 code/운영
+  복제가 발생하면 구현을 중단해 architecture를 재검토한다.
+
+2026-09-02 macro profile clarification:
+
+- `macro_profile_v1`은 한국 5개와 미국·글로벌 12개 exact series로 고정하며 한국 M2와 미국 산업생산은
+  포함하지 않는다. VIX는 Cboe-owned `VIXCLS`를 FRED/ALFRED transport로 사용하고 direct Cboe 호출은 0이다.
+- FRED/ALFRED provider vintage와 ECOS observed-content revision을 구분한다. live 기본은 `system_as_of`이고
+  ECOS 과거 공표시각이나 realtime interval을 추정하지 않으며 초도 과거 적재는 retrospective로 표시한다.
+- raw fact와 YoY·delta·분기 연율성장·yield-curve·VIX regime의 투명 metric만 초기 승인한다. causal composite와
+  매수·매도 결론은 범위 밖이다. 모든 계약은 approved-inactive이며 구현·수집·스케줄·MCP는 별도 gate다.
+
+2026-09-02 dividend ledger clarification:
+
+- declared·entitled·received를 한 mutable row의 상태로 구현하지 않는다. issuer action revision, account
+  entitlement revision과 cash receipt-link revision을 분리하고 cash transaction을 monetary SSOT로 유지한다.
+- 기본 point-in-time mode는 시스템이 실제로 알았던 `system_as_of`다. source-effective historical view는
+  retrospective label과 precision을 표시하며 correction과 cash reversal을 서로 다른 revision으로 보존한다.
+- 일정·주당액·보유수량으로 실수령을 생성하지 않는다. IRP와 미국 실제 입금은 broker 또는 owner-private
+  statement evidence 전까지 `source_gap`이며 manual fallback도 broker fact를 덮어쓰지 않는다.
+- migration 0015는 additive-only이고 기존 foundation이 비어 있지 않으면 fail closed한다. KIS 호출은
+  routine/backfill 64/320, partition당 10 page, private Bronze 1 GiB와 Silver 500,000 rows에서 중단한다.
+- filing과 dividend는 logical pipeline·watermark·failure만 분리하고 동일 image, runner, adapter, landing,
+  repository와 release artifact를 재사용한다. 별도 service, repository와 always-on worker를 만들지 않는다.
+- 이 clarification은 계약 승인일 뿐 migration, source call, backfill, schedule, production publish와 MCP
+  activation을 승인하지 않는다.
+
 ### DEC-026~DEC-032: 감시·신호·대화 계약
 
 - `DEC-026`: 가격 충격·변동성·기여도·추세를 결합하고 3년 replay와 2주 shadow를 통과한 rule version만
@@ -340,6 +373,12 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   Parquet에 둔다.
 - `DEC-038`: source·pipeline·run·watermark·quality·metric·lineage catalog를 Remote MCP와 직접 SQL이
   공유한다.
+  - catalog 결정 SSOT는 배포 이미지의 canonical manifest와 physical object registry이고 MotherDuck
+    Control은 run/stage/quality/lineage/watermark 운영 증거를 소유한다. 요청 중 provider call이나 별도 DB
+    catalog 복제본을 만들지 않는다.
+  - application read model은 versioned allowlist/suppression, 256 KiB 응답 상한과 bounded page/lookback을
+    가진다. 상태는 `unavailable > failed > partial > stale > not_assessed > pass`로 합성하고 성공 run·빈 결과·
+    증거 부재를 단독 green 근거로 쓰지 않는다. 초기 계약은 승인됐지만 WI-042 공개 전까지 inactive다.
 - `DEC-039`: 3년은 최소 hot history와 초도 적재 범위이며 canonical 사실은 자동 삭제하지 않는다.
 - `DEC-040`: 매일 off-site Parquet, 분기 복원 rehearsal, RPO 24시간·RTO 4시간을 목표로 한다.
 - `DEC-041`: 전체 월 실제 지출 상한은 50,000원이다. request-based `min-instances=0`, 명시적 max instances,
@@ -369,6 +408,12 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - provider activation은 point-in-time history, 분포 또는 dispersion, analyst count, revision, 개인 내부
   저장·분석 권리와 정상·backfill·장애월 비용이 확인돼야 한다.
 - 유료 provider는 사용자의 명시적 구독·비용 승인 전에는 계약·호출·데이터 적재를 하지 않는다.
+- 2026-09-01 clarification: Alpha Vantage 공식 API는 single-owner, personal/non-commercial, private 분석을 위한
+  secondary forward-only source로 승인한다. raw response·crawling·재배포·Telegram·public/multi-user MCP·상업
+  사용은 금지하고, normalized snapshot만 activation 이후 3년 rolling 보존과 private Parquet backup을 허용한다.
+  현재 4·hard maximum 8 calls/day, account-wide 25/day 이내, 15초 직렬 간격, same-run retry 없음과 분기별
+  약관 review/kill switch를 적용한다. 이는 historical PIT canonical provider 승인이 아니며 계약 승인만으로
+  runtime secret access, 수집·DB write·MCP 노출·배포를 활성화하지 않는다.
 
 ### DEC-044: 승인된 설계 범위의 구현은 턴키로 진행할 수 있다
 
@@ -460,6 +505,22 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - private destination 확인과 owner가 승인한 비금융 테스트 메시지 1회 뒤에만 세 V2 Job에 secret과 enable
   flag를 주입한다. 유효기간이 끝나거나 owner가 중단하면 전송은 fail closed하며 영구 rule로 자동 승격하지
   않는다.
+
+### DEC-051: MS-002는 실사용 상태에서 안정화하고 사용자 인수 뒤에만 닫는다
+
+- 2026-09-03 owner는 MS-002의 완료 의미를 `구현·기술 canary 완료`가 아니라, 승인된 `보유종목 감시 v1`
+  정보를 실제 Telegram destination에서 사용하고 그 상태에서 발견되는 문제를 안정화한 결과로 확정했다.
+- bounded canary는 규칙·전송량·rollback을 제한하는 release 방식일 뿐 메시지 가치를 축소하는 별도 제품
+  형식이 아니다. production candidate는 정식 운영과 같은 종목 식별, 시장·자산 유형, 변동, 보유 에피소드
+  낙폭, 포트폴리오 원화 평가액 변화 기여, 추세, 품질·freshness와 사람이 읽는 근거를 제공해야 한다.
+- `보유 종목`, `DB-only shadow 평가`, 내부 reason code만으로 구성된 최소 payload는 transport·redaction
+  증거로는 유효하지만 제품 실사용 인수 증거가 아니다. 기존 immutable canary와 ledger 증거는 보존하고
+  수정하지 않는다.
+- MS-002의 닫힌 Work Item도 `implemented`, `production-active`, `publish-ready`, `user-visible`을 구분해 다시
+  감사한다. fail-closed 또는 repository-local 완료를 production-ready로 간주하지 않는다.
+- `WI-030-S03`은 실사용 메시지 계약, 필요한 upstream readiness, 새 immutable release-candidate와 영구 규칙
+  전환을 소유한다. 완성된 메시지의 실제 수신, 중복·민감정보 억제, rollback과 owner acceptance 전에는
+  WI-030과 MS-002를 닫지 않는다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
@@ -671,6 +732,9 @@ DEC-020~DEC-022·DEC-025로 승인됐다. 실제 provider 선정과 구현은 �
 KIS KSD·국내 계좌권리·미국 ICE 권리의 live 검증과 `declared → entitled → received` 계약은 Package C에
 기록했다. 해외와 IRP 실제 입금 원천 gap을 일정×수량으로 채우지 않고 statement/manual provenance를
 허용하는 C-4 권고는 DEC-023으로 승인됐다.
+
+ADR-026은 이 요구를 issuer action, account entitlement, cash receipt-link revision으로 구체화한다. 현금
+원장의 gross·tax·net·통화가 실수령 monetary SSOT이며, 월별 집계는 명시적 cutoff와 coverage로 재생성한다.
 
 ### 8.4 매수 lot·투자 thread 분석과 매매일지
 
@@ -1020,6 +1084,11 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-03 | 실사용 인수 기준 승인 | DEC-051로 MS-002를 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 닫고, 최소 canary payload와 repository-local 완료를 제품 완료로 간주하지 않기로 승인함 |
+| 2026-09-02 | macro architecture 승인 | WI-039-S02/S03의 ADR-027, exact 17-series registry, heterogeneous revision clock, 5 transparent metrics, additive migration 0016, bounded call/capacity budget과 shared-implementation constraint를 승인함. activation은 미승인 |
+| 2026-09-02 | dividend architecture 승인 | WI-038-S02의 ADR-026, 8-contract delta, action/entitlement/receipt-link 분리, cash SSOT, system-as-of, additive migration, bounded call/object/row budget과 shared-implementation constraint를 승인함. activation은 미승인 |
+| 2026-09-02 | filing architecture 승인 | WI-037-S02의 ADR-025, 7-contract delta, dual as-of, additive migration, bounded call/object/fact budget과 shared-implementation constraint를 승인함. activation은 미승인 |
+| 2026-09-01 | 제한적 source 계약 승인 | DEC-043 clarification으로 Alpha Vantage owner-only normalized forward 경로의 source·collection·dataset·pipeline 계약을 승인함. historical PIT와 production activation은 미승인 |
 | 2026-08-31 | 제한적 운영 승인 | DEC-050으로 첫 정상 월요일 증거 뒤 WI-030 Telegram을 `주의` 이상 7일 experimental canary로 조기 활성화하고, 정식 2주 shadow와 영구 rule 승인은 별도로 유지함 |
 | 2026-08-28 | 범위 변경 승인 | DEC-049로 ETF 구성종목 수집·look-through를 초기 V2 인수범위에서 제외하고, 별도 source 조사 뒤 새 Work Item으로 재도입하기로 함 |
 | 2026-08-28 | 요구·계획 승인 | DEC-047 final MS-004 V2 문서 정본화와 DEC-048 종목별 총자산 원화 평가액 변화 기여도를 승인하고 WI-032/033으로 분리함 |

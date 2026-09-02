@@ -244,12 +244,14 @@ def test_v2_pipeline_env_includes_explicit_telegram_canary_flags():
             "MOTHERDUCK_DATABASE": "kis_portfolio",
             "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
             "KIS_TELEGRAM_CANARY_ENABLED": "true",
+            "KIS_TELEGRAM_REAL_USE_ENABLED": "false",
             "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
         },
         "grand-forge-279904",
     )
     assert payload["KIS_TELEGRAM_DELIVERY_ENABLED"] == "true"
     assert payload["KIS_TELEGRAM_CANARY_ENABLED"] == "true"
+    assert payload["KIS_TELEGRAM_REAL_USE_ENABLED"] == "false"
     assert payload["KIS_TELEGRAM_DESTINATION_REF"] == "dest.owner.primary"
 
 
@@ -508,6 +510,55 @@ def test_wi030_s02_pins_secrets_activates_once_and_reuses_one_core_digest(monkey
         secrets = command[command.index("--set-secrets") + 1]
         assert "KIS_TELEGRAM_BOT_TOKEN=kis-portfolio-telegram-bot-token:2" in secrets
         assert "KIS_TELEGRAM_CHAT_ID=kis-portfolio-telegram-chat-id:1" in secrets
+
+
+def test_wi030_s03_activates_real_use_and_disables_canary_on_one_digest(monkeypatch):
+    commands = []
+    builds = {"count": 0}
+    core_call = {}
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi030-s03", dry_run=True,
+        secret_mode="secret-manager", job="kis-portfolio-wi030-s03",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_TELEGRAM_BOT_TOKEN_VERSION": "2",
+        "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+    }
+
+    def build(_args, *, project):
+        builds["count"] += 1
+        assert project == "grand-forge-279904"
+        return "image@sha256:" + "d" * 64
+
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", build)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, dry_run: commands.append(command) or 0,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_deploy_v2_core_jobs",
+        lambda args, **kwargs: core_call.update(kwargs) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi030_s03(
+        args, env=env, project="grand-forge-279904",
+    )
+
+    assert result == 0
+    assert builds["count"] == 1
+    activation = next(
+        command for command in commands
+        if command[:4] == ["gcloud", "run", "jobs", "deploy"]
+        and command[4] == "kis-portfolio-wi030-s03"
+    )
+    assert activation[activation.index("--args") + 1] == "activate-wi030-real-use"
+    assert core_call["image"] == "image@sha256:" + "d" * 64
+    assert core_call["deploy_label"] == "wi030-s03-real-use"
+    assert core_call["env"]["KIS_TELEGRAM_DELIVERY_ENABLED"] == "true"
+    assert core_call["env"]["KIS_TELEGRAM_CANARY_ENABLED"] == "false"
+    assert core_call["env"]["KIS_TELEGRAM_REAL_USE_ENABLED"] == "true"
 
 
 def test_overseas_batch_command_uses_default_account_and_exchange():

@@ -164,6 +164,13 @@ Control 영역에 최소 다음 계약이 필요하다.
 Remote MCP는 raw SQL을 대신 추측하지 않고 catalog, metric, freshness, quality, known gap과 lineage를
 조회하는 read tool을 제공한다. 직접 MotherDuck SQL과 MCP가 같은 metric version을 사용해야 한다.
 
+WI-040에서 DB-only authority는 packaged canonical manifest/object registry와 MotherDuck Control evidence로
+고정한다. manifest의 DB 복제본은 만들지 않는다. 기존 Control run/stage/quality/lineage/watermark와 summary
+view에는 six logical dataset contracts를 연결하고, catalog·quality·pipeline-run은 typed allowlist와 suppressed
+fields를 가진 three versioned read-model contracts로 관리한다. 모두 승인 후 inactive로 시작하며 256 KiB,
+page/lookback 상한과 `unavailable > failed > partial > stale > not_assessed > pass` fail-closed 합성을 적용한다.
+Public MCP/OAuth activation은 WI-042의 별도 gate다.
+
 ### E-7. Retention과 capacity contract
 
 `3년`은 삭제기한이 아니라 초기 backfill과 최소 hot history다.

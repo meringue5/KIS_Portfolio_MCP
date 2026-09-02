@@ -4,8 +4,8 @@ title: Enable approved outbound Telegram delivery
 status: in_progress
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050
-requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044
+decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051
+requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044, DEC-051
 milestone_ref: MS-002
 delivery_refs: V2-W0508
 parent_work_item: none
@@ -37,6 +37,8 @@ collecting the separate formal shadow evidence.
   deployment preparation and offline tests with no Telegram request.
 - S02 includes destination verification, one finance-free test message, a parallel immutable external canary rule,
   deployment and operational proof while the original shadow rule continues unchanged.
+- S03 includes the production-value message contract, upstream readiness correction, a new immutable release candidate,
+  live stabilization and owner acceptance. It preserves rather than edits S02's immutable canary evidence.
 - Exclude inbound bot commands and any order capability.
 
 ## Acceptance criteria
@@ -47,6 +49,10 @@ collecting the separate formal shadow evidence.
 - [ ] uncertain post-send timeout is `UNKNOWN` and is not automatically resent.
 - [ ] canary expiry and owner revocation fail closed without changing the shadow rule or its evidence.
 - [x] disabled or incompletely configured delivery fails closed before a claim or network request.
+- [ ] Production delivery identifies the instrument safely and explains market/type, change, held-episode drawdown,
+  KRW valuation-change contribution, trend, quality/freshness and reasons in owner-readable Korean.
+- [ ] A production-equivalent release candidate is received and stabilized before permanent activation; transport-only
+  receipt is not product acceptance.
 
 ### S01 preparation acceptance
 
@@ -74,6 +80,7 @@ collecting the separate formal shadow evidence.
 
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
 - `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary.
+- `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`in_progress`).
 
 ## Evidence
 
@@ -108,6 +115,7 @@ collecting the separate formal shadow evidence.
 ## Closeout
 
 - Result: S01 is closed; S02 is in progress under the owner-approved DEC-050 bounded-canary exception.
-- Remaining risk: 10:00 scheduled delivery and owner receipt passed; 14:30/16:00 results must still prove cross-slot
-  de-duplication, and expiry/revocation must fail closed before S02 can close.
+- Remaining risk: S02 proves transport but its generic subject, shadow summary and internal reason codes do not satisfy
+  DEC-051 product acceptance. S03 must correct the production-value payload and upstream readiness, then gather live
+  stabilization and owner acceptance without rewriting S02 evidence.
 - Follow-up Work Item: next milestone baseline after owner review.

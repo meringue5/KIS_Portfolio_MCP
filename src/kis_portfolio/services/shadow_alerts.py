@@ -30,6 +30,9 @@ RULE_VERSION = "bootstrap-1.0.0"
 CANARY_RULE_VERSION = "canary-2026-09-01.1"
 CANARY_VALID_FROM = datetime(2026, 9, 1, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CANARY_VALID_TO = datetime(2026, 9, 8, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+REAL_USE_RULE_VERSION = "rc-2026-09-03.1"
+REAL_USE_VALID_FROM = datetime(2026, 9, 3, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+REAL_USE_VALID_TO = datetime(2026, 9, 10, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
 THRESHOLD_MULTIPLIER = Decimal("0.75")
 US_MARKETS = frozenset({"NAS", "NYS", "AMS"})
@@ -79,6 +82,32 @@ def canary_rule() -> AlertRuleVersion:
     })
 
 
+def real_use_rule() -> AlertRuleVersion:
+    """Return the immutable DEC-051 production-value release candidate."""
+    return AlertRuleVersion.from_document({
+        "id": RULE_ID,
+        "version": REAL_USE_RULE_VERSION,
+        "status": "active",
+        "minimum_delivery_severity": "watch",
+        "delivery_mode": "external",
+        "valid_from": REAL_USE_VALID_FROM,
+        "valid_to": REAL_USE_VALID_TO,
+        "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+        "thresholds": {
+            "profile": "bootstrap-package-d",
+            "absolute_boundary_multiplier": str(THRESHOLD_MULTIPLIER),
+            "calibration_report_hash": CALIBRATION_REPORT_HASH,
+        },
+        "limitations": [
+            "production-value release candidate",
+            "episode drawdown unavailable until governed metric readiness passes",
+            "KRW valuation-change contribution unavailable until comparable-state readiness passes",
+            "ETF constituent exposure unavailable",
+            "no automatic promotion",
+        ],
+    })
+
+
 def _fixed_slot_time(logical_date: date, slot: str) -> datetime:
     wall = {
         "kr-1000": time(10, 0),
@@ -108,10 +137,10 @@ def _held_instruments(
     logical_date: date,
     source_slot: str,
     evaluation_slot: str,
-) -> dict[str, str]:
+) -> dict[str, tuple[str, str, str]]:
     rows = connection.execute(
         """
-        SELECT DISTINCT p.instrument_id,i.asset_type,i.market
+        SELECT DISTINCT p.instrument_id,i.asset_type,i.market,i.name
         FROM gold.portfolio_daily_state p
         JOIN silver.instruments_current i USING(instrument_id)
         WHERE p.evaluation_date=? AND p.evaluation_slot=?
@@ -122,8 +151,8 @@ def _held_instruments(
     ).fetchall()
     wanted_us = evaluation_slot == "us-close"
     return {
-        str(instrument_id): _asset_class(asset_type)
-        for instrument_id, asset_type, market in rows
+        str(instrument_id): (_asset_class(asset_type), str(name or ""), str(market))
+        for instrument_id, asset_type, market, name in rows
         if (str(market) in US_MARKETS) == wanted_us
     }
 
@@ -161,7 +190,8 @@ def _target_observations(
 
     target: list[SignalObservation] = []
     fixed_at = _fixed_slot_time(logical_date, evaluation_slot)
-    for instrument_id, asset_class in held.items():
+    for instrument_id, metadata in held.items():
+        asset_class, subject_label, market = metadata
         item = by_subject.get(instrument_id)
         if item is None:
             target.append(SignalObservation(
@@ -176,6 +206,8 @@ def _target_observations(
                 quality_status="missing_current_price",
                 provenance_mode="historical_live",
                 valid_bar_count=0,
+                subject_label=subject_label,
+                market=market,
             ))
             continue
         quality = item.quality_status
@@ -195,8 +227,88 @@ def _target_observations(
                 if evaluation_slot == "us-close" else f"krx:{logical_date.isoformat()}"
             ),
             quality_status=quality,
+            subject_label=subject_label,
+            market=market,
         ))
     return tuple(target)
+
+
+_REASON_LABELS = {
+    "price_shock_up": "당일 급등 기준을 넘었습니다",
+    "price_shock_down": "당일 급락 기준을 넘었습니다",
+    "portfolio_contribution": "포트폴리오 원화 기준 변화 기여가 큽니다",
+    "episode_drawdown": "보유구간 고점 대비 낙폭 기준을 넘었습니다",
+    "thread_stop_breach": "사용자가 정한 손절 기준을 이탈했습니다",
+    "thread_risk_ratio": "계획손실 비율 기준을 넘었습니다",
+    "confirmed_sma20_break": "20일 이동평균선 이탈이 확인됐습니다",
+    "bearish_sma50_drawdown": "중기 하락추세와 보유구간 낙폭이 함께 확인됐습니다",
+    "volume_confirmation": "평균보다 많은 거래량이 가격 변화를 확인했습니다",
+}
+_MARKET_LABELS = {"KRX": "국내", "NAS": "미국 NASDAQ", "NYS": "미국 NYSE", "AMS": "미국 AMEX"}
+_ASSET_LABELS = {
+    "stock": "주식", "etf": "ETF", "reit": "REIT", "leveraged": "레버리지",
+    "inverse": "인버스", "unknown": "분류 확인 필요",
+}
+
+
+def _decimal_text(value: Decimal | None) -> str | None:
+    if value is None:
+        return None
+    return format(value.quantize(Decimal("0.01")), "f")
+
+
+def _percent_text(value: Decimal | None) -> str | None:
+    return None if value is None else _decimal_text(value * Decimal("100"))
+
+
+def _relation(close: Decimal | None, average: Decimal | None) -> str:
+    if close is None or average is None:
+        return "unavailable"
+    if close < average:
+        return "below"
+    if close > average:
+        return "above"
+    return "equal"
+
+
+def _production_value_context(observation: SignalObservation, decision: Any) -> dict[str, object]:
+    reasons = list(decision.reason_codes) or ["state_change"]
+    labels = [_REASON_LABELS.get(code, "유의미한 상태 변화가 감지됐습니다") for code in reasons]
+    bollinger = "unavailable"
+    if observation.bollinger_percent_b is not None:
+        if observation.bollinger_percent_b <= 0:
+            bollinger = "below_lower"
+        elif observation.bollinger_percent_b >= 1:
+            bollinger = "above_upper"
+        else:
+            bollinger = "inside"
+    unavailable: list[str] = []
+    if observation.episode_drawdown is None:
+        unavailable.append("episode_drawdown_not_ready")
+    if observation.portfolio_contribution is None:
+        unavailable.append("valuation_contribution_not_ready")
+    source_at = observation.input_known_at or observation.evaluation_at
+    return {
+        "presentation_version": "production-value-v1",
+        "subject_label": observation.subject_label or "식별정보 확인 필요",
+        "market_label": _MARKET_LABELS.get(observation.market, observation.market or "시장 확인 필요"),
+        "asset_type_label": _ASSET_LABELS.get(observation.asset_class, "분류 확인 필요"),
+        "summary": " · ".join(dict.fromkeys(labels)),
+        "reason_codes": reasons,
+        "change_percent": _percent_text(observation.daily_return),
+        "sma20_relation": _relation(observation.close, observation.sma20),
+        "sma50_relation": _relation(observation.close, observation.sma50),
+        "sma120_relation": _relation(observation.close, observation.sma120),
+        "volume_ratio20": _decimal_text(observation.volume_ratio20),
+        "rsi14": _decimal_text(observation.rsi14),
+        "bollinger_state": bollinger,
+        "episode_drawdown_percent": _percent_text(observation.episode_drawdown),
+        "portfolio_impact_percent": _percent_text(observation.portfolio_contribution),
+        "unavailable_codes": unavailable,
+        "source_at": source_at.isoformat(),
+        "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+        "quality_status": decision.quality_status,
+    }
 
 
 def _candidate(
@@ -220,6 +332,17 @@ def _candidate(
         if observation.daily_return is None
         else format((observation.daily_return * Decimal("100")).quantize(Decimal("0.01")), "f")
     )
+    if rule.version == REAL_USE_RULE_VERSION:
+        public_context = _production_value_context(observation, decision)
+    else:
+        public_context = {
+            "subject_label": "보유 종목",
+            "summary": "가격·추세·거래량 기반 DB-only shadow 평가",
+            "reason_codes": list(reasons),
+            "change_percent": change_percent,
+            "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+            "quality_status": decision.quality_status,
+        }
     return AlertCandidate.build(rule, AlertEvaluation(
         subject_type="instrument",
         subject_id=observation.subject_id,
@@ -234,14 +357,7 @@ def _candidate(
         input_lineage_hash=observation.input_lineage_hash or hashlib.sha256(
             f"missing|{observation.subject_id}|{observation.session_key}".encode()
         ).hexdigest(),
-        public_context={
-            "subject_label": "보유 종목",
-            "summary": "가격·추세·거래량 기반 DB-only shadow 평가",
-            "reason_codes": list(reasons),
-            "change_percent": change_percent,
-            "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
-            "quality_status": decision.quality_status,
-        },
+        public_context=public_context,
         evaluation_run_id=run_id,
     ))
 
@@ -374,4 +490,41 @@ def run_external_canary_signal_evaluation(
         shadow_claims=False,
     )
     result["transport"] = "telegram-canary-pending"
+    return result
+
+
+def run_external_real_use_signal_evaluation(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    logical_date: date,
+    source_slot: str,
+) -> dict[str, Any]:
+    """Create DEC-051 production-value release-candidate alerts."""
+    rule = real_use_rule()
+    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
+    if all(value < rule.valid_from for value in evaluation_times):
+        return {
+            "status": "not_yet_valid",
+            "logical_date": logical_date.isoformat(),
+            "source_slot": source_slot,
+            "rule_version": rule.version,
+            "candidate_count": 0,
+        }
+    if all(rule.valid_to is not None and value >= rule.valid_to for value in evaluation_times):
+        return {
+            "status": "expired",
+            "logical_date": logical_date.isoformat(),
+            "source_slot": source_slot,
+            "rule_version": rule.version,
+            "candidate_count": 0,
+        }
+    result = _run_signal_evaluation(
+        connection,
+        logical_date=logical_date,
+        source_slot=source_slot,
+        rule=rule,
+        shadow_claims=False,
+    )
+    result["transport"] = "telegram-production-value-rc-pending"
     return result

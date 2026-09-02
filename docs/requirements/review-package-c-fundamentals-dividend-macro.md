@@ -125,6 +125,11 @@ SEC 공시와 XBRL은 실제 실적의 canonical source가 될 수 있지만 ana
    `manual` provenance로 보존한다.
 6. 월별 배당은 received net과 gross를 각각 집계하고 선언·예상액과 reconciliation한다.
 
+2026-09-02 ADR-026 clarification: 위 상태는 하나의 mutable row가 아니다. issuer action revision,
+account entitlement revision, cash monetary SSOT를 참조하는 reversible receipt-link revision으로 분리한다.
+기본 조회는 `system_as_of`이고, IRP·미국 actual receipt는 증거가 생길 때까지 `source_gap`이다. 일정×수량
+추정은 received로 승격하지 않으며 filing/dividend는 logical state만 분리하고 shared runtime을 사용한다.
+
 ### C-5. 매크로·사건 context
 
 초기 `macro_profile_v1`은 일반적으로 널리 쓰이는 다음 범주로 제한한다.
@@ -138,6 +143,14 @@ SEC 공시와 XBRL은 실제 실적의 canonical source가 될 수 있지만 ana
 `성장 둔화/회복`, `달러 강세/약세`, `위험회피` 같은 versioned regime tag와 설명 규칙으로 제공하며,
 단일 지표를 인과관계나 매수·매도 결론으로 만들지 않는다. 이후 지표는 source catalog, metric 정의와
 사용자 승인을 거쳐 profile version을 올리는 방식으로 추가한다.
+
+2026-09-02 ADR-027 clarification: exact registry는 ECOS
+`722Y001/D/0101000`, `731Y001/D/0000001`, `901Y009/M/0`, `901Y033/M/A00/2`,
+`901Y118/M/T002`와 FRED/ALFRED `DFF`, `DGS2`, `DGS10`, `T10Y2Y`, `CPIAUCSL`, `CPILFESL`, `UNRATE`,
+`PAYEMS`, `GDPC1`, `DTWEXBGS`, `DCOILWTICO`, `VIXCLS`로 고정한다. ECOS는 `observed-content`,
+FRED/ALFRED는 `provider-vintage` revision을 사용하며 live 기본은 `system_as_of`다. 초기 해석은 YoY,
+period delta, quarterly annualized growth, yield-curve state와 VIX regime의 transparent metric만 승인하고,
+causal composite와 trade action은 포함하지 않는다. 계약은 모두 inactive이며 실제 수집과 소비는 별도 승인이다.
 
 사건과 종목의 연결은 다음 근거를 구분한다.
 

@@ -28,7 +28,7 @@ cost_class = ["unknown"]
 file = "governance/catalog/collections.toml"
 id_prefix = "collection."
 required = ["scope", "source_ids", "dataset_ids", "priority", "history_policy", "schedule_policy", "trigger_policy", "cost_budget", "acceptance_rules"]
-list_fields = ["source_ids", "dataset_ids", "acceptance_rules"]
+list_fields = ["source_ids", "dataset_ids", "acceptance_rules", "macro_series_ids"]
 non_empty_list_fields = ["source_ids", "dataset_ids", "acceptance_rules"]
 
 [types.collection.enums]
@@ -37,6 +37,7 @@ priority = ["required", "recommended", "later", "excluded"]
 [types.collection.references]
 source_ids = "source"
 dataset_ids = "dataset"
+macro_series_ids = "macro_series"
 
 [types.dataset]
 file = "governance/catalog/datasets.toml"
@@ -50,6 +51,7 @@ one_of_non_empty = ["source_ids", "input_dataset_ids"]
 layer = ["bronze", "silver", "gold", "control"]
 sensitivity = ["public", "internal", "confidential", "restricted"]
 backup_policy = ["parquet", "object", "rebuild", "excluded"]
+control_origin = ["managed-pipeline-runtime"]
 
 [types.dataset.references]
 source_ids = "source"
@@ -71,7 +73,7 @@ input_dataset_ids = "dataset"
 file = "governance/catalog/pipelines.toml"
 id_prefix = "pipeline."
 required = ["source_ids", "input_dataset_ids", "output_dataset_ids", "stages", "schedule_policy", "calendar_gate", "idempotency_key", "timeout_policy", "retry_policy", "source_call_budget", "freshness_gates", "quality_gates", "secret_profile", "cost_class", "trigger_policy"]
-list_fields = ["source_ids", "input_dataset_ids", "output_dataset_ids", "stages", "freshness_gates", "quality_gates"]
+list_fields = ["source_ids", "input_dataset_ids", "output_dataset_ids", "stages", "freshness_gates", "quality_gates", "macro_series_ids"]
 non_empty_list_fields = ["output_dataset_ids", "stages", "quality_gates"]
 one_of_non_empty = ["source_ids", "input_dataset_ids"]
 
@@ -82,6 +84,40 @@ cost_class = ["routine", "backfill", "exceptional"]
 source_ids = "source"
 input_dataset_ids = "dataset"
 output_dataset_ids = "dataset"
+macro_series_ids = "macro_series"
+
+[types.read_model]
+file = "governance/catalog/read-models.toml"
+id_prefix = "read_model."
+required = ["input_dataset_ids", "registry_input_kinds", "consumer_scope", "response_schema_ref", "allowed_fields", "suppressed_fields", "query_policy", "status_policy", "unavailable_policy", "activation_state", "max_response_bytes", "max_page_size", "max_lookback_days"]
+list_fields = ["input_dataset_ids", "registry_input_kinds", "allowed_fields", "suppressed_fields"]
+non_empty_list_fields = ["allowed_fields", "suppressed_fields"]
+int_fields = ["max_response_bytes", "max_page_size", "max_lookback_days"]
+
+[types.read_model.enums]
+consumer_scope = ["internal-ops", "mcp-read"]
+activation_state = ["inactive", "production"]
+
+[types.read_model.references]
+input_dataset_ids = "dataset"
+
+[types.macro_series]
+file = "governance/catalog/macro-series.toml"
+id_prefix = "macro."
+required = ["source_id", "provider_series_id", "source_owner", "source_license_class", "region", "concept", "native_frequency", "native_unit", "seasonal_adjustment", "vintage_capability", "publication_cadence", "expected_lag", "history_start", "rights_note", "attribution", "permitted_consumers", "transform_policy", "activation_state", "valid_from"]
+list_fields = ["permitted_consumers"]
+scalar_reference_fields = ["source_id"]
+non_empty_list_fields = ["permitted_consumers"]
+
+[types.macro_series.enums]
+source_license_class = ["public", "restricted"]
+native_frequency = ["daily", "trading-day", "monthly", "quarterly"]
+seasonal_adjustment = ["not-applicable", "not-seasonally-adjusted", "seasonally-adjusted", "seasonally-adjusted-annual-rate"]
+vintage_capability = ["provider-vintage", "observed-content"]
+activation_state = ["inactive", "production"]
+
+[types.macro_series.references]
+source_id = "source"
 
 [types.etf_profile]
 file = "governance/catalog/etf-source-profiles.toml"

@@ -291,6 +291,8 @@ claim 이전에 종료하므로 DB-only shadow 동작을 유지한다. DEC-050�
 - secret: `KIS_TELEGRAM_BOT_TOKEN`, `KIS_TELEGRAM_CHAT_ID`
 - non-secret: `KIS_TELEGRAM_DELIVERY_ENABLED=true`, `KIS_TELEGRAM_DESTINATION_REF=dest.owner.primary`
 - non-secret: `KIS_TELEGRAM_CANARY_ENABLED=true`; immutable rule validity is enforced in DB eligibility and claim
+- non-secret S03: `KIS_TELEGRAM_CANARY_ENABLED=false`, `KIS_TELEGRAM_REAL_USE_ENABLED=true`; exactly one external
+  candidate producer is active and the S02 rule/ledger remains immutable history
 
 Bounded S02 release 전제는 DEC-050 owner approval, one complete scheduled-day smoke, owner-verified private
 destination과 별도 승인된 finance-free test message다. permanent rule은 verified WI-029 shadow를 계속 요구한다.
@@ -340,6 +342,9 @@ Deploy workflow:
   요구한다. 두 Telegram secret의 resource-level accessor는 운영자가 V2 pipeline service account에 사전
   프로비저닝하며, least-privilege GitHub 배포 계정은 secret IAM을 변경하지 않는다. DEC-050 DB activation
   Job을 성공시킨 동일 image digest만 세 core Job에 배포한다. Scheduler와 shadow rule은 변경하지 않는다.
+- `wi030-s03`도 `all`에 포함되지 않는 수동 target이다. DEC-051 activation Job은 S02 전송 성공과 clean
+  shadow를 확인하고 새 production-value rule을 승인하면서 S02 owner approval을 append-only로 revoke한다.
+  같은 digest를 세 core Job에 배포하고 S03 producer만 활성화하며 Scheduler와 DB-only shadow는 유지한다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

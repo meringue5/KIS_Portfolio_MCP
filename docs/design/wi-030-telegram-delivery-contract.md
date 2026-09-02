@@ -1,8 +1,8 @@
 # WI-030 Telegram delivery contract
 
-> 상태: S01 closed; DEC-050 bounded canary S02 in progress
-> Work Item: WI-030-S01 / WI-030-S02
-> Data contracts: `pipeline.telegram-delivery-v2:1.0.0`, `dataset.alert-delivery-ledger:1.1.0`
+> 상태: S01 closed; DEC-050 transport canary S02 and DEC-051 production-value S03 in progress
+> Work Item: WI-030-S01 / WI-030-S02 / WI-030-S03
+> Data contracts: `pipeline.telegram-delivery-v2:1.2.0`, `dataset.alert-candidate:1.1.0`, `dataset.alert-delivery-ledger:1.2.0`
 
 ## Boundary
 
@@ -56,12 +56,26 @@ Plain text includes severity, subject label, transition, bounded summary, percen
 codes, evaluation timestamp/slot, rule ID/version and a fixed next-check instruction. It does not use Telegram HTML or
 Markdown parsing.
 
+S03 production-value presentation replaces the transport template for its new immutable rule version. It renders a
+safe instrument name, market/type, Korean reason, signed daily change, SMA20/50/120 relations, volume ratio, RSI14,
+Bollinger context, KST data/evaluation time and quality. Episode drawdown and KRW valuation-change contribution are
+rendered as signed percentages when their governed metric quality passes; otherwise the message says `계산 보류` with
+a bounded reason. It never substitutes allocation, unrealized PnL or zero for an unavailable metric. Internal rule ID,
+version and reason codes remain in the ledger rather than occupying the owner-facing message.
+
 Only these `public_context` keys are accepted:
 
+- `presentation_version`
 - `subject_label`
+- `market_label`
+- `asset_type_label`
 - `summary`
 - `reason_codes`
 - `change_percent`
+- `sma20_relation`, `sma50_relation`, `sma120_relation`
+- `volume_ratio20`, `rsi14`, `bollinger_state`
+- `episode_drawdown_percent`, `portfolio_impact_percent`, `unavailable_codes`
+- `source_at`
 - `metric_refs`
 - `quality_status`
 
@@ -91,6 +105,8 @@ retry remains zero.
 - `KIS_TELEGRAM_CHAT_ID`: GCP Secret Manager; V2 pipeline identity only after owner destination verification.
 - `KIS_TELEGRAM_DESTINATION_REF`: non-secret opaque alias; must not encode the chat ID.
 - `KIS_TELEGRAM_DELIVERY_ENABLED`: defaults to `false`; S02 release manifest changes it to `true`.
+- `KIS_TELEGRAM_CANARY_ENABLED` and `KIS_TELEGRAM_REAL_USE_ENABLED`: mutually exclusive producers. S03 sets the
+  former to `false` and the latter to `true`; an invalid simultaneous configuration fails before collection.
 
 Generic batch, auth and Remote MCP do not receive Notification secrets. Secret payloads, request URLs and Telegram
 response bodies do not enter command output, logs, PR evidence, MotherDuck or backup.
@@ -111,3 +127,18 @@ response bodies do not enter command output, logs, PR evidence, MotherDuck or ba
 9. Roll back immediately by setting the enable flag to `false`; do not delete claims or attempts.
 
 Steps 2 through 7 are external/production actions and remain outside S01 authorization.
+
+## S03 real-use stabilization checklist
+
+1. Preserve S02 candidates, approvals, claims and delivery attempts as immutable transport evidence.
+2. Register and owner-approve the separately versioned production-value release candidate, then append a revocation
+   of the S02 approval so exactly one external producer remains active.
+3. Deploy one tested image digest to all three existing scale-to-zero jobs with real-use delivery enabled.
+4. Receive a production-equivalent message in the private owner destination and verify that it identifies the
+   instrument and explains the actionable price, trend, volume/momentum, freshness and quality facts.
+5. Display governed-but-not-ready drawdown and KRW valuation-change contribution as explicit `계산 보류`; track the
+   upstream readiness remediation instead of filling zero or a substitute metric.
+6. Stabilize duplicate suppression, missing messages, unsafe-payload failures, false positives and message volume from
+   actual use. Record redacted provider/ledger evidence and owner observations.
+7. Only after WI-029 evidence, the production-equivalent observation window and owner acceptance pass, issue a new
+   permanent immutable rule version and close MS-002. Do not silently promote this bounded release candidate.

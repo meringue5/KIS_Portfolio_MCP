@@ -464,7 +464,11 @@ OpenDART actuals에서 LLM이 만든 전망을 이 원천의 consensus와 섞지
 
 초기 `macro_profile_v1`은 한국 기준금리·원/달러·물가·산업생산·수출과 미국 정책금리·국채 2년/10년·
 장단기차·물가·고용·실질 GDP·광의 달러·WTI·VIX를 대상으로 승인했다. 정확한 series ID, release lag와
-versioned 해석 규칙은 구현계획의 source/metric contract에서 확정한다.
+versioned 해석 규칙은 `governance/catalog/macro-series.toml`의 17개 approved-inactive 계약으로 확정했다.
+ECOS exact identity는 `722Y001/D/0101000`, `731Y001/D/0000001`, `901Y009/M/0`, `901Y033/M/A00/2`,
+`901Y118/M/T002`이고 미국·글로벌은 FRED/ALFRED `DFF`, `DGS2`, `DGS10`, `T10Y2Y`, `CPIAUCSL`,
+`CPILFESL`, `UNRATE`, `PAYEMS`, `GDPC1`, `DTWEXBGS`, `DCOILWTICO`, `VIXCLS`다. VIX의 원소유자는
+Cboe지만 초기 direct Cboe 수집은 dormant이고 호출 예산은 0이다.
 
 공식 근거:
 [한국은행 ECOS Open API](https://ecos.bok.or.kr/api/),

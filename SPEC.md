@@ -532,6 +532,12 @@ DEC-050은 2026-08-31 첫 정상 월요일 운영 증거 뒤 WI-030-S02에 한�
 상태전이, 실행당 최대 20건과 owner가 확인한 private destination이다. 정식 2주 shadow와 영구 rule 승인은
 계속 별도 gate이며 canary는 자동 승격되지 않는다.
 
+DEC-051은 MS-002의 완료를 production-equivalent 사용자 경험의 실사용·안정화·owner acceptance로
+명확히 했다. bounded canary는 규칙과 rollback 범위만 제한하며 낮은 정보가치의 별도 payload 형식을
+정당화하지 않는다. 기존 immutable canary 증거는 보존하되, 영구 활성화 전 WI-030-S03에서 승인 요구의
+종목 식별·변동·보유 에피소드 낙폭·원화 평가액 변화 기여·추세·품질·사람이 읽는 근거를 제공하고 실제
+수신 상태에서 안정화해야 한다. repository-local 또는 fail-closed 완료는 그 자체로 production-ready가 아니다.
+
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
 - ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는
@@ -635,6 +641,141 @@ backfill 또는 deployment 권한이 아니다.
 - DEC-018/019의 품질·보존 요구는 폐기하지 않는다. 미래 재도입은 새 Work Item, 새 contract version,
   rights/cost approval과 complete-source quality evidence를 요구한다.
 - 기존 fixture와 dormant 데이터 객체는 자동 삭제하지 않는다.
+
+---
+
+### ADR-025: Official filing actual은 Bronze artifact와 Silver revision ledger를 dual-clock으로 분리한다
+
+**결정**: OpenDART와 SEC EDGAR actual의 canonical data path를 filing-specific Bronze source artifact,
+bitemporal issuer alias, Silver filing identity/content revision, immutable financial fact revision과 versioned
+concept mapping으로 구성한다. point-in-time query는 시스템이 실제로 알게 된 `system_as_of`와 당시 공식
+source 공개시각을 사용하는 명시적 `retrospective_source_as_of`를 분리한다.
+
+**상태**: 2026-09-02 사용자 승인. 상세 grain, key, source budget, object guardrail과 migration proposal은
+`docs/operations/wi-037-s02-contract-design-2026-09.md`, canonical contract는 `governance/catalog/`가 소유한다.
+이 승인은 contract를 `approved`로 만들 뿐 migration, credential accessor, source sampling, backfill,
+Scheduler, production collection과 MCP 노출을 활성화하지 않는다.
+
+**이유**:
+
+- 기존 `dataset.filing-event` 1.0은 논리 Bronze였지만 빈 physical foundation은 Silver여서 SSOT와 layer가
+  일치하지 않았다.
+- SEC accepted time이나 OpenDART receipt date는 시장 공개시점이고, backfill로 시스템이 처음 수집한 시각과
+  다르다. 둘을 한 `knowledge_at`으로 합치면 historical research 또는 운영 재현 중 하나가 거짓이 된다.
+- amendment/correction과 taxonomy mapping은 이전 원문 사실을 덮어쓰지 않고 독립 revision과 provenance로
+  선택돼야 한다.
+- filing actual과 dividend reconciliation은 source, schedule, watermark와 완료조건이 달라 실패 상태를
+  분리해야 하지만, 이를 별도 서비스와 중복 구현으로 확대할 이유는 없다.
+
+**계약**:
+
+- canonical issuer identity는 국내 OpenDART `corp_code`, 미국 SEC zero-padded CIK다. ticker, name과 heuristic은
+  authority가 아니며 missing/ambiguous alias partition은 fail closed다.
+- Bronze official artifact와 private object hash가 검증된 뒤에만 Silver filing/fact를 publish한다. raw object는
+  MCP와 Telegram에 노출하지 않는다.
+- `system_as_of`는 monotonic system `knowledge_at`을 사용하고 live signal·운영 재현의 기본값이다.
+  `retrospective_source_as_of`는 source availability와 precision을 표시한 historical research에만 사용한다.
+  OpenDART가 day-grain receipt date만 제공하면 같은 날 장중에 사용하지 않고 다음 KST 00:00을 안전 경계로 둔다.
+- correction target은 explicit 또는 deterministic verified evidence만 supersede한다. candidate/unresolved relation과
+  unmapped/ambiguous concept는 partial로 남고 공식 분석 입력이 되지 않는다.
+- initial scope는 직접보유 국내 equity 3개와 미국 equity/REIT 4개, 5 fiscal years와 최소 8 quarters다.
+  ETF/look-through, consensus와 dividend receipt는 이 filing collection에서 제외한다.
+- OpenDART routine/backfill은 100/250 physical calls, SEC는 64/320 calls, concurrency 1과 최대 1 request/sec다.
+  object 5 GiB와 typed fact 2,000,000 rows가 initial stop line이다.
+- filing actual과 dividend는 logical pipeline ID, watermark, quality와 failure state를 분리한다. 구현은 동일한
+  modular-monolith image, managed runner, source adapter, Bronze landing, repository, MotherDuck, GCS와 release
+  artifact를 재사용한다. 분리로 코드 중복이나 운영 구성이 불필요하게 증가하면 구현을 중단하고 ADR을
+  재검토한다. 별도 service, repository와 always-on worker를 만들지 않는다.
+- migration 0014는 additive new object만 허용한다. 기존 empty foundation이 non-zero거나 consumer가 발견되면
+  자동 변환하지 않고 별도 mapping/reconciliation gate에서 중단한다.
+
+---
+
+### ADR-026: 배당 action, account entitlement와 cash receipt link를 분리한다
+
+**결정**: 배당을 하나의 mutable lifecycle row로 만들지 않는다. issuer-level action revision,
+account-level entitlement revision, `cash-transaction-event`를 참조하는 reversible receipt-link revision을
+각각의 원장으로 둔다. 현금 금액의 SSOT는 cash transaction이고 월별 배당 read model은 이 세 원장을
+명시적 `system_as_of` cutoff로 결합해 재생성한다.
+
+**상태**: 2026-09-02 사용자 승인. 상세 grain, coverage, source budget, capacity와 migration proposal은
+`docs/operations/wi-038-s02-contract-design-2026-09.md`, canonical contract는 `governance/catalog/`가 소유한다.
+이 승인은 contract를 `approved`로 만들 뿐 migration 0015, source call, credential accessor, backfill,
+Scheduler, production publish와 MCP 노출을 활성화하지 않는다.
+
+**이유**:
+
+- 선언·권리·실수령은 주체, 원천, 확정시점과 정정 방식이 다르며 한 행의 상태 변경으로 표현하면 원본과
+  point-in-time 지식이 사라진다.
+- 배당 일정이나 `주당액 × 수량`은 예상 권리일 뿐 계좌 입금과 원천징수의 증거가 아니다.
+- 이미 승인된 cash 원장과 별도 receipt 금액을 중복 저장하면 월별 수익과 총자산 reconciliation이 갈라진다.
+- 국내 계좌권리 API는 후보지만 IRP와 미국 실제 입금에는 확인된 원천 gap이 있어 coverage를 데이터로
+  남겨야 한다.
+- filing과 dividend는 logical failure, watermark와 완료조건을 격리해야 하지만 runtime까지 분리할 이유는 없다.
+
+**계약**:
+
+- action은 issuer/instrument와 source action identity별 immutable content revision이다. entitlement는 action과
+  account별 eligible quantity·rate·expected amount·coverage revision이다. receipt reconciliation은 action,
+  entitlement와 하나 이상의 cash event 사이의 reversible many-to-many link revision이다.
+- cash transaction이 gross, tax, net과 native currency의 monetary SSOT다. 원천이 제공하지 않은 component는
+  `null`이며 추정값으로 채우지 않는다. manual evidence는 provenance를 가진 append-only fallback이고 broker
+  row를 덮어쓰지 않는다.
+- live 분석과 운영 재현의 기본은 monotonic `system_as_of`다. source-effective historical view는
+  `retrospective_source_as_of`로 표시하며 두 clock을 조용히 혼합하지 않는다.
+- issuer action의 correction/cancellation은 이전 revision을 보존한다. cash reversal은 별도 monetary event와
+  receipt-link revision이며 action correction으로 합치지 않는다.
+- KIS 국내 account-right는 bounded semantic candidate다. IRP와 미국 actual receipt는 broker 또는
+  owner-private statement evidence가 생길 때까지 `source_gap`이고 일정·수량으로 received를 생성하지 않는다.
+- KIS routine/backfill ceiling은 64/320 physical calls, partition당 10 page다. 초기 stop line은 private Bronze
+  object 1 GiB와 Silver 500,000 rows이며 한도 초과 전 fail closed한다.
+- migration 0015는 additive object만 허용한다. 기존 dividend foundation table이 비어 있지 않거나 알려지지
+  않은 consumer가 있으면 자동 변환하지 않고 mapping/reconciliation gate에서 중단한다.
+- filing actual과 dividend ledger는 logical pipeline ID와 state만 분리한다. 동일 modular-monolith image,
+  managed runner, adapter, landing, repository, MotherDuck, GCS와 release artifact를 재사용하며 별도 service,
+  repository와 always-on worker를 만들지 않는다.
+
+---
+
+### ADR-027: Macro profile은 exact series registry와 source별 revision clock을 사용한다
+
+**결정**: `macro_profile_v1`을 한국 5개와 미국·글로벌 12개의 exact `macro_series` 계약으로 고정한다.
+한국은 ECOS, 미국·글로벌은 FRED/ALFRED를 transport로 사용하며 Cboe-owned `VIXCLS`의 원소유권·저작권·
+attribution을 보존한다. direct Cboe download는 dormant reference이며 초기 production call은 0이다.
+
+관측값은 하나의 append-only revision ledger에 보존하되 source가 실제 제공하는 clock만 사용한다. FRED/ALFRED는
+`provider-vintage`, ECOS는 `observed-content`이며 ECOS에 가짜 realtime interval이나 과거 공표시각을 만들지
+않는다. live 분석과 운영 재현의 기본은 monotonic `system_as_of`이고, 과거 초도 적재는
+`retrospective_reconstructed`로 표시한다.
+
+**상태**: 2026-09-02 사용자 승인. 상세 profile, exact identity, rights, budget, capacity와 migration proposal은
+`docs/operations/wi-039-s02-contract-design-2026-09.md`와
+`docs/operations/wi-039-s03-ecos-source-sampling-2026-09.md`, canonical contract는
+`governance/catalog/macro-series.toml`과 관련 DGH catalog가 소유한다. 이 승인은 계약을 `approved-inactive`로
+만들 뿐 migration 0016, credential, source call, backfill, Scheduler, production publish와 MCP 노출을
+활성화하지 않는다.
+
+**계약**:
+
+- exact scope는 한국 기준금리, USD/KRW, headline CPI, 계절조정 전산업생산, 통관 수출과 DFF, DGS2,
+  DGS10, T10Y2Y, CPIAUCSL, CPILFESL, UNRATE, PAYEMS, GDPC1, DTWEXBGS, DCOILWTICO, VIXCLS다. 한국 M2와
+  미국 산업생산은 v1에 없으며 추가하려면 profile version과 source/metric 승인이 필요하다.
+- runtime은 registry ID/version과 logical partition만 받고 arbitrary provider series, URL, transform과 date range를
+  거부한다. source owner, native unit/frequency/seasonal adjustment, rights와 attribution은 definition hash와 함께
+  보존한다.
+- raw native fact와 transparent transform을 분리한다. 초기 metric은 YoY, period delta, quarterly annualized
+  growth, yield-curve state와 VIX regime뿐이며 causal composite와 매수·매도 해석은 `unknown`/later다.
+- VIXCLS raw history는 owner-private다. Telegram에는 별도 승인 뒤에도 source attribution을 가진 allowlisted
+  regime context만 보낼 수 있으며 raw history를 대량 전송하지 않는다.
+- routine/backfill physical-call ceiling은 FRED 32/256, ECOS 16/96이고 series partition당 10 page다. direct
+  Cboe call은 0이다. 초기 capacity stop line은 Bronze 512 MiB, Silver revision 500,000 rows, Gold 100,000 rows다.
+- candidate schedule은 weekday 09:00 KST scale-to-zero Job이지만 activation은 release decision이다. source-native
+  release cadence를 확인하며 월·분기 series를 매일 무조건 재수집하지 않는다.
+- migration 0016은 additive object만 허용한다. legacy macro foundation이 non-zero거나 unknown consumer가
+  발견되면 자동 변환하지 않고 mapping/reconciliation gate에서 중단한다.
+- filing, dividend와 macro는 logical pipeline identity, watermark와 failure state를 분리하되 동일 modular-
+  monolith image, managed runner, HTTP policy, MotherDuck, GCS와 release artifact를 재사용한다. 별도 service,
+  repository와 always-on worker를 만들지 않는다.
 
 ---
 

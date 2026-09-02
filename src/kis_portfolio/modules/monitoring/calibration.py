@@ -68,6 +68,8 @@ class SignalObservation:
     stop_breached: bool = False
     input_lineage_hash: str = ""
     input_known_at: datetime | None = None
+    subject_label: str = ""
+    market: str = ""
 
     def __post_init__(self) -> None:
         if not self.subject_id.strip() or not self.session_key.strip():

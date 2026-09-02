@@ -28,6 +28,7 @@ from kis_portfolio.services.overseas_history import collect_overseas_transaction
 from kis_portfolio.services.price_history import run_held_price_backfill
 from kis_portfolio.services.shadow_alerts import (
     run_external_canary_signal_evaluation,
+    run_external_real_use_signal_evaluation,
     run_shadow_signal_evaluation,
 )
 from kis_portfolio.services.position_reconstruction_runtime import (
@@ -54,6 +55,7 @@ from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError,
 from kis_portfolio.services.wi029_s04 import verify_wi029_s04
 from kis_portfolio.services.wi029_s05 import refresh_wi029_s05_evidence
 from kis_portfolio.services.wi030_s02 import activate_wi030_canary
+from kis_portfolio.services.wi030_s03 import activate_wi030_real_use
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -260,6 +262,10 @@ def build_parser() -> argparse.ArgumentParser:
         "activate-wi030-canary",
         help="Activate the exact owner-approved DEC-050 bounded Telegram canary.",
     )
+    subparsers.add_parser(
+        "activate-wi030-real-use",
+        help="Activate the exact owner-approved DEC-051 production-value release candidate.",
+    )
     return parser
 
 
@@ -301,6 +307,17 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
         datetime.now(ZoneInfo("Asia/Seoul")).date()
         if args.date == "today" else datetime.strptime(args.date, "%Y%m%d").date()
     )
+    canary_enabled = os.environ.get(
+        "KIS_TELEGRAM_CANARY_ENABLED", "false"
+    ).strip().lower() == "true"
+    real_use_enabled = os.environ.get(
+        "KIS_TELEGRAM_REAL_USE_ENABLED", "false"
+    ).strip().lower() == "true"
+    if canary_enabled and real_use_enabled:
+        raise RuntimeError(
+            "Telegram canary and production-value producers are mutually exclusive"
+        )
+
     result = run_owned_portfolio_pipeline(
         get_connection(), logical_date=logical_date, slot=args.slot, partition_key=args.partition_key,
     )
@@ -316,8 +333,12 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
             get_connection(), logical_date=logical_date, source_slot=args.slot,
         )
         result["shadow_evidence"] = refresh_wi029_s05_evidence(get_connection())
-        if os.environ.get("KIS_TELEGRAM_CANARY_ENABLED", "false").strip().lower() == "true":
+        if canary_enabled:
             result["telegram_canary"] = run_external_canary_signal_evaluation(
+                get_connection(), logical_date=logical_date, source_slot=args.slot,
+            )
+        if real_use_enabled:
+            result["telegram_real_use"] = run_external_real_use_signal_evaluation(
                 get_connection(), logical_date=logical_date, source_slot=args.slot,
             )
         result["telegram_delivery"] = run_telegram_delivery(get_connection())
@@ -563,6 +584,19 @@ def _run_wi030_canary_activation(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi030_real_use_activation(_args: argparse.Namespace) -> int:
+    try:
+        result = activate_wi030_real_use(get_connection())
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed", "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate production-value activation evidence",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -596,6 +630,8 @@ def main() -> None:
         raise SystemExit(_run_wi029_s05_review(args))
     if args.command == "activate-wi030-canary":
         raise SystemExit(_run_wi030_canary_activation(args))
+    if args.command == "activate-wi030-real-use":
+        raise SystemExit(_run_wi030_real_use_activation(args))
 
     parser.print_help()
     raise SystemExit(2)
