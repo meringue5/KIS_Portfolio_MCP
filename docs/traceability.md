@@ -7,7 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| MS-002는 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 완료 | ADR-021/023 + DEC-051 | WI-054, WI-030-S03 | production-readiness matrix and final alert payload/release-candidate path | live aggregate audit, readiness inspectors and full 443 pass; product-value release candidate pending | WI-054 closed; S03 in progress under active WI-030 |
+| MS-002는 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 완료 | ADR-021/023 + DEC-051 | WI-054, WI-030-S03 | production-readiness matrix and production-value Telegram release-candidate path | live aggregate audit; full 449 pass; master `fe61625` / run `33652147678`; S03 rule and three Jobs activated; scheduled receipt pending | WI-054 closed; S03 deployed and stabilizing under active WI-030 |
 | 첫 정상 월요일 뒤 Telegram `주의` 이상 신호를 1주 experimental canary로 관찰 | ADR-021/023 + V2-ADR-007/012 + DEC-050 | WI-030-S01/S02 | fail-closed renderer/ledger plus parallel immutable canary rule; permanent WI-029 gate remains | 10:00 execution `6tnkp`: 8/8 provider sends and LTE owner receipt; Wi-Fi blocked Telegram client; 14:30/16:00 dedup and expiry evidence pending | S01 closed; S02 in progress |
 | 사람이 읽는 milestone·Work Item 선후관계와 현재 실행 가능 범위 | ADR-022 | WI-053 | milestone README Mermaid map and V2 delivery-plan backlink | registry 관계 대조; quick pass and full 418 pass | closed |
 | owner option 3: ETF analysis outside initial V2 | ADR-024 / DEC-049 | WI-052 | DEC/ADR, DGH v1.1.0, rejected WI-026/027 and revised alert dependency | 14 focused and full shared gate pass; zero runtime/external change | closed |
