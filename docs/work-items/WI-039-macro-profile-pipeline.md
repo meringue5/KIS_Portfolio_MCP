@@ -49,8 +49,11 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 
 - `WI-039-S01` — closed: research exact-series candidates, source-specific vintage semantics, rights and call-budget
   constraints without implementation or activation.
-- `WI-039-S02` — ready: freeze the implementation-ready profile scope, transport, series registry, heterogeneous
-  revision, interpretation, migration, rights, source-budget and capacity design without adoption or implementation.
+- `WI-039-S02` — closed after owner approval: freeze the implementation-ready profile scope, transport, series
+  registry, heterogeneous revision, interpretation, migration, rights, source-budget and capacity design without
+  adoption or implementation.
+- `WI-039-S03` — closed: verify the five exact ECOS table/item/dimension/cycle/unit identities through public bounded
+  official metadata and samples without retaining values or using a credential.
 
 ## Research checkpoint — 2026-09-01
 
@@ -90,3 +93,18 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 - Evidence: `docs/operations/wi-039-s02-contract-design-2026-09.md`.
 - Result: `WI-039-S02` is ready for owner decision. Parent `WI-039` and MS-003 remain proposed; no contract adoption,
   code, DDL, source call, credential, data, infrastructure, schedule or MCP change occurred.
+
+## ECOS verification checkpoint — 2026-09-02
+
+- The owner approved the complete S02 package and bounded S03 verification. S02 is closed as an approved design input.
+- Exact ECOS identities are `722Y001/D/0101000`, `731Y001/D/0000001`, `901Y009/M/0`,
+  `901Y033/M/A00/2` and `901Y118/M/T002` for base rate, USD/KRW, headline CPI, seasonally-adjusted all-industry
+  production excluding agriculture/forestry/fishing, and customs-basis exports respectively.
+- The public sample exposed current period/content but no defensible publication timestamp or historical revision
+  interval. ECOS therefore uses `observed_content`, nullable realtime interval, `knowledge_at=fetched_at` and a labeled
+  retrospective backfill.
+- All 16 bounded calls were accounted for, including five responses discarded by a local output-filter error. No value,
+  credential or raw payload was retained.
+- Evidence: `docs/operations/wi-039-s03-ecos-source-sampling-2026-09.md`.
+- Result: `WI-039-S03` is closed. Parent `WI-039` and MS-003 remain proposed; exact-series owner review and S04
+  canonical adoption remain. No code, DDL, DB, infrastructure, schedule, contract lifecycle or MCP change occurred.

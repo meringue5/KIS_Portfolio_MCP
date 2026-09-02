@@ -732,7 +732,13 @@ status = "closed"
 id = "WI-039-S02"
 parent_id = "WI-039"
 title = "Freeze macro profile series revision rights budget and interpretation contract design"
-status = "ready"
+status = "closed"
+
+[[subitems]]
+id = "WI-039-S03"
+parent_id = "WI-039"
+title = "Verify exact ECOS identities with bounded official metadata and samples"
+status = "closed"
 
 [[subitems]]
 id = "WI-040-S01"
