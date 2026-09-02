@@ -731,6 +731,48 @@ Scheduler, production publish와 MCP 노출을 활성화하지 않는다.
 
 ---
 
+### ADR-027: Macro profile은 exact series registry와 source별 revision clock을 사용한다
+
+**결정**: `macro_profile_v1`을 한국 5개와 미국·글로벌 12개의 exact `macro_series` 계약으로 고정한다.
+한국은 ECOS, 미국·글로벌은 FRED/ALFRED를 transport로 사용하며 Cboe-owned `VIXCLS`의 원소유권·저작권·
+attribution을 보존한다. direct Cboe download는 dormant reference이며 초기 production call은 0이다.
+
+관측값은 하나의 append-only revision ledger에 보존하되 source가 실제 제공하는 clock만 사용한다. FRED/ALFRED는
+`provider-vintage`, ECOS는 `observed-content`이며 ECOS에 가짜 realtime interval이나 과거 공표시각을 만들지
+않는다. live 분석과 운영 재현의 기본은 monotonic `system_as_of`이고, 과거 초도 적재는
+`retrospective_reconstructed`로 표시한다.
+
+**상태**: 2026-09-02 사용자 승인. 상세 profile, exact identity, rights, budget, capacity와 migration proposal은
+`docs/operations/wi-039-s02-contract-design-2026-09.md`와
+`docs/operations/wi-039-s03-ecos-source-sampling-2026-09.md`, canonical contract는
+`governance/catalog/macro-series.toml`과 관련 DGH catalog가 소유한다. 이 승인은 계약을 `approved-inactive`로
+만들 뿐 migration 0016, credential, source call, backfill, Scheduler, production publish와 MCP 노출을
+활성화하지 않는다.
+
+**계약**:
+
+- exact scope는 한국 기준금리, USD/KRW, headline CPI, 계절조정 전산업생산, 통관 수출과 DFF, DGS2,
+  DGS10, T10Y2Y, CPIAUCSL, CPILFESL, UNRATE, PAYEMS, GDPC1, DTWEXBGS, DCOILWTICO, VIXCLS다. 한국 M2와
+  미국 산업생산은 v1에 없으며 추가하려면 profile version과 source/metric 승인이 필요하다.
+- runtime은 registry ID/version과 logical partition만 받고 arbitrary provider series, URL, transform과 date range를
+  거부한다. source owner, native unit/frequency/seasonal adjustment, rights와 attribution은 definition hash와 함께
+  보존한다.
+- raw native fact와 transparent transform을 분리한다. 초기 metric은 YoY, period delta, quarterly annualized
+  growth, yield-curve state와 VIX regime뿐이며 causal composite와 매수·매도 해석은 `unknown`/later다.
+- VIXCLS raw history는 owner-private다. Telegram에는 별도 승인 뒤에도 source attribution을 가진 allowlisted
+  regime context만 보낼 수 있으며 raw history를 대량 전송하지 않는다.
+- routine/backfill physical-call ceiling은 FRED 32/256, ECOS 16/96이고 series partition당 10 page다. direct
+  Cboe call은 0이다. 초기 capacity stop line은 Bronze 512 MiB, Silver revision 500,000 rows, Gold 100,000 rows다.
+- candidate schedule은 weekday 09:00 KST scale-to-zero Job이지만 activation은 release decision이다. source-native
+  release cadence를 확인하며 월·분기 series를 매일 무조건 재수집하지 않는다.
+- migration 0016은 additive object만 허용한다. legacy macro foundation이 non-zero거나 unknown consumer가
+  발견되면 자동 변환하지 않고 mapping/reconciliation gate에서 중단한다.
+- filing, dividend와 macro는 logical pipeline identity, watermark와 failure state를 분리하되 동일 modular-
+  monolith image, managed runner, HTTP policy, MotherDuck, GCS와 release artifact를 재사용한다. 별도 service,
+  repository와 always-on worker를 만들지 않는다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

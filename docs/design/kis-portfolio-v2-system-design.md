@@ -298,6 +298,17 @@ IRP·미국 actual receipt는 broker 또는 owner-private evidence 전까지 `so
 monthly read model을 additive object로 추가한다. 기존 dividend foundation에 row 또는 unknown consumer가 있으면
 자동 변환하지 않는다. 이는 target schema 설계이며 WI-038 구현 gate 전에는 DDL이나 live DB를 변경하지 않는다.
 
+ADR-027에 따라 macro는 Control exact-series definition, Silver append-only observation revision과 Gold rebuildable
+profile snapshot으로 구성한다. FRED/ALFRED `provider-vintage`와 ECOS `observed-content` revision을 같은 ledger의
+typed variant로 보존하되 없는 provider realtime interval을 만들지 않는다. operational query는
+`system_as_of`, historical research는 표시된 retrospective mode를 사용한다. raw native value와 five transparent
+metrics를 분리하고 causal/trade interpretation은 초기 profile에 없다.
+
+목표 migration 0016은 `macro_series_definitions`, `macro_observation_revisions`, current/as-of views와
+`macro_profile_snapshots`를 additive object로 추가한다. legacy foundation이 non-zero거나 unknown consumer가
+있으면 자동 변환하지 않는다. 이는 target schema 설계이며 WI-039 implementation gate 전에는 DDL, credential,
+source call, schedule, DB와 MCP를 변경하지 않는다.
+
 ### 6.4 Migration contract
 
 1. migration 파일은 immutable version, checksum, apply/verify/rollback metadata를 가진다.

@@ -323,6 +323,15 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   동일 image, runner, adapter, landing, repository와 deployment artifact를 재사용하고, 불필요한 code/운영
   복제가 발생하면 구현을 중단해 architecture를 재검토한다.
 
+2026-09-02 macro profile clarification:
+
+- `macro_profile_v1`은 한국 5개와 미국·글로벌 12개 exact series로 고정하며 한국 M2와 미국 산업생산은
+  포함하지 않는다. VIX는 Cboe-owned `VIXCLS`를 FRED/ALFRED transport로 사용하고 direct Cboe 호출은 0이다.
+- FRED/ALFRED provider vintage와 ECOS observed-content revision을 구분한다. live 기본은 `system_as_of`이고
+  ECOS 과거 공표시각이나 realtime interval을 추정하지 않으며 초도 과거 적재는 retrospective로 표시한다.
+- raw fact와 YoY·delta·분기 연율성장·yield-curve·VIX regime의 투명 metric만 초기 승인한다. causal composite와
+  매수·매도 결론은 범위 밖이다. 모든 계약은 approved-inactive이며 구현·수집·스케줄·MCP는 별도 gate다.
+
 2026-09-02 dividend ledger clarification:
 
 - declared·entitled·received를 한 mutable row의 상태로 구현하지 않는다. issuer action revision, account
@@ -1053,6 +1062,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-02 | macro architecture 승인 | WI-039-S02/S03의 ADR-027, exact 17-series registry, heterogeneous revision clock, 5 transparent metrics, additive migration 0016, bounded call/capacity budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-02 | dividend architecture 승인 | WI-038-S02의 ADR-026, 8-contract delta, action/entitlement/receipt-link 분리, cash SSOT, system-as-of, additive migration, bounded call/object/row budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-02 | filing architecture 승인 | WI-037-S02의 ADR-025, 7-contract delta, dual as-of, additive migration, bounded call/object/fact budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-01 | 제한적 source 계약 승인 | DEC-043 clarification으로 Alpha Vantage owner-only normalized forward 경로의 source·collection·dataset·pipeline 계약을 승인함. historical PIT와 production activation은 미승인 |

@@ -741,6 +741,12 @@ title = "Verify exact ECOS identities with bounded official metadata and samples
 status = "closed"
 
 [[subitems]]
+id = "WI-039-S04"
+parent_id = "WI-039"
+title = "Adopt approved inactive macro ADR requirements and governance contracts"
+status = "closed"
+
+[[subitems]]
 id = "WI-040-S01"
 parent_id = "WI-040"
 title = "Research catalog quality lineage and pipeline read-model contracts"

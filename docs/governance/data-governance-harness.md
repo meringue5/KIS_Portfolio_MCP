@@ -44,6 +44,7 @@ DGH는 product data plane을 대신하지 않는다. 정책과 계약은 DGH가 
 | dataset 계약 | `governance/catalog/datasets.toml` | DGH + warehouse checker |
 | metric 계약 | `governance/catalog/metrics.toml` | DGH + analytics tests |
 | pipeline 계약 | `governance/catalog/pipelines.toml` | DGH + pipeline runner |
+| macro exact-series registry | `governance/catalog/macro-series.toml` | DGH identity·rights·activation gate |
 | ETF provider 실행 profile | `governance/catalog/etf-source-profiles.toml` | DGH rights/host gate |
 | ETF exact instrument route | `governance/catalog/etf-instrument-routes.toml` | DGH route/reference gate |
 | 물리 object·grain·key·backup | `docs/data-catalog.md` + `src/kis_portfolio/db/catalog.py` | warehouse checker |
@@ -71,6 +72,7 @@ Phase 1 source inventory에서 기존 V1 producer/consumer도 DGH contract로 �
 | `dataset` | 어떤 의미와 grain으로 보존·공개하는가? | source/input, key, 시간, schema, layer, 품질·보존·backup·consumer |
 | `metric` | 어떤 시점의 입력으로 무엇을 계산하는가? | formula version, unit, point-in-time, quality와 검증 계약 |
 | `pipeline` | 어떤 입력을 어떤 통제로 출력하는가? | stage, schedule, idempotency, retry, call budget, quality/publish gate |
+| `macro_series` | 승인된 macro 개념을 어느 provider identity와 권리·단위·빈티지로 고정하는가? | exact source/series identity, native metadata, rights, transform와 inactive/production gate |
 | `etf_profile` | 해당 provider를 어떤 형식·host·권리로 실행할 수 있는가? | parser/version, media type, host, history와 rights tri-state, activation |
 | `etf_route` | 어떤 ETF를 어느 provider product에 연결하는가? | exact canonical instrument, provider key와 유효시점; holding fact 금지 |
 
@@ -104,7 +106,7 @@ proposed → approved → active → deprecated → retired
 7. contract가 approved/active가 되기 전 production DDL, schedule, backfill과 public MCP 노출을 금지한다.
 8. 계약 변경은 새 version과 compatibility 판정을 남긴다. 과거 의미를 같은 version으로 바꾸지 않는다.
 
-필수 ID namespace는 `source.`, `collection.`, `dataset.`, `metric.`, `pipeline.`, `etf_profile.`,
+필수 ID namespace는 `source.`, `collection.`, `dataset.`, `metric.`, `pipeline.`, `macro.`, `etf_profile.`,
 `etf_route.`이다. version은 semantic
 version 문자열을 사용한다. v1 manifest의 필수 필드와 enum은 `governance/contract-schema.toml`이 소유한다.
 
@@ -121,6 +123,7 @@ payload parser 검증에만 사용할 수 있고 network registry에는 등록�
 - 중복 ID와 존재하지 않는 cross-reference 거부
 - 승인 근거 없는 approved/active 계약 거부
 - source 없는 collection, 입력 없는 metric, 출력 없는 pipeline 거부
+- 중복 macro provider identity, source가 누락된 profile 참조와 active source 없는 production macro series 거부
 - physical object 변경 시 dataset contract와 data catalog 동시 변경 요구
 - SSOT, grain, key, retention, lineage, provider, 비용 단계 변경 시 ADR gate 요구
 

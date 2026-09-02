@@ -40,6 +40,7 @@ def _copy_harness(target: Path) -> None:
         "governance/catalog/datasets.toml",
         "governance/catalog/metrics.toml",
         "governance/catalog/pipelines.toml",
+        "governance/catalog/macro-series.toml",
         "governance/catalog/etf-source-profiles.toml",
         "governance/catalog/etf-instrument-routes.toml",
         ".agent/skills/kis-data-governance/SKILL.md",
@@ -54,6 +55,7 @@ def _copy_harness(target: Path) -> None:
     # leak unresolved references into these isolated positive/negative cases.
     (target / "governance/catalog/metrics.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/pipelines.toml").write_text("schema_version = 1\n", encoding="utf-8")
+    (target / "governance/catalog/macro-series.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/etf-source-profiles.toml").write_text("schema_version = 1\n", encoding="utf-8")
     (target / "governance/catalog/etf-instrument-routes.toml").write_text("schema_version = 1\n", encoding="utf-8")
 
@@ -62,6 +64,43 @@ def test_current_repository_satisfies_data_governance_contract():
     checker = _load_checker()
 
     assert checker.check(REPO_ROOT) == []
+
+
+def test_macro_profile_has_exact_approved_inactive_series_registry():
+    series = tomllib.loads(
+        (REPO_ROOT / "governance/catalog/macro-series.toml").read_text(encoding="utf-8")
+    )["contracts"]
+    collections = tomllib.loads(
+        (REPO_ROOT / "governance/catalog/collections.toml").read_text(encoding="utf-8")
+    )["contracts"]
+    pipelines = tomllib.loads(
+        (REPO_ROOT / "governance/catalog/pipelines.toml").read_text(encoding="utf-8")
+    )["contracts"]
+    expected_ids = {item["id"] for item in series}
+    collection = next(item for item in collections if item["id"] == "collection.macro-profile-v1")
+    pipeline = next(item for item in pipelines if item["id"] == "pipeline.macro-profile-v2")
+
+    assert len(series) == 17
+    assert all(item["status"] == "approved" for item in series)
+    assert all(item["activation_state"] == "inactive" for item in series)
+    assert set(collection["macro_series_ids"]) == expected_ids
+    assert set(pipeline["macro_series_ids"]) == expected_ids
+
+
+def test_governance_rejects_duplicate_macro_provider_identity(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_harness(target)
+    (target / "governance/catalog/macro-series.toml").write_text(
+        (REPO_ROOT / "governance/catalog/macro-series.toml").read_text(encoding="utf-8")
+        .replace('id = "macro.us.treasury-2y"', 'id = "macro.us.treasury-2y-duplicate"', 1)
+        .replace('provider_series_id = "DGS2"', 'provider_series_id = "DFF"', 1),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("duplicate macro provider identity" in error for error in errors)
 
 
 def test_etf_collection_is_later_and_has_no_initial_v2_production_trigger():

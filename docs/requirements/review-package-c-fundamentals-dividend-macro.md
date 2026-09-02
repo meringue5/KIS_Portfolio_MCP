@@ -144,6 +144,14 @@ account entitlement revision, cash monetary SSOT를 참조하는 reversible rece
 단일 지표를 인과관계나 매수·매도 결론으로 만들지 않는다. 이후 지표는 source catalog, metric 정의와
 사용자 승인을 거쳐 profile version을 올리는 방식으로 추가한다.
 
+2026-09-02 ADR-027 clarification: exact registry는 ECOS
+`722Y001/D/0101000`, `731Y001/D/0000001`, `901Y009/M/0`, `901Y033/M/A00/2`,
+`901Y118/M/T002`와 FRED/ALFRED `DFF`, `DGS2`, `DGS10`, `T10Y2Y`, `CPIAUCSL`, `CPILFESL`, `UNRATE`,
+`PAYEMS`, `GDPC1`, `DTWEXBGS`, `DCOILWTICO`, `VIXCLS`로 고정한다. ECOS는 `observed-content`,
+FRED/ALFRED는 `provider-vintage` revision을 사용하며 live 기본은 `system_as_of`다. 초기 해석은 YoY,
+period delta, quarterly annualized growth, yield-curve state와 VIX regime의 transparent metric만 승인하고,
+causal composite와 trade action은 포함하지 않는다. 계약은 모두 inactive이며 실제 수집과 소비는 별도 승인이다.
+
 사건과 종목의 연결은 다음 근거를 구분한다.
 
 - `direct`: 회사 공시가 해당 회사 또는 보유상품을 직접 지목

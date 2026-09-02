@@ -83,6 +83,10 @@ def _validate_contract(
         if field in contract and not isinstance(contract[field], bool):
             errors.append(f"{label}: field {field!r} must be a boolean")
 
+    for field in type_schema.get("scalar_reference_fields", []):
+        if field in contract and not isinstance(contract[field], str):
+            errors.append(f"{label}: field {field!r} must be a string reference")
+
     for field in type_schema.get("non_empty_list_fields", []):
         value = contract.get(field)
         if not isinstance(value, list) or not value:
@@ -207,9 +211,11 @@ def check(root: Path) -> list[str]:
             contract_id = contract.get("id", f"{kind}[unknown]")
             status = contract.get("status")
             for field, expected_kind in type_schema.get("references", {}).items():
-                references = contract.get(field, [])
-                if not isinstance(references, list):
-                    continue
+                value = contract.get(field, [])
+                if field in type_schema.get("scalar_reference_fields", []):
+                    references = [value] if isinstance(value, str) else []
+                else:
+                    references = value if isinstance(value, list) else []
                 for reference in references:
                     target = contracts_by_id.get(reference)
                     if target is None:
@@ -225,6 +231,35 @@ def check(root: Path) -> list[str]:
                         errors.append(
                             f"{contract_id!r}: governed contract cannot reference {target_status} {reference!r}"
                         )
+
+    provider_series_keys: set[tuple[str, str]] = set()
+    for series in contracts_by_kind.get("macro_series", []):
+        series_id = series.get("id", "macro_series[unknown]")
+        key = (str(series.get("source_id")), str(series.get("provider_series_id")))
+        if key in provider_series_keys:
+            errors.append(f"{series_id!r}: duplicate macro provider identity {key!r}")
+        provider_series_keys.add(key)
+        source = contracts_by_id.get(series.get("source_id"))
+        if series.get("activation_state") == "production":
+            if series.get("status") != "active":
+                errors.append(f"{series_id!r}: production macro series must have active lifecycle status")
+            if source and source[1].get("status") != "active":
+                errors.append(f"{series_id!r}: production macro series requires an active source")
+
+    for kind in ("collection", "pipeline"):
+        for contract in contracts_by_kind.get(kind, []):
+            series_ids = contract.get("macro_series_ids", [])
+            if not isinstance(series_ids, list):
+                continue
+            if len(series_ids) != len(set(series_ids)):
+                errors.append(f"{contract.get('id')!r}: macro_series_ids contains duplicates")
+            declared_sources = set(contract.get("source_ids", []))
+            for series_id in series_ids:
+                target = contracts_by_id.get(series_id)
+                if target and target[1].get("source_id") not in declared_sources:
+                    errors.append(
+                        f"{contract.get('id')!r}: macro series {series_id!r} source is absent from source_ids"
+                    )
 
     rights_fields = (
         "automation_right", "cloud_processing_right", "raw_retention_right", "derived_use_right",

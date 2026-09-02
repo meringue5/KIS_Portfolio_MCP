@@ -255,26 +255,27 @@ trigger_policy = "disabled while proposed; future scale-to-zero Scheduler primar
 
 [[contracts]]
 id = "pipeline.macro-profile-v2"
-version = "1.0.0"
+version = "2.0.0"
 status = "approved"
 owner = "owner"
-description = "ECOS·FRED/ALFRED·Cboe의 allowlisted macro_profile_v1 observation과 vintage를 수집한다."
-decision_refs = ["DEC-024", "DEC-026", "DEC-041", "DEC-044"]
-source_ids = ["source.bok-ecos", "source.fred-alfred", "source.cboe-vix"]
+description = "exact registry로 고정된 ECOS·FRED/ALFRED macro_profile_v1 관측을 typed revision으로 수집하고 투명 metric profile을 재생성한다."
+decision_refs = ["ADR-027", "DEC-024", "DEC-026", "DEC-041", "DEC-044"]
+source_ids = ["source.bok-ecos", "source.fred-alfred"]
 input_dataset_ids = []
-output_dataset_ids = ["dataset.macro-observation"]
-stages = ["collect", "normalize", "quality", "publish"]
-schedule_policy = "daily check while fetching each series only at its native publication cadence"
-calendar_gate = "series-specific publication calendar and vintage availability"
-idempotency_key = "pipeline id, version, series, observation period and vintage partition"
-timeout_policy = "bounded allowlisted-series shards"
-retry_policy = "idempotent official API/download retry with cached metadata and backoff"
-source_call_budget = "small versioned series allowlist and per-source cap"
-freshness_gates = ["next scheduled run after source publication"]
-quality_gates = ["series unit and frequency present", "future revisions excluded", "license allowlist passes"]
-secret_profile = "ECOS and FRED API keys; Cboe none"
+output_dataset_ids = ["dataset.macro-observation", "dataset.macro-profile-snapshot"]
+macro_series_ids = ["macro.kr.base-rate", "macro.kr.usd-krw", "macro.kr.cpi-headline", "macro.kr.industrial-production", "macro.kr.exports", "macro.us.effective-fed-funds", "macro.us.treasury-2y", "macro.us.treasury-10y", "macro.us.treasury-10y-minus-2y", "macro.us.cpi-headline", "macro.us.cpi-core", "macro.us.unemployment", "macro.us.nonfarm-payrolls", "macro.us.real-gdp", "macro.us.broad-dollar", "macro.global.wti-spot", "macro.us.vix-close"]
+stages = ["resolve-registry", "check-release", "collect", "normalize", "quality", "publish", "evaluate", "materialize-profile"]
+schedule_policy = "candidate weekday 09:00 KST scale-to-zero Job; native release checks avoid unnecessary monthly and quarterly retrievals; activation is a separate release decision"
+calendar_gate = "series-native publication cadence and verified availability; Korean post-slot releases become eligible on the next weekday"
+idempotency_key = "pipeline id, version, source, series contract version, logical observation partition and scheduled slot"
+timeout_policy = "bounded source-sequential run and partition deadlines with maximum 10 pages per series partition"
+retry_policy = "durably reserve every physical attempt before I/O; idempotent GET only with at most two retries for timeout network 429 or 5xx honoring Retry-After; auth schema rights and repeated-page errors do not retry"
+source_call_budget = "routine FRED 32 and ECOS 16 calls per scheduled day; initial/backfill FRED 256 and ECOS 96 calls per day; direct Cboe zero; stop at 10 pages per series partition"
+freshness_gates = ["exact registry definition hash", "source-native release eligibility", "observation and provider vintage availability", "knowledge_at and fetched_at retained", "missing release distinguished from source failure"]
+quality_gates = ["approved inactive series must be separately activated before calls", "series metadata rights and attribution match registry", "future revisions excluded at system cutoff", "ECOS realtime interval remains null", "partial stale missing rights-blocked and insufficient-history inputs fail official profile publish", "512 MiB Bronze 500000 Silver revision and 100000 Gold row stop lines", "VIX raw history owner-private"]
+secret_profile = "future GCP Secret Manager kis-portfolio-ecos-api-key and kis-portfolio-fred-api-key numeric versions; no direct Cboe credential; accessor only after separate activation approval"
 cost_class = "routine"
-trigger_policy = "Scheduler primary; refresh only after the expected publication window"
+trigger_policy = "approved but inactive; future scale-to-zero Scheduler primary and allowlisted managed refresh only; arbitrary MCP series ID URL transform or date input prohibited"
 
 [[contracts]]
 id = "pipeline.owner-research-pdf-v1"

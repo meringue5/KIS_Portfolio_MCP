@@ -54,6 +54,8 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
   adoption or implementation.
 - `WI-039-S03` — closed: verify the five exact ECOS table/item/dimension/cycle/unit identities through public bounded
   official metadata and samples without retaining values or using a credential.
+- `WI-039-S04` — closed: adopted the owner-approved ADR, requirements clarification and exact `approved-inactive`
+  macro contracts into the canonical SSOT without implementation or activation.
 
 ## Research checkpoint — 2026-09-01
 
@@ -108,3 +110,17 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 - Evidence: `docs/operations/wi-039-s03-ecos-source-sampling-2026-09.md`.
 - Result: `WI-039-S03` is closed. Parent `WI-039` and MS-003 remain proposed; exact-series owner review and S04
   canonical adoption remain. No code, DDL, DB, infrastructure, schedule, contract lifecycle or MCP change occurred.
+
+## Canonical adoption checkpoint — 2026-09-02
+
+- The owner approved S04 after reviewing the complete design and exact ECOS identities.
+- ADR-027, requirements and V2 system design now own the exact profile, heterogeneous revision clocks, five transparent
+  metrics, migration 0016 boundary, call/capacity budgets and shared-implementation constraint.
+- DGH now registers 17 exact `macro_series` contracts, all `approved + inactive`, and cross-checks collection/pipeline
+  source coverage and duplicate provider identity.
+- Existing contracts were upgraded to FRED/ALFRED 1.1, dormant Cboe reference 1.1, collection 2.0, observation dataset
+  2.0 and pipeline 2.0. A Gold profile snapshot and five approved metrics were added.
+- Evidence: `docs/operations/wi-039-s04-contract-adoption-2026-09.md`.
+- Result: `WI-039-S04` is closed. Parent `WI-039` and MS-003 remain proposed; implementation and every external or
+  production mutation remain gated. No DDL, DB, credential, infrastructure, source call, schedule, deployment or MCP
+  activation occurred.
