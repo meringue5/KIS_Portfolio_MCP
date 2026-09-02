@@ -83,7 +83,7 @@ depends_on = ["MS-001"]
 work_item_ids = [
   "WI-013", "WI-014", "WI-015", "WI-016", "WI-017",
   "WI-019", "WI-020", "WI-021", "WI-036", "WI-022", "WI-023", "WI-024",
-  "WI-025", "WI-026", "WI-027", "WI-033", "WI-028", "WI-029", "WI-030",
+  "WI-025", "WI-026", "WI-027", "WI-033", "WI-028", "WI-029", "WI-030", "WI-054",
 ]
 
 [[milestones]]
@@ -560,6 +560,16 @@ depends_on = ["WI-052"]
 parent_id = ""
 sequence = 5
 
+[[work_items]]
+id = "WI-054"
+identity = "ms002-production-readiness-correction"
+title = "Audit and correct MS-002 production readiness before user acceptance"
+milestone_id = "MS-002"
+delivery_refs = []
+depends_on = ["WI-028"]
+parent_id = ""
+sequence = 20
+
 [[subitems]]
 id = "WI-018-S01"
 parent_id = "WI-018"
@@ -703,6 +713,12 @@ id = "WI-030-S02"
 parent_id = "WI-030"
 title = "Verify destination and activate a bounded Telegram canary"
 status = "in_progress"
+
+[[subitems]]
+id = "WI-030-S03"
+parent_id = "WI-030"
+title = "Activate and stabilize the production-value Telegram alert experience"
+status = "ready"
 
 [[subitems]]
 id = "WI-035-S01"

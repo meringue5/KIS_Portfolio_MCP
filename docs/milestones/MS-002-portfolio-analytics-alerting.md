@@ -36,7 +36,8 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
 | 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | closed; PR #25, shadow-only ledger |
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | verified implementation; S05 operational evidence collecting through 2026-09-10 |
-| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01 closed; S02 10:00 delivery/owner receipt passed, remaining slot/dedup/expiry proof pending |
+| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01 closed; S02 transport canary live; S03 production-value experience ready after readiness audit |
+| 20 | WI-054 production-readiness correction | review gate | WI-028 | closed; live readiness matrix and WI-030-S03 handoff established |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
@@ -58,6 +59,10 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 - Telegram은 owner가 rule version, destination과 finance-free test message를 승인한 뒤에만 활성화한다.
 - 10:00, 14:30, 16:00 KST 평가와 미국장 오전 마감 요약이 동일한 alert state machine을 사용한다.
 - 전체 계좌번호, 총자산 절대액, credential과 raw source content가 payload/log에 없다.
+- Telegram production candidate는 안전한 종목 식별, 시장·자산 유형, 변동, 보유 에피소드 낙폭, 원화
+  평가액 변화 기여, 추세, 품질·freshness와 사람이 읽는 근거를 제공한다.
+- 위 production-equivalent 메시지를 실제 destination에서 사용하며 발견한 문제를 안정화하고 owner가
+  정보가치를 인수한다. transport-only canary receipt나 repository-local/fail-closed 완료만으로 닫지 않는다.
 
 ## Known work outside this baseline
 
@@ -68,6 +73,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-03.1 | 2026-09-03 | DEC-051에 따라 transport canary와 제품 인수를 분리하고 실사용·안정화 gate를 추가 | WI-030-S03과 독립 readiness audit WI-054를 append; 기존 WI와 canary 증거 불변 |
 | 2026-09-01.1 | 2026-09-01 | 10:00 canary sent 8/8 and owner confirmed receipt over LTE; Wi-Fi Telegram block classified outside service | WI-030-S02 remains in progress; no rule or dependency change |
 | 2026-08-31.1 | 2026-08-31 | 첫 정상 월요일 증거 뒤 `주의` 이상 7일 experimental Telegram canary를 DEC-050으로 승인 | WI-030-S02만 in progress; permanent WI-029 gate와 identity 불변 |
 | 2026-08-30.2 | 2026-08-30 | WI-029의 구현 WIP를 verified로 넘기고 WI-030을 disabled preparation과 external activation으로 분리 | WI-030 dependency와 MS-002 acceptance 불변; S01/S02 append, 외부 전송 없음 |

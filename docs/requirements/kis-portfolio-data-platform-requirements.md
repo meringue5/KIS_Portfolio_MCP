@@ -506,6 +506,22 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   flag를 주입한다. 유효기간이 끝나거나 owner가 중단하면 전송은 fail closed하며 영구 rule로 자동 승격하지
   않는다.
 
+### DEC-051: MS-002는 실사용 상태에서 안정화하고 사용자 인수 뒤에만 닫는다
+
+- 2026-09-03 owner는 MS-002의 완료 의미를 `구현·기술 canary 완료`가 아니라, 승인된 `보유종목 감시 v1`
+  정보를 실제 Telegram destination에서 사용하고 그 상태에서 발견되는 문제를 안정화한 결과로 확정했다.
+- bounded canary는 규칙·전송량·rollback을 제한하는 release 방식일 뿐 메시지 가치를 축소하는 별도 제품
+  형식이 아니다. production candidate는 정식 운영과 같은 종목 식별, 시장·자산 유형, 변동, 보유 에피소드
+  낙폭, 포트폴리오 원화 평가액 변화 기여, 추세, 품질·freshness와 사람이 읽는 근거를 제공해야 한다.
+- `보유 종목`, `DB-only shadow 평가`, 내부 reason code만으로 구성된 최소 payload는 transport·redaction
+  증거로는 유효하지만 제품 실사용 인수 증거가 아니다. 기존 immutable canary와 ledger 증거는 보존하고
+  수정하지 않는다.
+- MS-002의 닫힌 Work Item도 `implemented`, `production-active`, `publish-ready`, `user-visible`을 구분해 다시
+  감사한다. fail-closed 또는 repository-local 완료를 production-ready로 간주하지 않는다.
+- `WI-030-S03`은 실사용 메시지 계약, 필요한 upstream readiness, 새 immutable release-candidate와 영구 규칙
+  전환을 소유한다. 완성된 메시지의 실제 수신, 중복·민감정보 억제, rollback과 owner acceptance 전에는
+  WI-030과 MS-002를 닫지 않는다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1068,6 +1084,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-03 | 실사용 인수 기준 승인 | DEC-051로 MS-002를 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 닫고, 최소 canary payload와 repository-local 완료를 제품 완료로 간주하지 않기로 승인함 |
 | 2026-09-02 | macro architecture 승인 | WI-039-S02/S03의 ADR-027, exact 17-series registry, heterogeneous revision clock, 5 transparent metrics, additive migration 0016, bounded call/capacity budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-02 | dividend architecture 승인 | WI-038-S02의 ADR-026, 8-contract delta, action/entitlement/receipt-link 분리, cash SSOT, system-as-of, additive migration, bounded call/object/row budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-02 | filing architecture 승인 | WI-037-S02의 ADR-025, 7-contract delta, dual as-of, additive migration, bounded call/object/fact budget과 shared-implementation constraint를 승인함. activation은 미승인 |

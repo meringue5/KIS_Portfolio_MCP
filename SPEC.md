@@ -532,6 +532,12 @@ DEC-050은 2026-08-31 첫 정상 월요일 운영 증거 뒤 WI-030-S02에 한�
 상태전이, 실행당 최대 20건과 owner가 확인한 private destination이다. 정식 2주 shadow와 영구 rule 승인은
 계속 별도 gate이며 canary는 자동 승격되지 않는다.
 
+DEC-051은 MS-002의 완료를 production-equivalent 사용자 경험의 실사용·안정화·owner acceptance로
+명확히 했다. bounded canary는 규칙과 rollback 범위만 제한하며 낮은 정보가치의 별도 payload 형식을
+정당화하지 않는다. 기존 immutable canary 증거는 보존하되, 영구 활성화 전 WI-030-S03에서 승인 요구의
+종목 식별·변동·보유 에피소드 낙폭·원화 평가액 변화 기여·추세·품질·사람이 읽는 근거를 제공하고 실제
+수신 상태에서 안정화해야 한다. repository-local 또는 fail-closed 완료는 그 자체로 production-ready가 아니다.
+
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
 - ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는
