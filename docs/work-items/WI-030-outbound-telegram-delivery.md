@@ -80,7 +80,7 @@ collecting the separate formal shadow evidence.
 
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
 - `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary.
-- `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit.
+- `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`in_progress`).
 
 ## Evidence
 

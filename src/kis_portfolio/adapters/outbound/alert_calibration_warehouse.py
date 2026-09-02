@@ -355,13 +355,18 @@ class AlertCalibrationWarehouse:
         evidence_hash: str,
         decided_at: datetime,
         expected_prior_revision: int,
+        rationale_code: str = "OWNER_APPROVED_BOUNDED_CANARY",
     ) -> str:
-        """Approve only the exact DEC-050 bounded external exception."""
+        """Approve an exact owner-authorized bounded external exception."""
         _aware(decided_at, "decided_at")
         if actor_type != "owner":
             raise CalibrationGateError("only owner may approve a bounded canary")
         if len(evidence_hash) != 64:
             raise CalibrationGateError("canary approval requires a SHA-256 evidence hash")
+        if rationale_code not in {
+            "OWNER_APPROVED_BOUNDED_CANARY", "OWNER_APPROVED_PRODUCTION_VALUE_RC",
+        }:
+            raise CalibrationGateError("bounded external approval rationale is not allowlisted")
         rule = self.connection.execute(
             """
             SELECT contract_status,delivery_mode,minimum_delivery_rank,valid_from,valid_to
@@ -424,7 +429,7 @@ class AlertCalibrationWarehouse:
             [
                 revision_id, rule_id, rule_version, revision, "approved",
                 calibration_run_id, shadow_window_id, evidence_hash,
-                "OWNER_APPROVED_BOUNDED_CANARY", decided_at,
+                rationale_code, decided_at,
             ],
         )
         return revision_id

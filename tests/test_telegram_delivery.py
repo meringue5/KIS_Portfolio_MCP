@@ -174,6 +174,54 @@ def test_renderer_is_plain_redacted_and_rejects_absolute_asset_text() -> None:
         render_telegram_alert(currency)
 
 
+def test_production_value_renderer_is_owner_readable_and_explicit_about_unavailable_metrics() -> None:
+    _, repository, _ = _external_candidate()
+    item = repository.eligible_telegram_dispatches(as_of=NOW)[0]
+    rich = item.__class__(
+        **{**{field: getattr(item, field) for field in item.__dataclass_fields__},
+           "public_context": {
+               "presentation_version": "production-value-v1",
+               "subject_label": "삼성전자",
+               "market_label": "국내",
+               "asset_type_label": "주식",
+               "summary": "20일 이동평균선 이탈이 확인됐습니다",
+               "reason_codes": ["confirmed_sma20_break"],
+               "change_percent": "-2.25",
+               "sma20_relation": "below",
+               "sma50_relation": "above",
+               "sma120_relation": "above",
+               "volume_ratio20": "1.60",
+               "rsi14": "38.20",
+               "bollinger_state": "inside",
+               "episode_drawdown_percent": None,
+               "portfolio_impact_percent": None,
+               "unavailable_codes": [
+                   "episode_drawdown_not_ready", "valuation_contribution_not_ready",
+               ],
+               "source_at": "2026-08-30T00:55:00+00:00",
+               "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+               "quality_status": "pass",
+           }},
+    )
+
+    message = render_telegram_alert(rich)
+
+    assert "[주의] 삼성전자 · 국내 · 주식" in message
+    assert "가격: 오늘 -2.25%" in message
+    assert "추세: 20일선 아래 · 50일선 위 · 120일선 위" in message
+    assert "20일 평균 1.60배 · RSI(14) 38.20 · 볼린저 밴드 안" in message
+    assert "보유구간 낙폭: 계산 보류" in message
+    assert "포트폴리오 영향: 계산 보류" in message
+    assert "규칙:" not in message and "confirmed_sma20_break" not in message
+
+    missing_reason = rich.__class__(
+        **{**{field: getattr(rich, field) for field in rich.__dataclass_fields__},
+           "public_context": {**rich.public_context, "unavailable_codes": []}},
+    )
+    with pytest.raises(UnsafeTelegramPayload, match="explicit unavailable reason"):
+        render_telegram_alert(missing_reason)
+
+
 def test_success_is_hashed_in_ledger_and_never_persists_destination_secret() -> None:
     connection, _, _ = _external_candidate()
     client = FakeTelegramClient(TelegramSendResult("sent", response_ref="telegram-message:42"))

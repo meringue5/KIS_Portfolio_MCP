@@ -718,7 +718,7 @@ status = "in_progress"
 id = "WI-030-S03"
 parent_id = "WI-030"
 title = "Activate and stabilize the production-value Telegram alert experience"
-status = "ready"
+status = "in_progress"
 
 [[subitems]]
 id = "WI-035-S01"

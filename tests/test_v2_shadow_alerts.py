@@ -13,7 +13,9 @@ from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.ports.source import SourceEnvelope
 from kis_portfolio.services.shadow_alerts import (
     CANARY_RULE_VERSION,
+    REAL_USE_RULE_VERSION,
     run_external_canary_signal_evaluation,
+    run_external_real_use_signal_evaluation,
     run_shadow_signal_evaluation,
 )
 
@@ -186,4 +188,33 @@ def test_external_canary_expires_without_creating_candidates() -> None:
     assert connection.execute(
         "SELECT count(*) FROM gold.alert_candidates"
     ).fetchone()[0] == 0
+    connection.close()
+
+
+def test_real_use_candidate_has_safe_owner_readable_context_without_fabricated_metrics() -> None:
+    logical_date = date(2026, 9, 3)
+    connection = _warehouse(logical_date=logical_date)
+
+    result = run_external_real_use_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+
+    assert result["rule_version"] == REAL_USE_RULE_VERSION
+    assert result["transport"] == "telegram-production-value-rc-pending"
+    context = json.loads(connection.execute(
+        "SELECT public_context FROM gold.alert_candidates WHERE rule_version=?",
+        [REAL_USE_RULE_VERSION],
+    ).fetchone()[0])
+    assert context["presentation_version"] == "production-value-v1"
+    assert context["subject_label"] == "Synthetic"
+    assert context["market_label"] == "국내"
+    assert context["asset_type_label"] == "ETF"
+    assert context["change_percent"] == "-10.00"
+    assert context["sma20_relation"] == "below"
+    assert context["volume_ratio20"] == "2.73"
+    assert context["episode_drawdown_percent"] is None
+    assert context["portfolio_impact_percent"] is None
+    assert context["unavailable_codes"] == [
+        "episode_drawdown_not_ready", "valuation_contribution_not_ready",
+    ]
     connection.close()

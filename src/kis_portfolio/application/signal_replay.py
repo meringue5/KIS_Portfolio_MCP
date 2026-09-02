@@ -118,7 +118,8 @@ def load_price_replay_observations(
         SELECT s.instrument_id,s.session_date,s.close,s.volume,s.effective_at,s.knowledge_at,
                s.quality_status,s.reconstruction_mode,s.revision_hash,
                coalesce(i.asset_type,'unknown') AS asset_type,
-               coalesce(i.market,'UNKNOWN') AS market
+               coalesce(i.market,'UNKNOWN') AS market,
+               coalesce(i.name,'') AS instrument_name
         FROM selected s
         LEFT JOIN silver.instruments_current i USING(instrument_id)
         ORDER BY s.instrument_id,s.session_date
@@ -188,6 +189,8 @@ def load_price_replay_observations(
                 input_lineage_hash=hashlib.sha256(
                     "|".join(item[3] for item in history[-120:]).encode()
                 ).hexdigest(),
+                subject_label=str(row[11]),
+                market=market,
                 input_known_at=row[5],
             ))
     return tuple(observations)
