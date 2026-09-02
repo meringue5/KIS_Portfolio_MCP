@@ -84,6 +84,12 @@ collecting the separate formal shadow evidence.
 
 ## Evidence
 
+- 2026-09-03 S03 real-use activation passed. PR `#43` merged as master `fe61625`; GitHub Actions run `33652147678`
+  activated `rc-2026-09-03.1` with presentation `production-value-v1` after verifying 18 provider-confirmed S02 sends.
+  Activation execution `kis-portfolio-wi030-s03-q87wm` succeeded and append-only replaced the S02 canary approval.
+  All three core Jobs use digest `sha256:791da9af703524f4e4579219f9aeddeac2c271aa9b17b63d09512f6d03faf9eb`
+  with delivery `true`, canary producer `false` and real-use producer `true`; all three weekday Schedulers remain enabled.
+  First production-value scheduled receipt and stabilization observations are pending.
 - 2026-09-01 first scheduled execution `kis-portfolio-owned-core-v2-1000-6tnkp` ran from 10:00:03 to 10:18:57 KST.
   It evaluated `kr-1000` and `us-close`, produced 21 canary candidates, attempted 8 eligible Telegram deliveries and
   received 8 provider message IDs with zero unknown/retryable/permanent failures. The owner confirmed the portfolio
@@ -110,12 +116,14 @@ collecting the separate formal shadow evidence.
 - `tests/test_telegram_delivery.py`: 13 passed.
 - `bash scripts/check.sh quick`: passed with 54 tracked Work Items, zero active implementation WIP and 114 governed
   contracts.
-- `bash scripts/check.sh full`: 431 passed with one third-party Authlib deprecation warning.
+- S03 release gate: focused 68 passed; `bash scripts/check.sh full`: 449 passed with one third-party Authlib
+  deprecation warning.
 
 ## Closeout
 
-- Result: S01 is closed; S02 is in progress under the owner-approved DEC-050 bounded-canary exception.
-- Remaining risk: S02 proves transport but its generic subject, shadow summary and internal reason codes do not satisfy
-  DEC-051 product acceptance. S03 must correct the production-value payload and upstream readiness, then gather live
-  stabilization and owner acceptance without rewriting S02 evidence.
+- Result: S01 is closed; S02 evidence is preserved and its external approval is revoked; S03 is deployed in real-use
+  stabilization under DEC-051.
+- Remaining risk: live production-value receipt, false-positive/miss review, duplicate suppression and owner acceptance
+  are not yet proven. Episode drawdown and KRW valuation-change contribution remain explicit `계산 보류` until their
+  upstream governed readiness passes.
 - Follow-up Work Item: next milestone baseline after owner review.

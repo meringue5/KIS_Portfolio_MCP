@@ -1,4 +1,4 @@
-# WI-030-S02 first scheduled Telegram delivery evidence — 2026-09-01
+# WI-030 scheduled Telegram delivery and real-use activation evidence — 2026-09
 
 > Scope: production execution, outbound delivery and owner receipt evidence
 > Classification: client-network incident; no application, destination or Telegram API defect found
@@ -47,3 +47,25 @@ message ID. Existing sent claims are terminal, so the rollback/re-enable sequenc
 When the provider ledger says `sent` but the owner sees nothing, check the Telegram client's own connection state and
 compare Wi-Fi versus cellular access before rotating chat IDs or credentials. API success is delivery evidence, while
 owner-visible receipt remains a separate acceptance observation.
+
+## WI-030-S03 production-value activation — 2026-09-03
+
+PR `#43` passed CI and merged as master SHA `fe616253a681b9ca1d4a763db7cd9ae4a338d7a5`. GitHub Actions run
+`33652147678` completed the manual `wi030-s03` production target successfully. The activation execution
+`kis-portfolio-wi030-s03-q87wm` returned:
+
+- status `activated` for immutable rule version `rc-2026-09-03.1`;
+- presentation version `production-value-v1`;
+- 18 prior provider-confirmed S02 canary sends as the transport prerequisite;
+- evidence hash `036c47074ca062d74f1b40f390f2be1dc6c6d04b1920df1e253cec792938dd85`;
+- append-only replacement of canary version `canary-2026-09-01.1`; no S02 candidate, claim or attempt was changed.
+
+The build-once digest `sha256:791da9af703524f4e4579219f9aeddeac2c271aa9b17b63d09512f6d03faf9eb`
+was deployed to all three existing core Jobs. Read-only post-deploy inspection confirmed each Job has master SHA
+`fe61625`, deploy target `wi030-s03-real-use`, delivery enabled, canary producer disabled and production-value producer
+enabled. The three existing Scheduler Jobs remain `ENABLED` at 10:00, 14:30 and 16:00 KST on weekdays.
+
+This is the start of real use, not MS-002 closure. The first production-value scheduled message and subsequent
+duplicate/failure/volume observations remain pending. A weekday 10:20 thread heartbeat reads only redacted aggregate
+runtime and ledger evidence and reports meaningful new success, failure or owner-action conditions; owner receipt and
+product acceptance are still manual decisions.
