@@ -753,6 +753,12 @@ title = "Research catalog quality lineage and pipeline read-model contracts"
 status = "closed"
 
 [[subitems]]
+id = "WI-040-S02"
+parent_id = "WI-040"
+title = "Freeze catalog quality lineage and pipeline status read-model contracts"
+status = "ready"
+
+[[subitems]]
 id = "WI-041-S01"
 parent_id = "WI-041"
 title = "Research consensus providers rights cost point-in-time semantics and contract gaps"

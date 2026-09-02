@@ -49,6 +49,8 @@ lineage and pipeline status to Remote MCP.
 ## Sub-items
 
 - `WI-040-S01` — research catalog, quality, lineage and pipeline read-model contracts (`closed`).
+- `WI-040-S02` — freeze DB-only authority, Control evidence datasets, DTOs, sensitivity, false-green status and bounded
+  query contracts without implementation or public MCP registration (`ready for owner decision`).
 
 ## Pre-research checkpoint
 
@@ -76,3 +78,24 @@ calls.
 - Result: parent proposed; `WI-040-S01` research closed without opening the MS-003 formal gate.
 - Remaining risk: public scope compatibility belongs to WI-042.
 - Follow-up Work Item: WI-042.
+
+## Contract design checkpoint — 2026-09-02
+
+- `DB-only` means packaged canonical manifest plus MotherDuck Control evidence with no provider call. A derived DB
+  catalog snapshot is rejected because it would create a second authority and reconciliation burden.
+- Six logical Control evidence datasets map the existing five evidence tables and compatibility summary view; no new
+  DDL is expected. A source-less run ledger receives a tightly limited `control_origin` DGH rule.
+- Three versioned inactive application contracts are `data-catalog-v1`, `data-quality-v1` and `pipeline-run-v1`.
+  WI-042 alone owns their future public MCP registration.
+- Catalog projection covers source, dataset, metric, pipeline, macro series and physical object. Proposed planning
+  records and restricted details are excluded from the Remote MCP result.
+- Typed DTOs suppress raw JSON, error text, partition keys, object locators, secret/auth and internal cost fields.
+  Page/lookback and 256 KiB response ceilings are fixed.
+- Overall status precedence is `unavailable > failed > partial > stale > not_assessed > pass`; a succeeded run or empty
+  evidence cannot independently produce green.
+- Evidence: `docs/operations/wi-040-s02-read-model-contract-design-2026-09.md`.
+- Verification: Project OS/DGH/architecture/warehouse/MCP gates and full 440-test suite passed.
+- Result: S02 is ready for owner decision. Parent WI-040 and MS-003 remain proposed; no contract adoption, code, DDL,
+  DB, source, secret, infrastructure, schedule, public MCP or deployment change occurred.
+- Remaining prework: after S02 approval/S03 adoption, WI-042-S01 is the next useful research checkpoint. WI-043~046
+  should wait for their upstream contract/evidence gates rather than produce stale research.
