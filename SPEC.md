@@ -685,6 +685,52 @@ Scheduler, production collection과 MCP 노출을 활성화하지 않는다.
 
 ---
 
+### ADR-026: 배당 action, account entitlement와 cash receipt link를 분리한다
+
+**결정**: 배당을 하나의 mutable lifecycle row로 만들지 않는다. issuer-level action revision,
+account-level entitlement revision, `cash-transaction-event`를 참조하는 reversible receipt-link revision을
+각각의 원장으로 둔다. 현금 금액의 SSOT는 cash transaction이고 월별 배당 read model은 이 세 원장을
+명시적 `system_as_of` cutoff로 결합해 재생성한다.
+
+**상태**: 2026-09-02 사용자 승인. 상세 grain, coverage, source budget, capacity와 migration proposal은
+`docs/operations/wi-038-s02-contract-design-2026-09.md`, canonical contract는 `governance/catalog/`가 소유한다.
+이 승인은 contract를 `approved`로 만들 뿐 migration 0015, source call, credential accessor, backfill,
+Scheduler, production publish와 MCP 노출을 활성화하지 않는다.
+
+**이유**:
+
+- 선언·권리·실수령은 주체, 원천, 확정시점과 정정 방식이 다르며 한 행의 상태 변경으로 표현하면 원본과
+  point-in-time 지식이 사라진다.
+- 배당 일정이나 `주당액 × 수량`은 예상 권리일 뿐 계좌 입금과 원천징수의 증거가 아니다.
+- 이미 승인된 cash 원장과 별도 receipt 금액을 중복 저장하면 월별 수익과 총자산 reconciliation이 갈라진다.
+- 국내 계좌권리 API는 후보지만 IRP와 미국 실제 입금에는 확인된 원천 gap이 있어 coverage를 데이터로
+  남겨야 한다.
+- filing과 dividend는 logical failure, watermark와 완료조건을 격리해야 하지만 runtime까지 분리할 이유는 없다.
+
+**계약**:
+
+- action은 issuer/instrument와 source action identity별 immutable content revision이다. entitlement는 action과
+  account별 eligible quantity·rate·expected amount·coverage revision이다. receipt reconciliation은 action,
+  entitlement와 하나 이상의 cash event 사이의 reversible many-to-many link revision이다.
+- cash transaction이 gross, tax, net과 native currency의 monetary SSOT다. 원천이 제공하지 않은 component는
+  `null`이며 추정값으로 채우지 않는다. manual evidence는 provenance를 가진 append-only fallback이고 broker
+  row를 덮어쓰지 않는다.
+- live 분석과 운영 재현의 기본은 monotonic `system_as_of`다. source-effective historical view는
+  `retrospective_source_as_of`로 표시하며 두 clock을 조용히 혼합하지 않는다.
+- issuer action의 correction/cancellation은 이전 revision을 보존한다. cash reversal은 별도 monetary event와
+  receipt-link revision이며 action correction으로 합치지 않는다.
+- KIS 국내 account-right는 bounded semantic candidate다. IRP와 미국 actual receipt는 broker 또는
+  owner-private statement evidence가 생길 때까지 `source_gap`이고 일정·수량으로 received를 생성하지 않는다.
+- KIS routine/backfill ceiling은 64/320 physical calls, partition당 10 page다. 초기 stop line은 private Bronze
+  object 1 GiB와 Silver 500,000 rows이며 한도 초과 전 fail closed한다.
+- migration 0015는 additive object만 허용한다. 기존 dividend foundation table이 비어 있지 않거나 알려지지
+  않은 consumer가 있으면 자동 변환하지 않고 mapping/reconciliation gate에서 중단한다.
+- filing actual과 dividend ledger는 logical pipeline ID와 state만 분리한다. 동일 modular-monolith image,
+  managed runner, adapter, landing, repository, MotherDuck, GCS와 release artifact를 재사용하며 별도 service,
+  repository와 always-on worker를 만들지 않는다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

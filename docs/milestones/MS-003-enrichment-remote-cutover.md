@@ -15,7 +15,7 @@
 | ---: | --- | --- | --- | --- |
 | 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | proposed; S01 research-only closed |
 | 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
-| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01 closed; S02 owner-decision-ready; ADR-026/contract adoption and formal gate pending |
+| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01 research-only closed; contract hardening gate |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01 research-only closed; contract hardening gate |
 | 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
@@ -40,6 +40,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-02.6 | 2026-09-02 | Owner approved WI-038-S02 and WI-038-S03 adopted ADR-026, requirements/system-design clarification and eight approved-inactive dividend contract deltas | S02/S03 closed; no implementation, DDL, source, activation, parent or milestone status change |
 | 2026-09-02.5 | 2026-09-02 | WI-038-S02 froze the proposed action/entitlement/receipt-link, cash SSOT, PIT, coverage, migration, call-budget and capacity design | S02 ready for owner decision; no contract adoption, implementation, source, activation, parent or milestone status change |
 | 2026-09-02.4 | 2026-09-02 | WI-037-S03 adopted ADR-025, requirements/system-design clarification and seven approved-inactive filing contracts with shared implementation constraint | S03 closed; no implementation, source, activation, parent or milestone status change |
 | 2026-09-02.3 | 2026-09-02 | Owner approved WI-037-S02 package and shared implementation constraint; WI-037-S03 appended for canonical ADR/DGH adoption | S02 closed, S03 in progress; no code, DDL, source, activation, parent or milestone status change |

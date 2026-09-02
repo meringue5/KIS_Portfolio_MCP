@@ -52,6 +52,23 @@ cost_budget = "OpenDART and SEC free APIs plus existing KIS access; object stora
 acceptance_rules = ["Korean actuals originate from OpenDART and U.S. actuals from SEC EDGAR", "filing corrections preserve prior versions and knowledge time", "financial facts retain original taxonomy and mapping provenance", "dividend state gaps are explicit and manual evidence cannot overwrite broker events", "licensed research full text is not collected"]
 
 [[contracts]]
+id = "collection.dividend-ledger-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "보유종목의 issuer action, 계좌 entitlement, cash receipt link와 월별 read model을 위한 approved-but-inactive 배당 장바구니."
+decision_refs = ["ADR-025", "ADR-026", "DEC-023"]
+scope = "currently held Korean and U.S. direct equities and REITs plus account-private receipts; ETF distribution action only when exact instrument evidence exists; no inferred receipt"
+source_ids = ["source.opendart", "source.kis-open-api", "source.portfolio-owner"]
+dataset_ids = ["dataset.instrument-master", "dataset.filing-event", "dataset.portfolio-position-observation", "dataset.trade-event", "dataset.corporate-action-event", "dataset.cash-transaction-event", "dataset.fx-rate-daily", "dataset.dividend-source-observation", "dataset.dividend-event", "dataset.dividend-entitlement", "dataset.dividend-reconciliation", "dataset.dividend-monthly-summary"]
+priority = "recommended"
+history_policy = "initial three years of available action, entitlement and account cash evidence; unavailable IRP or U.S. receipt history remains source_gap and is never reconstructed from schedule times quantity"
+schedule_policy = "daily bounded action/right candidate plus post-account-history receipt reconciliation; no polling faster than source publication or account-history cadence"
+trigger_policy = "approved but inactive; no Scheduler, Remote MCP, backfill or production publish until the MS-002 to MS-003 formal gate, migration 0015 and fixture/recovery evidence are approved"
+cost_budget = "existing KIS and OpenDART access, shared scale-to-zero image, MotherDuck and private GCS only; KIS routine/backfill 64/320 physical calls, maximum 10 pages per partition, 1 GiB private Bronze object and 500000 Silver-row stop lines under the KRW 50000 platform ceiling"
+acceptance_rules = ["cash transaction is the monetary SSOT", "action entitlement and receipt link identities are separate append-only revisions", "system_as_of is the default and retrospective source mode is labeled", "correction and cash reversal remain distinct", "estimated entitlement never becomes received cash", "IRP and U.S. unsupported receipt coverage remains source_gap with owner-private manual fallback only", "source calls and capacity stop before exceeding approved ceilings", "filing and dividend logical failures remain isolated while image runner adapters landing repositories warehouse GCS and release artifact are shared", "no separate service repository or always-on worker"]
+
+[[contracts]]
 id = "collection.filing-actual-v1"
 version = "1.0.0"
 status = "approved"

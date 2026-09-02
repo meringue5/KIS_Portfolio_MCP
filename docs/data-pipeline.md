@@ -32,6 +32,17 @@ lineage는 `control.quality_results`, `control.lineage_edges`에 저장하고 DB
 - `pipeline.owner-research-pdf-v1`
 - `pipeline.alert-evaluation-v2`
 
+MS-003에서 정본 계약까지 승인됐지만 아직 runtime registry와 production trigger에는 등록하지 않은 dedicated
+logical pipeline은 다음과 같다.
+
+- `pipeline.filing-actual-v1` — official filing artifact와 actual fact; approved but inactive
+- `pipeline.dividend-ledger-v1` — dividend action, account entitlement, cash receipt-link와 monthly read model;
+  approved but inactive
+
+두 pipeline은 umbrella `pipeline.fundamentals-dividends-v2`를 대체 삭제하지 않는다. 구현 시 logical run,
+watermark, budget, quality와 failure만 분리하고 공통 image, runner, adapters, Bronze landing, repositories,
+MotherDuck, GCS와 release artifact를 재사용한다. 별도 service/repository/always-on worker를 만들지 않는다.
+
 WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio-v2`다. 허용 slot은
 `kr-1000`, `kr-1430`, `kr-1600`, partition은 `all-accounts` 하나뿐이다. 각 slot은 별도 fixed-argument
 Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미국 최근 마감 입력도 함께 읽고,

@@ -125,6 +125,11 @@ SEC 공시와 XBRL은 실제 실적의 canonical source가 될 수 있지만 ana
    `manual` provenance로 보존한다.
 6. 월별 배당은 received net과 gross를 각각 집계하고 선언·예상액과 reconciliation한다.
 
+2026-09-02 ADR-026 clarification: 위 상태는 하나의 mutable row가 아니다. issuer action revision,
+account entitlement revision, cash monetary SSOT를 참조하는 reversible receipt-link revision으로 분리한다.
+기본 조회는 `system_as_of`이고, IRP·미국 actual receipt는 증거가 생길 때까지 `source_gap`이다. 일정×수량
+추정은 received로 승격하지 않으며 filing/dividend는 logical state만 분리하고 shared runtime을 사용한다.
+
 ### C-5. 매크로·사건 context
 
 초기 `macro_profile_v1`은 일반적으로 널리 쓰이는 다음 범주로 제한한다.

@@ -4,13 +4,13 @@ title: Build declared entitled and received dividend ledger
 status: proposed
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023
+decision_refs: ADR-021, ADR-023, ADR-026
 requirement_refs: DEC-023
 milestone_ref: MS-003
 delivery_refs: V2-W0407
 parent_work_item: none
 depends_on: WI-020, WI-021, WI-037
-architecture_impact: pending owner decision on proposed ADR-026 data boundary and point-in-time semantics
+architecture_impact: ADR-026 approved; separate action entitlement and cash receipt-link ledgers on shared runtime
 data_impact: append-only dividend states and reconciliation links
 security_impact: account-level received amounts remain confidential
 cost_impact: bounded filing and account-history processing
@@ -50,8 +50,10 @@ reconciled to positions and cash events.
 
 - `WI-038-S01` — closed: research dividend action, account entitlement, received cash, correction, reconciliation and
   source/account coverage boundaries without implementation or activation.
-- `WI-038-S02` — ready: freeze the implementation-ready action/entitlement/receipt-link, cash SSOT, PIT,
-  correction, coverage, migration, source-budget and capacity contract design without adoption or implementation.
+- `WI-038-S02` — closed after owner approval: froze the implementation-ready action/entitlement/receipt-link, cash
+  SSOT, PIT, correction, coverage, migration, source-budget and capacity contract design without implementation.
+- `WI-038-S03` — closed: adopt ADR-026, requirements/system design and eight approved-but-inactive DGH contract
+  deltas without implementation, DDL, source calls or activation.
 
 ## Research checkpoint — 2026-09-01
 
@@ -94,3 +96,17 @@ reconciled to positions and cash events.
   code, DDL, source call, credential, data, infrastructure, schedule or MCP change occurred.
 - Follow-up Work Item: after owner approval, append `WI-038-S03` for canonical ADR/requirements/DGH adoption. Runtime
   implementation remains behind the MS-002 → MS-003 formal gate.
+
+## Contract adoption checkpoint — 2026-09-02
+
+- The owner approved the complete WI-038-S02 package. ADR-026 is canonical and the action, entitlement,
+  cash receipt-link and monthly-summary boundary is reflected in requirements, system design and DGH contracts.
+- Eight contract deltas are approved but inactive: four dataset additions, two dataset revisions, one collection and
+  one dedicated logical pipeline. The umbrella collection/pipeline remains for compatibility and orchestration.
+- `cash-transaction-event` remains monetary SSOT; `system_as_of` is the default; correction, cash reversal, IRP/U.S.
+  `source_gap`, manual provenance and KIS/object/row stop lines are fail-closed contracts.
+- Evidence: `docs/operations/wi-038-s03-contract-adoption-2026-09.md`.
+- Result: `WI-038-S02` and `WI-038-S03` are closed. Parent `WI-038` and MS-003 remain proposed; no code, DDL,
+  source call, credential, data, infrastructure, schedule, runtime registry or MCP change occurred.
+- Follow-up Work Item: implementation starts only after the MS-002 → MS-003 formal gate and must add migration 0015,
+  fixtures, recovery evidence and a separate production activation decision.

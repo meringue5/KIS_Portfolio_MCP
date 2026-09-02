@@ -323,6 +323,21 @@ Remote MCP를 통해 재현 가능한 대화형 분석을 수행하는 데 필�
   동일 image, runner, adapter, landing, repository와 deployment artifact를 재사용하고, 불필요한 code/운영
   복제가 발생하면 구현을 중단해 architecture를 재검토한다.
 
+2026-09-02 dividend ledger clarification:
+
+- declared·entitled·received를 한 mutable row의 상태로 구현하지 않는다. issuer action revision, account
+  entitlement revision과 cash receipt-link revision을 분리하고 cash transaction을 monetary SSOT로 유지한다.
+- 기본 point-in-time mode는 시스템이 실제로 알았던 `system_as_of`다. source-effective historical view는
+  retrospective label과 precision을 표시하며 correction과 cash reversal을 서로 다른 revision으로 보존한다.
+- 일정·주당액·보유수량으로 실수령을 생성하지 않는다. IRP와 미국 실제 입금은 broker 또는 owner-private
+  statement evidence 전까지 `source_gap`이며 manual fallback도 broker fact를 덮어쓰지 않는다.
+- migration 0015는 additive-only이고 기존 foundation이 비어 있지 않으면 fail closed한다. KIS 호출은
+  routine/backfill 64/320, partition당 10 page, private Bronze 1 GiB와 Silver 500,000 rows에서 중단한다.
+- filing과 dividend는 logical pipeline·watermark·failure만 분리하고 동일 image, runner, adapter, landing,
+  repository와 release artifact를 재사용한다. 별도 service, repository와 always-on worker를 만들지 않는다.
+- 이 clarification은 계약 승인일 뿐 migration, source call, backfill, schedule, production publish와 MCP
+  activation을 승인하지 않는다.
+
 ### DEC-026~DEC-032: 감시·신호·대화 계약
 
 - `DEC-026`: 가격 충격·변동성·기여도·추세를 결합하고 3년 replay와 2주 shadow를 통과한 rule version만
@@ -687,6 +702,9 @@ KIS KSD·국내 계좌권리·미국 ICE 권리의 live 검증과 `declared → 
 기록했다. 해외와 IRP 실제 입금 원천 gap을 일정×수량으로 채우지 않고 statement/manual provenance를
 허용하는 C-4 권고는 DEC-023으로 승인됐다.
 
+ADR-026은 이 요구를 issuer action, account entitlement, cash receipt-link revision으로 구체화한다. 현금
+원장의 gross·tax·net·통화가 실수령 monetary SSOT이며, 월별 집계는 명시적 cutoff와 coverage로 재생성한다.
+
 ### 8.4 매수 lot·투자 thread 분석과 매매일지
 
 #### 8.4.1 개념 계층
@@ -1035,6 +1053,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-02 | dividend architecture 승인 | WI-038-S02의 ADR-026, 8-contract delta, action/entitlement/receipt-link 분리, cash SSOT, system-as-of, additive migration, bounded call/object/row budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-02 | filing architecture 승인 | WI-037-S02의 ADR-025, 7-contract delta, dual as-of, additive migration, bounded call/object/fact budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-01 | 제한적 source 계약 승인 | DEC-043 clarification으로 Alpha Vantage owner-only normalized forward 경로의 source·collection·dataset·pipeline 계약을 승인함. historical PIT와 production activation은 미승인 |
 | 2026-08-31 | 제한적 운영 승인 | DEC-050으로 첫 정상 월요일 증거 뒤 WI-030 Telegram을 `주의` 이상 7일 experimental canary로 조기 활성화하고, 정식 2주 shadow와 영구 rule 승인은 별도로 유지함 |

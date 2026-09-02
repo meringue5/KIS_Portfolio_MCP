@@ -185,6 +185,29 @@ cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted issuer refresh or gap reconciliation"
 
 [[contracts]]
+id = "pipeline.dividend-ledger-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "KIS·OpenDART·owner evidence를 action, entitlement, cash receipt-link와 monthly read model로 처리하는 approved-but-inactive logical pipeline."
+decision_refs = ["ADR-025", "ADR-026", "DEC-023", "DEC-041"]
+source_ids = ["source.opendart", "source.kis-open-api", "source.portfolio-owner"]
+input_dataset_ids = ["dataset.instrument-master", "dataset.filing-event", "dataset.portfolio-position-observation", "dataset.trade-event", "dataset.corporate-action-event", "dataset.cash-transaction-event", "dataset.fx-rate-daily"]
+output_dataset_ids = ["dataset.dividend-source-observation", "dataset.dividend-event", "dataset.dividend-entitlement", "dataset.dividend-reconciliation", "dataset.cash-transaction-event", "dataset.dividend-monthly-summary"]
+stages = ["resolve-held-scope", "collect", "land", "normalize-action", "derive-entitlement", "link-receipt", "quality", "publish", "materialize-monthly"]
+schedule_policy = "daily bounded action and right candidate plus post-account-history receipt reconciliation; exact deployment slots remain a later activation decision"
+calendar_gate = "governed KRX and U.S. calendars, source publication cadence and completed account-history partition; closed or unsupported partitions record no-op or source_gap"
+idempotency_key = "pipeline id, version, source, account, market, logical date partition, immutable plan and budget hash, source action or transaction identity and content hash"
+timeout_policy = "bounded source, account and date partition; maximum 10 pages per partition, 1 GiB private Bronze object total and 500000 Silver-row stop lines"
+retry_policy = "idempotent GET only through shared resilience; reserve every physical attempt before I/O, resume landed immutable observations and fail closed on repeated continuation, ambiguous manual import, auth, schema or unsupported coverage"
+source_call_budget = "KIS maximum 64 physical calls per routine run and 320 per backfill day, maximum 10 pages per partition, sequential bounded execution; OpenDART evidence reuses filing artifacts or its separately governed budget"
+freshness_gates = ["exact held instrument and account scope", "source effective available observed fetched and knowledge clocks retained", "action correction attempted by next eligible source run", "receipt reconciliation after completed account-history evidence", "IRP and U.S. receipt source gaps explicit"]
+quality_gates = ["private Bronze content hash and page coverage verified", "exact issuer instrument account and currency identities", "action entitlement and cash revisions remain separate", "cash event is monetary SSOT and link allocations reconcile", "estimate never promoted to received", "correction and reversal lineage explicit", "partial unsupported over-budget or over-cap partition never advances publish watermark", "monthly output exposes cutoff coverage native currency and FX label"]
+secret_profile = "existing KIS account profile and future approved OpenDART accessor via shared runtime; owner import uses authenticated private provenance and no new provider secret"
+cost_class = "routine"
+trigger_policy = "approved but inactive; no Scheduler, Remote MCP, source call, migration or production publish until MS-003 formal implementation and activation gates; reuse the common modular-monolith image runner adapters landing repositories MotherDuck GCS and release artifact, with no separate service repository or always-on worker"
+
+[[contracts]]
 id = "pipeline.filing-actual-v1"
 version = "1.0.0"
 status = "approved"

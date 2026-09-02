@@ -774,4 +774,10 @@ status = "closed"
 id = "WI-038-S02"
 parent_id = "WI-038"
 title = "Freeze dividend action entitlement receipt and cash reconciliation contract design"
-status = "ready"
+status = "closed"
+
+[[subitems]]
+id = "WI-038-S03"
+parent_id = "WI-038"
+title = "Adopt ADR-026 and approved inactive dividend data contracts"
+status = "closed"

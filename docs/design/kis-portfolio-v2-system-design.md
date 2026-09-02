@@ -272,7 +272,7 @@ collection allowlist가 IAM과 같은 강제 경계가 아니라는 잔여 위�
 | Silver | `etf_constituent_snapshot`, `etf_constituent` | ETF·effective date·component |
 | Silver | `issuer_source_alias`, `filing_identity`, `filing_revision`, `financial_fact_revision` | source issuer/filing/fact revision·system/source as-of |
 | Silver | `consensus_snapshot`, `guidance_event` | issuer·period·as-of·metric |
-| Silver | `dividend_event`, `dividend_entitlement`, `dividend_receipt` | event/account/payment state |
+| Silver | `dividend_action_revision`, `dividend_entitlement_revision`, `dividend_receipt_link_revision` | action/account/cash-link revision |
 | Silver | `macro_observation`, `market_event`, `event_exposure_link` | series/event/effective time |
 | Gold | `portfolio_daily`, `position_performance_daily`, `lot_performance_daily` | day·portfolio/position/lot |
 | Gold | `thread_performance_daily`, `exposure_snapshot`, `dividend_monthly` | day/month·thread/exposure |
@@ -287,6 +287,16 @@ ADR-025에 따라 filing source artifact는 generic Bronze observation과 privat
 재사용하고, canonical filing/fact는 Silver identity/revision ledger로 분리한다. `system_as_of`는 실제 system
 knowledge를, 표시된 `retrospective_source_as_of`는 공식 source availability를 사용한다. source taxonomy와
 context는 immutable fact에 보존하고 normalized concept mapping은 versioned Control input으로 결합한다.
+
+ADR-026에 따라 dividend action, account entitlement와 receipt reconciliation은 별도 append-only revision
+ledger다. `cash-transaction-event`가 gross·tax·net·native-currency monetary SSOT이고 receipt ledger는 금액을
+복제하지 않는 reversible many-to-many link를 가진다. 월별 Gold는 `system_as_of`를 기본으로 재생성하며
+source-effective historical mode는 별도 label을 사용한다. 일정·주당액·수량 추정은 received가 아니고,
+IRP·미국 actual receipt는 broker 또는 owner-private evidence 전까지 `source_gap`이다.
+
+목표 migration 0015는 Bronze observation/object manifest, action, entitlement, receipt-link revision과 current/as-of,
+monthly read model을 additive object로 추가한다. 기존 dividend foundation에 row 또는 unknown consumer가 있으면
+자동 변환하지 않는다. 이는 target schema 설계이며 WI-038 구현 gate 전에는 DDL이나 live DB를 변경하지 않는다.
 
 ### 6.4 Migration contract
 
@@ -306,6 +316,12 @@ context는 immutable fact에 보존하고 normalized concept mapping은 versione
 각 pipeline은 `docs/governance/data-governance-harness.md`의 승인된 source·collection·dataset 계약을 참조하는
 code-reviewed manifest와 application registry를 함께 가진다. 수집 장바구니는 pipeline TODO가 아니라
 versioned collection contract다.
+
+`pipeline.filing-actual-v1`과 `pipeline.dividend-ledger-v1`은 각각의 watermark, budget, quality와 failure state를
+갖는 dedicated logical pipeline이다. 그러나 동일 modular-monolith image, managed runner, source adapter,
+Bronze landing, repository, MotherDuck, GCS와 release artifact를 재사용한다. dividend pipeline은 action 수집,
+entitlement 파생, cash receipt link, monthly materialization을 순서대로 수행하며 approved-but-inactive 상태다.
+별도 service/repository/always-on worker는 만들지 않고, 분리 때문에 구현·운영 중복이 생기면 ADR을 재검토한다.
 
 ```text
 pipeline_id
