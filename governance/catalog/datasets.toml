@@ -842,11 +842,11 @@ consumer_ids = ["realized lot analysis", "thread lifecycle", "LLM allocation rev
 
 [[contracts]]
 id = "dataset.alert-candidate"
-version = "1.1.0"
+version = "1.2.0"
 status = "approved"
 owner = "owner"
 description = "승인된 rule version과 point-in-time metric으로 평가한 상태·심각도·품질·lineage 및 redacted public context."
-decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051"]
+decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051", "DEC-052"]
 layer = "gold"
 source_ids = []
 input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily", "dataset.metric-value", "dataset.portfolio-daily-state"]
@@ -855,12 +855,12 @@ grain = "one alert rule version, opaque subject, logical market session and gove
 natural_key = ["rule_id", "rule_version", "subject_type", "subject_id", "session_key", "evaluation_slot"]
 time_semantics = "evaluation_at and market session are stable logical cutoffs; recorded_at is audit metadata only"
 write_mode = "idempotent append by logical evaluation key; conflicting replay is rejected and rule versions are immutable"
-schema_contract = "Gold alert candidate v1.1 with normal or active state, severity, state fingerprint, quality, lineage and a bounded production-value public context containing safe instrument label, market/type, percent-only price/trend facts, explicit unavailable analytics and source time"
+schema_contract = "Gold alert candidate v1.2 with normal or active state, severity, state fingerprint, quality, lineage and a bounded production-value context that distinguishes current SMA position from an observed cross, price-to-average from average-to-average relations, baseline initialization and explicit unavailable analytics"
 sensitivity = "confidential"
 retention_policy = "candidate and transition history retained with governed metrics; minimum three years hot history"
 backup_policy = "parquet"
 freshness_slo = "after each governed 10:00, 14:30, 16:00 or U.S. close evaluation slot"
-quality_rules = ["non-pass quality never mutates current state or creates a claim", "watch, warning and critical are delivery-eligible while normal is not", "ETF constituent coverage is unavailable and never inferred", "public context excludes account numbers, absolute total assets, credentials, chat identifiers and raw source content", "production-value context never silently omits or fabricates unavailable episode drawdown or KRW valuation-change contribution"]
+quality_rules = ["non-pass quality never mutates current state or creates a claim", "watch, warning and critical transitions are delivery-eligible while normal and baseline-only initialization are not", "current below-SMA state never claims a downward-cross event without prior-session evidence", "10:00 and 14:30 KRX cumulative volume never use the full-day average as a comparable baseline", "ETF constituent coverage is unavailable and never inferred", "public context excludes account numbers, absolute total assets, credentials, chat identifiers and raw source content", "production-value context never silently omits or fabricates unavailable episode drawdown or KRW valuation-change contribution"]
 producer_pipeline_ids = ["pipeline.alert-evaluation-v2"]
 consumer_ids = ["signal replay", "shadow delivery", "Remote MCP signal status", "Telegram delivery after approval"]
 

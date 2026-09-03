@@ -538,6 +538,13 @@ DEC-051은 MS-002의 완료를 production-equivalent 사용자 경험의 실사�
 종목 식별·변동·보유 에피소드 낙폭·원화 평가액 변화 기여·추세·품질·사람이 읽는 근거를 제공하고 실제
 수신 상태에서 안정화해야 한다. repository-local 또는 fail-closed 완료는 그 자체로 production-ready가 아니다.
 
+DEC-052는 첫 production-value 수신 피드백을 의미 정확성 gate로 반영한다. 현재 가격이 이동평균 아래인
+상태는 `하회`, session 간 실제 하향 교차만 `하향 이탈`로 표현한다. 새 rule의 최초 active 관측은
+baseline-only로 기록하고 시장 신규 사건으로 전송하지 않으며, 10:00·14:30 KRX 거래량은 동일 slot
+정규화 전까지 종일 평균과 비교하지 않는다. 가격·추세 품질과 준비되지 않은 보유구간/기여도 품질도
+분리한다. 장기 인수는 3년 replay, calendar boundary fixture와 실제 일·주·월·분기·연간 누적 증거를 함께
+사용하며 관찰하지 않은 장기 안정성을 완료로 주장하지 않는다.
+
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
 - ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는

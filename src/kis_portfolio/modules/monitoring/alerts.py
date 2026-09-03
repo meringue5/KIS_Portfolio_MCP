@@ -15,6 +15,7 @@ SEVERITY_RANK = {"normal": 0, "watch": 1, "warning": 2, "critical": 3}
 PUBLIC_CONTEXT_KEYS = frozenset({
     "presentation_version", "subject_label", "market_label", "asset_type_label", "summary",
     "reason_codes", "change_percent", "sma20_relation", "sma50_relation", "sma120_relation",
+    "sma20_sma50_relation",
     "volume_ratio20", "rsi14", "bollinger_state", "episode_drawdown_percent",
     "portfolio_impact_percent", "unavailable_codes", "source_at", "metric_refs", "quality_status",
 })
@@ -199,10 +200,13 @@ def decide_alert_transition(
     floor = SEVERITY_RANK[candidate.rule.minimum_delivery_severity]
     if current is None:
         active = evaluation.signal_state == "active"
+        initial_policy = str(candidate.rule.document.get("initial_active_policy", "deliver"))
+        if initial_policy not in {"deliver", "baseline_only"}:
+            raise AlertContractError("unknown initial active policy")
         return AlertTransition(
             "entered" if active else "initial_normal", 1, 1 if active else 0,
             None, evaluation.signal_state, None, evaluation.severity,
-            active and SEVERITY_RANK[evaluation.severity] >= floor,
+            active and initial_policy == "deliver" and SEVERITY_RANK[evaluation.severity] >= floor,
             evaluation.severity,
         )
     if (
@@ -216,7 +220,7 @@ def decide_alert_transition(
     delivery = False
     delivery_severity = evaluation.severity
     if current.current_state == "normal" and evaluation.signal_state == "active":
-        transition = "reentered" if current.revision > 0 else "entered"
+        transition = "reentered" if current.episode > 0 else "entered"
         episode += 1
         delivery = SEVERITY_RANK[evaluation.severity] >= floor
     elif current.current_state == "active" and evaluation.signal_state == "normal":

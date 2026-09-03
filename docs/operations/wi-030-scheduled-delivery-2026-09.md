@@ -69,3 +69,20 @@ This is the start of real use, not MS-002 closure. The first production-value sc
 duplicate/failure/volume observations remain pending. A weekday 10:20 thread heartbeat reads only redacted aggregate
 runtime and ledger evidence and reports meaningful new success, failure or owner-action conditions; owner receipt and
 product acceptance are still manual decisions.
+
+## First S03 owner feedback — 2026-09-03 10:00 KST
+
+Execution `kis-portfolio-owned-core-v2-1000-z9h6x` completed successfully. It evaluated 21 production-value candidates
+and sent 14/14 eligible messages with zero unknown, retryable or permanent failures. The owner confirmed that the
+messages arrived, but did not accept the product wording as intuitive.
+
+Read-only candidate review found all 14 messages were first-evaluation `entered` states under
+`rc-2026-09-03.1`; the public reason `confirmed_sma20_break` required only current price below SMA20 plus another
+weakness confirmation and did not require a prior-to-current cross. Several instruments rose on the day while still
+remaining below SMA20/50/120, so `이탈` could be misread as a reversal. KRX 10:00 volume also compared partial-day
+cumulative volume with full-day history. DEC-052 classifies these as meaning-accuracy defects rather than owner
+education gaps.
+
+The correction must use a successor immutable RC, preserve all v1 candidates and attempts, seed the first active state
+without external delivery, distinguish `하회` from observed `하향 이탈`, suppress non-comparable intraday volume and
+scope the quality line to the facts that actually passed. Owner acceptance remains open.

@@ -325,11 +325,11 @@ trigger_policy = "repository-local fixture in S01 through S04; S05 is read-only 
 
 [[contracts]]
 id = "pipeline.alert-evaluation-v2"
-version = "1.1.0"
+version = "1.2.0"
 status = "approved"
 owner = "owner"
 description = "승인 metric contract를 point-in-time price/state에서 평가하고 immutable rule version, state transition과 DB-only shadow claim을 기록한다."
-decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051"]
+decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051", "DEC-052"]
 source_ids = []
 input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily", "dataset.metric-value", "dataset.portfolio-daily-state"]
 output_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger"]
@@ -341,7 +341,7 @@ timeout_policy = "bounded held-subject shards in an existing scale-to-zero job"
 retry_policy = "candidate replay is idempotent; state uses optimistic revision; expired or retryable shadow claims may be reacquired; unknown never auto-retries"
 source_call_budget = "zero direct source or network calls; consumes governed MotherDuck values only"
 freshness_gates = ["upstream metric and state cutoffs are terminal for the slot", "rule validity includes evaluation time"]
-quality_gates = ["pass input quality only mutates state", "watch, warning or critical creates a delivery-required transition", "production-value public context has safe identity and decision-aligned percent facts", "unavailable governed analytics carry explicit reason codes", "public context allowlist and sensitive-value rejection", "ETF treated as opaque security with missing constituent coverage"]
+quality_gates = ["pass input quality only mutates state", "baseline-only first active observation creates state but no external delivery", "watch, warning or critical later transitions create delivery-required state", "downward cross requires previous close at or above previous SMA20 and current close below current SMA20", "KRX intraday volume is suppressed until same-slot normalization exists", "production-value public context has safe identity and decision-aligned percent facts", "unavailable governed analytics carry explicit reason codes", "public context allowlist and sensitive-value rejection", "ETF treated as opaque security with missing constituent coverage"]
 secret_profile = "MotherDuck runtime only; no Telegram token or chat identifier in WI-028"
 cost_class = "routine"
 trigger_policy = "DB-only fixture and shadow claim contract; production threshold, external destination and Telegram send remain gated by WI-029 and WI-030"
@@ -371,11 +371,11 @@ trigger_policy = "manual bounded replay and existing Scheduler shadow slots; ext
 
 [[contracts]]
 id = "pipeline.telegram-delivery-v2"
-version = "1.2.0"
+version = "1.3.0"
 status = "approved"
 owner = "owner"
 description = "DEC-050 transport canary 증거를 보존하면서 DEC-051 production-value release candidate와 이후 permanent rule의 owner-approved alert transition을 redacted Telegram ledger로 전달한다."
-decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-050", "DEC-051"]
+decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-050", "DEC-051", "DEC-052"]
 source_ids = []
 input_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger", "dataset.alert-calibration-evidence"]
 output_dataset_ids = ["dataset.alert-delivery-ledger"]
@@ -387,7 +387,7 @@ timeout_policy = "one bounded HTTPS sendMessage request per acquired claim; post
 retry_policy = "no in-process retry; explicit provider 429/5xx may be retried by a later scheduled run only while the rule remains valid; terminal unknown and expired claims are never automatically retried"
 source_call_budget = "at most 20 Telegram sendMessage attempts per monitoring run after all activation gates pass"
 freshness_gates = ["candidate and delivery-required transition are terminal for the slot", "latest owner decision remains approved", "rule valid_from and valid_to contain dispatch time"]
-quality_gates = ["active external rule only", "pass-quality candidate only", "watch or higher only", "normal and no-change remain DB evidence", "safe instrument market and type plus decision-aligned percent facts are rendered", "unavailable drawdown and contribution are explicit and never zero-filled", "allowlisted payload excludes account number absolute total assets credentials raw source and chat identifier", "disabled incomplete expired or revoked configuration creates no request"]
+quality_gates = ["active external rule only", "pass-quality candidate only", "watch or higher non-baseline transition only", "normal no-change and first-rule baseline remain DB evidence", "current SMA position actual cross and moving-average structure use distinct owner-readable terms", "intraday non-comparable volume and unavailable drawdown or contribution are explicit and never zero-filled", "allowlisted payload excludes account number absolute total assets credentials raw source and chat identifier", "disabled incomplete expired or revoked configuration creates no request"]
 secret_profile = "GCP Secret Manager Telegram bot token and private chat id only on the V2 pipeline runtime identity; opaque destination alias is non-secret runtime config"
 cost_class = "routine"
 trigger_policy = "DEC-050 transport canary remains immutable evidence; DEC-051 permits one separately versioned production-value release candidate for real-use stabilization, while permanent external activation still requires verified WI-029 evidence and owner acceptance"

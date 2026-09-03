@@ -180,16 +180,17 @@ def test_production_value_renderer_is_owner_readable_and_explicit_about_unavaila
     rich = item.__class__(
         **{**{field: getattr(item, field) for field in item.__dataclass_fields__},
            "public_context": {
-               "presentation_version": "production-value-v1",
+               "presentation_version": "production-value-v2",
                "subject_label": "삼성전자",
                "market_label": "국내",
                "asset_type_label": "주식",
-               "summary": "20일 이동평균선 이탈이 확인됐습니다",
-               "reason_codes": ["confirmed_sma20_break"],
+               "summary": "주가가 오늘 20일선을 하향 이탈했습니다",
+               "reason_codes": ["sma20_downward_cross"],
                "change_percent": "-2.25",
                "sma20_relation": "below",
                "sma50_relation": "above",
                "sma120_relation": "above",
+               "sma20_sma50_relation": "below",
                "volume_ratio20": "1.60",
                "rsi14": "38.20",
                "bollinger_state": "inside",
@@ -208,11 +209,13 @@ def test_production_value_renderer_is_owner_readable_and_explicit_about_unavaila
 
     assert "[주의] 삼성전자 · 국내 · 주식" in message
     assert "가격: 오늘 -2.25%" in message
-    assert "추세: 20일선 아래 · 50일선 위 · 120일선 위" in message
-    assert "20일 평균 1.60배 · RSI(14) 38.20 · 볼린저 밴드 안" in message
+    assert "가격 위치: 20일선 아래 · 50일선 위 · 120일선 위" in message
+    assert "이평선 구조: 20일선이 50일선 아래" in message
+    assert "직전 20일 평균의 1.60배 · RSI(14) 38.20 · 볼린저 밴드 안" in message
     assert "보유구간 낙폭: 계산 보류" in message
     assert "포트폴리오 영향: 계산 보류" in message
-    assert "규칙:" not in message and "confirmed_sma20_break" not in message
+    assert "가격·추세 정상 · 보유구간·기여도 계산 보류" in message
+    assert "규칙:" not in message and "sma20_downward_cross" not in message
 
     missing_reason = rich.__class__(
         **{**{field: getattr(rich, field) for field in rich.__dataclass_fields__},
@@ -220,6 +223,20 @@ def test_production_value_renderer_is_owner_readable_and_explicit_about_unavaila
     )
     with pytest.raises(UnsafeTelegramPayload, match="explicit unavailable reason"):
         render_telegram_alert(missing_reason)
+
+    intraday = rich.__class__(
+        **{**{field: getattr(rich, field) for field in rich.__dataclass_fields__},
+           "public_context": {
+               **rich.public_context,
+               "volume_ratio20": None,
+               "unavailable_codes": [
+                   *rich.public_context["unavailable_codes"],
+                   "intraday_volume_not_comparable",
+               ],
+           }},
+    )
+    intraday_message = render_telegram_alert(intraday)
+    assert "장중 거래량 비교 보류 (동시간대 기준 미구축)" in intraday_message
 
 
 def test_success_is_hashed_in_ledger_and_never_persists_destination_secret() -> None:

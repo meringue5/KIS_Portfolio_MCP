@@ -4,14 +4,14 @@ title: Enable approved outbound Telegram delivery
 status: in_progress
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051
-requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044, DEC-051
+decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051, DEC-052
+requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044, DEC-051, DEC-052
 milestone_ref: MS-002
 delivery_refs: V2-W0508
 parent_work_item: none
 depends_on: WI-029
 architecture_impact: adds the approved outbound-only Telegram transport behind the delivery ledger
-data_impact: transport outcome only; analytics contracts remain unchanged
+data_impact: versioned alert evaluation and presentation semantics; no physical schema change
 security_impact: Secret Manager token and destination reference with strict redaction and resource-level access
 cost_impact: negligible Bot API traffic from three scheduled slots; no always-on service
 ---
@@ -53,6 +53,8 @@ collecting the separate formal shadow evidence.
   KRW valuation-change contribution, trend, quality/freshness and reasons in owner-readable Korean.
 - [ ] A production-equivalent release candidate is received and stabilized before permanent activation; transport-only
   receipt is not product acceptance.
+- [ ] `하회` current state and actual `하향 이탈` event are distinct, rule initialization is silent baseline and
+  intraday KRX volume is not compared with full-day history.
 
 ### S01 preparation acceptance
 
@@ -81,9 +83,15 @@ collecting the separate formal shadow evidence.
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
 - `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary.
 - `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`in_progress`).
+- `WI-030-S04`: establish calendar-window replay, fixture and live-observation acceptance evidence (`ready`; follows S03).
 
 ## Evidence
 
+- 2026-09-03 10:00 first production-value execution sent 14/14 owner-visible messages with zero unknown, retryable or
+  permanent failures. Owner confirmed receipt but found the SMA event/state wording ambiguous. Live review found all
+  14 were first-rule `entered` transitions, `confirmed_sma20_break` did not require an actual prior-to-current cross,
+  and 10:00 KRX volume used a partial-day/full-day comparison. DEC-052 correction is in progress; this is successful
+  defect discovery, not owner acceptance.
 - 2026-09-03 S03 real-use activation passed. PR `#43` merged as master `fe61625`; GitHub Actions run `33652147678`
   activated `rc-2026-09-03.1` with presentation `production-value-v1` after verifying 18 provider-confirmed S02 sends.
   Activation execution `kis-portfolio-wi030-s03-q87wm` succeeded and append-only replaced the S02 canary approval.
@@ -123,7 +131,8 @@ collecting the separate formal shadow evidence.
 
 - Result: S01 is closed; S02 evidence is preserved and its external approval is revoked; S03 is deployed in real-use
   stabilization under DEC-051.
-- Remaining risk: live production-value receipt, false-positive/miss review, duplicate suppression and owner acceptance
-  are not yet proven. Episode drawdown and KRW valuation-change contribution remain explicit `계산 보류` until their
-  upstream governed readiness passes.
+- Remaining risk: corrected immutable RC deployment, subsequent transition semantics, false-positive/miss review,
+  duplicate suppression and owner acceptance are not yet proven. Episode drawdown and KRW valuation-change
+  contribution remain explicit `계산 보류` until their upstream governed readiness passes. Monthly, quarterly and
+  annual stability remain explicitly unclaimed until WI-030-S04 evidence matures.
 - Follow-up Work Item: next milestone baseline after owner review.

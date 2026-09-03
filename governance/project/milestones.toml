@@ -721,6 +721,12 @@ title = "Activate and stabilize the production-value Telegram alert experience"
 status = "in_progress"
 
 [[subitems]]
+id = "WI-030-S04"
+parent_id = "WI-030"
+title = "Establish calendar-window alert acceptance evidence"
+status = "ready"
+
+[[subitems]]
 id = "WI-035-S01"
 parent_id = "WI-035"
 title = "Research production inventory cost and rollback cleanup evidence"

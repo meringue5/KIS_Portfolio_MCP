@@ -17,6 +17,7 @@ TELEGRAM_API_ROOT = "https://api.telegram.org"
 _ALLOWED_CONTEXT_KEYS = frozenset({
     "presentation_version", "subject_label", "market_label", "asset_type_label", "summary",
     "reason_codes", "change_percent", "sma20_relation", "sma50_relation", "sma120_relation",
+    "sma20_sma50_relation",
     "volume_ratio20", "rsi14", "bollinger_state", "episode_drawdown_percent",
     "portfolio_impact_percent", "unavailable_codes", "source_at", "metric_refs", "quality_status",
 })
@@ -78,6 +79,9 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         if relation not in relation_labels:
             raise UnsafeTelegramPayload("SMA relation is not allowlisted")
         relations.append(f"{period}일선 {relation_labels[relation]}")
+    average_relation = str(context.get("sma20_sma50_relation", ""))
+    if average_relation not in relation_labels:
+        raise UnsafeTelegramPayload("moving-average relation is not allowlisted")
 
     volume = _optional_decimal(context, "volume_ratio20")
     rsi = _optional_decimal(context, "rsi14")
@@ -88,15 +92,19 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
     }
     if bollinger not in bollinger_labels:
         raise UnsafeTelegramPayload("Bollinger state is not allowlisted")
-    momentum = (
-        f"20일 평균 {volume}배" if volume is not None else "거래량 계산 보류"
-    ) + " · " + (f"RSI(14) {rsi}" if rsi is not None else "RSI 계산 보류")
-    momentum += f" · 볼린저 {bollinger_labels[bollinger]}"
-
     unavailable = context.get("unavailable_codes", [])
     if not isinstance(unavailable, list) or any(not _SAFE_REASON.fullmatch(str(code)) for code in unavailable):
         raise UnsafeTelegramPayload("unavailable_codes must be an allowlisted list")
     unavailable_set = {str(code) for code in unavailable}
+    if volume is not None:
+        volume_text = f"직전 20일 평균의 {volume}배"
+    elif "intraday_volume_not_comparable" in unavailable_set:
+        volume_text = "장중 거래량 비교 보류 (동시간대 기준 미구축)"
+    else:
+        volume_text = "거래량 계산 보류"
+    momentum = volume_text + " · " + (f"RSI(14) {rsi}" if rsi is not None else "RSI 계산 보류")
+    momentum += f" · 볼린저 {bollinger_labels[bollinger]}"
+
     drawdown = _optional_decimal(context, "episode_drawdown_percent")
     impact = _optional_decimal(context, "portfolio_impact_percent")
     if drawdown is None and "episode_drawdown_not_ready" not in unavailable_set:
@@ -111,6 +119,14 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         f"포트폴리오 영향: {impact}%p (원화 기준 변화 기여, 해외 환율 포함)"
         if impact is not None else "포트폴리오 영향: 계산 보류 (비교 가능한 전일 상태 확인 중)"
     )
+    deferred_scopes: list[str] = []
+    if drawdown is None:
+        deferred_scopes.append("보유구간")
+    if impact is None:
+        deferred_scopes.append("기여도")
+    data_status = "가격·추세 정상"
+    if deferred_scopes:
+        data_status += f" · {'·'.join(deferred_scopes)} 계산 보류"
 
     change = _optional_decimal(context, "change_percent")
     source_text = _safe_text(context.get("source_at"), field="source_at", maximum=40)
@@ -128,11 +144,12 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         f"상태: {transition}\n"
         f"핵심: {summary}\n"
         f"{change_line}\n"
-        f"추세: {' · '.join(relations)}\n"
+        f"가격 위치: {' · '.join(relations)}\n"
+        f"이평선 구조: 20일선이 50일선 {relation_labels[average_relation]}\n"
         f"거래량/모멘텀: {momentum}\n"
         f"{drawdown_line}\n"
         f"{impact_line}\n"
-        f"데이터: 정상 · 기준 {source_at:%Y-%m-%d %H:%M KST}\n"
+        f"데이터: {data_status} · 기준 {source_at:%Y-%m-%d %H:%M KST}\n"
         f"평가: {evaluation_at:%Y-%m-%d %H:%M KST} / {candidate.evaluation_slot}\n"
         "다음 확인: KIS Portfolio에서 차트와 상세 근거를 확인하세요."
     )
@@ -167,13 +184,13 @@ def render_telegram_alert(candidate: TelegramDispatchCandidate) -> str:
         change_line = f"\n변화율: {change_text}%"
 
     transition = {
-        "entered": "신규 감지",
-        "reentered": "재진입",
+        "entered": "주의 신호 신규 감지",
+        "reentered": "주의 신호 재발생",
         "escalated": "심각도 상승",
         "updated": "상태 변화",
         "recovered": "정상화",
     }.get(candidate.transition_type, "상태 변화")
-    if context.get("presentation_version") == "production-value-v1":
+    if context.get("presentation_version") in {"production-value-v1", "production-value-v2"}:
         message = _production_value_message(candidate, severity, transition)
     else:
         subject = _safe_text(context.get("subject_label"), field="subject_label", maximum=80)

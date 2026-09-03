@@ -14,7 +14,7 @@ from kis_portfolio.adapters.outbound.alert_warehouse import AlertWarehouseReposi
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.shadow_alerts import (
     CALIBRATION_REPORT_HASH,
-    CANARY_RULE_VERSION,
+    PRIOR_REAL_USE_RULE_VERSION,
     REAL_USE_RULE_VERSION,
     RULE_ID,
     RULE_VERSION,
@@ -31,18 +31,18 @@ def activate_wi030_real_use(
     *,
     decided_at: datetime | None = None,
 ) -> dict[str, Any]:
-    """Activate a new immutable rich-message RC and revoke the transport-only canary."""
+    """Activate the stabilized rich-message RC and revoke its prior RC version."""
     now = decided_at or datetime.now(UTC)
     if now.tzinfo is None:
         raise ValueError("decided_at must be timezone-aware")
     MigrationRunner(connection).require("0013")
 
-    canary = connection.execute(
+    prior_release = connection.execute(
         """
         SELECT revision,decision FROM control.alert_rule_approval_revisions
         WHERE rule_id=? AND rule_version=? ORDER BY revision DESC LIMIT 1
         """,
-        [RULE_ID, CANARY_RULE_VERSION],
+        [RULE_ID, PRIOR_REAL_USE_RULE_VERSION],
     ).fetchone()
     sent_count = int(connection.execute(
         """
@@ -51,10 +51,14 @@ def activate_wi030_real_use(
         JOIN gold.alert_candidates c USING(candidate_id)
         WHERE c.rule_id=? AND c.rule_version=? AND d.channel='telegram' AND a.outcome='sent'
         """,
-        [RULE_ID, CANARY_RULE_VERSION],
+        [RULE_ID, PRIOR_REAL_USE_RULE_VERSION],
     ).fetchone()[0])
-    if canary is None or str(canary[1]) not in {"approved", "revoked"} or sent_count <= 0:
-        raise RuntimeError("DEC-051 requires successful immutable transport-canary evidence")
+    if (
+        prior_release is None
+        or str(prior_release[1]) not in {"approved", "revoked"}
+        or sent_count <= 0
+    ):
+        raise RuntimeError("DEC-052 requires successful immutable prior real-use evidence")
 
     calibration = connection.execute(
         "SELECT calibration_run_id,run_status FROM control.alert_calibration_runs WHERE report_hash=?",
@@ -78,10 +82,17 @@ def activate_wi030_real_use(
     if not (rule.valid_from <= now < rule.valid_to):
         raise RuntimeError("production-value release candidate is outside its bounded validity")
     evidence = {
-        "decision_ref": "DEC-051",
-        "prior_canary_version": CANARY_RULE_VERSION,
-        "prior_canary_sent_count": sent_count,
-        "presentation_version": "production-value-v1",
+        "decision_ref": "DEC-052",
+        "prior_real_use_version": PRIOR_REAL_USE_RULE_VERSION,
+        "prior_real_use_sent_count": sent_count,
+        "presentation_version": "production-value-v2",
+        "corrections": [
+            "precise_sma_semantics",
+            "initial_state_baseline_only",
+            "intraday_volume_fail_closed",
+            "owner_readable_transition_labels",
+            "scoped_data_quality_label",
+        ],
         "explicit_unavailable_metrics": ["episode_drawdown", "valuation_change_contribution"],
         "rule_version": REAL_USE_RULE_VERSION,
         "valid_from": rule.valid_from.isoformat(),
@@ -120,24 +131,24 @@ def activate_wi030_real_use(
         else:
             raise RuntimeError("production-value release candidate has a different owner decision")
 
-        if str(canary[1]) == "approved":
+        if str(prior_release[1]) == "approved":
             revoke_evidence = hashlib.sha256(_canonical({
-                "decision_ref": "DEC-051",
-                "rule_version": CANARY_RULE_VERSION,
+                "decision_ref": "DEC-052",
+                "rule_version": PRIOR_REAL_USE_RULE_VERSION,
                 "replacement": REAL_USE_RULE_VERSION,
                 "preserve_history": True,
             }).encode()).hexdigest()
             warehouse.append_owner_decision(
                 rule_id=RULE_ID,
-                rule_version=CANARY_RULE_VERSION,
+                rule_version=PRIOR_REAL_USE_RULE_VERSION,
                 decision="revoked",
                 actor_type="owner",
                 calibration_run_id=None,
                 shadow_window_id=None,
                 evidence_hash=revoke_evidence,
-                rationale_code="REPLACED_BY_PRODUCTION_VALUE_RC",
+                rationale_code="REPLACED_BY_STABILIZED_PRODUCTION_VALUE_RC",
                 decided_at=now,
-                expected_prior_revision=int(canary[0]),
+                expected_prior_revision=int(prior_release[0]),
             )
         connection.execute("COMMIT")
     except Exception:

@@ -345,6 +345,9 @@ Deploy workflow:
 - `wi030-s03`도 `all`에 포함되지 않는 수동 target이다. DEC-051 activation Job은 S02 전송 성공과 clean
   shadow를 확인하고 새 production-value rule을 승인하면서 S02 owner approval을 append-only로 revoke한다.
   같은 digest를 세 core Job에 배포하고 S03 producer만 활성화하며 Scheduler와 DB-only shadow는 유지한다.
+  DEC-052 안정화 재배포에서는 성공한 prior production-value RC 전송을 추가로 확인하고 후속 immutable
+  rule을 승인한 뒤 prior RC approval을 append-only로 revoke한다. 새 rule의 최초 active 평가는 baseline-only라
+  배포 자체가 Telegram 신규 시장 신호를 만들지 않는다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

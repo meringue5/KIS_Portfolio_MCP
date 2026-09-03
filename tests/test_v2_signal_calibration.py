@@ -99,9 +99,16 @@ def test_bootstrap_boundaries_use_four_levels_and_context_is_not_a_signal() -> N
     ).severity == "critical"
     context_only = evaluate_bootstrap_signal(_observation(
         daily_return=Decimal("-0.001"), close=Decimal("89"), sma20=Decimal("90"),
-        sma50=Decimal("95"), rsi14=Decimal("25"), bollinger_percent_b=Decimal("-0.1"),
+        sma50=Decimal("95"), previous_close=Decimal("89"), previous_sma20=Decimal("90"),
+        rsi14=Decimal("25"), bollinger_percent_b=Decimal("-0.1"),
     ), profile)
     assert context_only.severity == "watch"  # bearish SMA20+SMA50 transition confirms context
+    assert context_only.reason_codes == ("bearish_sma20_regime",)
+    downward_cross = evaluate_bootstrap_signal(_observation(
+        daily_return=Decimal("-0.001"), close=Decimal("89"), sma20=Decimal("90"),
+        sma50=Decimal("95"), previous_close=Decimal("96"), previous_sma20=Decimal("95"),
+    ), profile)
+    assert downward_cross.reason_codes == ("sma20_downward_cross",)
     rsi_bollinger_only = evaluate_bootstrap_signal(_observation(
         daily_return=None, close=None, sma20=None, sma50=None,
         rsi14=Decimal("25"), bollinger_percent_b=Decimal("-0.1"),
