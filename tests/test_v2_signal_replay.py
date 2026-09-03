@@ -82,6 +82,8 @@ def test_price_replay_projects_only_rolling_history_and_preserves_reconstruction
     assert observations[-1].valid_bar_count == 21
     assert observations[-1].vol20 is not None
     assert observations[-1].sma20 == Decimal("110.5")
+    assert observations[-1].previous_close == Decimal("119")
+    assert observations[-1].previous_sma20 == Decimal("109.5")
     assert observations[-1].sma50 is None
     assert observations[-1].asset_class == "etf"
     assert observations[-1].provenance_mode == "retrospective_reconstructed"

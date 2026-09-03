@@ -140,13 +140,15 @@ def load_price_replay_observations(
             if close is None or close <= 0:
                 continue
             prior_close = history[-1][1] if history else None
+            prior_closes = [item[1] for item in history]
+            previous_sma20 = _mean(prior_closes[-20:]) if len(prior_closes) >= 20 else None
+            prior_volumes = [item[2] for item in history[-20:] if item[2] is not None]
             daily_return = None if prior_close is None else close / prior_close - Decimal("1")
             if daily_return is not None:
                 returns.append(daily_return)
             history.append((session_date, close, volume, str(row[7])))
             closes = [item[1] for item in history]
-            volumes = [item[2] for item in history[-20:] if item[2] is not None]
-            volume_mean = _mean(volumes) if len(volumes) == min(20, len(history)) else None
+            volume_mean = _mean(prior_volumes) if len(prior_volumes) == 20 else None
             volume_ratio = (
                 volume / volume_mean
                 if volume is not None and volume_mean not in {None, Decimal("0")} and len(history) >= 20
@@ -184,6 +186,8 @@ def load_price_replay_observations(
                 sma20=_mean(closes[-20:]) if len(closes) >= 20 else None,
                 sma50=_mean(closes[-50:]) if len(closes) >= 50 else None,
                 sma120=_mean(closes[-120:]) if len(closes) >= 120 else None,
+                previous_close=prior_close,
+                previous_sma20=previous_sma20,
                 rsi14=_wilder_rsi(closes),
                 bollinger_percent_b=_bollinger_percent_b(closes),
                 input_lineage_hash=hashlib.sha256(

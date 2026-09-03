@@ -30,7 +30,8 @@ RULE_VERSION = "bootstrap-1.0.0"
 CANARY_RULE_VERSION = "canary-2026-09-01.1"
 CANARY_VALID_FROM = datetime(2026, 9, 1, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CANARY_VALID_TO = datetime(2026, 9, 8, 0, 0, tzinfo=SEOUL).astimezone(UTC)
-REAL_USE_RULE_VERSION = "rc-2026-09-03.1"
+PRIOR_REAL_USE_RULE_VERSION = "rc-2026-09-03.1"
+REAL_USE_RULE_VERSION = "rc-2026-09-03.2"
 REAL_USE_VALID_FROM = datetime(2026, 9, 3, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 REAL_USE_VALID_TO = datetime(2026, 9, 10, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
@@ -87,6 +88,35 @@ def real_use_rule() -> AlertRuleVersion:
     return AlertRuleVersion.from_document({
         "id": RULE_ID,
         "version": REAL_USE_RULE_VERSION,
+        "status": "active",
+        "minimum_delivery_severity": "watch",
+        "delivery_mode": "external",
+        "initial_active_policy": "baseline_only",
+        "valid_from": REAL_USE_VALID_FROM,
+        "valid_to": REAL_USE_VALID_TO,
+        "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+        "thresholds": {
+            "profile": "bootstrap-package-d",
+            "absolute_boundary_multiplier": str(THRESHOLD_MULTIPLIER),
+            "calibration_report_hash": CALIBRATION_REPORT_HASH,
+        },
+        "limitations": [
+            "stabilized production-value release candidate",
+            "initial active state is baseline-only and not a market event",
+            "intraday KRX volume is unavailable until same-slot normalization exists",
+            "episode drawdown unavailable until governed metric readiness passes",
+            "KRW valuation-change contribution unavailable until comparable-state readiness passes",
+            "ETF constituent exposure unavailable",
+            "no automatic promotion",
+        ],
+    })
+
+
+def prior_real_use_rule() -> AlertRuleVersion:
+    """Return the preserved DEC-051 rule document used before stabilization."""
+    return AlertRuleVersion.from_document({
+        "id": RULE_ID,
+        "version": PRIOR_REAL_USE_RULE_VERSION,
         "status": "active",
         "minimum_delivery_severity": "watch",
         "delivery_mode": "external",
@@ -229,6 +259,10 @@ def _target_observations(
             quality_status=quality,
             subject_label=subject_label,
             market=market,
+            volume_ratio20=(
+                None if evaluation_slot in {"kr-1000", "kr-1430"}
+                else item.volume_ratio20
+            ),
         ))
     return tuple(target)
 
@@ -240,7 +274,8 @@ _REASON_LABELS = {
     "episode_drawdown": "보유구간 고점 대비 낙폭 기준을 넘었습니다",
     "thread_stop_breach": "사용자가 정한 손절 기준을 이탈했습니다",
     "thread_risk_ratio": "계획손실 비율 기준을 넘었습니다",
-    "confirmed_sma20_break": "20일 이동평균선 이탈이 확인됐습니다",
+    "sma20_downward_cross": "주가가 오늘 20일선을 하향 이탈했습니다",
+    "bearish_sma20_regime": "주가가 20일선을 하회하는 약세 상태입니다",
     "bearish_sma50_drawdown": "중기 하락추세와 보유구간 낙폭이 함께 확인됐습니다",
     "volume_confirmation": "평균보다 많은 거래량이 가격 변화를 확인했습니다",
 }
@@ -287,9 +322,11 @@ def _production_value_context(observation: SignalObservation, decision: Any) -> 
         unavailable.append("episode_drawdown_not_ready")
     if observation.portfolio_contribution is None:
         unavailable.append("valuation_contribution_not_ready")
+    if observation.evaluation_slot in {"kr-1000", "kr-1430"}:
+        unavailable.append("intraday_volume_not_comparable")
     source_at = observation.input_known_at or observation.evaluation_at
     return {
-        "presentation_version": "production-value-v1",
+        "presentation_version": "production-value-v2",
         "subject_label": observation.subject_label or "식별정보 확인 필요",
         "market_label": _MARKET_LABELS.get(observation.market, observation.market or "시장 확인 필요"),
         "asset_type_label": _ASSET_LABELS.get(observation.asset_class, "분류 확인 필요"),
@@ -299,6 +336,7 @@ def _production_value_context(observation: SignalObservation, decision: Any) -> 
         "sma20_relation": _relation(observation.close, observation.sma20),
         "sma50_relation": _relation(observation.close, observation.sma50),
         "sma120_relation": _relation(observation.close, observation.sma120),
+        "sma20_sma50_relation": _relation(observation.sma20, observation.sma50),
         "volume_ratio20": _decimal_text(observation.volume_ratio20),
         "rsi14": _decimal_text(observation.rsi14),
         "bollinger_state": bollinger,

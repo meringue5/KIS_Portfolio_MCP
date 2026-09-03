@@ -157,6 +157,46 @@ def test_state_machine_deduplicates_and_handles_escalation_recovery_reentry() ->
     connection.close()
 
 
+def test_rule_can_seed_an_active_baseline_without_claiming_a_market_event() -> None:
+    connection, repository = _repository()
+    document = dict(_rule(mode="external").document)
+    document["initial_active_policy"] = "baseline_only"
+    baseline_rule = AlertRuleVersion.from_document(document)
+    candidate = _candidate(
+        slot="kr-1000", session="krx:2026-08-28", state="active",
+        severity="watch", state_key="bearish-regime", at=BASE_TIME,
+        rule=baseline_rule,
+    )
+
+    first = repository.apply_candidate(candidate).transition
+
+    assert first is not None
+    assert first.transition_type == "entered"
+    assert first.delivery_required is False
+    assert repository.apply_candidate(candidate).transition is None
+    connection.close()
+
+
+def test_first_signal_after_a_normal_baseline_is_entered_not_reentered() -> None:
+    connection, repository = _repository()
+    normal = _candidate(
+        slot="kr-1000", session="krx:2026-08-28", state="normal",
+        severity="normal", state_key="normal", at=BASE_TIME,
+    )
+    assert repository.apply_candidate(normal).transition is not None
+    active = _candidate(
+        slot="kr-1430", session="krx:2026-08-28", state="active",
+        severity="warning", state_key="bearish-regime", at=BASE_TIME + timedelta(hours=4),
+    )
+
+    transition = repository.apply_candidate(active).transition
+
+    assert transition is not None
+    assert transition.transition_type == "entered"
+    assert transition.episode == 1
+    connection.close()
+
+
 def test_non_pass_quality_and_sensitive_context_fail_closed() -> None:
     connection, repository = _repository()
     entered = _candidate(

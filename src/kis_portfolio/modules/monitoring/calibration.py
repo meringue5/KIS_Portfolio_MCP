@@ -62,6 +62,8 @@ class SignalObservation:
     sma20: Decimal | None = None
     sma50: Decimal | None = None
     sma120: Decimal | None = None
+    previous_close: Decimal | None = None
+    previous_sma20: Decimal | None = None
     rsi14: Decimal | None = None
     bollinger_percent_b: Decimal | None = None
     risk_ratio: Decimal | None = None
@@ -202,10 +204,16 @@ def evaluate_bootstrap_signal(
         and observation.sma20 is not None
         and observation.close < observation.sma20
     )
-    bearish_cross = (
+    sma20_below_sma50 = (
         observation.sma20 is not None
         and observation.sma50 is not None
         and observation.sma20 < observation.sma50
+    )
+    crossed_below_sma20 = (
+        price_below_sma20
+        and observation.previous_close is not None
+        and observation.previous_sma20 is not None
+        and observation.previous_close >= observation.previous_sma20
     )
     close_below_sma50 = (
         observation.close is not None
@@ -218,10 +226,12 @@ def evaluate_bootstrap_signal(
         context.append("high_volume")
     if price_below_sma20:
         context.append("below_sma20")
-        if rank >= 1 or high_volume or bearish_cross:
+        if rank >= 1 or high_volume or sma20_below_sma50:
             rank = max(rank, 1)
-            reasons.append("confirmed_sma20_break")
-    if close_below_sma50 and bearish_cross and drawdown_rank >= 1:
+            reasons.append(
+                "sma20_downward_cross" if crossed_below_sma20 else "bearish_sma20_regime"
+            )
+    if close_below_sma50 and sma20_below_sma50 and drawdown_rank >= 1:
         rank = max(rank, 2)
         reasons.append("bearish_sma50_drawdown")
     if price_rank >= 1 and high_volume:

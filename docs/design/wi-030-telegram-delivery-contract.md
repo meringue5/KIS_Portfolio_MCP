@@ -1,8 +1,8 @@
 # WI-030 Telegram delivery contract
 
-> 상태: S01 closed; DEC-050 transport canary S02 and DEC-051 production-value S03 in progress
+> 상태: S01 closed; DEC-050 transport canary S02 and DEC-051/052 production-value S03 in progress
 > Work Item: WI-030-S01 / WI-030-S02 / WI-030-S03
-> Data contracts: `pipeline.telegram-delivery-v2:1.2.0`, `dataset.alert-candidate:1.1.0`, `dataset.alert-delivery-ledger:1.2.0`
+> Data contracts: `pipeline.telegram-delivery-v2:1.3.0`, `dataset.alert-candidate:1.2.0`, `dataset.alert-delivery-ledger:1.2.0`
 
 ## Boundary
 
@@ -63,6 +63,12 @@ rendered as signed percentages when their governed metric quality passes; otherw
 a bounded reason. It never substitutes allocation, unrealized PnL or zero for an unavailable metric. Internal rule ID,
 version and reason codes remain in the ledger rather than occupying the owner-facing message.
 
+DEC-052 correction uses a successor immutable rule version. `하회` means the current price is below an average;
+`하향 이탈` requires prior close at or above prior SMA20 and current close below current SMA20. Price-to-average
+position and SMA20-to-SMA50 structure are separate lines. A successor rule's first active observation seeds a silent
+baseline and is not presented as a new market event. KRX 10:00/14:30 cumulative volume is explicitly unavailable until
+same-slot normalization exists; only KRX close and U.S. close use prior 20 completed sessions as the full-day baseline.
+
 Only these `public_context` keys are accepted:
 
 - `presentation_version`
@@ -73,6 +79,7 @@ Only these `public_context` keys are accepted:
 - `reason_codes`
 - `change_percent`
 - `sma20_relation`, `sma50_relation`, `sma120_relation`
+- `sma20_sma50_relation`
 - `volume_ratio20`, `rsi14`, `bollinger_state`
 - `episode_drawdown_percent`, `portfolio_impact_percent`, `unavailable_codes`
 - `source_at`
@@ -142,3 +149,5 @@ Steps 2 through 7 are external/production actions and remain outside S01 authori
    actual use. Record redacted provider/ledger evidence and owner observations.
 7. Only after WI-029 evidence, the production-equivalent observation window and owner acceptance pass, issue a new
    permanent immutable rule version and close MS-002. Do not silently promote this bounded release candidate.
+8. Maintain separate daily, weekly, monthly, quarterly and annual evidence states in
+   `docs/operations/alert-temporal-acceptance-plan.md`; passing a shorter window does not pass a longer one.

@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| 첫 실사용 경보의 이동평균 상태/교차, 초기 baseline, 장중 거래량과 품질 문구를 정확히 하고 장기 window 인수를 분리 | DEC-052 | WI-030-S03/S04 | stabilized immutable RC, precise public context/renderer, calendar-window acceptance plan | 2026-09-03 owner receipt + 14 sent/0 failure live review; correction tests and redeploy pending | S03 in progress; S04 ready |
 | MS-002는 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 완료 | ADR-021/023 + DEC-051 | WI-054, WI-030-S03 | production-readiness matrix and production-value Telegram release-candidate path | live aggregate audit; full 449 pass; master `fe61625` / run `33652147678`; S03 rule and three Jobs activated; scheduled receipt pending | WI-054 closed; S03 deployed and stabilizing under active WI-030 |
 | 첫 정상 월요일 뒤 Telegram `주의` 이상 신호를 1주 experimental canary로 관찰 | ADR-021/023 + V2-ADR-007/012 + DEC-050 | WI-030-S01/S02 | fail-closed renderer/ledger plus parallel immutable canary rule; permanent WI-029 gate remains | 10:00 execution `6tnkp`: 8/8 provider sends and LTE owner receipt; Wi-Fi blocked Telegram client; 14:30/16:00 dedup and expiry evidence pending | S01 closed; S02 in progress |
 | 사람이 읽는 milestone·Work Item 선후관계와 현재 실행 가능 범위 | ADR-022 | WI-053 | milestone README Mermaid map and V2 delivery-plan backlink | registry 관계 대조; quick pass and full 418 pass | closed |

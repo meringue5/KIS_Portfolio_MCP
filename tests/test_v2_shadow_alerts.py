@@ -205,16 +205,42 @@ def test_real_use_candidate_has_safe_owner_readable_context_without_fabricated_m
         "SELECT public_context FROM gold.alert_candidates WHERE rule_version=?",
         [REAL_USE_RULE_VERSION],
     ).fetchone()[0])
-    assert context["presentation_version"] == "production-value-v1"
+    assert context["presentation_version"] == "production-value-v2"
     assert context["subject_label"] == "Synthetic"
     assert context["market_label"] == "국내"
     assert context["asset_type_label"] == "ETF"
     assert context["change_percent"] == "-10.00"
     assert context["sma20_relation"] == "below"
-    assert context["volume_ratio20"] == "2.73"
+    assert "sma20_downward_cross" in context["reason_codes"]
+    assert "주가가 오늘 20일선을 하향 이탈했습니다" in context["summary"]
+    assert context["volume_ratio20"] == "3.00"
+    assert context["sma20_sma50_relation"] == "below"
     assert context["episode_drawdown_percent"] is None
     assert context["portfolio_impact_percent"] is None
     assert context["unavailable_codes"] == [
         "episode_drawdown_not_ready", "valuation_contribution_not_ready",
     ]
+    connection.close()
+
+
+def test_intraday_real_use_suppresses_unadjusted_full_day_volume_comparison() -> None:
+    logical_date = date(2026, 9, 3)
+    connection = _warehouse(logical_date=logical_date)
+
+    result = run_external_real_use_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1000"
+    )
+
+    assert result["transition_count"] == 1
+    context = json.loads(connection.execute(
+        "SELECT public_context FROM gold.alert_candidates WHERE rule_version=?",
+        [REAL_USE_RULE_VERSION],
+    ).fetchone()[0])
+    assert context["presentation_version"] == "production-value-v2"
+    assert context["volume_ratio20"] is None
+    assert "intraday_volume_not_comparable" in context["unavailable_codes"]
+    state = connection.execute(
+        "SELECT delivery_required FROM control.alert_state_revisions"
+    ).fetchone()
+    assert state == (False,)
     connection.close()

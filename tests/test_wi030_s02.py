@@ -7,11 +7,15 @@ import duckdb
 import pytest
 
 from kis_portfolio.adapters.batch import cli as batch_cli
+from kis_portfolio.adapters.outbound.alert_calibration_warehouse import AlertCalibrationWarehouse
+from kis_portfolio.adapters.outbound.alert_warehouse import AlertWarehouseRepository
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.shadow_alerts import (
     CALIBRATION_REPORT_HASH,
     CANARY_RULE_VERSION,
+    PRIOR_REAL_USE_RULE_VERSION,
     REAL_USE_RULE_VERSION,
+    prior_real_use_rule,
 )
 from kis_portfolio.services.wi030_s02 import activate_wi030_canary
 from kis_portfolio.services.wi030_s03 import activate_wi030_real_use
@@ -136,43 +140,76 @@ def test_canary_activation_fails_closed_when_a_smoke_slot_is_missing() -> None:
     connection.close()
 
 
-def _record_successful_canary_delivery(connection: duckdb.DuckDBPyConnection) -> None:
+def _record_successful_delivery(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    rule_version: str = CANARY_RULE_VERSION,
+    recorded_at: datetime = NOW,
+) -> None:
+    suffix = rule_version.replace(".", "-")
     connection.execute(
         """
         INSERT INTO gold.alert_candidates(
             candidate_id,alert_identity,rule_id,rule_version,subject_type,subject_id,
             evaluation_date,evaluation_slot,session_key,evaluation_at,signal_state,severity,
             state_fingerprint,quality_status,input_lineage_hash,public_context,evaluation_run_id
-        ) VALUES ('canary-candidate','canary-identity','rule-set.owned-portfolio-monitoring',?,
-                  'instrument','instrument-safe','2026-09-01','kr-1000','session-canary',?,
-                  'active','watch','canary-state','pass','canary-lineage','{}','canary-run')
+        ) VALUES (?,?, 'rule-set.owned-portfolio-monitoring',?,
+                  'instrument','instrument-safe','2026-09-03','kr-1000',?,?,
+                  'active','watch',?,'pass',?,'{}',?)
         """,
-        [CANARY_RULE_VERSION, datetime(2026, 9, 1, 1, tzinfo=UTC)],
+        [
+            f"candidate-{suffix}", f"identity-{suffix}", rule_version,
+            f"session-{suffix}", recorded_at, f"state-{suffix}",
+            f"lineage-{suffix}", f"run-{suffix}",
+        ],
     )
     connection.execute(
         """
         INSERT INTO control.alert_dispatch_claims(
             dispatch_id,candidate_id,channel,destination_ref,claim_status,claimant_id,
             lease_token_digest,lease_expires_at,attempt_count,created_at,updated_at
-        ) VALUES ('dispatch-canary','canary-candidate','telegram','dest.owner.primary','completed',
+        ) VALUES (?,?, 'telegram','dest.owner.primary','completed',
                   'worker.telegram.v1','digest',?,1,?,?)
         """,
-        [NOW, NOW, NOW],
+        [f"dispatch-{suffix}", f"candidate-{suffix}", recorded_at, recorded_at, recorded_at],
     )
     connection.execute(
         """
         INSERT INTO control.alert_delivery_attempts(
             attempt_id,dispatch_id,attempt_no,outcome,started_at,completed_at,response_ref_hash,recorded_at
-        ) VALUES ('attempt-canary','dispatch-canary',1,'sent',?,?,?,?)
+        ) VALUES (?,?,1,'sent',?,?,?,?)
         """,
-        [NOW, NOW, "b" * 64, NOW],
+        [
+            f"attempt-{suffix}", f"dispatch-{suffix}", recorded_at, recorded_at,
+            "b" * 64, recorded_at,
+        ],
     )
 
 
-def test_real_use_activation_preserves_and_revokes_prior_canary_then_is_idempotent() -> None:
+def _approve_prior_real_use(connection: duckdb.DuckDBPyConnection) -> None:
+    decided_at = datetime(2026, 9, 3, 1, tzinfo=UTC)
+    AlertWarehouseRepository(connection).register_rule(prior_real_use_rule())
+    AlertCalibrationWarehouse(connection).append_owner_canary_approval(
+        rule_id="rule-set.owned-portfolio-monitoring",
+        rule_version=PRIOR_REAL_USE_RULE_VERSION,
+        actor_type="owner",
+        calibration_run_id="calibration-live",
+        shadow_window_id="shadow-live",
+        evidence_hash="c" * 64,
+        decided_at=decided_at,
+        expected_prior_revision=0,
+        rationale_code="OWNER_APPROVED_PRODUCTION_VALUE_RC",
+    )
+
+
+def test_real_use_activation_preserves_and_revokes_prior_release_then_is_idempotent() -> None:
     connection = _warehouse()
-    activate_wi030_canary(connection, decided_at=NOW)
-    _record_successful_canary_delivery(connection)
+    _approve_prior_real_use(connection)
+    _record_successful_delivery(
+        connection,
+        rule_version=PRIOR_REAL_USE_RULE_VERSION,
+        recorded_at=datetime(2026, 9, 3, 1, 30, tzinfo=UTC),
+    )
     decided_at = datetime(2026, 9, 3, 3, tzinfo=UTC)
 
     first = activate_wi030_real_use(connection, decided_at=decided_at)
@@ -186,20 +223,23 @@ def test_real_use_activation_preserves_and_revokes_prior_canary_then_is_idempote
         FROM control.alert_rule_approval_revisions
         WHERE rule_version IN (?,?) ORDER BY rule_version,revision
         """,
-        [CANARY_RULE_VERSION, REAL_USE_RULE_VERSION],
+        [PRIOR_REAL_USE_RULE_VERSION, REAL_USE_RULE_VERSION],
     ).fetchall()
-    assert (CANARY_RULE_VERSION, 2, "revoked", "REPLACED_BY_PRODUCTION_VALUE_RC") in decisions
+    assert (
+        PRIOR_REAL_USE_RULE_VERSION, 2, "revoked",
+        "REPLACED_BY_STABILIZED_PRODUCTION_VALUE_RC",
+    ) in decisions
     assert (
         REAL_USE_RULE_VERSION, 1, "approved", "OWNER_APPROVED_PRODUCTION_VALUE_RC"
     ) in decisions
     connection.close()
 
 
-def test_real_use_activation_requires_successful_transport_canary() -> None:
+def test_real_use_activation_requires_successful_prior_real_use_evidence() -> None:
     connection = _warehouse()
-    activate_wi030_canary(connection, decided_at=NOW)
+    _approve_prior_real_use(connection)
 
-    with pytest.raises(RuntimeError, match="successful immutable transport-canary"):
+    with pytest.raises(RuntimeError, match="successful immutable prior real-use"):
         activate_wi030_real_use(
             connection, decided_at=datetime(2026, 9, 3, 3, tzinfo=UTC)
         )

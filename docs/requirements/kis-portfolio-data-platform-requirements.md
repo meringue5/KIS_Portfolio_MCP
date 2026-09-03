@@ -522,6 +522,26 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   전환을 소유한다. 완성된 메시지의 실제 수신, 중복·민감정보 억제, rollback과 owner acceptance 전에는
   WI-030과 MS-002를 닫지 않는다.
 
+### DEC-052: 경보는 금융 용어를 정확히 쓰고 시간창별 증거로 인수한다
+
+- 2026-09-03 첫 production-value 실사용에서 owner는 전송 자체는 성공했으나 `20일선 이탈`, 상태전이,
+  장중 거래량과 데이터 정상 문구가 직관적이지 않다고 관찰했다. 이는 학습으로 해소할 전문용어 문제가
+  아니라, 현재 상태와 실제 교차 사건·시스템 초기화를 혼동시키는 의미 정확성 결함으로 판정한다.
+- 현재 가격이 이동평균 아래인 상태는 `하회`, 이전 session에는 위였고 현재 session에 아래로 교차한
+  사건만 `하향 이탈`이라 한다. 가격-이평선 위치와 단기-중기 이평선 배열을 구분해 표시한다.
+- 새 immutable rule version의 첫 active 관측은 baseline state로만 기록하고 외부 전송하지 않는다. 이후
+  실제 진입·재발생·심각도 상승·근거 변화만 전송하며 `재진입`은 `주의 신호 재발생`처럼 사용자 상태로
+  표현한다.
+- 10:00·14:30 KRX 누적 거래량을 과거 종일 거래량 평균과 직접 비교하지 않는다. 동일 slot 정규화가
+  승인되기 전에는 명시적 계산 보류로 fail closed하고, 16:00 종가·미국 마감에서만 직전 20 session
+  종일 평균 대비 비율을 사용한다.
+- `데이터 정상`은 전체 분석 준비를 뜻하지 않는다. 가격·추세 품질과 보유구간 낙폭·원화 평가액 변화
+  기여의 준비 상태를 분리해 표시한다.
+- 인수 증거는 일·주 단기 운영만으로 일반화하지 않는다. 과거 3년 replay, 월말·분기말·연말·휴장·미국
+  DST 등의 결정적 calendar fixture와 실제 장기 누적 관찰을 결합한다. 월간은 비용·drift·message burden,
+  분기는 실적/배당/corporate action과 restore/source 권한, 연간은 세금·연말·보존·backfill·calendar
+  경계를 검토한다. 장기 window가 끝나기 전에는 해당 기간 안정성을 완료로 주장하지 않는다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1084,6 +1104,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-03 | 실사용 의미 보정 승인 | DEC-052로 이동평균 상태/교차, 초기 baseline, 장중 거래량, 품질 문구를 정정하고 일·주·월·분기·연간 인수 증거를 replay·fixture·live observation으로 분리함 |
 | 2026-09-03 | 실사용 인수 기준 승인 | DEC-051로 MS-002를 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 닫고, 최소 canary payload와 repository-local 완료를 제품 완료로 간주하지 않기로 승인함 |
 | 2026-09-02 | macro architecture 승인 | WI-039-S02/S03의 ADR-027, exact 17-series registry, heterogeneous revision clock, 5 transparent metrics, additive migration 0016, bounded call/capacity budget과 shared-implementation constraint를 승인함. activation은 미승인 |
 | 2026-09-02 | dividend architecture 승인 | WI-038-S02의 ADR-026, 8-contract delta, action/entitlement/receipt-link 분리, cash SSOT, system-as-of, additive migration, bounded call/object/row budget과 shared-implementation constraint를 승인함. activation은 미승인 |
