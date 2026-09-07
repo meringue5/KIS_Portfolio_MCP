@@ -86,3 +86,25 @@ education gaps.
 The correction must use a successor immutable RC, preserve all v1 candidates and attempts, seed the first active state
 without external delivery, distinguish `하회` from observed `하향 이탈`, suppress non-comparable intraday volume and
 scope the quality line to the facts that actually passed. Owner acceptance remains open.
+
+## S03 semantic stabilization deployment — 2026-09-03
+
+PR `#45` passed CI and merged as master SHA `0ef833e039f0e644c503b5bbc804c2a5907ef7b7`. GitHub Actions run
+`33716893875` completed the manual `wi030-s03` target successfully. Activation execution
+`kis-portfolio-wi030-s03-rrn2x` completed in 24.83 seconds and returned:
+
+- status `activated` for successor rule version `rc-2026-09-03.2` under `DEC-052`;
+- presentation version `production-value-v2`;
+- 14 provider-confirmed v1 sends as the real-use prerequisite;
+- zero shadow sensitive-data violations and zero shadow external sends;
+- evidence hash `6fc5d1085709da156e5f54ec74357216c289d0531b0364a503600e44410c11ba`.
+
+The activation append-only revoked `rc-2026-09-03.1` and approved the successor contract; prior candidates, claims and
+attempts remain immutable. The build-once digest
+`sha256:b86bc87ca8bca9dce0f52f983b9aa8f05b1b951efb86338b44cc8d032f1dc03e` was deployed to all three core Jobs.
+Read-only inspection confirmed the Jobs share that digest and master SHA, have delivery and real-use enabled, and have
+canary disabled. The weekday 10:00, 14:30 and 16:00 KST Scheduler Jobs remain `ENABLED`.
+
+Deployment success proves activation and configuration, not owner acceptance. The first v2 evaluation seeds existing
+active conditions as a no-send baseline; only a later state change may produce a new notification. Calendar-window
+claims remain governed by `alert-temporal-acceptance-plan.md` and `WI-030-S04`.
