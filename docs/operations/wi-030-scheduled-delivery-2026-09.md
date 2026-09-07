@@ -57,6 +57,11 @@ deterministic completion marker written only after shadow evaluation finishes. T
 2026-09-10 evidence row remains immutable; the corrected window excludes pre-activation 2026-08-28 and runs from
 2026-09-01 through 2026-09-14. September 10 is an interim review gate, not automatic milestone closure.
 
+The correction merged in PR `#49` as master `167d3db`. Deploy run `34127107566` completed successfully, including
+activation execution `kis-portfolio-wi030-s03-zdr98`, and deployed one build-once digest
+`sha256:dc009b95eaa2bdfd8ff0b37ba155a2a936ec8a1eaf3ac2ee3c0436b5162e8d1b` to the 10:00, 14:30 and 16:00 Jobs.
+This proves deployment, not the first post-cutover scheduled marker or Rich Message receipt.
+
 ## Operational lesson
 
 When the provider ledger says `sent` but the owner sees nothing, check the Telegram client's own connection state and

@@ -91,6 +91,10 @@ owner can approve external delivery.
   `MOTHERDUCK_COMMIT_FAILED_A152C99C` exception, never backfilled as live success. The corrected evidence window is
   2026-09-01 through 2026-09-14; 2026-08-28 pre-activation slots are excluded, terminal outcome/claim checks apply to
   existing slots, and deterministic completion markers are mandatory from 2026-09-08.
+- S06 correction code merged in PR #49 as master `167d3db`. GitHub Actions run `34127107566` passed and deployed
+  build-once digest `sha256:dc009b95eaa2bdfd8ff0b37ba155a2a936ec8a1eaf3ac2ee3c0436b5162e8d1b` to all
+  three owned-portfolio Jobs. Activation execution `kis-portfolio-wi030-s03-zdr98` completed successfully. The first
+  scheduled post-cutover completion marker remains pending, so S06 and S05 remain `in_progress`.
 
 ## Closeout
 
