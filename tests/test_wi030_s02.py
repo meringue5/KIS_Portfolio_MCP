@@ -210,7 +210,7 @@ def test_real_use_activation_preserves_and_revokes_prior_release_then_is_idempot
         rule_version=PRIOR_REAL_USE_RULE_VERSION,
         recorded_at=datetime(2026, 9, 3, 1, 30, tzinfo=UTC),
     )
-    decided_at = datetime(2026, 9, 3, 3, tzinfo=UTC)
+    decided_at = datetime(2026, 9, 7, 3, tzinfo=UTC)
 
     first = activate_wi030_real_use(connection, decided_at=decided_at)
     second = activate_wi030_real_use(connection, decided_at=decided_at)
@@ -227,7 +227,7 @@ def test_real_use_activation_preserves_and_revokes_prior_release_then_is_idempot
     ).fetchall()
     assert (
         PRIOR_REAL_USE_RULE_VERSION, 2, "revoked",
-        "REPLACED_BY_STABILIZED_PRODUCTION_VALUE_RC",
+        "REPLACED_BY_TELEGRAM_RICH_MESSAGE_RC",
     ) in decisions
     assert (
         REAL_USE_RULE_VERSION, 1, "approved", "OWNER_APPROVED_PRODUCTION_VALUE_RC"
@@ -241,7 +241,7 @@ def test_real_use_activation_requires_successful_prior_real_use_evidence() -> No
 
     with pytest.raises(RuntimeError, match="successful immutable prior real-use"):
         activate_wi030_real_use(
-            connection, decided_at=datetime(2026, 9, 3, 3, tzinfo=UTC)
+            connection, decided_at=datetime(2026, 9, 7, 3, tzinfo=UTC)
         )
     assert connection.execute(
         "SELECT count(*) FROM control.alert_rule_versions WHERE version=?",

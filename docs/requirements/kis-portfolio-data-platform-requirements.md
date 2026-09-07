@@ -542,6 +542,19 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   분기는 실적/배당/corporate action과 restore/source 권한, 연간은 세금·연말·보존·backfill·calendar
   경계를 검토한다. 장기 window가 끝나기 전에는 해당 기간 안정성을 완료로 주장하지 않는다.
 
+### DEC-053: Telegram 경보는 Rich Message로 직접 전환한다
+
+- 2026-09-07 owner는 production-value 메시지가 의미상 개선됐지만 한눈에 읽기 어렵고, 계산 보류·시간·고정
+  안내가 반복된다는 실사용 피드백에 따라 Telegram Bot API Rich Message로 직접 전환하도록 승인했다.
+- 심각도는 🟡·🟠·🔴 아이콘으로 구분하고, 제목에는 종목과 당일 변화율, 본문에는 사건명·상태전이와 한 줄
+  설명을 둔다. 임의 글자색에는 의존하지 않는다.
+- 계산 가능한 분석값만 compact table에 표시한다. 계산하지 못한 값은 0이나 정상으로 해석하지 않고
+  `미산출 항목` details 블록 하나에 모아 접는다. 모든 추세값이 미산출인데 `가격·추세 정상`이라고 쓰지 않는다.
+- 반복되던 `다음 확인` 문구를 제거하고, 시각은 source 기준 KST를 footer에 한 번만 표시한다.
+- 전송은 `sendRichMessage` 한 번만 시도한다. 실패 뒤 `sendMessage`로 자동 fallback하지 않으며, 기존
+  claim·unknown·retryable·redaction 계약을 그대로 적용해 중복 가능성을 차단한다.
+- 기존 `rc-2026-09-03.2`와 plain presentation 증거는 불변 보존하고 새 bounded version으로 안정화한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1104,6 +1117,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-07 | Rich Message 전환 승인 | DEC-053으로 심각도 아이콘, 산출값 표, 접힌 미산출 항목, 단일 시각 footer를 채택하고 plain fallback과 반복·오해 문구를 금지함 |
 | 2026-09-03 | 실사용 의미 보정 승인 | DEC-052로 이동평균 상태/교차, 초기 baseline, 장중 거래량, 품질 문구를 정정하고 일·주·월·분기·연간 인수 증거를 replay·fixture·live observation으로 분리함 |
 | 2026-09-03 | 실사용 인수 기준 승인 | DEC-051로 MS-002를 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 닫고, 최소 canary payload와 repository-local 완료를 제품 완료로 간주하지 않기로 승인함 |
 | 2026-09-02 | macro architecture 승인 | WI-039-S02/S03의 ADR-027, exact 17-series registry, heterogeneous revision clock, 5 transparent metrics, additive migration 0016, bounded call/capacity budget과 shared-implementation constraint를 승인함. activation은 미승인 |

@@ -30,10 +30,12 @@ RULE_VERSION = "bootstrap-1.0.0"
 CANARY_RULE_VERSION = "canary-2026-09-01.1"
 CANARY_VALID_FROM = datetime(2026, 9, 1, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CANARY_VALID_TO = datetime(2026, 9, 8, 0, 0, tzinfo=SEOUL).astimezone(UTC)
-PRIOR_REAL_USE_RULE_VERSION = "rc-2026-09-03.1"
-REAL_USE_RULE_VERSION = "rc-2026-09-03.2"
-REAL_USE_VALID_FROM = datetime(2026, 9, 3, 0, 0, tzinfo=SEOUL).astimezone(UTC)
-REAL_USE_VALID_TO = datetime(2026, 9, 10, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+PRIOR_REAL_USE_RULE_VERSION = "rc-2026-09-03.2"
+REAL_USE_RULE_VERSION = "rc-2026-09-07.1"
+PRIOR_REAL_USE_VALID_FROM = datetime(2026, 9, 3, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+PRIOR_REAL_USE_VALID_TO = datetime(2026, 9, 10, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+REAL_USE_VALID_FROM = datetime(2026, 9, 7, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+REAL_USE_VALID_TO = datetime(2026, 9, 14, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
 THRESHOLD_MULTIPLIER = Decimal("0.75")
 US_MARKETS = frozenset({"NAS", "NYS", "AMS"})
@@ -84,7 +86,7 @@ def canary_rule() -> AlertRuleVersion:
 
 
 def real_use_rule() -> AlertRuleVersion:
-    """Return the immutable DEC-051 production-value release candidate."""
+    """Return the immutable DEC-053 Rich Message release candidate."""
     return AlertRuleVersion.from_document({
         "id": RULE_ID,
         "version": REAL_USE_RULE_VERSION,
@@ -101,7 +103,7 @@ def real_use_rule() -> AlertRuleVersion:
             "calibration_report_hash": CALIBRATION_REPORT_HASH,
         },
         "limitations": [
-            "stabilized production-value release candidate",
+            "Telegram Rich Message production-value release candidate",
             "initial active state is baseline-only and not a market event",
             "intraday KRX volume is unavailable until same-slot normalization exists",
             "episode drawdown unavailable until governed metric readiness passes",
@@ -113,15 +115,16 @@ def real_use_rule() -> AlertRuleVersion:
 
 
 def prior_real_use_rule() -> AlertRuleVersion:
-    """Return the preserved DEC-051 rule document used before stabilization."""
+    """Return the preserved DEC-052 stabilized plain-message rule document."""
     return AlertRuleVersion.from_document({
         "id": RULE_ID,
         "version": PRIOR_REAL_USE_RULE_VERSION,
         "status": "active",
         "minimum_delivery_severity": "watch",
         "delivery_mode": "external",
-        "valid_from": REAL_USE_VALID_FROM,
-        "valid_to": REAL_USE_VALID_TO,
+        "initial_active_policy": "baseline_only",
+        "valid_from": PRIOR_REAL_USE_VALID_FROM,
+        "valid_to": PRIOR_REAL_USE_VALID_TO,
         "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
         "thresholds": {
             "profile": "bootstrap-package-d",
@@ -129,7 +132,9 @@ def prior_real_use_rule() -> AlertRuleVersion:
             "calibration_report_hash": CALIBRATION_REPORT_HASH,
         },
         "limitations": [
-            "production-value release candidate",
+            "stabilized production-value release candidate",
+            "initial active state is baseline-only and not a market event",
+            "intraday KRX volume is unavailable until same-slot normalization exists",
             "episode drawdown unavailable until governed metric readiness passes",
             "KRW valuation-change contribution unavailable until comparable-state readiness passes",
             "ETF constituent exposure unavailable",
@@ -326,7 +331,7 @@ def _production_value_context(observation: SignalObservation, decision: Any) -> 
         unavailable.append("intraday_volume_not_comparable")
     source_at = observation.input_known_at or observation.evaluation_at
     return {
-        "presentation_version": "production-value-v2",
+        "presentation_version": "production-value-v3",
         "subject_label": observation.subject_label or "식별정보 확인 필요",
         "market_label": _MARKET_LABELS.get(observation.market, observation.market or "시장 확인 필요"),
         "asset_type_label": _ASSET_LABELS.get(observation.asset_class, "분류 확인 필요"),
@@ -537,7 +542,7 @@ def run_external_real_use_signal_evaluation(
     logical_date: date,
     source_slot: str,
 ) -> dict[str, Any]:
-    """Create DEC-051 production-value release-candidate alerts."""
+    """Create DEC-053 Rich Message production-value release-candidate alerts."""
     rule = real_use_rule()
     slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
     evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)

@@ -101,15 +101,15 @@ def run_telegram_delivery(
         if not claim.acquired:
             continue
         try:
-            text = render_telegram_alert(candidate)
+            message = render_telegram_alert(candidate)
         except UnsafeTelegramPayload:
             result = TelegramSendResult("permanent_failure", error_code="UNSAFE_PAYLOAD")
         else:
             try:
-                result = transport.send_message(
+                result = transport.send_rich_message(
                     bot_token=config.bot_token,
                     chat_id=config.chat_id,
-                    text=text,
+                    message=message,
                 )
             except Exception:
                 result = TelegramSendResult("unknown", error_code="TRANSPORT_EXCEPTION")
