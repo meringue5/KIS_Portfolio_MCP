@@ -83,11 +83,17 @@ collecting the separate formal shadow evidence.
 ## Sub-items
 
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
-- `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary.
+- `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary (`closed`).
 - `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`in_progress`).
 - `WI-030-S04`: establish calendar-window replay, fixture and live-observation acceptance evidence (`ready`; follows S03).
 
 ## Evidence
+
+- `WI-030-S02` closed on 2026-09-07. The immutable canary produced 18/18 provider-confirmed unique deliveries with
+  zero retryable, unknown or permanent outcomes across `kr-1000`, `us-close`, `kr-1430` and `kr-1600`; the owner
+  confirmed destination receipt. Its approval was subsequently revoked append-only when the production-value RC was
+  activated, proving expiry/revocation fail-closed without rewriting candidates, claims or attempts. This closes the
+  transport canary only; Rich Message product acceptance remains in S03/S04.
 
 - 2026-09-03 10:00 first production-value execution sent 14/14 owner-visible messages with zero unknown, retryable or
   permanent failures. Owner confirmed receipt but found the SMA event/state wording ambiguous. Live review found all
@@ -137,7 +143,7 @@ collecting the separate formal shadow evidence.
 
 ## Closeout
 
-- Result: S01 is closed; S02 evidence is preserved and its external approval is revoked; S03 is deployed in real-use
+- Result: S01 and S02 are closed; S02 evidence is preserved and its external approval is revoked; S03 is deployed in real-use
   stabilization under DEC-051.
 - Remaining risk: corrected immutable RC deployment, subsequent transition semantics, false-positive/miss review,
   duplicate suppression and owner acceptance are not yet proven. Episode drawdown and KRW valuation-change

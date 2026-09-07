@@ -1,7 +1,7 @@
 # MS-002 — Portfolio analytics, risk signals and Telegram delivery
 
 > 상태: in progress
-> 기준선: 2026-08-30.2
+> 기준선: 2026-09-07.1
 > machine registry: `governance/project/milestones.toml`
 
 ## Outcome
@@ -35,8 +35,8 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 15 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | rejected from initial V2; no implementation claimed |
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
 | 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | closed; PR #25, shadow-only ledger |
-| 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | verified implementation; S05 operational evidence collecting through 2026-09-10 |
-| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01 closed; S02 transport canary live; S03 production-value experience ready after readiness audit |
+| 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | verified implementation; S06 corrects slot evidence and S05 collects corrected window through 2026-09-14 |
+| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | in progress; S01/S02 closed; S03 Rich Message deployed; S04 temporal acceptance ready |
 | 20 | WI-054 production-readiness correction | review gate | WI-028 | closed; live readiness matrix and WI-030-S03 handoff established |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
@@ -73,6 +73,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-07.1 | 2026-09-07 | S02 canary를 18/18 provider-confirmed 및 owner receipt로 닫고, shadow slot 과대계상과 masked rollback을 S06으로 보정 | WI-029-S06 append; 9/10은 자동 종료가 아닌 중간 review gate, corrected window는 9/14까지 |
 | 2026-09-03.1 | 2026-09-03 | DEC-051에 따라 transport canary와 제품 인수를 분리하고 실사용·안정화 gate를 추가 | WI-030-S03과 독립 readiness audit WI-054를 append; 기존 WI와 canary 증거 불변 |
 | 2026-09-01.1 | 2026-09-01 | 10:00 canary sent 8/8 and owner confirmed receipt over LTE; Wi-Fi Telegram block classified outside service | WI-030-S02 remains in progress; no rule or dependency change |
 | 2026-08-31.1 | 2026-08-31 | 첫 정상 월요일 증거 뒤 `주의` 이상 7일 experimental Telegram canary를 DEC-050으로 승인 | WI-030-S02만 in progress; permanent WI-029 gate와 identity 불변 |

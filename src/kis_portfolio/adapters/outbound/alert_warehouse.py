@@ -44,6 +44,16 @@ class AlertClaimError(RuntimeError):
     """Raised for invalid or stale delivery-claim operations."""
 
 
+def _rollback_without_masking(connection: object) -> None:
+    """Best-effort rollback after DuckDB/MotherDuck may already have aborted."""
+    try:
+        connection.execute("ROLLBACK")  # type: ignore[attr-defined]
+    except duckdb.TransactionException:
+        # A failed remote COMMIT can already close the transaction.  Preserve
+        # the original exception instead of replacing it with "no transaction".
+        pass
+
+
 @dataclass(frozen=True, slots=True)
 class CandidateWrite:
     candidate_id: str
@@ -248,10 +258,10 @@ class AlertWarehouseRepository:
             )
             self.connection.execute("COMMIT")
         except duckdb.ConstraintException as exc:
-            self.connection.execute("ROLLBACK")
+            _rollback_without_masking(self.connection)
             raise AlertWarehouseConflictError("concurrent alert state update lost optimistic claim") from exc
         except Exception:
-            self.connection.execute("ROLLBACK")
+            _rollback_without_masking(self.connection)
             raise
         return StateWrite(transition, True)
 
@@ -482,6 +492,6 @@ class AlertWarehouseRepository:
             )
             self.connection.execute("COMMIT")
         except Exception:
-            self.connection.execute("ROLLBACK")
+            _rollback_without_masking(self.connection)
             raise
         return attempt_id

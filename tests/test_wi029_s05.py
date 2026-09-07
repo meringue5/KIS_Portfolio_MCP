@@ -6,6 +6,7 @@ import duckdb
 import pytest
 
 from kis_portfolio.adapters.outbound.alert_warehouse import AlertWarehouseRepository
+from kis_portfolio.adapters.outbound.alert_calibration_warehouse import AlertCalibrationWarehouse
 from kis_portfolio.modules.monitoring import AlertCandidate, AlertEvaluation, AlertRuleVersion
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.shadow_alerts import RULE_ID, RULE_VERSION
@@ -110,6 +111,7 @@ def test_refresh_detects_missing_slot_independently_of_candidate_session_key() -
 
     result = refresh_wi029_s05_evidence(
         connection, recorded_at=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        window_start=date(2026, 8, 28), window_end=date(2026, 8, 28),
     )
 
     assert result["status"] == "collecting"
@@ -117,6 +119,62 @@ def test_refresh_detects_missing_slot_independently_of_candidate_session_key() -
     assert result["observed_slot_count"] == 3
     assert result["missing_slot_keys"] == ["evaluation:2026-08-28|kr-1600"]
     assert result["external_send_count"] == 0
+    connection.close()
+
+
+def test_shadow_slot_requires_terminal_delivery_claim() -> None:
+    connection = _connection()
+    alerts = AlertWarehouseRepository(connection)
+    rule = _rule()
+    alerts.register_rule(rule)
+    candidate = AlertCandidate.build(rule, AlertEvaluation(
+        subject_type="instrument", subject_id="opaque-dangling",
+        evaluation_date=date(2026, 8, 28), evaluation_slot="kr-1600",
+        session_key="krx:2026-08-28", evaluation_at=datetime(2026, 8, 28, 7, tzinfo=UTC),
+        signal_state="active", severity="warning", state_key="warning",
+        quality_status="pass", input_lineage_hash="b" * 64,
+        public_context={"summary": "fixture"}, evaluation_run_id="fixture-dangling",
+    ))
+    alerts.apply_candidate(candidate)
+    alerts.claim_dispatch(
+        candidate_id=candidate.candidate_id, channel="shadow",
+        destination_ref="shadow.owner", claimant_id="fixture",
+        lease_token="lease", claimed_at=datetime(2026, 8, 28, 7, tzinfo=UTC),
+    )
+
+    evidence = AlertCalibrationWarehouse(connection).build_shadow_evidence(
+        rule_set_id=RULE_ID, rule_set_version=RULE_VERSION,
+        window_start=date(2026, 8, 28), window_end=date(2026, 8, 28),
+        expected_session_keys=["evaluation:2026-08-28|kr-1600"],
+        owner_review_complete=False,
+    )
+
+    assert evidence.observed_session_keys == ()
+    assert evidence.summary["incomplete_session_keys"] == ["evaluation:2026-08-28|kr-1600"]
+    assert evidence.summary["dangling_shadow_claim_count"] == 1
+    connection.close()
+
+
+def test_completion_marker_proves_zero_candidate_slot_after_cutover() -> None:
+    connection = _connection()
+    connection.execute(
+        """
+        INSERT INTO control.quality_results VALUES (
+          'marker','run','dataset.alert-calibration-evidence','shadow-slot-terminal-v1',
+          'pass','0','terminal',
+          '{"logical_date":"2026-08-28","source_slot":"kr-1430"}',
+          '2026-08-28T05:30:00+00:00'
+        )
+        """
+    )
+    evidence = AlertCalibrationWarehouse(connection).build_shadow_evidence(
+        rule_set_id=RULE_ID, rule_set_version=RULE_VERSION,
+        window_start=date(2026, 8, 28), window_end=date(2026, 8, 28),
+        expected_session_keys=["evaluation:2026-08-28|kr-1430"],
+        owner_review_complete=False,
+        completion_marker_required_from=date(2026, 8, 28),
+    )
+    assert evidence.observed_session_keys == ("evaluation:2026-08-28|kr-1430",)
     connection.close()
 
 

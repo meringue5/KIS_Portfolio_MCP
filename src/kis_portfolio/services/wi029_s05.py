@@ -13,10 +13,15 @@ from kis_portfolio.adapters.outbound.alert_calibration_warehouse import (
 )
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.shadow_alerts import RULE_ID, RULE_VERSION
-from kis_portfolio.services.wi029_s04 import SHADOW_END, SHADOW_START
 
 
 SEOUL = ZoneInfo("Asia/Seoul")
+CORRECTED_SHADOW_START = date(2026, 9, 1)
+CORRECTED_SHADOW_END = date(2026, 9, 14)
+COMPLETION_MARKER_REQUIRED_FROM = date(2026, 9, 8)
+EXCLUDED_SESSION_REASONS = {
+    "evaluation:2026-09-03|kr-1430": "MOTHERDUCK_COMMIT_FAILED_A152C99C",
+}
 _SLOT_TIMES = (
     ("kr-1000", time(10, 0)),
     ("us-close", time(10, 0)),
@@ -74,6 +79,8 @@ def refresh_wi029_s05_evidence(
     connection: duckdb.DuckDBPyConnection,
     *,
     recorded_at: datetime | None = None,
+    window_start: date = CORRECTED_SHADOW_START,
+    window_end: date = CORRECTED_SHADOW_END,
 ) -> dict[str, Any]:
     """Recompute shadow coverage without provider or delivery calls."""
     now = recorded_at or datetime.now(UTC)
@@ -83,17 +90,19 @@ def refresh_wi029_s05_evidence(
     repository = AlertCalibrationWarehouse(connection)
     expected = expected_shadow_slot_keys(
         connection,
-        window_start=SHADOW_START,
-        window_end=SHADOW_END,
+        window_start=window_start,
+        window_end=window_end,
         observed_at=now,
     )
     evidence = repository.build_shadow_evidence(
         rule_set_id=RULE_ID,
         rule_set_version=RULE_VERSION,
-        window_start=SHADOW_START,
-        window_end=SHADOW_END,
+        window_start=window_start,
+        window_end=window_end,
         expected_session_keys=expected,
         owner_review_complete=False,
+        completion_marker_required_from=COMPLETION_MARKER_REQUIRED_FROM,
+        excluded_session_reasons=EXCLUDED_SESSION_REASONS,
     )
     status = repository.write_shadow_evidence(evidence, updated_at=now)
     return {
@@ -104,6 +113,9 @@ def refresh_wi029_s05_evidence(
         "observed_slot_count": len(evidence.observed_session_keys),
         "missing_slot_keys": evidence.summary["missing_session_keys"],
         "unexpected_slot_keys": evidence.summary["unexpected_session_keys"],
+        "incomplete_slot_keys": evidence.summary["incomplete_session_keys"],
+        "excluded_slot_reasons": evidence.summary["excluded_session_reasons"],
+        "dangling_shadow_claim_count": evidence.summary["dangling_shadow_claim_count"],
         "candidate_count": evidence.candidate_count,
         "external_send_count": evidence.external_send_count,
     }

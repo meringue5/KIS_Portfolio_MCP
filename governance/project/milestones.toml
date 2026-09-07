@@ -703,6 +703,12 @@ title = "Collect two-week evidence and owner rule approval"
 status = "in_progress"
 
 [[subitems]]
+id = "WI-029-S06"
+parent_id = "WI-029"
+title = "Correct shadow slot completion evidence and preserve commit failures"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-030-S01"
 parent_id = "WI-030"
 title = "Implement and verify disabled outbound Telegram delivery"
@@ -712,7 +718,7 @@ status = "closed"
 id = "WI-030-S02"
 parent_id = "WI-030"
 title = "Verify destination and activate a bounded Telegram canary"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-030-S03"

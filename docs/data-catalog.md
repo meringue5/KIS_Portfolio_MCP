@@ -103,7 +103,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | --- | --- | --- |
 | `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
 | `gold.metric_values` | metric/version/subject/evaluation-at point-in-time value, quality and lineage; approved definitions include portfolio value, Modified Dietz return/component contribution/residual, chain-linked wealth/drawdown, instrument-level KRW valuation-change contribution, lot MFE/MAE, position-episode high/drawdown, owner-stop thread/instrument planned loss and risk ratio, SMA20/50/120, volume SMA/ratio20, Wilder RSI14, Bollinger 20/2 context and Wilder ATR20 | Parquet / confidential |
-| `gold.alert_candidates` | rule/version/opaque subject/session/slot point-in-time state, severity, quality, lineage and allowlisted redacted context | Parquet / confidential |
+| `gold.alert_candidates` | rule/version/opaque subject/session/slot point-in-time state, severity, quality, lineage and allowlisted redacted context; presence alone is not slot-completion evidence | Parquet / confidential |
 | `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
 | `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
@@ -111,8 +111,8 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.alert_rule_versions` | immutable rule/version hash, validity, exact numeric watch floor and off/shadow/external mode | Parquet / confidential |
 | `control.alert_state_revisions`, `control.alert_states_current` | alert identity별 episode, 진입·상향·회복·재진입 append-only transition과 latest projection | Parquet table + rebuild view / confidential |
 | `control.alert_candidate_outcomes` | candidate별 transition·no-change·quality/out-of-order suppression exactly-once 처리 결과 | Parquet / confidential |
-| `control.alert_dispatch_claims`, `control.alert_delivery_attempts` | candidate/channel/opaque destination leased claim과 redacted terminal/retry outcome | Parquet / confidential |
-| `control.alert_calibration_runs`, `control.alert_shadow_windows` | provenance-labelled 3년 replay·자산유형 threshold report와 2주 DB-only coverage/de-dup/zero-send evidence | Parquet / confidential |
+| `control.alert_dispatch_claims`, `control.alert_delivery_attempts` | candidate/channel/opaque destination leased claim과 redacted terminal/retry outcome; aborted remote commit 뒤 rollback은 원래 오류를 가리지 않음 | Parquet / confidential |
+| `control.alert_calibration_runs`, `control.alert_shadow_windows` | provenance-labelled 3년 replay·자산유형 threshold report와 terminal outcome/claim 및 post-cutover 완료 marker로 증명한 2주 DB-only coverage/de-dup/zero-send evidence | Parquet / confidential |
 | `control.alert_rule_approval_revisions` | calibration·verified shadow를 인용하는 owner approval/rejection/revocation revision | Parquet / confidential |
 | `control.pipeline_runs`, `control.pipeline_stage_runs` | logical run and resumable stage evidence; `dataset.pipeline-run-evidence`, `dataset.pipeline-stage-evidence` | Parquet / internal |
 | `control.quality_results`, `control.lineage_edges`, `control.watermarks` | rule result, transform edge와 partition watermark; `dataset.data-quality-evidence`, `dataset.data-lineage-evidence`, `dataset.pipeline-watermark-state` | Parquet / internal |

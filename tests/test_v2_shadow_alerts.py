@@ -118,6 +118,14 @@ def test_shadow_runtime_is_db_only_and_idempotent() -> None:
         "SELECT channel,claim_status FROM control.alert_dispatch_claims"
     ).fetchone() == ("shadow", "completed")
     assert connection.execute("SELECT count(*) FROM control.alert_delivery_attempts").fetchone()[0] == 1
+    marker = connection.execute(
+        """
+        SELECT status,json_extract_string(details,'$.source_slot')
+        FROM control.quality_results WHERE rule_id='shadow-slot-terminal-v1'
+        """
+    ).fetchone()
+    assert marker == ("pass", "kr-1600")
+    assert len(first["completion_marker_id"]) == 64
 
     replay = run_shadow_signal_evaluation(
         connection, logical_date=LOGICAL_DATE, source_slot="kr-1600"

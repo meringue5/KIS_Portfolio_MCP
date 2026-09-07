@@ -39,8 +39,23 @@ message ID. Existing sent claims are terminal, so the rollback/re-enable sequenc
 - Owner destination receipt: passed over LTE.
 - Destination mismatch hypothesis: rejected by the GCP-side hashed probe.
 - Application/Telegram transport defect hypothesis: rejected for this incident.
-- Remaining S02 evidence: `kr-1430` and `kr-1600`, cross-slot de-duplication, and expiry/revocation fail-closed behavior.
-- `WI-030-S02` therefore remains `in_progress`; this evidence does not promote the canary to a permanent rule.
+- Subsequent bounded-canary runs completed all four evaluation slots. The immutable canary ended with 18/18 unique,
+  provider-confirmed deliveries, zero retryable/unknown/permanent outcomes, owner receipt and append-only revocation.
+- `WI-030-S02` is closed as transport evidence. It does not promote the canary to a permanent rule or accept the Rich
+  Message product experience; those gates remain S03/S04.
+
+## WI-029 interim evidence incident — 2026-09-03 14:30 KST
+
+Execution `kis-portfolio-owned-core-v2-1430-l6ss6` failed while recording a DB-only shadow attempt. MotherDuck raised
+internal commit error ID `a152c99c`; the error handler then issued an unconditional rollback after the transaction had
+already ended, replacing the original exception with `cannot rollback - no transaction is active`. The partial slot
+has one `claimed` shadow dispatch with zero attempts.
+
+WI-029-S06 preserves this as `MOTHERDUCK_COMMIT_FAILED_A152C99C`; it is not backfilled or called live success. Slot
+coverage now requires terminal candidate outcomes and required shadow claims, and from 2026-09-08 requires a
+deterministic completion marker written only after shadow evaluation finishes. The original 2026-08-28 through
+2026-09-10 evidence row remains immutable; the corrected window excludes pre-activation 2026-08-28 and runs from
+2026-09-01 through 2026-09-14. September 10 is an interim review gate, not automatic milestone closure.
 
 ## Operational lesson
 

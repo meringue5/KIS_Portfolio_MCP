@@ -56,6 +56,8 @@ owner can approve external delivery.
 - `WI-029-S03`: audit live eligibility and execute only a bounded, provenance-labelled replay.
 - `WI-029-S04`: activate DB-only shadow schedules with external delivery impossible.
 - `WI-029-S05`: collect two elapsed weeks of evidence and record owner rule-version approval.
+- `WI-029-S06`: correct slot-completion evidence, reconcile the 2026-09-03 partial run and preserve the original
+  MotherDuck commit failure across best-effort rollback.
 
 ## Evidence
 
@@ -82,10 +84,17 @@ owner can approve external delivery.
   candidates; it remains DB-only and cannot approve or send alerts. PR #29 was merged and deployed to the three
   existing V2 core Jobs in GitHub Actions run `33261574130`; runtime evidence is recorded in
   `docs/operations/wi-029-shadow-activation-2026-08.md`.
+- `WI-029-S06` was opened after the 2026-09-07 interim review found that candidate presence could overstate a slot:
+  execution `kis-portfolio-owned-core-v2-1430-l6ss6` failed on 2026-09-03 with MotherDuck commit error ID
+  `a152c99c`, then an unconditional rollback masked that exception with `no transaction is active`. The partial slot
+  contains one non-terminal shadow claim and is retained as the explicit
+  `MOTHERDUCK_COMMIT_FAILED_A152C99C` exception, never backfilled as live success. The corrected evidence window is
+  2026-09-01 through 2026-09-14; 2026-08-28 pre-activation slots are excluded, terminal outcome/claim checks apply to
+  existing slots, and deterministic completion markers are mandatory from 2026-09-08.
 
 ## Closeout
 
-- Result: verified implementation; S01-S04 are closed and S05 is collecting elapsed operational evidence before
+- Result: verified implementation; S01-S04 are closed, S06 is the active evidence-integrity correction and S05 is collecting elapsed operational evidence before
   acceptance and closeout. This releases the single implementation WIP slot but does not satisfy WI-030 activation.
 - Remaining risk: reconstructed-history bias.
 - Follow-up Work Item: WI-030.
