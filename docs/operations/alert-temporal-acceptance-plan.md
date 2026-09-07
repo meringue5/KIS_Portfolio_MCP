@@ -43,6 +43,10 @@ independent analytics, source or architecture changes receive the next unused Wo
 candidates, claims and attempts remain immutable. Corrections use a new rule/contract version and repeat the relevant
 short-window gates before returning to longitudinal observation.
 
+For the current acceptance cycle, 2026-09-10 is an interim review gate rather than automatic closure. The first actual
+`production-value-v3` Rich Message must be received and reviewed before S03/S04 product acceptance. The corrected
+DB-only shadow evidence window ends 2026-09-14; longer monthly, quarterly and annual states continue independently.
+
 ## Low-cost operation
 
 No always-on service or governance SaaS is introduced. Existing scale-to-zero Jobs and MotherDuck ledgers provide the

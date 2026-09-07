@@ -55,6 +55,14 @@ sessions, candidates, de-duplication, quality suppression and sensitive-value vi
 until at least 14 elapsed days, expected governed slots are reconciled, sensitive violations are zero and owner review
 is complete.
 
+Candidate presence does not prove that a slot completed. Before the WI-029-S06 cutover, a slot is observed only when
+every candidate has a terminal outcome and every delivery-required transition has a completed shadow claim with a
+sent internal attempt. From 2026-09-08 onward, even a zero-candidate slot additionally requires the deterministic
+`shadow-slot-terminal-v1` quality marker written after the whole shadow evaluation returns successfully. The partial
+2026-09-03 14:30 run remains an explicit `MOTHERDUCK_COMMIT_FAILED_A152C99C` exception; it is not backfilled or
+relabeled as live success. The corrected acceptance window is 2026-09-01 through 2026-09-14, excluding pre-activation
+2026-08-28 slots and retaining the original window as immutable incident evidence.
+
 `control.alert_rule_approval_revisions` is owner-only and references both a review-ready calibration run and a verified
 shadow window. Approval does not itself enable Telegram; WI-030 owns destination verification, test message and the
 external delivery feature flag.

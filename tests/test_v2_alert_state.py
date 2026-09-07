@@ -10,6 +10,7 @@ from kis_portfolio.adapters.outbound.alert_warehouse import (
     AlertClaimError,
     AlertWarehouseConflictError,
     AlertWarehouseRepository,
+    _rollback_without_masking,
 )
 from kis_portfolio.db.catalog import v2_backup_table_names
 from kis_portfolio.modules.monitoring import (
@@ -23,6 +24,15 @@ from kis_portfolio.services.v2_recovery import export_v2_backup, restore_v2_back
 
 
 BASE_TIME = datetime(2026, 8, 28, 1, tzinfo=UTC)
+
+
+def test_safe_rollback_does_not_mask_an_already_aborted_transaction() -> None:
+    class AlreadyAborted:
+        def execute(self, statement: str) -> None:
+            assert statement == "ROLLBACK"
+            raise duckdb.TransactionException("cannot rollback - no transaction is active")
+
+    _rollback_without_masking(AlreadyAborted())
 
 
 def _rule(*, mode: str = "shadow") -> AlertRuleVersion:

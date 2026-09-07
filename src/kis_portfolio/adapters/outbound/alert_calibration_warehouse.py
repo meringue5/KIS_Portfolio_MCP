@@ -152,27 +152,76 @@ class AlertCalibrationWarehouse:
         expected_session_keys: Iterable[str],
         owner_review_complete: bool,
         sensitive_violation_count: int = 0,
+        completion_marker_required_from: date | None = None,
+        excluded_session_reasons: Mapping[str, str] | None = None,
     ) -> ShadowEvidence:
         if window_end < window_start:
             raise ValueError("shadow window end precedes start")
-        expected = tuple(sorted(set(expected_session_keys)))
+        scheduled_expected = tuple(sorted(set(expected_session_keys)))
+        excluded = {
+            key: reason for key, reason in (excluded_session_reasons or {}).items()
+            if key in scheduled_expected
+        }
+        expected = tuple(key for key in scheduled_expected if key not in excluded)
         rows = self.connection.execute(
             """
-            SELECT c.candidate_id,c.evaluation_date,c.evaluation_slot,c.quality_status,o.outcome_type
+            SELECT c.candidate_id,c.evaluation_date,c.evaluation_slot,c.quality_status,o.outcome_type,
+                   coalesce(s.delivery_required,false),d.claim_status,
+                   count_if(a.outcome='sent') AS sent_attempts
             FROM gold.alert_candidates c
             LEFT JOIN control.alert_candidate_outcomes o USING(candidate_id)
+            LEFT JOIN control.alert_state_revisions s USING(candidate_id)
+            LEFT JOIN control.alert_dispatch_claims d
+              ON d.candidate_id=c.candidate_id AND d.channel='shadow'
+            LEFT JOIN control.alert_delivery_attempts a USING(dispatch_id)
             WHERE c.rule_id=? AND c.rule_version=?
               AND c.evaluation_date BETWEEN ? AND ?
+            GROUP BY c.candidate_id,c.evaluation_date,c.evaluation_slot,c.quality_status,
+                     o.outcome_type,s.delivery_required,d.claim_status
             ORDER BY c.evaluation_date,c.evaluation_slot,c.candidate_id
             """,
             [rule_set_id, rule_set_version, window_start, window_end],
         ).fetchall()
-        # Coverage is the Korean evaluation opportunity. A morning U.S. close
-        # can cite an earlier U.S. session, so its price session key is not the
-        # scheduled coverage identity.
-        observed = tuple(sorted({f"evaluation:{row[1].isoformat()}|{row[2]}" for row in rows}))
+        candidates_by_slot: dict[str, list[tuple[object, ...]]] = {}
+        for row in rows:
+            key = f"evaluation:{row[1].isoformat()}|{row[2]}"
+            candidates_by_slot.setdefault(key, []).append(row)
+        terminal_candidate_slots = {
+            key for key, items in candidates_by_slot.items()
+            if all(
+                row[4] is not None
+                and (not bool(row[5]) or (row[6] == "completed" and int(row[7]) > 0))
+                for row in items
+            )
+        }
+        marker_rows = self.connection.execute(
+            """
+            SELECT json_extract_string(details,'$.logical_date'),
+                   json_extract_string(details,'$.source_slot')
+            FROM control.quality_results
+            WHERE dataset_id='dataset.alert-calibration-evidence'
+              AND rule_id='shadow-slot-terminal-v1' AND status='pass'
+              AND CAST(json_extract_string(details,'$.logical_date') AS DATE) BETWEEN ? AND ?
+            """,
+            [window_start, window_end],
+        ).fetchall()
+        marker_slots: set[str] = set()
+        for marker_date, source_slot in marker_rows:
+            marker_slots.add(f"evaluation:{marker_date}|{source_slot}")
+            if source_slot == "kr-1000":
+                marker_slots.add(f"evaluation:{marker_date}|us-close")
+        observed_set: set[str] = set()
+        for key in terminal_candidate_slots | marker_slots:
+            key_date = date.fromisoformat(key.split("|", 1)[0].removeprefix("evaluation:"))
+            if completion_marker_required_from is None or key_date < completion_marker_required_from:
+                if key in terminal_candidate_slots:
+                    observed_set.add(key)
+            elif key in marker_slots:
+                observed_set.add(key)
+        observed = tuple(sorted(observed_set - set(excluded)))
         duplicate_count = sum(row[4] == "no_change" for row in rows)
         quality_count = sum(row[4] == "suppressed_quality" for row in rows)
+        dangling_shadow_claim_count = sum(bool(row[5]) and row[6] != "completed" for row in rows)
         external_send_count = int(self.connection.execute(
             """
             SELECT count(*)
@@ -186,16 +235,25 @@ class AlertCalibrationWarehouse:
         ).fetchone()[0])
         missing = sorted(set(expected) - set(observed))
         unexpected = sorted(set(observed) - set(expected))
+        incomplete = sorted((set(candidates_by_slot) - terminal_candidate_slots) - set(excluded))
         summary: dict[str, object] = {
-            "summary_version": 2,
+            "summary_version": 3,
             "coverage_key_version": "evaluation-date-slot-v1",
             "window_start": window_start.isoformat(),
             "window_end": window_end.isoformat(),
             "elapsed_days": (window_end - window_start).days + 1,
             "expected_session_count": len(expected),
             "observed_session_count": len(observed),
+            "scheduled_due_session_count": len(scheduled_expected),
             "missing_session_keys": missing,
             "unexpected_session_keys": unexpected,
+            "incomplete_session_keys": incomplete,
+            "excluded_session_reasons": excluded,
+            "completion_marker_required_from": (
+                completion_marker_required_from.isoformat()
+                if completion_marker_required_from is not None else None
+            ),
+            "dangling_shadow_claim_count": dangling_shadow_claim_count,
             "candidate_count": len(rows),
             "duplicate_suppressed_count": duplicate_count,
             "quality_suppressed_count": quality_count,

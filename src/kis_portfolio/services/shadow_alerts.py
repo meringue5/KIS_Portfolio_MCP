@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -490,13 +491,65 @@ def run_shadow_signal_evaluation(
     source_slot: str,
 ) -> dict[str, Any]:
     """Evaluate the permanent DB-only shadow rule."""
-    return _run_signal_evaluation(
+    result = _run_signal_evaluation(
         connection,
         logical_date=logical_date,
         source_slot=source_slot,
         rule=_rule(),
         shadow_claims=True,
     )
+    incomplete = int(connection.execute(
+        """
+        SELECT count(*)
+        FROM gold.alert_candidates c
+        LEFT JOIN control.alert_candidate_outcomes o USING(candidate_id)
+        LEFT JOIN control.alert_state_revisions s USING(candidate_id)
+        WHERE c.evaluation_run_id=? AND (
+            o.candidate_id IS NULL OR (
+                coalesce(s.delivery_required,false) AND NOT EXISTS (
+                    SELECT 1
+                    FROM control.alert_dispatch_claims d
+                    JOIN control.alert_delivery_attempts a USING(dispatch_id)
+                    WHERE d.candidate_id=c.candidate_id AND d.channel='shadow'
+                      AND d.claim_status='completed' AND a.outcome='sent'
+                )
+            )
+        )
+        """,
+        [result["run_id"]],
+    ).fetchone()[0])
+    if incomplete:
+        raise RuntimeError("shadow slot has non-terminal candidate or delivery evidence")
+    marker_id = hashlib.sha256(
+        f"shadow-slot-terminal-v1|{RULE_ID}|{RULE_VERSION}|{logical_date}|{source_slot}".encode()
+    ).hexdigest()
+    details = {
+        "logical_date": logical_date.isoformat(),
+        "source_slot": source_slot,
+        "evaluation_slots": result["evaluation_slots"],
+        "candidate_count": result["candidate_count"],
+        "transition_count": result["transition_count"],
+        "shadow_claim_count": result["shadow_claim_count"],
+    }
+    connection.execute(
+        """
+        INSERT INTO control.quality_results(
+            quality_result_id,run_id,dataset_id,rule_id,status,observed_value,
+            expected_value,details,evaluated_at
+        ) VALUES (?,?,?,'shadow-slot-terminal-v1','pass',?,'terminal',?,?)
+        ON CONFLICT(quality_result_id) DO NOTHING
+        """,
+        [
+            marker_id,
+            result["run_id"],
+            "dataset.alert-calibration-evidence",
+            str(result["candidate_count"]),
+            json.dumps(details, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            _fixed_slot_time(logical_date, source_slot),
+        ],
+    )
+    result["completion_marker_id"] = marker_id
+    return result
 
 
 def run_external_canary_signal_evaluation(
