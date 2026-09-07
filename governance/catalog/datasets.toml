@@ -842,11 +842,11 @@ consumer_ids = ["realized lot analysis", "thread lifecycle", "LLM allocation rev
 
 [[contracts]]
 id = "dataset.alert-candidate"
-version = "1.2.0"
+version = "1.3.0"
 status = "approved"
 owner = "owner"
 description = "승인된 rule version과 point-in-time metric으로 평가한 상태·심각도·품질·lineage 및 redacted public context."
-decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051", "DEC-052"]
+decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051", "DEC-052", "DEC-053"]
 layer = "gold"
 source_ids = []
 input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily", "dataset.metric-value", "dataset.portfolio-daily-state"]
@@ -855,7 +855,7 @@ grain = "one alert rule version, opaque subject, logical market session and gove
 natural_key = ["rule_id", "rule_version", "subject_type", "subject_id", "session_key", "evaluation_slot"]
 time_semantics = "evaluation_at and market session are stable logical cutoffs; recorded_at is audit metadata only"
 write_mode = "idempotent append by logical evaluation key; conflicting replay is rejected and rule versions are immutable"
-schema_contract = "Gold alert candidate v1.2 with normal or active state, severity, state fingerprint, quality, lineage and a bounded production-value context that distinguishes current SMA position from an observed cross, price-to-average from average-to-average relations, baseline initialization and explicit unavailable analytics"
+schema_contract = "Gold alert candidate v1.3 with normal or active state, severity, state fingerprint, quality, lineage and a bounded production-value-v3 context for Rich Message rendering that distinguishes current SMA position from an observed cross, price-to-average from average-to-average relations, baseline initialization and explicit unavailable analytics"
 sensitivity = "confidential"
 retention_policy = "candidate and transition history retained with governed metrics; minimum three years hot history"
 backup_policy = "parquet"

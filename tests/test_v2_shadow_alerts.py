@@ -192,7 +192,7 @@ def test_external_canary_expires_without_creating_candidates() -> None:
 
 
 def test_real_use_candidate_has_safe_owner_readable_context_without_fabricated_metrics() -> None:
-    logical_date = date(2026, 9, 3)
+    logical_date = date(2026, 9, 7)
     connection = _warehouse(logical_date=logical_date)
 
     result = run_external_real_use_signal_evaluation(
@@ -205,7 +205,7 @@ def test_real_use_candidate_has_safe_owner_readable_context_without_fabricated_m
         "SELECT public_context FROM gold.alert_candidates WHERE rule_version=?",
         [REAL_USE_RULE_VERSION],
     ).fetchone()[0])
-    assert context["presentation_version"] == "production-value-v2"
+    assert context["presentation_version"] == "production-value-v3"
     assert context["subject_label"] == "Synthetic"
     assert context["market_label"] == "국내"
     assert context["asset_type_label"] == "ETF"
@@ -224,7 +224,7 @@ def test_real_use_candidate_has_safe_owner_readable_context_without_fabricated_m
 
 
 def test_intraday_real_use_suppresses_unadjusted_full_day_volume_comparison() -> None:
-    logical_date = date(2026, 9, 3)
+    logical_date = date(2026, 9, 7)
     connection = _warehouse(logical_date=logical_date)
 
     result = run_external_real_use_signal_evaluation(
@@ -236,7 +236,7 @@ def test_intraday_real_use_suppresses_unadjusted_full_day_volume_comparison() ->
         "SELECT public_context FROM gold.alert_candidates WHERE rule_version=?",
         [REAL_USE_RULE_VERSION],
     ).fetchone()[0])
-    assert context["presentation_version"] == "production-value-v2"
+    assert context["presentation_version"] == "production-value-v3"
     assert context["volume_ratio20"] is None
     assert "intraday_volume_not_comparable" in context["unavailable_codes"]
     state = connection.execute(

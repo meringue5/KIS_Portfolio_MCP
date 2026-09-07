@@ -1,4 +1,4 @@
-"""DEC-051 production-value Telegram release-candidate activation gates."""
+"""DEC-053 Telegram Rich Message release-candidate activation gates."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def activate_wi030_real_use(
         or str(prior_release[1]) not in {"approved", "revoked"}
         or sent_count <= 0
     ):
-        raise RuntimeError("DEC-052 requires successful immutable prior real-use evidence")
+        raise RuntimeError("DEC-053 requires successful immutable prior real-use evidence")
 
     calibration = connection.execute(
         "SELECT calibration_run_id,run_status FROM control.alert_calibration_runs WHERE report_hash=?",
@@ -82,16 +82,18 @@ def activate_wi030_real_use(
     if not (rule.valid_from <= now < rule.valid_to):
         raise RuntimeError("production-value release candidate is outside its bounded validity")
     evidence = {
-        "decision_ref": "DEC-052",
+        "decision_ref": "DEC-053",
         "prior_real_use_version": PRIOR_REAL_USE_RULE_VERSION,
         "prior_real_use_sent_count": sent_count,
-        "presentation_version": "production-value-v2",
+        "presentation_version": "production-value-v3",
         "corrections": [
-            "precise_sma_semantics",
-            "initial_state_baseline_only",
-            "intraday_volume_fail_closed",
-            "owner_readable_transition_labels",
-            "scoped_data_quality_label",
+            "telegram_rich_message",
+            "severity_emoji",
+            "available_metric_table",
+            "collapsed_unavailable_metrics",
+            "single_timestamp_footer",
+            "remove_repeated_boilerplate",
+            "remove_unsupported_trend_health_claim",
         ],
         "explicit_unavailable_metrics": ["episode_drawdown", "valuation_change_contribution"],
         "rule_version": REAL_USE_RULE_VERSION,
@@ -133,7 +135,7 @@ def activate_wi030_real_use(
 
         if str(prior_release[1]) == "approved":
             revoke_evidence = hashlib.sha256(_canonical({
-                "decision_ref": "DEC-052",
+                "decision_ref": "DEC-053",
                 "rule_version": PRIOR_REAL_USE_RULE_VERSION,
                 "replacement": REAL_USE_RULE_VERSION,
                 "preserve_history": True,
@@ -146,7 +148,7 @@ def activate_wi030_real_use(
                 calibration_run_id=None,
                 shadow_window_id=None,
                 evidence_hash=revoke_evidence,
-                rationale_code="REPLACED_BY_STABILIZED_PRODUCTION_VALUE_RC",
+                rationale_code="REPLACED_BY_TELEGRAM_RICH_MESSAGE_RC",
                 decided_at=now,
                 expected_prior_revision=int(prior_release[0]),
             )

@@ -108,3 +108,15 @@ canary disabled. The weekday 10:00, 14:30 and 16:00 KST Scheduler Jobs remain `E
 Deployment success proves activation and configuration, not owner acceptance. The first v2 evaluation seeds existing
 active conditions as a no-send baseline; only a later state change may produce a new notification. Calendar-window
 claims remain governed by `alert-temporal-acceptance-plan.md` and `WI-030-S04`.
+
+## S03 Rich Message successor — 2026-09-07
+
+Through the 16:00 run, `rc-2026-09-03.2` accumulated 27 provider-confirmed deliveries with zero retryable, unknown or
+permanent outcomes and unique dispatch identities. Owner inspection of the 10:00 message found repeated unavailable
+labels and timestamps, poor scan order, fixed next-check boilerplate and an unsupported `가격·추세 정상` claim when
+the displayed trend metrics were unavailable.
+
+DEC-053 approves a successor immutable RC, `rc-2026-09-07.1`, with presentation `production-value-v3`. It uses
+Telegram `sendRichMessage`, severity icons, an available-only compact table, one collapsed unavailable-details block
+and one source-time footer. It has no automatic `sendMessage` fallback. Existing v2 candidates and delivery ledger
+evidence remain unchanged; activation, scheduled receipt and owner acceptance are still pending.

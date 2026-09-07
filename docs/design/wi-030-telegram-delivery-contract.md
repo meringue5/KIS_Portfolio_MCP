@@ -1,8 +1,8 @@
 # WI-030 Telegram delivery contract
 
-> 상태: S01 closed; DEC-050 transport canary S02 and DEC-051/052 production-value S03 in progress
+> 상태: S01 closed; DEC-050 transport canary S02 and DEC-051/052/053 production-value S03 in progress
 > Work Item: WI-030-S01 / WI-030-S02 / WI-030-S03
-> Data contracts: `pipeline.telegram-delivery-v2:1.3.0`, `dataset.alert-candidate:1.2.0`, `dataset.alert-delivery-ledger:1.2.0`
+> Data contracts: `pipeline.telegram-delivery-v2:1.4.0`, `dataset.alert-candidate:1.3.0`, `dataset.alert-delivery-ledger:1.2.0`
 
 ## Boundary
 
@@ -13,9 +13,9 @@ commands, write journals or place orders. Signal evaluation remains valid even w
 approved point-in-time candidate
   -> delivery-required state transition
   -> active external rule + latest owner approval gate
-  -> allowlisted plain-text renderer
+  -> allowlisted Rich Message renderer
   -> leased telegram claim
-  -> one sendMessage attempt
+  -> one sendRichMessage attempt
   -> redacted terminal/retryable ledger outcome
 ```
 
@@ -52,9 +52,11 @@ wins immediately. Disabled or incomplete configuration never creates a claim or 
 
 ## Payload contract
 
-Plain text includes severity, subject label, transition, bounded summary, percentage change when available, reason
-codes, evaluation timestamp/slot, rule ID/version and a fixed next-check instruction. It does not use Telegram HTML or
-Markdown parsing.
+DEC-053 uses Telegram Rich HTML. The heading contains severity icon, subject and available daily change. The first
+paragraph contains the user-facing event and transition plus its bounded explanation. A compact native table contains
+only available analytics; unavailable analytics are deduplicated in one collapsed `details` block. The footer contains
+one source KST timestamp plus market/type. Repeated next-check boilerplate, duplicate timestamps, internal reason/rule
+identifiers and unsupported `가격·추세 정상` claims are not rendered.
 
 S03 production-value presentation replaces the transport template for its new immutable rule version. It renders a
 safe instrument name, market/type, Korean reason, signed daily change, SMA20/50/120 relations, volume ratio, RSI14,
@@ -68,6 +70,10 @@ DEC-052 correction uses a successor immutable rule version. `하회` means the c
 position and SMA20-to-SMA50 structure are separate lines. A successor rule's first active observation seeds a silent
 baseline and is not presented as a new market event. KRX 10:00/14:30 cumulative volume is explicitly unavailable until
 same-slot normalization exists; only KRX close and U.S. close use prior 20 completed sessions as the full-day baseline.
+
+Rich Message dynamic values are HTML-escaped. Arbitrary text colour is not a contract; 🟡, 🟠 and 🔴 carry severity.
+The adapter calls only `sendRichMessage` with one HTML representation and disabled entity detection. It does not fall
+back to `sendMessage`, because a timeout or ambiguous response must not create a second external attempt.
 
 Only these `public_context` keys are accepted:
 

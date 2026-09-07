@@ -5,10 +5,12 @@ from datetime import UTC, date, datetime, timedelta
 import duckdb
 import httpx
 import pytest
+import json
 
 from kis_portfolio.adapters.outbound.alert_warehouse import AlertClaimError, AlertWarehouseRepository
 from kis_portfolio.adapters.outbound.telegram import (
     TelegramBotClient,
+    TelegramRichMessage,
     TelegramSendResult,
     UnsafeTelegramPayload,
     render_telegram_alert,
@@ -26,9 +28,11 @@ class FakeTelegramClient:
         self.result = result
         self.calls = 0
 
-    def send_message(self, *, bot_token: str, chat_id: str, text: str) -> TelegramSendResult:
+    def send_rich_message(
+        self, *, bot_token: str, chat_id: str, message: TelegramRichMessage,
+    ) -> TelegramSendResult:
         assert bot_token == "bot-secret" and chat_id == "private-chat"
-        assert "private-chat" not in text and "bot-secret" not in text
+        assert "private-chat" not in message.html and "bot-secret" not in message.html
         self.calls += 1
         return self.result
 
@@ -145,14 +149,13 @@ def test_owner_approval_is_required_and_latest_revocation_wins() -> None:
         )
 
 
-def test_renderer_is_plain_redacted_and_rejects_absolute_asset_text() -> None:
+def test_renderer_is_rich_redacted_and_rejects_absolute_asset_text() -> None:
     _, repository, _ = _external_candidate()
     item = repository.eligible_telegram_dispatches(as_of=NOW)[0]
 
-    message = render_telegram_alert(item)
+    message = render_telegram_alert(item).html
 
-    assert "[주의] 삼성전자" in message
-    assert "변화율: -3.25%" in message
+    assert "🟡 삼성전자 -3.25%" in message
     assert "총자산" not in message and "계좌" not in message
     unsafe = item.__class__(
         **{**{field: getattr(item, field) for field in item.__dataclass_fields__},
@@ -205,16 +208,19 @@ def test_production_value_renderer_is_owner_readable_and_explicit_about_unavaila
            }},
     )
 
-    message = render_telegram_alert(rich)
+    message = render_telegram_alert(rich).html
 
-    assert "[주의] 삼성전자 · 국내 · 주식" in message
-    assert "가격: 오늘 -2.25%" in message
-    assert "가격 위치: 20일선 아래 · 50일선 위 · 120일선 위" in message
-    assert "이평선 구조: 20일선이 50일선 아래" in message
-    assert "직전 20일 평균의 1.60배 · RSI(14) 38.20 · 볼린저 밴드 안" in message
-    assert "보유구간 낙폭: 계산 보류" in message
-    assert "포트폴리오 영향: 계산 보류" in message
-    assert "가격·추세 정상 · 보유구간·기여도 계산 보류" in message
+    assert "<h3>🟡 삼성전자 -2.25%</h3>" in message
+    assert "20일선 하향 이탈 · 신규" in message
+    assert "20일선 아래 · 50일선 위 · 120일선 위" in message
+    assert "20일선이 50일선 아래" in message
+    assert "20일 평균 대비 1.60배" in message
+    assert "RSI(14)" in message and "38.20" in message and "볼린저" in message
+    assert "<table bordered striped compact>" in message
+    assert "<details><summary>미산출 항목</summary>" in message
+    assert "보유구간 낙폭 · 포트폴리오 영향" in message
+    assert "가격·추세 정상" not in message and "다음 확인:" not in message
+    assert message.count("2026-08-30 09:55") == 1 and "KST" not in message
     assert "규칙:" not in message and "sma20_downward_cross" not in message
 
     missing_reason = rich.__class__(
@@ -235,8 +241,38 @@ def test_production_value_renderer_is_owner_readable_and_explicit_about_unavaila
                ],
            }},
     )
-    intraday_message = render_telegram_alert(intraday)
-    assert "장중 거래량 비교 보류 (동시간대 기준 미구축)" in intraday_message
+    intraday_message = render_telegram_alert(intraday).html
+    assert "동시간대 거래량" in intraday_message
+
+
+def test_rich_renderer_collapses_unavailable_metrics_and_escapes_dynamic_html() -> None:
+    _, repository, _ = _external_candidate()
+    item = repository.eligible_telegram_dispatches(as_of=NOW)[0]
+    rich = item.__class__(
+        **{**{field: getattr(item, field) for field in item.__dataclass_fields__},
+           "public_context": {
+               "presentation_version": "production-value-v3",
+               "subject_label": "A&B <우선주>", "market_label": "국내", "asset_type_label": "주식",
+               "summary": "당일 급등 기준을 넘었습니다", "reason_codes": ["price_shock_up"],
+               "change_percent": "3.42", "sma20_relation": "unavailable",
+               "sma50_relation": "unavailable", "sma120_relation": "unavailable",
+               "sma20_sma50_relation": "unavailable", "volume_ratio20": None, "rsi14": None,
+               "bollinger_state": "unavailable", "episode_drawdown_percent": None,
+               "portfolio_impact_percent": None,
+               "unavailable_codes": ["intraday_volume_not_comparable", "episode_drawdown_not_ready",
+                                     "valuation_contribution_not_ready"],
+               "source_at": "2026-09-07T01:00:00+00:00",
+               "metric_refs": ["price-shock"], "quality_status": "pass",
+           }},
+    )
+
+    message = render_telegram_alert(rich).html
+
+    assert "A&amp;B &lt;우선주&gt; +3.42%" in message
+    assert "<table" not in message
+    assert message.count("계산 보류") == 0
+    assert "20일선 · 50일선 · 120일선" in message
+    assert message.count("2026-09-07 10:00") == 1
 
 
 def test_success_is_hashed_in_ledger_and_never_persists_destination_secret() -> None:
@@ -340,7 +376,9 @@ def test_http_client_classifies_status_without_provider_body(
     )
     client = TelegramBotClient(client=httpx.Client(transport=transport))
 
-    result = client.send_message(bot_token="bot-secret", chat_id="private-chat", text="safe")
+    result = client.send_rich_message(
+        bot_token="bot-secret", chat_id="private-chat", message=TelegramRichMessage("<p>safe</p>"),
+    )
 
     assert (result.outcome, result.error_code, result.response_ref) == (
         expected_outcome, expected_code, None,
@@ -354,9 +392,32 @@ def test_http_timeout_is_terminal_unknown() -> None:
 
     client = TelegramBotClient(client=httpx.Client(transport=httpx.MockTransport(timeout)))
 
-    result = client.send_message(bot_token="bot-secret", chat_id="private-chat", text="safe")
+    result = client.send_rich_message(
+        bot_token="bot-secret", chat_id="private-chat", message=TelegramRichMessage("<p>safe</p>"),
+    )
 
     assert result == TelegramSendResult("unknown", error_code="POST_SEND_TIMEOUT")
+
+
+def test_http_client_uses_send_rich_message_contract_without_plain_fallback() -> None:
+    requests: list[httpx.Request] = []
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": 77}})
+
+    client = TelegramBotClient(client=httpx.Client(transport=httpx.MockTransport(capture)))
+    result = client.send_rich_message(
+        bot_token="bot-secret", chat_id="private-chat", message=TelegramRichMessage("<h3>🟡 test</h3>"),
+    )
+
+    payload = json.loads(requests[0].content)
+    assert requests[0].url.path.endswith("/sendRichMessage")
+    assert payload == {
+        "chat_id": "private-chat",
+        "rich_message": {"html": "<h3>🟡 test</h3>", "skip_entity_detection": True},
+    }
+    assert result == TelegramSendResult("sent", response_ref="telegram-message:77")
 
 
 def test_config_repr_does_not_expose_runtime_secrets() -> None:

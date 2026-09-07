@@ -545,6 +545,12 @@ baseline-only로 기록하고 시장 신규 사건으로 전송하지 않으며,
 분리한다. 장기 인수는 3년 replay, calendar boundary fixture와 실제 일·주·월·분기·연간 누적 증거를 함께
 사용하며 관찰하지 않은 장기 안정성을 완료로 주장하지 않는다.
 
+DEC-053은 Telegram 사용자 표현을 Bot API Rich Message로 전환한다. 심각도 아이콘과 핵심 사건을 먼저
+보이고, 산출된 지표만 compact table로 표시하며 미산출 지표는 하나의 접힌 details 블록에 모은다. source
+시각은 footer에 한 번만 표시하고 고정 `다음 확인` 문구 및 근거 없는 `가격·추세 정상` 표현을 제거한다.
+`sendRichMessage` 실패 시 plain `sendMessage`로 자동 fallback하지 않아 claim당 단일 전송과 terminal
+unknown 계약을 유지한다. 기존 plain RC 증거는 보존하고 successor immutable RC로 배포한다.
+
 **이전 결정과의 관계**:
 - ADR-020의 Remote-only, scale-to-zero, batch-first와 월 50,000원 상한은 유지한다.
 - ADR-018의 현행 `security` MotherDuck 목표 schema는 V1 계약으로 유지한다. 승인된 V2-ADR-005는

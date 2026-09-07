@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
+from html import escape
 from typing import Mapping
 from zoneinfo import ZoneInfo
 
@@ -42,6 +44,13 @@ class TelegramSendResult:
     outcome: str
     error_code: str | None = None
     response_ref: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TelegramRichMessage:
+    """A validated Telegram Rich Message document."""
+
+    html: str
 
 
 def _safe_text(value: object, *, field: str, maximum: int, forbid_absolute: bool = False) -> str:
@@ -96,14 +105,6 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
     if not isinstance(unavailable, list) or any(not _SAFE_REASON.fullmatch(str(code)) for code in unavailable):
         raise UnsafeTelegramPayload("unavailable_codes must be an allowlisted list")
     unavailable_set = {str(code) for code in unavailable}
-    if volume is not None:
-        volume_text = f"직전 20일 평균의 {volume}배"
-    elif "intraday_volume_not_comparable" in unavailable_set:
-        volume_text = "장중 거래량 비교 보류 (동시간대 기준 미구축)"
-    else:
-        volume_text = "거래량 계산 보류"
-    momentum = volume_text + " · " + (f"RSI(14) {rsi}" if rsi is not None else "RSI 계산 보류")
-    momentum += f" · 볼린저 {bollinger_labels[bollinger]}"
 
     drawdown = _optional_decimal(context, "episode_drawdown_percent")
     impact = _optional_decimal(context, "portfolio_impact_percent")
@@ -111,23 +112,6 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         raise UnsafeTelegramPayload("missing episode drawdown requires an explicit unavailable reason")
     if impact is None and "valuation_contribution_not_ready" not in unavailable_set:
         raise UnsafeTelegramPayload("missing valuation contribution requires an explicit unavailable reason")
-    drawdown_line = (
-        f"보유구간 낙폭: {drawdown}%"
-        if drawdown is not None else "보유구간 낙폭: 계산 보류 (포지션 이력 정합성 확인 중)"
-    )
-    impact_line = (
-        f"포트폴리오 영향: {impact}%p (원화 기준 변화 기여, 해외 환율 포함)"
-        if impact is not None else "포트폴리오 영향: 계산 보류 (비교 가능한 전일 상태 확인 중)"
-    )
-    deferred_scopes: list[str] = []
-    if drawdown is None:
-        deferred_scopes.append("보유구간")
-    if impact is None:
-        deferred_scopes.append("기여도")
-    data_status = "가격·추세 정상"
-    if deferred_scopes:
-        data_status += f" · {'·'.join(deferred_scopes)} 계산 보류"
-
     change = _optional_decimal(context, "change_percent")
     source_text = _safe_text(context.get("source_at"), field="source_at", maximum=40)
     try:
@@ -136,27 +120,83 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         raise UnsafeTelegramPayload("source_at must be ISO-8601") from exc
     if source_at.tzinfo is None:
         raise UnsafeTelegramPayload("source_at must be timezone-aware")
-    evaluation_at = candidate.evaluation_at.astimezone(_SEOUL)
     source_at = source_at.astimezone(_SEOUL)
-    change_line = f"가격: 오늘 {change}%" if change is not None else "가격: 변화율 계산 보류"
+    severity_icon = {"주의": "🟡", "경고": "🟠", "긴급": "🔴"}[severity]
+    signal_labels = {
+        "price_shock_up": "급등 신호", "price_shock_down": "급락 신호",
+        "sma20_downward_cross": "20일선 하향 이탈", "bearish_sma20_regime": "20일선 하회",
+        "bearish_sma50_drawdown": "중기 약세", "volume_confirmation": "거래량 확인",
+        "portfolio_contribution": "포트폴리오 영향", "episode_drawdown": "보유구간 낙폭",
+        "thread_stop_breach": "손절 기준 이탈", "thread_risk_ratio": "계획손실 경고",
+    }
+    reasons = [str(value) for value in context.get("reason_codes", [])]
+    signal = signal_labels.get(reasons[0], "상태 변화")
+    transition_suffix = {
+        "주의 신호 신규 감지": "신규", "주의 신호 재발생": "재발생",
+        "심각도 상승": "강도 상승", "상태 변화": "상태 변화", "정상화": "정상화",
+    }[transition]
+    headline_change = ""
+    if change is not None:
+        headline_change = f" {'+' if Decimal(change) > 0 else ''}{change}%"
+
+    rows: list[tuple[str, str]] = []
+    available_relations = [value for value in relations if not value.endswith("계산 보류")]
+    if available_relations:
+        rows.append(("가격 위치", " · ".join(available_relations)))
+    if average_relation != "unavailable":
+        rows.append(("이평선", f"20일선이 50일선 {relation_labels[average_relation]}"))
+    if volume is not None:
+        rows.append(("거래량", f"20일 평균 대비 {volume}배"))
+    if rsi is not None:
+        rows.append(("RSI(14)", rsi))
+    if bollinger != "unavailable":
+        rows.append(("볼린저", bollinger_labels[bollinger]))
+    if drawdown is not None:
+        rows.append(("보유구간 낙폭", f"{drawdown}%"))
+    if impact is not None:
+        rows.append(("포트폴리오 영향", f"{impact}%p (원화 평가액 변화)"))
+
+    missing: list[str] = []
+    missing.extend(
+        f"{period}일선" for period, value in zip((20, 50, 120), relations, strict=True)
+        if value.endswith("계산 보류")
+    )
+    if average_relation == "unavailable":
+        missing.append("20·50일선 구조")
+    if volume is None:
+        missing.append("동시간대 거래량" if "intraday_volume_not_comparable" in unavailable_set else "거래량")
+    if rsi is None:
+        missing.append("RSI")
+    if bollinger == "unavailable":
+        missing.append("볼린저")
+    if drawdown is None:
+        missing.append("보유구간 낙폭")
+    if impact is None:
+        missing.append("포트폴리오 영향")
+
+    table = ""
+    if rows:
+        body = "".join(
+            f"<tr><td>{escape(label)}</td><td>{escape(value)}</td></tr>" for label, value in rows
+        )
+        table = f"<table bordered striped compact><tbody>{body}</tbody></table>"
+    details = ""
+    if missing:
+        details = (
+            "<details><summary>미산출 항목</summary><p>"
+            + escape(" · ".join(dict.fromkeys(missing)))
+            + "</p></details>"
+        )
     return (
-        f"[{severity}] {subject} · {market} · {asset_type}\n"
-        f"상태: {transition}\n"
-        f"핵심: {summary}\n"
-        f"{change_line}\n"
-        f"가격 위치: {' · '.join(relations)}\n"
-        f"이평선 구조: 20일선이 50일선 {relation_labels[average_relation]}\n"
-        f"거래량/모멘텀: {momentum}\n"
-        f"{drawdown_line}\n"
-        f"{impact_line}\n"
-        f"데이터: {data_status} · 기준 {source_at:%Y-%m-%d %H:%M KST}\n"
-        f"평가: {evaluation_at:%Y-%m-%d %H:%M KST} / {candidate.evaluation_slot}\n"
-        "다음 확인: KIS Portfolio에서 차트와 상세 근거를 확인하세요."
+        f"<h3>{severity_icon} {escape(subject)}{escape(headline_change)}</h3>"
+        f"<p><b>{escape(signal)} · {escape(transition_suffix)}</b><br>{escape(summary)}</p>"
+        f"{table}{details}"
+        f"<footer>{source_at:%Y-%m-%d %H:%M} · {escape(market)} {escape(asset_type)}</footer>"
     )
 
 
-def render_telegram_alert(candidate: TelegramDispatchCandidate) -> str:
-    """Render only allowlisted, non-absolute alert context as plain text."""
+def render_telegram_alert(candidate: TelegramDispatchCandidate) -> TelegramRichMessage:
+    """Render only allowlisted, non-absolute alert context as Telegram Rich HTML."""
     context: Mapping[str, object] = candidate.public_context
     unexpected = sorted(set(context) - _ALLOWED_CONTEXT_KEYS)
     if unexpected:
@@ -190,7 +230,9 @@ def render_telegram_alert(candidate: TelegramDispatchCandidate) -> str:
         "updated": "상태 변화",
         "recovered": "정상화",
     }.get(candidate.transition_type, "상태 변화")
-    if context.get("presentation_version") in {"production-value-v1", "production-value-v2"}:
+    if context.get("presentation_version") in {
+        "production-value-v1", "production-value-v2", "production-value-v3",
+    }:
         message = _production_value_message(candidate, severity, transition)
     else:
         subject = _safe_text(context.get("subject_label"), field="subject_label", maximum=80)
@@ -198,21 +240,18 @@ def render_telegram_alert(candidate: TelegramDispatchCandidate) -> str:
             context.get("summary"), field="summary", maximum=500, forbid_absolute=True,
         )
         message = (
-            f"[{severity}] {subject}\n"
-            f"상태: {transition}\n"
-            f"요약: {summary}{change_line}\n"
-            f"근거: {', '.join(reasons)}\n"
-            f"평가: {candidate.evaluation_at.isoformat()} / {candidate.evaluation_slot}\n"
-            f"규칙: {candidate.rule_id}:{candidate.rule_version}\n"
-            "다음 확인: KIS Portfolio에서 상세 품질과 근거를 확인하세요."
+            f"<h3>{escape({'주의': '🟡', '경고': '🟠', '긴급': '🔴'}[severity])} "
+            f"{escape(subject)}{escape(change_line.replace(chr(10) + '변화율:', ''))}</h3>"
+            f"<p><b>{escape(transition)}</b><br>{escape(summary)}</p>"
+            f"<footer>{candidate.evaluation_at.astimezone(_SEOUL):%Y-%m-%d %H:%M}</footer>"
         )
     if len(message) > 3500 or _SENSITIVE_TEXT.search(message) or _ACCOUNT_NUMBER.search(message):
         raise UnsafeTelegramPayload("rendered Telegram payload is unsafe or too large")
-    return message
+    return TelegramRichMessage(html=message)
 
 
 class TelegramBotClient:
-    """Minimal sendMessage client that never exposes provider bodies or request URLs."""
+    """Minimal sendRichMessage client that never exposes provider bodies or request URLs."""
 
     def __init__(self, *, client: httpx.Client | None = None, timeout_seconds: float = 10.0) -> None:
         if timeout_seconds <= 0 or timeout_seconds > 30:
@@ -220,16 +259,17 @@ class TelegramBotClient:
         self._client = client or httpx.Client()
         self._timeout_seconds = timeout_seconds
 
-    def send_message(self, *, bot_token: str, chat_id: str, text: str) -> TelegramSendResult:
-        if not bot_token or not chat_id or not text:
-            raise ValueError("Telegram credentials and text are required")
+    def send_rich_message(
+        self, *, bot_token: str, chat_id: str, message: TelegramRichMessage,
+    ) -> TelegramSendResult:
+        if not bot_token or not chat_id or not message.html:
+            raise ValueError("Telegram credentials and Rich Message HTML are required")
         try:
             response = self._client.post(
-                f"{TELEGRAM_API_ROOT}/bot{bot_token}/sendMessage",
+                f"{TELEGRAM_API_ROOT}/bot{bot_token}/sendRichMessage",
                 json={
                     "chat_id": chat_id,
-                    "text": text,
-                    "disable_web_page_preview": True,
+                    "rich_message": {"html": message.html, "skip_entity_detection": True},
                 },
                 timeout=self._timeout_seconds,
             )

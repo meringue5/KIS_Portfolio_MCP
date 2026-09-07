@@ -4,8 +4,8 @@ title: Enable approved outbound Telegram delivery
 status: in_progress
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051, DEC-052
-requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044, DEC-051, DEC-052
+decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051, DEC-052, DEC-053
+requirement_refs: DEC-006, DEC-026..030, DEC-038, DEC-041, DEC-044, DEC-051, DEC-052, DEC-053
 milestone_ref: MS-002
 delivery_refs: V2-W0508
 parent_work_item: none
@@ -27,7 +27,7 @@ collecting the separate formal shadow evidence.
 ## Classification and contract
 
 - `change` implementing V2-W0508. This is the shifted, still-unfinished Telegram milestone item; WI-017 remains ETF routing.
-- Outbound-only `sendMessage`; no inbound command, journal or order surface.
+- Outbound-only `sendRichMessage`; no inbound command, journal or order surface and no automatic plain fallback.
 - WI-029 remains the permanent-rule gate. DEC-050 authorizes only a seven-day immutable canary with explicit expiry,
   watch-or-higher transitions, at most 20 attempts per run and no automatic promotion.
 
@@ -55,6 +55,8 @@ collecting the separate formal shadow evidence.
   receipt is not product acceptance.
 - [ ] `하회` current state and actual `하향 이탈` event are distinct, rule initialization is silent baseline and
   intraday KRX volume is not compared with full-day history.
+- [ ] Rich Message presents severity/event first, tables only available metrics, collapses unavailable metrics and
+  shows one source time without repeated boilerplate or unsupported health claims.
 
 ### S01 preparation acceptance
 
@@ -126,6 +128,9 @@ collecting the separate formal shadow evidence.
   contracts.
 - S03 release gate: focused 68 passed; `bash scripts/check.sh full`: 449 passed with one third-party Authlib
   deprecation warning.
+- 2026-09-07 `rc-2026-09-03.2` had 27/27 provider-confirmed sends with zero retryable, unknown or permanent outcomes.
+  Owner feedback on the 10:00 receipt approved DEC-053. The successor is `rc-2026-09-07.1` /
+  `production-value-v3`; Rich Message deployment and owner receipt remain open.
 
 ## Closeout
 
