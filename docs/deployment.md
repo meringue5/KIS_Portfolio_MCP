@@ -348,6 +348,8 @@ Deploy workflow:
   DEC-052 안정화 재배포에서는 성공한 prior production-value RC 전송을 추가로 확인하고 후속 immutable
   rule을 승인한 뒤 prior RC approval을 append-only로 revoke한다. 새 rule의 최초 active 평가는 baseline-only라
   배포 자체가 Telegram 신규 시장 신호를 만들지 않는다.
+  DEC-053 Rich Message 재배포도 같은 successor/revoke gate를 사용하며 `sendRichMessage`만 활성화한다.
+  plain `sendMessage` fallback은 post-send ambiguity와 중복 위험 때문에 허용하지 않는다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

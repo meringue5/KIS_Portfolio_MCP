@@ -130,7 +130,10 @@ collecting the separate formal shadow evidence.
   deprecation warning.
 - 2026-09-07 `rc-2026-09-03.2` had 27/27 provider-confirmed sends with zero retryable, unknown or permanent outcomes.
   Owner feedback on the 10:00 receipt approved DEC-053. The successor is `rc-2026-09-07.1` /
-  `production-value-v3`; Rich Message deployment and owner receipt remain open.
+  `production-value-v3`. PR `#47` merged as `fa05ada`; deploy run `34120564082` activated execution
+  `kis-portfolio-wi030-s03-6wrvq` with evidence hash `bcf6b81e...935b` and deployed digest
+  `sha256:1a427f354b70c19fc43739691612f01b3d668b242ab52a81d04bc1b5bfedb7ed` to all three core Jobs.
+  Full gate passed 454 tests; scheduled Rich Message receipt and owner acceptance remain open.
 
 ## Closeout
 
