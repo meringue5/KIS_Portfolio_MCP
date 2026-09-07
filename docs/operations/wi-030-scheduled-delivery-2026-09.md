@@ -119,4 +119,11 @@ the displayed trend metrics were unavailable.
 DEC-053 approves a successor immutable RC, `rc-2026-09-07.1`, with presentation `production-value-v3`. It uses
 Telegram `sendRichMessage`, severity icons, an available-only compact table, one collapsed unavailable-details block
 and one source-time footer. It has no automatic `sendMessage` fallback. Existing v2 candidates and delivery ledger
-evidence remain unchanged; activation, scheduled receipt and owner acceptance are still pending.
+evidence remain unchanged.
+
+PR `#47` merged as master `fa05adaf1d020253749dc9a87650bb42e76b2f68`. Deploy run `34120564082` passed and
+activation execution `kis-portfolio-wi030-s03-6wrvq` returned `activated`, prior version
+`rc-2026-09-03.2`, prior successful sends `27`, presentation `production-value-v3`, zero shadow sensitive violations,
+zero shadow external sends and evidence hash `bcf6b81ee1136fec2ed497186d12f04d13657d4cd68bace5a98dba3cdd36935b`.
+Digest `sha256:1a427f354b70c19fc43739691612f01b3d668b242ab52a81d04bc1b5bfedb7ed` is deployed to the
+three core Jobs. Scheduled Rich Message receipt and owner acceptance remain pending.
