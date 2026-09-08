@@ -157,6 +157,59 @@ def test_morning_run_adds_us_close_and_unknown_class_fails_closed() -> None:
     connection.close()
 
 
+def test_morning_run_reuses_already_evaluated_us_close_session_after_market_closure() -> None:
+    first_date = date(2026, 9, 7)
+    next_date = date(2026, 9, 8)
+    connection = _warehouse(include_us=True, logical_date=first_date)
+    first = run_shadow_signal_evaluation(
+        connection, logical_date=first_date, source_slot="kr-1000"
+    )
+    first_external = run_external_real_use_signal_evaluation(
+        connection, logical_date=first_date, source_slot="kr-1000"
+    )
+    connection.execute(
+        """
+        INSERT INTO gold.portfolio_daily_state
+        SELECT ?,evaluation_slot,account_id,instrument_id,aggregate_level,quantity,
+               value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,
+               as_of,input_watermarks,quality_status,lineage_hash
+        FROM gold.portfolio_daily_state
+        WHERE evaluation_date=? AND evaluation_slot='kr-1000'
+        """,
+        [next_date, first_date],
+    )
+
+    replay = run_shadow_signal_evaluation(
+        connection, logical_date=next_date, source_slot="kr-1000"
+    )
+    replay_external = run_external_real_use_signal_evaluation(
+        connection, logical_date=next_date, source_slot="kr-1000"
+    )
+
+    assert first["slot_candidate_counts"]["us-close"] == 1
+    assert replay["slot_candidate_counts"]["us-close"] == 1
+    assert replay["slot_reused_session_counts"] == {"kr-1000": 0, "us-close": 1}
+    assert replay["reused_session_count"] == 1
+    assert first_external["reused_session_count"] == 0
+    assert replay_external["reused_session_count"] == 1
+    assert connection.execute(
+        """
+        SELECT count(*) FROM gold.alert_candidates
+        WHERE rule_version='bootstrap-1.0.0' AND evaluation_slot='us-close'
+        """
+    ).fetchone()[0] == 1
+    marker = connection.execute(
+        """
+        SELECT json_extract_string(details,'$.reused_session_count')
+        FROM control.quality_results
+        WHERE rule_id='shadow-slot-terminal-v1'
+          AND json_extract_string(details,'$.logical_date')='2026-09-08'
+        """
+    ).fetchone()
+    assert marker == ("1",)
+    connection.close()
+
+
 def test_external_canary_uses_parallel_rule_and_creates_no_transport_claim() -> None:
     logical_date = date(2026, 9, 1)
     connection = _warehouse(logical_date=logical_date)

@@ -73,6 +73,11 @@ shadow-channel claims and internal completed attempts. The deploy target applies
 jobs and verifies a private GCS backup/download/fresh restore; neither the migration nor verify Job receives KIS or
 Telegram credentials.
 
+The exact U.S. market session, not the later Korean Scheduler date, owns candidate identity. When a U.S. holiday makes
+`kr-1000` select a session already evaluated on an earlier Korean date, the prior immutable candidate is retained and
+the observation is counted as `reused_session`; it creates no candidate, state transition or delivery. A same-date
+candidate whose governed content changes remains a hard conflict.
+
 ## Cost and safety
 
 Replay reads governed MotherDuck rows and makes zero provider calls. It is a bounded, terminating analytical job.
