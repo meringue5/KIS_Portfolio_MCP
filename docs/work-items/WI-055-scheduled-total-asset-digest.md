@@ -1,7 +1,7 @@
 ---
 id: WI-055
 title: Deliver a scheduled privacy-safe total-asset Telegram digest
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: DEC-054, DEC-048, DEC-053
@@ -45,7 +45,7 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - [x] A pass report shows same-slot total change, Top 3 each direction, cash and reconciliation without absolute amounts.
 - [x] Missing, partial or non-reconciled states send `계산 보류` without fabricated values.
 - [x] Existing event alert production behavior remains unchanged.
-- [ ] Focused, quick and full gates pass; tested master is deployed to the three existing core Jobs.
+- [x] Focused, quick and full gates pass; tested master is deployed to the three existing core Jobs.
 
 ## Change impact
 
@@ -72,10 +72,14 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - Focused tests: 68 passed across digest, Telegram, valuation-change and deployment suites.
 - `bash scripts/check.sh quick`: passed with 56 Work Items, one active WIP, 162 governed contracts and 35 MCP tools.
 - `bash scripts/check.sh full`: 466 passed; Project OS, DGH, architecture, warehouse and MCP surface gates passed.
-- Operational evidence: pending deployment and owner receipt.
+- PR #55 merged as master `1025f4a`; GitHub Actions run `34225691712` passed.
+- All three existing core Jobs use image digest `sha256:98bb6dc9...747e4`, deploy label
+  `wi055-total-asset-digest` and `KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED=true`. The 14:30 runtime remains a
+  pre-ledger/pre-provider skip by contract; only 10:00 and 16:00 can send.
+- Operational evidence: first scheduled owner receipt remains pending.
 
 ## Closeout
 
-- Result: pending.
+- Result: repository implementation, governance contracts and production deployment are verified.
 - Remaining risk: first production receipt and unavailable-message ergonomics require owner observation.
 - Follow-up Work Item: none identified.
