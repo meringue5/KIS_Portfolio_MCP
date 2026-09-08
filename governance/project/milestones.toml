@@ -1,4 +1,4 @@
-schema_version = 1
+schema_version = 2
 registry_id = "kis-portfolio-milestones"
 allocation_policy = "append_only_max_plus_one"
 status_owner = "docs/work-items"
@@ -73,13 +73,21 @@ id = "MS-001"
 title = "Canonical portfolio and managed collection foundation"
 status = "closed"
 depends_on = []
+implementation_gate = []
+production_gate = []
+overlap_work_item_ids = []
 work_item_ids = ["WI-009", "WI-010", "WI-011", "WI-012"]
 
 [[milestones]]
 id = "MS-002"
 title = "Portfolio analytics, risk signals and Telegram delivery"
-status = "in_progress"
+status = "stabilizing"
 depends_on = ["MS-001"]
+implementation_gate = [{ milestone_id = "MS-001", minimum_status = "closed" }]
+production_gate = [{ milestone_id = "MS-001", minimum_status = "closed" }]
+overlap_work_item_ids = []
+stabilization_exit_work_item_ids = ["WI-029", "WI-030", "WI-055"]
+rollback_policy = "append_only_feedback"
 work_item_ids = [
   "WI-013", "WI-014", "WI-015", "WI-016", "WI-017",
   "WI-019", "WI-020", "WI-021", "WI-036", "WI-022", "WI-023", "WI-024",
@@ -89,8 +97,11 @@ work_item_ids = [
 [[milestones]]
 id = "MS-003"
 title = "Enrichment, stateless Remote MCP V2 and production cutover"
-status = "proposed"
+status = "ready"
 depends_on = ["MS-002"]
+implementation_gate = [{ milestone_id = "MS-002", minimum_status = "stabilizing" }]
+production_gate = [{ milestone_id = "MS-002", minimum_status = "closed" }]
+overlap_work_item_ids = ["WI-035", "WI-040"]
 work_item_ids = [
   "WI-035", "WI-037", "WI-038", "WI-039", "WI-040", "WI-041",
   "WI-042", "WI-043", "WI-044", "WI-045", "WI-046",
@@ -101,6 +112,9 @@ id = "MS-004"
 title = "V2 canonicalization and V1 retirement"
 status = "proposed"
 depends_on = ["MS-003"]
+implementation_gate = [{ milestone_id = "MS-003", minimum_status = "closed" }]
+production_gate = [{ milestone_id = "MS-003", minimum_status = "closed" }]
+overlap_work_item_ids = []
 work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032"]
 
 [[milestones]]
@@ -108,7 +122,10 @@ id = "MS-GOV"
 title = "Project Operating System improvements"
 status = "closed"
 depends_on = []
-work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053"]
+implementation_gate = []
+production_gate = []
+overlap_work_item_ids = []
+work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056"]
 
 [[work_items]]
 id = "WI-009"
@@ -580,6 +597,19 @@ depends_on = ["WI-033", "WI-030"]
 parent_id = ""
 sequence = 21
 
+[[work_items]]
+id = "WI-056"
+identity = "stabilization-lifecycle-overlap-gates"
+title = "Introduce stabilization lifecycle and controlled milestone overlap gates"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-053"]
+discovered_from = ["WI-030", "WI-055"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 6
+
 [[subitems]]
 id = "WI-018-S01"
 parent_id = "WI-018"
@@ -710,13 +740,13 @@ status = "closed"
 id = "WI-029-S05"
 parent_id = "WI-029"
 title = "Collect two-week evidence and owner rule approval"
-status = "in_progress"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-029-S06"
 parent_id = "WI-029"
 title = "Correct shadow slot completion evidence and preserve commit failures"
-status = "in_progress"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-030-S01"
@@ -740,7 +770,7 @@ status = "closed"
 id = "WI-030-S04"
 parent_id = "WI-030"
 title = "Establish calendar-window alert acceptance evidence"
-status = "ready"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-030-S05"

@@ -16,8 +16,25 @@ VALID_STATUSES = {
     "in_progress",
     "blocked",
     "verified",
+    "stabilizing",
     "closed",
     "rejected",
+}
+VALID_MILESTONE_STATUSES = {
+    "proposed",
+    "ready",
+    "in_progress",
+    "stabilizing",
+    "blocked",
+    "closed",
+    "rejected",
+}
+MILESTONE_STATUS_RANK = {
+    "proposed": 0,
+    "ready": 1,
+    "in_progress": 2,
+    "stabilizing": 3,
+    "closed": 4,
 }
 VALID_TYPES = {
     "defect",
@@ -57,6 +74,12 @@ RELATIONSHIP_FIELDS = {
     "parent_work_item",
     "depends_on",
 }
+FEEDBACK_RELATIONSHIP_FIELDS = {
+    "discovered_from",
+    "supersedes",
+    "rollback_of",
+}
+VALID_GATE_STATUSES = {"stabilizing", "closed"}
 
 
 def parse_frontmatter(path: Path) -> tuple[dict[str, str], str]:
@@ -130,8 +153,8 @@ def check_milestone_registry(
         errors.append(f"{path.relative_to(root)}: invalid TOML: {exc}")
         return
 
-    if registry.get("schema_version") != 1:
-        errors.append(f"{path.relative_to(root)}: schema_version must be 1")
+    if registry.get("schema_version") != 2:
+        errors.append(f"{path.relative_to(root)}: schema_version must be 2")
     if registry.get("allocation_policy") != "append_only_max_plus_one":
         errors.append(
             f"{path.relative_to(root)}: allocation_policy must be append_only_max_plus_one"
@@ -156,7 +179,7 @@ def check_milestone_registry(
         milestone_by_id[milestone_id] = milestone
 
     for milestone_id, milestone in milestone_by_id.items():
-        if milestone.get("status") not in VALID_STATUSES:
+        if milestone.get("status") not in VALID_MILESTONE_STATUSES:
             errors.append(f"{path.relative_to(root)}: {milestone_id} invalid status")
         dependencies = milestone.get("depends_on")
         if not isinstance(dependencies, list):
@@ -170,6 +193,64 @@ def check_milestone_registry(
                 )
             if dependency == milestone_id:
                 errors.append(f"{path.relative_to(root)}: {milestone_id} cannot depend on itself")
+
+        gate_dependencies: dict[str, set[str]] = {}
+        for gate_name in ("implementation_gate", "production_gate"):
+            gate = milestone.get(gate_name)
+            if not isinstance(gate, list):
+                errors.append(f"{path.relative_to(root)}: {milestone_id} {gate_name} must be an array")
+                continue
+            gate_ids: set[str] = set()
+            for requirement in gate:
+                if not isinstance(requirement, dict):
+                    errors.append(
+                        f"{path.relative_to(root)}: {milestone_id} {gate_name} entries must be tables"
+                    )
+                    continue
+                required_id = requirement.get("milestone_id", "")
+                required_status = requirement.get("minimum_status", "")
+                if required_id not in milestone_by_id:
+                    errors.append(
+                        f"{path.relative_to(root)}: {milestone_id} {gate_name} unknown milestone "
+                        f"{required_id!r}"
+                    )
+                if required_status not in VALID_GATE_STATUSES:
+                    errors.append(
+                        f"{path.relative_to(root)}: {milestone_id} {gate_name} invalid minimum_status "
+                        f"{required_status!r}"
+                    )
+                if required_id in gate_ids:
+                    errors.append(
+                        f"{path.relative_to(root)}: {milestone_id} {gate_name} duplicate "
+                        f"{required_id!r}"
+                    )
+                gate_ids.add(required_id)
+            gate_dependencies[gate_name] = gate_ids
+        dependency_set = set(dependencies) if isinstance(dependencies, list) else set()
+        for gate_name, gate_ids in gate_dependencies.items():
+            if gate_ids != dependency_set:
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} {gate_name} must cover exactly "
+                    "the structural dependencies"
+                )
+
+        overlap_ids = milestone.get("overlap_work_item_ids")
+        if not isinstance(overlap_ids, list):
+            errors.append(
+                f"{path.relative_to(root)}: {milestone_id} overlap_work_item_ids must be an array"
+            )
+        if milestone.get("status") == "stabilizing":
+            exit_ids = milestone.get("stabilization_exit_work_item_ids")
+            if not isinstance(exit_ids, list) or not exit_ids:
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} stabilizing requires "
+                    "stabilization_exit_work_item_ids"
+                )
+            if milestone.get("rollback_policy") != "append_only_feedback":
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} stabilizing requires "
+                    "rollback_policy=append_only_feedback"
+                )
 
     visiting_milestones: set[str] = set()
     visited_milestones: set[str] = set()
@@ -194,6 +275,31 @@ def check_milestone_registry(
 
     for milestone_id in milestone_by_id:
         visit_milestone(milestone_id, [])
+
+    for milestone_id, milestone in milestone_by_id.items():
+        milestone_status = milestone.get("status", "")
+        if milestone_status not in {"ready", "in_progress", "stabilizing", "closed"}:
+            continue
+        gate_name = (
+            "production_gate" if milestone_status in {"stabilizing", "closed"}
+            else "implementation_gate"
+        )
+        for requirement in milestone.get(gate_name, []):
+            if not isinstance(requirement, dict):
+                continue
+            required_id = requirement.get("milestone_id", "")
+            minimum_status = requirement.get("minimum_status", "")
+            predecessor = milestone_by_id.get(required_id, {})
+            actual_status = predecessor.get("status", "")
+            if (
+                actual_status not in MILESTONE_STATUS_RANK
+                or minimum_status not in MILESTONE_STATUS_RANK
+                or MILESTONE_STATUS_RANK[actual_status] < MILESTONE_STATUS_RANK[minimum_status]
+            ):
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} {gate_name} requires "
+                    f"{required_id}>={minimum_status}, got {actual_status or '<missing>'}"
+                )
 
     item_by_id: dict[str, dict] = {}
     identity_owner: dict[str, str] = {}
@@ -279,6 +385,26 @@ def check_milestone_registry(
             errors.append(f"{item_id}: delivery_refs mismatch with milestone registry")
         if split_refs(fields.get("depends_on", "")) != item.get("depends_on", []):
             errors.append(f"{item_id}: depends_on mismatch with milestone registry")
+        for relationship in FEEDBACK_RELATIONSHIP_FIELDS:
+            file_refs = split_refs(fields.get(relationship, ""))
+            registry_refs = item.get(relationship, [])
+            if not isinstance(registry_refs, list):
+                errors.append(
+                    f"{path.relative_to(root)}: {item_id} {relationship} must be an array"
+                )
+                continue
+            if file_refs != registry_refs:
+                errors.append(f"{item_id}: {relationship} mismatch with milestone registry")
+            for related_id in registry_refs:
+                if related_id not in item_by_id:
+                    errors.append(
+                        f"{path.relative_to(root)}: {item_id} {relationship} unknown Work Item "
+                        f"{related_id!r}"
+                    )
+                if related_id == item_id:
+                    errors.append(
+                        f"{path.relative_to(root)}: {item_id} cannot {relationship} itself"
+                    )
         if "## Sub-items" not in work_item_texts.get(item_id, ""):
             errors.append(f"{item_id}: missing heading ## Sub-items")
 
@@ -290,6 +416,24 @@ def check_milestone_registry(
         parent_id = item.get("parent_id", "")
         if parent_id and parent_id not in item_by_id:
             errors.append(f"{path.relative_to(root)}: {item_id} unknown parent {parent_id}")
+
+        if fields.get("status") == "stabilizing":
+            required_stabilization_fields = {
+                "stabilization_window",
+                "stabilization_exit_refs",
+                "rollback_plan",
+            }
+            missing_stabilization = sorted(
+                field
+                for field in required_stabilization_fields
+                if not fields.get(field) or fields.get(field, "").lower() == "none"
+            )
+            if missing_stabilization:
+                errors.append(
+                    f"{item_id}: stabilizing requires " + ", ".join(missing_stabilization)
+                )
+            if "## Stabilization plan" not in work_item_texts.get(item_id, ""):
+                errors.append(f"{item_id}: stabilizing requires heading ## Stabilization plan")
 
     visiting: set[str] = set()
     visited: set[str] = set()
@@ -311,6 +455,46 @@ def check_milestone_registry(
 
     for item_id in item_by_id:
         visit(item_id, [])
+
+    for item_id, item in item_by_id.items():
+        fields = work_item_fields.get(item_id, {})
+        if fields.get("status") != "in_progress":
+            continue
+        milestone_id = item.get("milestone_id", "")
+        milestone = milestone_by_id.get(milestone_id, {})
+        if milestone.get("status") not in {"in_progress", "ready"}:
+            errors.append(
+                f"{item_id}: in_progress requires milestone {milestone_id} to be ready or in_progress"
+            )
+        production_gate_satisfied = True
+        for requirement in milestone.get("production_gate", []):
+            if not isinstance(requirement, dict):
+                continue
+            predecessor = milestone_by_id.get(requirement.get("milestone_id", ""), {})
+            actual_status = predecessor.get("status", "")
+            minimum_status = requirement.get("minimum_status", "")
+            if (
+                actual_status not in MILESTONE_STATUS_RANK
+                or minimum_status not in MILESTONE_STATUS_RANK
+                or MILESTONE_STATUS_RANK[actual_status] < MILESTONE_STATUS_RANK[minimum_status]
+            ):
+                production_gate_satisfied = False
+        if not production_gate_satisfied:
+            overlap_ids = milestone.get("overlap_work_item_ids", [])
+            if item_id not in overlap_ids:
+                errors.append(
+                    f"{item_id}: production gate is not satisfied and Work Item is not approved "
+                    "for milestone overlap"
+                )
+            if fields.get("execution_scope") != "isolated":
+                errors.append(
+                    f"{item_id}: milestone overlap requires execution_scope=isolated"
+                )
+            if fields.get("production_effects") != "none":
+                errors.append(
+                    f"{item_id}: milestone overlap forbids deploy, migration, source activation, "
+                    "public surface and cutover effects"
+                )
 
     delivery_plan_ids = delivery_item_ids(root, errors)
     planned_delivery_ids = set(delivery_plan_ids)
@@ -396,6 +580,33 @@ def check_milestone_registry(
             errors.append(f"{path.relative_to(root)}: {subitem_id} invalid status")
         if subitem_id not in work_item_texts.get(parent_id, ""):
             errors.append(f"{path.relative_to(root)}: {subitem_id} missing from parent Work Item")
+
+    for milestone_id, milestone in milestone_by_id.items():
+        overlap_ids = milestone.get("overlap_work_item_ids", [])
+        if isinstance(overlap_ids, list):
+            for item_id in overlap_ids:
+                item = item_by_id.get(item_id)
+                if item is None:
+                    errors.append(
+                        f"{path.relative_to(root)}: {milestone_id} overlap unknown Work Item {item_id!r}"
+                    )
+                elif item.get("milestone_id") != milestone_id:
+                    errors.append(
+                        f"{path.relative_to(root)}: {milestone_id} overlap Work Item {item_id} "
+                        "belongs to another milestone"
+                    )
+        for exit_id in milestone.get("stabilization_exit_work_item_ids", []):
+            item = item_by_id.get(exit_id)
+            if item is None:
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} unknown stabilization exit "
+                    f"Work Item {exit_id!r}"
+                )
+            elif item.get("milestone_id") != milestone_id:
+                errors.append(
+                    f"{path.relative_to(root)}: {milestone_id} stabilization exit Work Item "
+                    f"{exit_id} belongs to another milestone"
+                )
 
     registered_numbers = [int(item_id.split("-")[1]) for item_id in item_by_id]
     if registered_numbers:

@@ -108,15 +108,24 @@ feedback
   → decision/approval when required
   → ready
   → in_progress
-  → automated verification
-  → operational evidence when required
-  → accepted
+  → verified
+  → stabilizing when operational evidence is required
+  → owner acceptance
   → closed
 ```
 
-허용 상태는 `proposed`, `ready`, `in_progress`, `blocked`, `verified`, `closed`, `rejected`다.
+Work Item 허용 상태는 `proposed`, `ready`, `in_progress`, `verified`, `stabilizing`, `closed`와 side state
+`blocked`, `rejected`다.
 
 - repository에는 동시에 하나의 `in_progress` 구현 Work Item만 둔다.
+- `verified`는 승인된 코드·계약·자동 검사와 통제된 검증이 끝났다는 뜻이다. 시간축 운영 증거나 사용자
+  정보가치 인수가 필요하면 완료가 아니라 `stabilizing`으로 간다.
+- `stabilizing`은 production 또는 production-equivalent 경로가 실사용 중이며 정해진 관찰창, 품질·전송
+  증거, rollback 준비와 owner acceptance를 모으는 상태다. 여러 항목이 동시에 `stabilizing`일 수 있지만
+  구현 WIP 한도에는 포함하지 않는다.
+- 운영 증거가 필요 없는 repository-only 작업은 `verified`에서 바로 `closed`할 수 있다. 필요한 작업은
+  `stabilization_window`, `stabilization_exit_refs`, `rollback_plan`과 `## Stabilization plan` 없이는
+  `stabilizing`이 될 수 없다.
 - read-only 조사나 사용자 질문은 파일 변경이 없으면 Work Item 없이 수행할 수 있다.
 - 긴 조사와 구현을 분리할 때 조사 결과는 evidence로 연결하고, 구현만 WIP 제한에 포함한다.
 - blocked 항목은 blocking condition과 재개 조건을 기록한다.
@@ -136,7 +145,24 @@ feedback
 
 필수 Work Item 내용은 `docs/work-items/TEMPLATE.md`를 따른다.
 
-### 6.1 Milestone baseline
+### 6.1 Recovery loop and immutable history
+
+계획 의존성은 재현 가능한 순서 계산을 위해 계속 DAG여야 하지만 실제 운영 수명주기는 feedback loop다.
+rollback은 과거 상태·증거·release를 삭제하거나 milestone을 과거 상태로 되감는 동작이 아니다.
+
+1. incident의 run ID, release digest, 영향과 판단 근거를 먼저 보존한다.
+2. 승인된 rollback plan으로 영향 경로를 비활성화하거나 마지막 안전 release를 복원한다.
+3. 기존 milestone과 parent Work Item은 `stabilizing`에 둔다.
+4. 동일 outcome의 작은 보정은 새 sub-item, 독립 acceptance/rollback이 필요한 보정은 새 Work Item으로
+   append하고 `discovered_from`, 필요 시 `rollback_of` 또는 `supersedes`를 기록한다.
+5. 새 보정 작업 하나만 `in_progress → verified → stabilizing/closed`로 진행한다.
+6. 회복 release와 새 관찰 증거가 exit 기준을 만족하면 parent/milestone을 닫는다.
+
+`depends_on`만 cycle 검사와 실행 선후관계에 참여한다. `discovered_from`, `rollback_of`, `supersedes`는
+존재하는 Work Item을 가리키는 append-only feedback 관계이며 위상정렬 입력이 아니다. 따라서 운영상
+`build → use → defect → rollback → correct → verify → use` loop를 표현하면서도 계획 DAG를 깨뜨리지 않는다.
+
+### 6.2 Milestone baseline
 
 `governance/project/milestones.toml`은 milestone, Work Item identity, design delivery ref, dependency와 sub-item
 관계의 machine-readable SSOT다. `docs/milestones/`는 같은 기준선의 목적, acceptance, 순서 변경 사유와
@@ -150,6 +176,22 @@ feedback
 3. 아니면 가장 큰 Work Item 번호 다음 ID를 발급한다. 기존 계획 항목은 이동하거나 재번호화하지 않는다.
 4. dependency/sequence 변경은 milestone revision log에 이유와 영향을 남긴다.
 5. registry, Work Item, traceability를 같은 변경에서 갱신한다.
+
+### 6.3 Milestone lifecycle and overlap gates
+
+Milestone 상태는 `proposed → ready → in_progress → stabilizing → closed`이며 `blocked`, `rejected`는 side
+state다. milestone에는 구조적 `depends_on`과 별도로 각 dependency를 정확히 한 번 포함하는 두 gate가 있다.
+
+- `implementation_gate`: 선행 milestone이 최소 `stabilizing`이면 후속 milestone을 `ready`로 만들 수 있다.
+  이때 실행 가능한 것은 `overlap_work_item_ids`에 등록되고 `execution_scope: isolated`,
+  `production_effects: none`인 Work Item뿐이다.
+- `production_gate`: 선행 milestone이 `closed`여야 production DB migration, external source activation,
+  Scheduler/Cloud Run 변경, public MCP surface, traffic cutover, destructive cleanup을 실행할 수 있다.
+
+후속 milestone이 `stabilizing` 또는 `closed`가 되려면 production gate도 충족해야 한다. overlap allowlist는
+작업 outcome 전체의 조기 production 권한이 아니라 현재 격리 구현 단계만 승인하며, production effect로
+전환할 때 frontmatter와 registry를 갱신해 gate를 다시 통과해야 한다. `blocked`인 선행 milestone은 gate
+진전으로 계산하지 않는다.
 
 ## 7. Change Set 계약
 
@@ -204,6 +246,8 @@ Skill은 사용자 승인 없이 다음을 하지 않는다.
 - 분기: backup restore rehearsal, source/API/license와 권한 검토
 - release 후: smoke와 관찰기간을 거쳐 acceptance evidence 기록
 - 반복되는 결함은 단순 패치로 끝내지 않고 contract/harness 누락 여부를 재분류한다.
+- rollback 뒤에는 milestone 상태를 되감지 않고 6.1의 append-only corrective loop를 적용한다. 구조적
+  dependency를 역방향으로 추가해 cycle을 만드는 방식으로 recovery를 표현하지 않는다.
 
 정기 실행을 자동화할 때도 이 문서가 schedule과 권한을 승인하지는 않는다. 실제 automation 생성은 별도
 사용자 요청과 비용·notification 정책을 따른다.

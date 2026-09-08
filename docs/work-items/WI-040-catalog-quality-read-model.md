@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0410
 parent_work_item: none
 depends_on: WI-012, WI-019, WI-020
+execution_scope: isolated
+production_effects: none
 architecture_impact: none; read model inside approved data plane
 data_impact: governed catalog quality and lineage projections
 security_impact: no secret or raw confidential payload exposure

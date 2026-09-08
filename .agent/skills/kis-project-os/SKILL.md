@@ -30,7 +30,9 @@ Also read:
 4. Decide whether product decisions require explicit user approval. Read-only investigation may continue while approval is pending.
 5. Make the smallest coherent change set that updates every affected owner document and executable contract together.
 6. Run `bash scripts/check.sh quick` during work and `bash scripts/check.sh full` before closeout.
-7. Record actual evidence, remaining risk and follow-up work. Mark the item closed only when its acceptance criteria are met.
+7. If live or elapsed evidence is required, move verified work to `stabilizing`, keep its observation/rollback/exit
+   contract current, and mark it closed only after exit evidence and owner acceptance.
+8. Record actual evidence, remaining risk and follow-up work.
 
 ## Constraints
 
@@ -40,3 +42,8 @@ Also read:
 - Preserve secrets, account identifiers and raw tokens outside Issues, Work Items, logs and responses.
 - Deployment, infrastructure, destructive data work and external messages still require their normal authorization.
 - If another Work Item is already `in_progress`, finish, block or explicitly supersede it before starting implementation.
+- Keep `depends_on` acyclic. Represent rollback and correction as an append-only sub-item or Work Item connected by
+  `discovered_from`, `rollback_of` or `supersedes`; do not erase evidence or rewind milestone history.
+- While a predecessor milestone is `stabilizing`, start only an allowlisted overlap Work Item whose current
+  `execution_scope` is `isolated` and `production_effects` is `none`. Deployment, migration, source activation,
+  public-surface activation and cutover wait for the production gate.

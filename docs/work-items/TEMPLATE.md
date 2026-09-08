@@ -10,10 +10,19 @@ milestone_ref: none
 delivery_refs: none
 parent_work_item: none
 depends_on: none
+discovered_from: none
+supersedes: none
+rollback_of: none
+execution_scope: pending_gate
+production_effects: unknown
 architecture_impact: unknown
 data_impact: unknown
 security_impact: unknown
 cost_impact: unknown
+# stabilizing일 때 아래 세 필드를 실제 값으로 채운다.
+stabilization_window: none
+stabilization_exit_refs: none
+rollback_plan: none
 ---
 
 # WI-NNN — Replace with a concise outcome
@@ -57,6 +66,16 @@ cost_impact: unknown
 
 - `none`. 기존 outcome 안에서 발견된 작업은 `WI-NNN-SNN`으로 append한다. 독립 outcome이면 새 Work Item을
   발급하며 기존 index를 이동하지 않는다.
+
+## Stabilization plan
+
+- 관찰 기간/표본:
+- 관찰할 신호·품질·전송·비용:
+- rollback trigger와 마지막 안전 상태:
+- 종료 증거와 owner acceptance:
+
+운영 증거가 필요 없는 작업은 `not applicable`로 표시한다. 운영 중 발견된 결함은 기존 증거를 지우거나
+상태를 되감지 않고 새 sub-item/Work Item을 append해 `discovered_from`, `rollback_of`, `supersedes`로 연결한다.
 
 ## Evidence
 

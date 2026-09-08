@@ -83,6 +83,11 @@ repository를 변경하거나 비사소한 버그·요구·incident를 분류하
 4. 동시에 하나의 구현 Work Item만 `in_progress`로 둔다.
 5. 작업 중 `bash scripts/check.sh quick`, 종료 전 `bash scripts/check.sh full`을 실행한다.
 
+운영 증거를 모으는 항목은 `stabilizing`으로 표시한다. milestone dependency는 DAG로 유지하되 rollback과
+보정은 이력을 되감지 않고 `discovered_from`/`rollback_of`/`supersedes` 관계의 새 sub-item 또는 Work Item으로
+append한다. 선행 milestone 안정화 중 후속 구현은 registry의 isolated overlap gate만 허용하며 production
+migration·배포·source activation·public cutover는 선행 milestone `closed` 전까지 금지한다.
+
 Issue/Work Item은 추적 레코드이며 결정 SSOT가 아니다. 승인된 제품 요구는 `docs/requirements/`, 장기
 architecture decision은 `SPEC.md`, 데이터 계약은 `docs/data-catalog.md`가 소유한다. Skill, hook과 CI는
 정책을 복제하지 않고 공통 하네스를 호출한다. 구현에 맞춰 계약을 조용히 완화하지 않는다.
