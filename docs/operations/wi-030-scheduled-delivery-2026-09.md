@@ -96,6 +96,12 @@ it does not prove that the unsynchronized client rendered it. The Rich RC itself
 because no eligible post-activation transition had occurred. S03 now requires the same provider-confirmed Cloud Run
 smoke as a deployment-blocking gate rather than inferring transport readiness from mocks or prior plain messages.
 
+PR `#53` merged the correction as master `90879150`. Deploy run `34182558405` built digest
+`sha256:ddab74f6b33f25ec7f1e3ef19b20f45ec29e02e3867fc20bf2bbdc5e0ed3b239`; its predeploy smoke execution
+`kis-portfolio-wi030-s03-jx827` reported `status=passed`, `outcome=sent`, `error_code=null` before activation and
+replacement of the three scheduled Jobs. The earlier ad-hoc diagnostic Job was then deleted. This proves the
+production sender-to-Telegram path and the new deployment gate; owner-visible rendering still awaits client sync.
+
 ## WI-030-S03 production-value activation — 2026-09-03
 
 PR `#43` passed CI and merged as master SHA `fe616253a681b9ca1d4a763db7cd9ae4a338d7a5`. GitHub Actions run
