@@ -116,6 +116,13 @@ collecting the separate formal shadow evidence.
   scan rejected the trusted static label `원화 평가액 변화` once contribution became available; dynamic fields remain
   individually allowlisted while trusted template text is no longer re-scanned by the broad input filter.
 
+- PR `#53` merged the two S03 corrections as master `90879150`; full gate passed 460 tests. Deploy run
+  `34182558405` built digest `sha256:ddab74f6b33f25ec7f1e3ef19b20f45ec29e02e3867fc20bf2bbdc5e0ed3b239`.
+  Before activation or core replacement, execution `kis-portfolio-wi030-s03-jx827` returned redacted
+  `status=passed`, `outcome=sent`, `error_code=null`; only then did the workflow execute activation and deploy that
+  digest to all three fixed-slot Jobs. The ad-hoc diagnostic Job was deleted after evidence capture. Owner-visible
+  receipt remains pending while the Telegram client is unsynchronized, so S03 remains in progress.
+
 - `WI-030-S02` closed on 2026-09-07. The immutable canary produced 18/18 provider-confirmed unique deliveries with
   zero retryable, unknown or permanent outcomes across `kr-1000`, `us-close`, `kr-1430` and `kr-1600`; the owner
   confirmed destination receipt. Its approval was subsequently revoked append-only when the production-value RC was
