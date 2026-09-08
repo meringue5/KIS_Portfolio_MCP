@@ -238,7 +238,7 @@ unit = "KRW and percent"
 point_in_time = true
 quality_gate = "both selected daily states are complete and reconciled with equal required account coverage; otherwise publish degraded totals but suppress new and sold inference"
 validation_policy = "Decimal golden fixtures reconcile total change to instrument changes plus cash change plus residual; partial account, zero denominator, new, sold and foreign FX scenarios are mandatory"
-consumer_ids = ["Remote MCP portfolio overview", "Remote MCP performance history", "contribution-aware signal evaluation"]
+consumer_ids = ["Remote MCP portfolio overview", "Remote MCP performance history", "contribution-aware signal evaluation", "scheduled Telegram total-asset digest"]
 
 [[contracts]]
 id = "metric.daily-adjusted-close-return"

@@ -58,7 +58,7 @@ schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이
 | C | DEC-020~DEC-025 | OpenDART·SEC actual, point-in-time consensus, 배당 3상태, 표준 macro profile, licensed report gate |
 | D | DEC-026~DEC-032 | replay 기반 경보, Bollinger 보조지표, 2% risk cap, Telegram, consensus 위험 신호, journal review |
 | E | DEC-033~DEC-041 | Remote MCP SSOT, scale-to-zero·batch-first, 월 5만원 상한, versioned schema, off-site recovery |
-| F | DEC-042~DEC-048 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현, GCP provisioning, final V2 정본화와 평가액 변화 기여도 |
+| F | DEC-042~DEC-048, DEC-054 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현, GCP provisioning, final V2 정본화와 평가액 변화 기여도·정기 총자산 리포트 |
 
 이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. DEC-044에 따라 승인 계약 안의 저장소 로컬
 구현과 검증은 진행할 수 있지만, 실제 적재·배포·provisioning과 외부 알림은 별도 gate를 유지한다.
@@ -557,6 +557,21 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   금융정보 없는 `sendRichMessage` smoke가 provider-confirmed `sent`를 반환한 뒤에만 core Job에 배포한다.
   로컬 개발기 성공이나 mock test는 이를 대체하지 못하며 timeout·unknown·4xx·5xx는 배포를 차단한다.
 - 기존 `rc-2026-09-03.2`와 plain presentation 증거는 불변 보존하고 새 bounded version으로 안정화한다.
+
+### DEC-054: 오전 10시와 오후 4시에 총자산 현황 Rich Message를 보낸다
+
+- 2026-09-08 owner는 기존 총자산 현황과 WI-033 원화 평가액 변화 기여도를 결합한 정기 리포트를 매 평일
+  `kr-1000`, `kr-1600` 수집 완료 뒤 Telegram으로 받도록 승인했다. `kr-1430`에는 보내지 않는다.
+- 전 거래일의 같은 slot과 비교한 총자산 변화율, 상승·하락 영향 Top 3, 현금 영향과 합계 정합성을 보여준다.
+  종목 영향은 총자산 대비 원화 평가액 변화 `%p`이며 투자수익 기여도로 표현하지 않는다.
+- Telegram에는 총자산 절대액, 절대 증감액, 계좌별 금액·식별자를 싣지 않는다. 해외 종목은 환율 효과가
+  포함됐음을 접힌 해석 기준으로 명시한다.
+- 양쪽 canonical state의 필수 계좌 coverage·품질·reconciliation이 통과하지 않으면 숫자와 신규/전량매도
+  추론을 억제하고 짧은 `계산 보류` 리포트를 보낸다. 침묵을 정상 또는 전송 장애로 오해하게 두지 않는다.
+- 리포트는 날짜·slot·presentation version별 한 번만 terminal 처리한다. provider 요청 뒤 결과가 불명확하면
+  `unknown`으로 봉인하며 자동 재전송하지 않는다. 기존 종목별 경보와 원장은 변경하지 않는다.
+- 기존 scale-to-zero V2 core Job, Telegram secret과 MotherDuck control ledger를 재사용한다. 별도 상시 서비스,
+  Scheduler, 물리 데이터 테이블 또는 신규 secret을 만들지 않는다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
@@ -1120,6 +1135,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-08 | 정기 총자산 리포트 승인 | DEC-054로 10시·16시 동일-slot 총자산 변화율, Top 3 영향, 현금·정합성 Rich Message와 절대액 비노출·계산 보류·중복방지 계약을 승인함 |
 | 2026-09-07 | Rich Message 전환 승인 | DEC-053으로 심각도 아이콘, 산출값 표, 접힌 미산출 항목, 단일 시각 footer를 채택하고 plain fallback과 반복·오해 문구를 금지함 |
 | 2026-09-03 | 실사용 의미 보정 승인 | DEC-052로 이동평균 상태/교차, 초기 baseline, 장중 거래량, 품질 문구를 정정하고 일·주·월·분기·연간 인수 증거를 replay·fixture·live observation으로 분리함 |
 | 2026-09-03 | 실사용 인수 기준 승인 | DEC-051로 MS-002를 production-equivalent Telegram 메시지의 실사용·안정화·owner acceptance 뒤에만 닫고, 최소 canary payload와 repository-local 완료를 제품 완료로 간주하지 않기로 승인함 |

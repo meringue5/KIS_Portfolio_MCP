@@ -290,6 +290,7 @@ def _build_v2_pipeline_env(env: dict[str, str], project: str) -> dict[str, str]:
         "KIS_TELEGRAM_DELIVERY_ENABLED",
         "KIS_TELEGRAM_CANARY_ENABLED",
         "KIS_TELEGRAM_REAL_USE_ENABLED",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED",
         "KIS_TELEGRAM_DESTINATION_REF",
     ):
         if env.get(key, "") != "":
@@ -1049,6 +1050,29 @@ def _deploy_wi030_s03(
     )
 
 
+def _deploy_wi055(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Deploy the digest on the existing fixed-slot scale-to-zero jobs."""
+    digest_env = dict(env)
+    digest_env.update({
+        "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+        "KIS_TELEGRAM_CANARY_ENABLED": "false",
+        "KIS_TELEGRAM_REAL_USE_ENABLED": "true",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "true",
+        "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+    })
+    return _deploy_v2_core_jobs(
+        args,
+        env=digest_env,
+        project=project,
+        deploy_label="wi055-total-asset-digest",
+    )
+
+
 def _deploy_wi029_s04(
     args: argparse.Namespace,
     *,
@@ -1446,6 +1470,7 @@ def main() -> int:
             "wi029-s04",
             "wi030-s02",
             "wi030-s03",
+            "wi055",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1643,6 +1668,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi030_s03(args, env=env, project=project)
+
+    if args.target == "wi055":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi055(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

@@ -391,3 +391,26 @@ quality_gates = ["active external rule only", "pass-quality candidate only", "wa
 secret_profile = "GCP Secret Manager Telegram bot token and private chat id only on the V2 pipeline runtime identity; opaque destination alias is non-secret runtime config"
 cost_class = "routine"
 trigger_policy = "prior transport/plain release candidates remain immutable evidence; DEC-053 permits one separately versioned Rich Message release candidate for real-use stabilization, while permanent external activation still requires verified WI-029 evidence and owner acceptance"
+
+[[contracts]]
+id = "pipeline.telegram-total-asset-digest-v1"
+version = "1.0.0"
+status = "approved"
+owner = "owner"
+description = "전 거래일 동일 slot 총자산 변화율과 종목 Top 3·현금 영향을 절대액 없이 10시·16시 Rich Message로 전달한다."
+decision_refs = ["DEC-048", "DEC-053", "DEC-054"]
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-daily-state"]
+output_dataset_ids = ["dataset.pipeline-run-evidence", "dataset.pipeline-stage-evidence"]
+stages = ["build-report", "send-rich-message"]
+schedule_policy = "composed after existing kr-1000 and kr-1600 V2 core Jobs; kr-1430 is always skipped and no independent Scheduler exists"
+calendar_gate = "previous comparison date is the latest earlier open KRX date and both states must use the exact same evaluation slot"
+idempotency_key = "pipeline version, logical date, evaluation slot and owner-consolidated partition"
+timeout_policy = "one bounded Telegram sendRichMessage call; an interrupted or ambiguous provider request is sealed terminal unknown"
+retry_policy = "no automatic retry after the send stage starts; a succeeded or ambiguous date-slot is never resent"
+source_call_budget = "at most one Telegram call per enabled slot, two per applicable weekday"
+freshness_gates = ["current exact-slot canonical state exists", "prior open-date exact-slot state exists", "current source timestamp is retained in the footer"]
+quality_gates = ["equal required-account coverage", "both canonical states pass", "component plus cash change reconciles to total change", "unavailable inputs render calculation deferred without numeric values", "payload excludes absolute assets changes account values identifiers credentials raw source and chat identifier", "foreign holdings are labelled as KRW valuation change including FX and not return attribution"]
+secret_profile = "existing pinned Telegram bot token and private chat id on the V2 pipeline runtime identity; no new secret"
+cost_class = "routine"
+trigger_policy = "DEC-054 owner-approved activation through the manual wi055 deploy target; independent feature flag defaults false and rollback disables only the digest"

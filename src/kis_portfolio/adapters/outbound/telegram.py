@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from html import escape
-from typing import Mapping
+from typing import Mapping, Sequence
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -53,6 +53,29 @@ class TelegramRichMessage:
     html: str
 
 
+@dataclass(frozen=True, slots=True)
+class TotalAssetDigestContributor:
+    """One privacy-safe contributor shown in the scheduled total-asset digest."""
+
+    label: str
+    impact_percent_points: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class TotalAssetDigest:
+    """Privacy-safe scheduled digest; absolute portfolio values are intentionally absent."""
+
+    slot: str
+    source_at: datetime
+    quality_status: str
+    total_change_percent: Decimal | None = None
+    positive: Sequence[TotalAssetDigestContributor] = ()
+    negative: Sequence[TotalAssetDigestContributor] = ()
+    cash_impact_percent_points: Decimal | None = None
+    reconciliation_status: str | None = None
+    unavailable_codes: Sequence[str] = ()
+
+
 def _safe_text(value: object, *, field: str, maximum: int, forbid_absolute: bool = False) -> str:
     text = str(value or "").strip()
     if not text or len(text) > maximum:
@@ -72,6 +95,91 @@ def _optional_decimal(context: Mapping[str, object], key: str) -> str | None:
     if not _SAFE_DECIMAL.fullmatch(text):
         raise UnsafeTelegramPayload(f"{key} must be a bounded decimal")
     return text
+
+
+def _bounded_percent(value: Decimal, *, field: str) -> str:
+    if not value.is_finite() or abs(value) > Decimal("1000"):
+        raise UnsafeTelegramPayload(f"{field} must be a bounded percentage")
+    return f"{value.quantize(Decimal('0.01')):.2f}"
+
+
+def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
+    """Render a scheduled total-asset digest without absolute assets or account data."""
+    slot_labels = {"kr-1000": "오전 10시", "kr-1600": "오후 4시"}
+    slot_label = slot_labels.get(digest.slot)
+    if slot_label is None:
+        raise UnsafeTelegramPayload("total-asset digest slot is not allowlisted")
+    if digest.source_at.tzinfo is None:
+        raise UnsafeTelegramPayload("total-asset digest source_at must be timezone-aware")
+    source_at = digest.source_at.astimezone(_SEOUL)
+    if digest.quality_status not in {"pass", "unavailable"}:
+        raise UnsafeTelegramPayload("total-asset digest quality is not allowlisted")
+
+    if digest.quality_status == "unavailable":
+        if digest.total_change_percent is not None or digest.positive or digest.negative:
+            raise UnsafeTelegramPayload("unavailable total-asset digest cannot contain calculated values")
+        if not digest.unavailable_codes or any(
+            not _SAFE_REASON.fullmatch(str(code)) for code in digest.unavailable_codes
+        ):
+            raise UnsafeTelegramPayload("unavailable total-asset digest requires bounded reason codes")
+        reason_labels = {
+            "missing_market_calendar": "전 거래일 확인 불가",
+            "missing_prior_state": "이전 동일 시각 상태 없음",
+            "missing_current_state": "현재 상태 없음",
+            "state_quality_failed": "비교 상태 품질 미달",
+            "reconciliation_failed": "합계 정합성 미달",
+        }
+        reasons = [reason_labels.get(str(code), "데이터 품질 확인 필요") for code in digest.unavailable_codes]
+        html = (
+            f"<h3>⚪ 총자산 현황 · {slot_label}</h3>"
+            "<p><b>전 거래일 동일 시각 대비 계산 보류</b><br>"
+            "불완전한 상태를 자산 변동으로 해석하지 않았습니다.</p>"
+            "<details><summary>보류 사유</summary><p>"
+            + escape(" · ".join(dict.fromkeys(reasons)))
+            + "</p></details>"
+            f"<footer>{source_at:%Y-%m-%d %H:%M} · KST</footer>"
+        )
+    else:
+        if digest.total_change_percent is None or digest.reconciliation_status != "pass":
+            raise UnsafeTelegramPayload("pass total-asset digest requires reconciled change")
+        change = _bounded_percent(digest.total_change_percent, field="total_change_percent")
+        rows: list[tuple[str, str]] = []
+        for direction, contributors in (("상승", digest.positive), ("하락", digest.negative)):
+            if len(contributors) > 3:
+                raise UnsafeTelegramPayload("total-asset digest contributor count exceeds top three")
+            for index, contributor in enumerate(contributors, start=1):
+                label = _safe_text(
+                    contributor.label, field="contributor_label", maximum=80,
+                )
+                impact = _bounded_percent(
+                    contributor.impact_percent_points, field="impact_percent_points",
+                )
+                prefix = "+" if contributor.impact_percent_points > 0 else ""
+                rows.append((f"{direction} {index}", f"{label} {prefix}{impact}%p"))
+        if digest.cash_impact_percent_points is not None:
+            cash = _bounded_percent(
+                digest.cash_impact_percent_points, field="cash_impact_percent_points",
+            )
+            prefix = "+" if digest.cash_impact_percent_points > 0 else ""
+            rows.append(("현금 영향", f"{prefix}{cash}%p"))
+        rows.append(("합계 검증", "일치"))
+        body = "".join(
+            f"<tr><td>{escape(label)}</td><td>{escape(value)}</td></tr>" for label, value in rows
+        )
+        prefix = "+" if digest.total_change_percent > 0 else ""
+        html = (
+            f"<h3>📊 총자산 현황 · {slot_label}</h3>"
+            f"<p><b>전 거래일 동일 시각 대비 {prefix}{change}%</b><br>"
+            "보유 종목의 원화 평가액 변화 영향입니다.</p>"
+            f"<table bordered striped compact><tbody>{body}</tbody></table>"
+            "<details><summary>해석 기준</summary><p>"
+            "해외 종목은 환율 효과를 포함하며 투자수익 기여도가 아닙니다."
+            "</p></details>"
+            f"<footer>{source_at:%Y-%m-%d %H:%M} · KST</footer>"
+        )
+    if len(html) > 3500 or _ACCOUNT_NUMBER.search(html):
+        raise UnsafeTelegramPayload("rendered total-asset digest is unsafe or too large")
+    return TelegramRichMessage(html=html)
 
 
 def _production_value_message(candidate: TelegramDispatchCandidate, severity: str, transition: str) -> str:

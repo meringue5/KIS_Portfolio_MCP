@@ -25,6 +25,7 @@ on:
           - wi029-s04
           - wi030-s02
           - wi030-s03
+          - wi055
 
 permissions:
   contents: read
@@ -101,6 +102,7 @@ jobs:
       KIS_WI030_S03_JOB_NAME: ${{ vars.KIS_WI030_S03_JOB_NAME || 'kis-portfolio-wi030-s03' }}
       KIS_TELEGRAM_BOT_TOKEN_VERSION: ${{ vars.KIS_TELEGRAM_BOT_TOKEN_VERSION }}
       KIS_TELEGRAM_CHAT_ID_VERSION: ${{ vars.KIS_TELEGRAM_CHAT_ID_VERSION }}
+      KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED: ${{ vars.KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED || 'false' }}
       SEC_EDGAR_USER_AGENT: ${{ vars.SEC_EDGAR_USER_AGENT }}
       KIS_DEPLOY_SECRET_MODE: secret-manager
     steps:
@@ -314,4 +316,12 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI030_S03_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-055 scheduled total-asset digest
+        if: github.event.inputs.target == 'wi055'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi055 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
             --secret-mode secret-manager

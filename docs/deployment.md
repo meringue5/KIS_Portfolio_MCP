@@ -293,6 +293,8 @@ claim 이전에 종료하므로 DB-only shadow 동작을 유지한다. DEC-050�
 - non-secret: `KIS_TELEGRAM_CANARY_ENABLED=true`; immutable rule validity is enforced in DB eligibility and claim
 - non-secret S03: `KIS_TELEGRAM_CANARY_ENABLED=false`, `KIS_TELEGRAM_REAL_USE_ENABLED=true`; exactly one external
   candidate producer is active and the S02 rule/ledger remains immutable history
+- non-secret WI-055: `KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED=true`; the composed digest sends only at `kr-1000`
+  and `kr-1600`, while `kr-1430` exits before a claim or provider request
 
 Bounded S02 release 전제는 DEC-050 owner approval, one complete scheduled-day smoke, owner-verified private
 destination과 별도 승인된 finance-free test message다. permanent rule은 verified WI-029 shadow를 계속 요구한다.
@@ -350,6 +352,9 @@ Deploy workflow:
   배포 자체가 Telegram 신규 시장 신호를 만들지 않는다.
   DEC-053 Rich Message 재배포도 같은 successor/revoke gate를 사용하며 `sendRichMessage`만 활성화한다.
   plain `sendMessage` fallback은 post-send ambiguity와 중복 위험 때문에 허용하지 않는다.
+- `wi055`도 `all`에 포함되지 않는 수동 target이다. 새 서비스·Scheduler·secret 없이 같은 image를 기존
+  세 core Job에 배포하고 독립 총자산 리포트 flag만 활성화한다. 리포트는 10시·16시에서만 실제 호출하며
+  rollback은 이 flag를 false로 바꾸는 것으로 종목별 WI-030 경보와 분리한다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

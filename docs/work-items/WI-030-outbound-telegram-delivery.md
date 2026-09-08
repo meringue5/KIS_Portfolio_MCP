@@ -1,7 +1,7 @@
 ---
 id: WI-030
 title: Enable approved outbound Telegram delivery
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051, DEC-052, DEC-053
@@ -84,7 +84,7 @@ collecting the separate formal shadow evidence.
 
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
 - `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary (`closed`).
-- `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`in_progress`).
+- `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`closed`).
 - `WI-030-S04`: establish calendar-window replay, fixture and live-observation acceptance evidence (`ready`; follows S03).
 - `WI-030-S05`: make repeated closed-market sessions idempotent and recover the 2026-09-08 failed slot
   (`closed`; defect discovered and recovered during S03 stabilization).
@@ -175,12 +175,18 @@ collecting the separate formal shadow evidence.
   `sha256:1a427f354b70c19fc43739691612f01b3d668b242ab52a81d04bc1b5bfedb7ed` to all three core Jobs.
   Full gate passed 454 tests; scheduled Rich Message receipt and owner acceptance remain open.
 
+- `WI-030-S03` closed on 2026-09-08. The 14:30 production execution provider-confirmed one Rich Message and the
+  16:00 execution provider-confirmed four with zero unknown, retryable or permanent outcomes. The owner confirmed
+  both the Rich rendering and the 16:00 receipt after the Telegram client recovered. PR #53/master `90879150`, deploy
+  run `34182558405` and same-image Cloud Run smoke remain immutable release evidence. Calendar-window stability claims
+  remain in S04 and do not keep the completed implementation WIP open.
+
 ## Closeout
 
-- Result: S01 and S02 are closed; S02 evidence is preserved and its external approval is revoked; S03 is deployed in real-use
-  stabilization under DEC-051.
+- Result: S01, S02, S03 and S05 are closed; production-value Rich Message delivery is owner-accepted and WI-030 is
+  implementation-verified while S04 continues temporal acceptance evidence.
 - Remaining risk: corrected immutable RC deployment, subsequent transition semantics, false-positive/miss review,
   duplicate suppression and owner acceptance are not yet proven. Episode drawdown and KRW valuation-change
   contribution remain explicit `계산 보류` until their upstream governed readiness passes. Monthly, quarterly and
   annual stability remain explicitly unclaimed until WI-030-S04 evidence matures.
-- Follow-up Work Item: next milestone baseline after owner review.
+- Follow-up Work Item: WI-055 adds the separately idempotent 10:00/16:00 total-asset digest; S04 retains long-window evidence.
