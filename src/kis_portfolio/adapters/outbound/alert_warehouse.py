@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import duckdb
 
@@ -118,6 +118,14 @@ class AlertWarehouseRepository:
                 {"watch": 1, "warning": 2, "critical": 3}[rule.minimum_delivery_severity],
             ],
         )
+
+    def candidate_evaluation_date(self, candidate_id: str) -> date | None:
+        """Return the immutable candidate's first evaluation date, if present."""
+        row = self.connection.execute(
+            "SELECT evaluation_date FROM gold.alert_candidates WHERE candidate_id=?",
+            [candidate_id],
+        ).fetchone()
+        return None if row is None else row[0]
 
     @staticmethod
     def _candidate_document(candidate: AlertCandidate) -> tuple[object, ...]:

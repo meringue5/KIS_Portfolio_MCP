@@ -429,8 +429,10 @@ def _run_signal_evaluation(
         "transition_count": 0,
         "shadow_claim_count": 0,
         "quality_suppressed_count": 0,
+        "reused_session_count": 0,
     }
     slot_counts: dict[str, int] = {}
+    slot_reused_counts: dict[str, int] = {}
     for evaluation_slot in slots:
         observations = _target_observations(
             connection,
@@ -439,8 +441,18 @@ def _run_signal_evaluation(
             evaluation_slot=evaluation_slot,
         )
         slot_counts[evaluation_slot] = len(observations)
+        slot_reused_counts[evaluation_slot] = 0
         for observation in observations:
             candidate = _candidate(observation, logical_date=logical_date, run_id=run_id, rule=rule)
+            prior_date = repository.candidate_evaluation_date(candidate.candidate_id)
+            if (
+                evaluation_slot == "us-close"
+                and prior_date is not None
+                and prior_date < logical_date
+            ):
+                totals["reused_session_count"] += 1
+                slot_reused_counts[evaluation_slot] += 1
+                continue
             write = repository.apply_candidate(candidate)
             totals["candidate_count"] += 1
             if candidate.evaluation.quality_status != "pass":
@@ -476,6 +488,7 @@ def _run_signal_evaluation(
         "source_slot": source_slot,
         "evaluation_slots": list(slots),
         "slot_candidate_counts": slot_counts,
+        "slot_reused_session_counts": slot_reused_counts,
         **totals,
         "external_send_count": 0,
         "transport": "db-only-shadow",
@@ -530,6 +543,7 @@ def run_shadow_signal_evaluation(
         "candidate_count": result["candidate_count"],
         "transition_count": result["transition_count"],
         "shadow_claim_count": result["shadow_claim_count"],
+        "reused_session_count": result["reused_session_count"],
     }
     connection.execute(
         """

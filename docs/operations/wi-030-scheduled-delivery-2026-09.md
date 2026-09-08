@@ -62,6 +62,18 @@ activation execution `kis-portfolio-wi030-s03-zdr98`, and deployed one build-onc
 `sha256:dc009b95eaa2bdfd8ff0b37ba155a2a936ec8a1eaf3ac2ee3c0436b5162e8d1b` to the 10:00, 14:30 and 16:00 Jobs.
 This proves deployment, not the first post-cutover scheduled marker or Rich Message receipt.
 
+## Repeated U.S. close incident — 2026-09-08 10:00 KST
+
+Execution `kis-portfolio-owned-core-v2-1000-khpbl` ran the core collection successfully, then exited 1 during shadow
+evaluation with `AlertWarehouseConflictError: alert candidate changed on replay`. The same governed U.S. close
+session was selected on two Korean evaluation dates around a U.S. market closure. Four existing `us-close`
+candidates matched the stable candidate identity but differed only in evaluation date and evaluation run ID.
+
+The failed execution wrote 17 shadow candidates but no Telegram attempt and no `shadow-slot-terminal-v1` marker.
+WI-030-S05 keeps the original candidate immutable, skips a previously evaluated older market session as an explicit
+idempotent reuse, and requires a normal same-day retry plus terminal marker before the slot is recovered. It does not
+backfill a Telegram message for the missed run.
+
 ## Operational lesson
 
 When the provider ledger says `sent` but the owner sees nothing, check the Telegram client's own connection state and

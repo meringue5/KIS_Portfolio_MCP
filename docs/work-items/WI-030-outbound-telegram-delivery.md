@@ -86,8 +86,18 @@ collecting the separate formal shadow evidence.
 - `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary (`closed`).
 - `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`in_progress`).
 - `WI-030-S04`: establish calendar-window replay, fixture and live-observation acceptance evidence (`ready`; follows S03).
+- `WI-030-S05`: make repeated closed-market sessions idempotent and recover the 2026-09-08 failed slot
+  (`in_progress`; defect discovered during S03 stabilization).
 
 ## Evidence
+
+- `WI-030-S05` incident: execution `kis-portfolio-owned-core-v2-1000-khpbl` failed on 2026-09-08 after the core
+  pipeline succeeded. A U.S. market closure caused the same `us-close` market-session identity to be selected on a
+  later Korean evaluation date. Candidate identity correctly remained stable, but the runtime rebuilt it with a new
+  evaluation date/run ID and treated the immutable replay as a conflict. Seventeen shadow candidates were recorded;
+  Telegram attempts and post-cutover completion markers were both zero. This is a `defect` against the existing
+  session-key idempotency contract, not a new product or data-contract decision. Recovery must not rewrite the prior
+  candidate or fabricate a missed message.
 
 - `WI-030-S02` closed on 2026-09-07. The immutable canary produced 18/18 provider-confirmed unique deliveries with
   zero retryable, unknown or permanent outcomes across `kr-1000`, `us-close`, `kr-1430` and `kr-1600`; the owner

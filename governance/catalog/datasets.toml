@@ -890,7 +890,7 @@ consumer_ids = ["shadow report", "delivery audit", "Telegram adapter after owner
 
 [[contracts]]
 id = "dataset.alert-calibration-evidence"
-version = "1.2.0"
+version = "1.3.0"
 status = "approved"
 owner = "owner"
 description = "3년 provenance-labelled replay, 자산유형 threshold proposal, 2주 DB-only shadow와 owner approval revision."
@@ -903,12 +903,12 @@ grain = "one immutable replay report, bounded shadow window or owner rule-versio
 natural_key = ["calibration_run_id", "shadow_window_id", "rule_id", "rule_version", "approval_revision"]
 time_semantics = "replay effective window, observation knowledge provenance, elapsed shadow dates and owner decision time remain distinct"
 write_mode = "immutable replay report; bounded shadow evidence upsert; append-only owner approval revisions"
-schema_contract = "Control alert calibration v1.2 with asset-class multiplier, alert budget, maximum-miss proxy limitation, calendar-derived evaluation-date/slot coverage reconciled against terminal candidate outcomes, required shadow claims and post-cutover completion markers, bounded excluded-slot reason codes, zero external sends and evidence hashes"
+schema_contract = "Control alert calibration v1.3 with asset-class multiplier, alert budget, maximum-miss proxy limitation, calendar-derived evaluation-date/slot coverage reconciled against terminal candidate outcomes, required shadow claims and post-cutover completion markers, repeated-session no-op counts, bounded excluded-slot reason codes, zero external sends and evidence hashes"
 sensitivity = "confidential"
 retention_policy = "retained with used rule versions and delivery evidence; no automatic deletion"
 backup_policy = "parquet"
 freshness_slo = "one bounded replay after eligible history, then updates through at least fourteen elapsed shadow days"
-quality_rules = ["retrospective reconstruction never claims historical live alert status", "median watch-plus count is at most two and p95 at most five per observed slot", "false-positive and miss labels require owner review", "shadow external send and sensitive violation counts are zero", "candidate presence alone never proves slot completion", "post-cutover zero-candidate slots require a terminal completion marker", "known runtime failures are explicitly excluded with a reason and never backfilled as live success", "permanent approval cites a reviewed calibration run and verified shadow window", "DEC-050 bounded canary cites the approved smoke date and clean collecting shadow without changing permanent approval state"]
+quality_rules = ["retrospective reconstruction never claims historical live alert status", "median watch-plus count is at most two and p95 at most five per observed slot", "false-positive and miss labels require owner review", "shadow external send and sensitive violation counts are zero", "candidate presence alone never proves slot completion", "post-cutover zero-candidate slots require a terminal completion marker", "repeated U.S. close sessions retain the original candidate and record an explicit no-op count", "known runtime failures are explicitly excluded with a reason and never backfilled as live success", "permanent approval cites a reviewed calibration run and verified shadow window", "DEC-050 bounded canary cites the approved smoke date and clean collecting shadow without changing permanent approval state"]
 producer_pipeline_ids = ["pipeline.signal-calibration-v2"]
 consumer_ids = ["owner threshold review", "Telegram activation gate", "audit and rollback"]
 

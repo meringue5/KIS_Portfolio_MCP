@@ -733,6 +733,12 @@ title = "Establish calendar-window alert acceptance evidence"
 status = "ready"
 
 [[subitems]]
+id = "WI-030-S05"
+parent_id = "WI-030"
+title = "Make repeated closed-market sessions idempotent and recover the failed slot"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-035-S01"
 parent_id = "WI-035"
 title = "Research production inventory cost and rollback cleanup evidence"
