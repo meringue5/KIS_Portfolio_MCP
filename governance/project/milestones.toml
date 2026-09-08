@@ -736,7 +736,7 @@ status = "ready"
 id = "WI-030-S05"
 parent_id = "WI-030"
 title = "Make repeated closed-market sessions idempotent and recover the failed slot"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-035-S01"

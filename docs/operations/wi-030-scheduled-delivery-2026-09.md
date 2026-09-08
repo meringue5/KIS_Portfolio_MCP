@@ -74,6 +74,14 @@ WI-030-S05 keeps the original candidate immutable, skips a previously evaluated 
 idempotent reuse, and requires a normal same-day retry plus terminal marker before the slot is recovered. It does not
 backfill a Telegram message for the missed run.
 
+PR `#51` merged the correction as master `dca08284`. GitHub Actions run `34180002830` passed and deployed digest
+`sha256:8cf0b598d7d7c60835a57442f63f0045fad6b7f81f5e3da36d23548265ac0595` to the three fixed-slot Jobs.
+Recovery execution `kis-portfolio-owned-core-v2-1000-l7hr5` completed successfully. Read-only warehouse verification
+showed one succeeded `pipeline.owned-portfolio-core-v2` `kr-1000` run, one passing terminal marker with 17 evaluated
+candidates, zero transitions and four reused U.S. sessions, and zero Telegram attempts for the date. The successful
+core collection was reused; no synthetic missed alert or duplicate dispatch was emitted. WI-030-S05 is closed while
+the broader S03/S04 real-use acceptance remains open.
+
 ## Operational lesson
 
 When the provider ledger says `sent` but the owner sees nothing, check the Telegram client's own connection state and
