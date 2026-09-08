@@ -106,6 +106,16 @@ collecting the separate formal shadow evidence.
   zero transitions and four explicitly reused `us-close` sessions, and no Telegram delivery attempt was created.
   The immutable earlier U.S. candidates and fail-closed same-day conflict behavior remain unchanged.
 
+- 2026-09-08 Rich transport incident review: the active `rc-2026-09-07.1` had zero provider attempts because no
+  eligible transition had yet exercised the new transport. A local manual preview timed out while the owner's
+  Telegram client remained in `업데이트 중` state, but Cloud Run diagnostic execution
+  `kis-portfolio-telegram-rich-smoke-2dkvm` returned HTTP 200 / `ok=true` for both `getMe` and `sendRichMessage`.
+  This isolates the missing owner-visible diagnostic to client/local connectivity, while exposing a release-control
+  defect: the Rich RC had been activated without a same-image Cloud Run provider-confirmed smoke. The S03 correction
+  adds that fail-closed deployment gate. The same review found a renderer defect where the broad sensitive-keyword
+  scan rejected the trusted static label `원화 평가액 변화` once contribution became available; dynamic fields remain
+  individually allowlisted while trusted template text is no longer re-scanned by the broad input filter.
+
 - `WI-030-S02` closed on 2026-09-07. The immutable canary produced 18/18 provider-confirmed unique deliveries with
   zero retryable, unknown or permanent outcomes across `kr-1000`, `us-close`, `kr-1430` and `kr-1600`; the owner
   confirmed destination receipt. Its approval was subsequently revoked append-only when the production-value RC was

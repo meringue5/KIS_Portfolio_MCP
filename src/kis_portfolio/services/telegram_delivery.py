@@ -13,11 +13,43 @@ import duckdb
 from kis_portfolio.adapters.outbound.alert_warehouse import AlertWarehouseRepository
 from kis_portfolio.adapters.outbound.telegram import (
     TelegramBotClient,
+    TelegramRichMessage,
     TelegramSendResult,
     UnsafeTelegramPayload,
     render_telegram_alert,
 )
 from kis_portfolio.modules.monitoring.alerts import validate_opaque_code
+
+
+RICH_TRANSPORT_SMOKE_HTML = (
+    "<h3>🟡 KIS Portfolio 리치 메시지 운영 점검</h3>"
+    "<p><b>실제 금융 경보가 아닙니다.</b><br>"
+    "Cloud Run 운영 경로에서 Telegram Rich Message 전송을 확인했습니다.</p>"
+    "<table bordered striped compact><tbody>"
+    "<tr><td>점검 대상</td><td>운영 전송 경로</td></tr>"
+    "<tr><td>금융 데이터</td><td>포함하지 않음</td></tr>"
+    "</tbody></table>"
+    "<details><summary>안내</summary><p>이 메시지는 배포 차단형 전송 점검입니다.</p></details>"
+    "<footer>KIS Portfolio · transport smoke</footer>"
+)
+
+
+def run_telegram_rich_transport_smoke(
+    *,
+    config: TelegramDeliveryConfig | None = None,
+    client: TelegramBotClient | None = None,
+) -> TelegramSendResult:
+    """Send one finance-free Rich Message and fail the caller unless Telegram confirms it."""
+    config = config or TelegramDeliveryConfig.from_env()
+    config.validate_for_send()
+    if not config.enabled:
+        raise RuntimeError("Telegram Rich Message smoke requires explicit delivery enablement")
+    transport = client or TelegramBotClient(timeout_seconds=30.0)
+    return transport.send_rich_message(
+        bot_token=config.bot_token,
+        chat_id=config.chat_id,
+        message=TelegramRichMessage(RICH_TRANSPORT_SMOKE_HTML),
+    )
 
 
 @dataclass(frozen=True, slots=True)

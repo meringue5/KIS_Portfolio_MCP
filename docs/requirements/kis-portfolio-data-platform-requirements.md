@@ -553,6 +553,9 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 반복되던 `다음 확인` 문구를 제거하고, 시각은 source 기준 KST를 footer에 한 번만 표시한다.
 - 전송은 `sendRichMessage` 한 번만 시도한다. 실패 뒤 `sendMessage`로 자동 fallback하지 않으며, 기존
   claim·unknown·retryable·redaction 계약을 그대로 적용해 중복 가능성을 차단한다.
+- Rich Message release candidate는 동일 image digest, Cloud Run 실행 계정, Secret 참조와 운영 egress에서
+  금융정보 없는 `sendRichMessage` smoke가 provider-confirmed `sent`를 반환한 뒤에만 core Job에 배포한다.
+  로컬 개발기 성공이나 mock test는 이를 대체하지 못하며 timeout·unknown·4xx·5xx는 배포를 차단한다.
 - 기존 `rc-2026-09-03.2`와 plain presentation 증거는 불변 보존하고 새 bounded version으로 안정화한다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1

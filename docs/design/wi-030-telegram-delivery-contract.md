@@ -75,6 +75,12 @@ Rich Message dynamic values are HTML-escaped. Arbitrary text colour is not a con
 The adapter calls only `sendRichMessage` with one HTML representation and disabled entity detection. It does not fall
 back to `sendMessage`, because a timeout or ambiguous response must not create a second external attempt.
 
+Before a Rich Message release target can deploy its core Jobs, the exact built image must run one finance-free
+`sendRichMessage` smoke from Cloud Run with the production runtime identity, pinned Telegram Secret versions and
+production egress. Only provider-confirmed `sent` passes. Local requests, renderer unit tests and activation-ledger
+checks do not prove this transport path; timeout, unknown or any HTTP failure stops deployment before activation and
+core Job replacement.
+
 Only these `public_context` keys are accepted:
 
 - `presentation_version`
