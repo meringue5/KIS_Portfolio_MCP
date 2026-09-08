@@ -17,7 +17,11 @@ from kis_portfolio.adapters.outbound.telegram import (
 )
 from kis_portfolio.modules.monitoring import AlertCandidate, AlertEvaluation, AlertRuleVersion
 from kis_portfolio.platform.migrations import MigrationRunner
-from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig, run_telegram_delivery
+from kis_portfolio.services.telegram_delivery import (
+    TelegramDeliveryConfig,
+    run_telegram_delivery,
+    run_telegram_rich_transport_smoke,
+)
 
 
 NOW = datetime(2026, 8, 30, 1, tzinfo=UTC)
@@ -273,6 +277,39 @@ def test_rich_renderer_collapses_unavailable_metrics_and_escapes_dynamic_html() 
     assert message.count("계산 보류") == 0
     assert "20일선 · 50일선 · 120일선" in message
     assert message.count("2026-09-07 10:00") == 1
+
+
+def test_rich_renderer_allows_trusted_valuation_change_template_label() -> None:
+    _, repository, _ = _external_candidate()
+    item = repository.eligible_telegram_dispatches(as_of=NOW)[0]
+    rich = item.__class__(
+        **{**{field: getattr(item, field) for field in item.__dataclass_fields__},
+           "public_context": {
+               "presentation_version": "production-value-v3",
+               "subject_label": "삼성전자", "market_label": "국내", "asset_type_label": "주식",
+               "summary": "당일 급등 기준을 넘었습니다", "reason_codes": ["price_shock_up"],
+               "change_percent": "3.42", "sma20_relation": "above",
+               "sma50_relation": "above", "sma120_relation": "below",
+               "sma20_sma50_relation": "above", "volume_ratio20": "1.20", "rsi14": "61.50",
+               "bollinger_state": "inside", "episode_drawdown_percent": "-4.80",
+               "portfolio_impact_percent": "0.12", "unavailable_codes": [],
+               "source_at": "2026-09-07T01:00:00+00:00",
+               "metric_refs": ["price-shock"], "quality_status": "pass",
+           }},
+    )
+
+    message = render_telegram_alert(rich).html
+
+    assert "0.12%p (원화 평가액 변화)" in message
+
+
+def test_rich_transport_smoke_requires_provider_confirmed_send() -> None:
+    sent_client = FakeTelegramClient(TelegramSendResult("sent", response_ref="telegram-message:88"))
+    failed_client = FakeTelegramClient(TelegramSendResult("unknown", error_code="POST_SEND_TIMEOUT"))
+
+    assert run_telegram_rich_transport_smoke(config=_config(), client=sent_client).outcome == "sent"
+    assert run_telegram_rich_transport_smoke(config=_config(), client=failed_client).outcome == "unknown"
+    assert sent_client.calls == 1 and failed_client.calls == 1
 
 
 def test_success_is_hashed_in_ledger_and_never_persists_destination_secret() -> None:

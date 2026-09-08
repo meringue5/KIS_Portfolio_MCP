@@ -974,8 +974,36 @@ def _deploy_wi030_s03(
             "KIS_STATE_BACKEND", "KIS_GCP_PROJECT", "KIS_FIRESTORE_DATABASE",
         }
     }
+    smoke_env, smoke_secret_refs = _split_runtime_env(
+        env=env,
+        payload={"KIS_TELEGRAM_DELIVERY_ENABLED": "true"},
+        required=["KIS_TELEGRAM_BOT_TOKEN", "KIS_TELEGRAM_CHAT_ID"],
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    smoke_env_path = _write_env_yaml(smoke_env)
     env_path = _write_env_yaml(activation_env)
     try:
+        smoke_command = [
+            "gcloud", "run", "jobs", "deploy", activation_job,
+            "--image", image, "--region", args.region,
+            "--env-vars-file", smoke_env_path,
+            "--command", "kis-portfolio-batch",
+            "--args", "send-telegram-rich-transport-smoke",
+            "--tasks", "1", "--parallelism", "1",
+            "--task-timeout", "120s",
+            "--max-retries", "0", "--service-account", service_account,
+            *_build_secret_flags(smoke_secret_refs),
+            *_build_label_flags("wi030-s03-rich-transport-smoke"),
+            "--project", project,
+        ]
+        if _run(smoke_command, dry_run=args.dry_run) != 0:
+            return 1
+        if _run([
+            "gcloud", "run", "jobs", "execute", activation_job,
+            "--region", args.region, "--wait", "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
         command = [
             "gcloud", "run", "jobs", "deploy", activation_job,
             "--image", image, "--region", args.region,
@@ -999,10 +1027,11 @@ def _deploy_wi030_s03(
         ], dry_run=args.dry_run) != 0:
             return 1
     finally:
-        try:
-            os.unlink(env_path)
-        except FileNotFoundError:
-            pass
+        for temporary_path in (smoke_env_path, env_path):
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
 
     real_use_env = dict(env)
     real_use_env.update({

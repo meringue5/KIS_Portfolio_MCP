@@ -548,11 +548,17 @@ def test_wi030_s03_activates_real_use_and_disables_canary_on_one_digest(monkeypa
 
     assert result == 0
     assert builds["count"] == 1
-    activation = next(
+    wi030_deploys = [
         command for command in commands
         if command[:4] == ["gcloud", "run", "jobs", "deploy"]
         and command[4] == "kis-portfolio-wi030-s03"
-    )
+    ]
+    assert len(wi030_deploys) == 2
+    smoke, activation = wi030_deploys
+    assert smoke[smoke.index("--args") + 1] == "send-telegram-rich-transport-smoke"
+    smoke_secrets = smoke[smoke.index("--set-secrets") + 1]
+    assert "KIS_TELEGRAM_BOT_TOKEN=kis-portfolio-telegram-bot-token:2" in smoke_secrets
+    assert "KIS_TELEGRAM_CHAT_ID=kis-portfolio-telegram-chat-id:1" in smoke_secrets
     assert activation[activation.index("--args") + 1] == "activate-wi030-real-use"
     assert core_call["image"] == "image@sha256:" + "d" * 64
     assert core_call["deploy_label"] == "wi030-s03-real-use"

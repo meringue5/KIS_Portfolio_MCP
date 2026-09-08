@@ -88,6 +88,14 @@ When the provider ledger says `sent` but the owner sees nothing, check the Teleg
 compare Wi-Fi versus cellular access before rotating chat IDs or credentials. API success is delivery evidence, while
 owner-visible receipt remains a separate acceptance observation.
 
+On 2026-09-08 the owner again observed Telegram stuck at `업데이트 중`, including while using cellular service. A
+local Rich preview ended as `POST_SEND_TIMEOUT`, so it was not retried. An isolated Cloud Run Job using the exact
+deployed digest, production pipeline identity and pinned Telegram secrets then returned HTTP 200 / `ok=true` for
+`getMe` and `sendRichMessage` at 11:56 KST. This proves Telegram accepted the diagnostic from the production egress;
+it does not prove that the unsynchronized client rendered it. The Rich RC itself still had zero delivery attempts
+because no eligible post-activation transition had occurred. S03 now requires the same provider-confirmed Cloud Run
+smoke as a deployment-blocking gate rather than inferring transport readiness from mocks or prior plain messages.
+
 ## WI-030-S03 production-value activation — 2026-09-03
 
 PR `#43` passed CI and merged as master SHA `fe616253a681b9ca1d4a763db7cd9ae4a338d7a5`. GitHub Actions run

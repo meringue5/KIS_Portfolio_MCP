@@ -48,7 +48,10 @@ from kis_portfolio.services.trade_cash_backfill_pipeline import build_trade_cash
 from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
 from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
 from kis_portfolio.services.token_warmup import warm_token_cache
-from kis_portfolio.services.telegram_delivery import run_telegram_delivery
+from kis_portfolio.services.telegram_delivery import (
+    run_telegram_delivery,
+    run_telegram_rich_transport_smoke,
+)
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
 from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
@@ -265,6 +268,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "activate-wi030-real-use",
         help="Activate the exact owner-approved DEC-051 production-value release candidate.",
+    )
+    subparsers.add_parser(
+        "send-telegram-rich-transport-smoke",
+        help="Send one finance-free Rich Message and fail unless Telegram confirms it.",
     )
     return parser
 
@@ -597,6 +604,24 @@ def _run_wi030_real_use_activation(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_telegram_rich_transport_smoke(_args: argparse.Namespace) -> int:
+    try:
+        result = run_telegram_rich_transport_smoke()
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed", "error_type": type(exc).__name__,
+            "detail": "redacted; Rich Message transport smoke did not complete",
+        }))
+        return 1
+    output = {
+        "status": "passed" if result.outcome == "sent" else "failed",
+        "outcome": result.outcome,
+        "error_code": result.error_code,
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2))
+    return 0 if result.outcome == "sent" else 1
+
+
 def main() -> None:
     load_dotenv()
     parser = build_parser()
@@ -632,6 +657,8 @@ def main() -> None:
         raise SystemExit(_run_wi030_canary_activation(args))
     if args.command == "activate-wi030-real-use":
         raise SystemExit(_run_wi030_real_use_activation(args))
+    if args.command == "send-telegram-rich-transport-smoke":
+        raise SystemExit(_run_telegram_rich_transport_smoke(args))
 
     parser.print_help()
     raise SystemExit(2)

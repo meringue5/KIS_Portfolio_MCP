@@ -245,7 +245,10 @@ def render_telegram_alert(candidate: TelegramDispatchCandidate) -> TelegramRichM
             f"<p><b>{escape(transition)}</b><br>{escape(summary)}</p>"
             f"<footer>{candidate.evaluation_at.astimezone(_SEOUL):%Y-%m-%d %H:%M}</footer>"
         )
-    if len(message) > 3500 or _SENSITIVE_TEXT.search(message) or _ACCOUNT_NUMBER.search(message):
+    # Every dynamic string and numeric value is validated before interpolation.
+    # Reapplying the broad input-keyword filter to trusted template text would
+    # reject labels such as "원화 평가액 변화" once that governed metric is ready.
+    if len(message) > 3500 or _ACCOUNT_NUMBER.search(message):
         raise UnsafeTelegramPayload("rendered Telegram payload is unsafe or too large")
     return TelegramRichMessage(html=message)
 
