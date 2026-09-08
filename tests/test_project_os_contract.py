@@ -65,6 +65,25 @@ def test_current_repository_satisfies_project_os_contract():
     assert checker.check(REPO_ROOT) == []
 
 
+def test_current_milestone_baseline_separates_stabilization_and_ready_overlap():
+    registry = tomllib.loads(
+        (REPO_ROOT / "governance/project/milestones.toml").read_text(encoding="utf-8")
+    )
+    milestones = {item["id"]: item for item in registry["milestones"]}
+
+    assert registry["schema_version"] == 2
+    assert milestones["MS-002"]["status"] == "stabilizing"
+    assert milestones["MS-002"]["rollback_policy"] == "append_only_feedback"
+    assert milestones["MS-003"]["status"] == "ready"
+    assert milestones["MS-003"]["implementation_gate"] == [
+        {"milestone_id": "MS-002", "minimum_status": "stabilizing"}
+    ]
+    assert milestones["MS-003"]["production_gate"] == [
+        {"milestone_id": "MS-002", "minimum_status": "closed"}
+    ]
+    assert milestones["MS-003"]["overlap_work_item_ids"] == ["WI-035", "WI-040"]
+
+
 def test_initial_v2_alert_chain_preserves_but_excludes_etf_work():
     registry = tomllib.loads(
         (REPO_ROOT / "governance/project/milestones.toml").read_text(encoding="utf-8")
@@ -226,3 +245,205 @@ def test_project_os_rejects_dangling_milestone_dependency(tmp_path: Path):
     errors = checker.check(target)
 
     assert any("MS-004 unknown milestone dependency 'MS-999'" in error for error in errors)
+
+
+def test_project_os_rejects_stabilizing_work_item_without_exit_contract(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "docs/work-items/WI-055-scheduled-total-asset-digest.md"
+    path.write_text(
+        re.sub(
+            r"^rollback_plan: .+$",
+            "rollback_plan: none",
+            path.read_text(encoding="utf-8"),
+            count=1,
+            flags=re.MULTILINE,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("WI-055: stabilizing requires rollback_plan" in error for error in errors)
+
+
+def test_project_os_rejects_ready_milestone_before_implementation_gate(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "governance/project/milestones.toml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            'id = "MS-002"\ntitle = "Portfolio analytics, risk signals and Telegram delivery"\n'
+            'status = "stabilizing"',
+            'id = "MS-002"\ntitle = "Portfolio analytics, risk signals and Telegram delivery"\n'
+            'status = "in_progress"',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any(
+        "MS-003 implementation_gate requires MS-002>=stabilizing, got in_progress" in error
+        for error in errors
+    )
+
+
+def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None:
+    governance = target / "docs/work-items/WI-056-stabilization-lifecycle-overlap-gates.md"
+    governance.write_text(
+        governance.read_text(encoding="utf-8").replace(
+            "status: in_progress", "status: closed", 1
+        ),
+        encoding="utf-8",
+    )
+    registry = target / "governance/project/milestones.toml"
+    registry.write_text(
+        registry.read_text(encoding="utf-8").replace(
+            'id = "MS-GOV"\ntitle = "Project Operating System improvements"\nstatus = "in_progress"',
+            'id = "MS-GOV"\ntitle = "Project Operating System improvements"\nstatus = "closed"',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    work_item = target / f"docs/work-items/{filename}"
+    work_item.write_text(
+        work_item.read_text(encoding="utf-8").replace(
+            "status: proposed", "status: in_progress", 1
+        ),
+        encoding="utf-8",
+    )
+    assert item_id in work_item.read_text(encoding="utf-8")
+
+
+def test_project_os_allows_allowlisted_isolated_overlap(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    _activate_overlap_fixture(
+        target, "WI-035", "WI-035-production-operations-cost-release-guardrails.md"
+    )
+
+    assert checker.check(target) == []
+
+
+def test_project_os_rejects_production_effect_during_overlap(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    filename = "WI-035-production-operations-cost-release-guardrails.md"
+    _activate_overlap_fixture(target, "WI-035", filename)
+    path = target / f"docs/work-items/{filename}"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "production_effects: none", "production_effects: deploy", 1
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("WI-035: milestone overlap forbids deploy" in error for error in errors)
+
+
+def test_project_os_rejects_non_allowlisted_overlap_work_item(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    _activate_overlap_fixture(
+        target, "WI-037", "WI-037-filing-actual-fundamental-pipeline.md"
+    )
+
+    errors = checker.check(target)
+
+    assert any("WI-037: production gate is not satisfied" in error for error in errors)
+
+
+def test_feedback_relationship_can_close_a_recovery_loop_without_dependency_cycle(
+    tmp_path: Path,
+):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    registry = target / "governance/project/milestones.toml"
+    registry.write_text(
+        registry.read_text(encoding="utf-8").replace(
+            'id = "WI-053"\nidentity = "work-item-dependency-visualization"\n'
+            'title = "Publish the human-readable Work Item dependency map"\n'
+            'milestone_id = "MS-GOV"\ndelivery_refs = []\ndepends_on = ["WI-052"]',
+            'id = "WI-053"\nidentity = "work-item-dependency-visualization"\n'
+            'title = "Publish the human-readable Work Item dependency map"\n'
+            'milestone_id = "MS-GOV"\ndelivery_refs = []\ndepends_on = ["WI-052"]\n'
+            'rollback_of = ["WI-056"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    work_item = target / "docs/work-items/WI-053-work-item-dependency-visualization.md"
+    work_item.write_text(
+        work_item.read_text(encoding="utf-8").replace(
+            "depends_on: WI-052", "depends_on: WI-052\nrollback_of: WI-056", 1
+        ),
+        encoding="utf-8",
+    )
+
+    assert checker.check(target) == []
+
+
+def test_project_os_still_rejects_structural_dependency_cycles(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    registry = target / "governance/project/milestones.toml"
+    registry.write_text(
+        registry.read_text(encoding="utf-8").replace(
+            'id = "WI-053"\nidentity = "work-item-dependency-visualization"\n'
+            'title = "Publish the human-readable Work Item dependency map"\n'
+            'milestone_id = "MS-GOV"\ndelivery_refs = []\ndepends_on = ["WI-052"]',
+            'id = "WI-053"\nidentity = "work-item-dependency-visualization"\n'
+            'title = "Publish the human-readable Work Item dependency map"\n'
+            'milestone_id = "MS-GOV"\ndelivery_refs = []\ndepends_on = ["WI-056"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    work_item = target / "docs/work-items/WI-053-work-item-dependency-visualization.md"
+    work_item.write_text(
+        work_item.read_text(encoding="utf-8").replace(
+            "depends_on: WI-052", "depends_on: WI-056", 1
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("dependency cycle WI-053 -> WI-056 -> WI-053" in error for error in errors)
+
+
+def test_project_os_rejects_unknown_feedback_target(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    registry = target / "governance/project/milestones.toml"
+    registry.write_text(
+        registry.read_text(encoding="utf-8").replace(
+            'discovered_from = ["WI-030", "WI-055"]',
+            'discovered_from = ["WI-999"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    work_item = target / "docs/work-items/WI-056-stabilization-lifecycle-overlap-gates.md"
+    work_item.write_text(
+        work_item.read_text(encoding="utf-8").replace(
+            "discovered_from: WI-030, WI-055", "discovered_from: WI-999", 1
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("WI-056 discovered_from unknown Work Item 'WI-999'" in error for error in errors)

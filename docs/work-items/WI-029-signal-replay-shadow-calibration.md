@@ -1,7 +1,7 @@
 ---
 id: WI-029
 title: Calibrate signals with replay and shadow evaluation
-status: verified
+status: stabilizing
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-010, V2-ADR-012
@@ -10,6 +10,9 @@ milestone_ref: MS-002
 delivery_refs: V2-W0509
 parent_work_item: none
 depends_on: WI-028
+stabilization_window: corrected scheduled evidence through 2026-09-14 KST and owner review
+stabilization_exit_refs: WI-029-S05, WI-029-S06, owner rule-version acceptance
+rollback_plan: disable shadow schedules and preserve prior runs while a corrective Work Item re-enters verification
 architecture_impact: validates approved rule versions without changing transport boundaries
 data_impact: replay reports shadow candidates threshold versions and quality evidence
 security_impact: DB-only shadow with no external message
@@ -59,6 +62,13 @@ owner can approve external delivery.
 - `WI-029-S06`: correct slot-completion evidence, reconcile the 2026-09-03 partial run and preserve the original
   MotherDuck commit failure across best-effort rollback.
 
+## Stabilization plan
+
+- S05 and S06 collect corrected scheduled-slot evidence through the declared observation window.
+- A defect does not rewind or erase this Work Item. Preserve run/release evidence, disable the affected schedule if
+  necessary, and append a corrective sub-item or Work Item linked with `discovered_from`/`rollback_of`.
+- Exit requires terminal slot evidence, reconciliation and explicit owner rule-version acceptance.
+
 ## Evidence
 
 - Activated after WI-028 merged as PR #25 (`a9dc2ccd96660be2b4f89e4b95e50e2a0efb9d46`).
@@ -94,11 +104,11 @@ owner can approve external delivery.
 - S06 correction code merged in PR #49 as master `167d3db`. GitHub Actions run `34127107566` passed and deployed
   build-once digest `sha256:dc009b95eaa2bdfd8ff0b37ba155a2a936ec8a1eaf3ac2ee3c0436b5162e8d1b` to all
   three owned-portfolio Jobs. Activation execution `kis-portfolio-wi030-s03-zdr98` completed successfully. The first
-  scheduled post-cutover completion marker remains pending, so S06 and S05 remain `in_progress`.
+  scheduled post-cutover completion marker remains pending, so S06 and S05 remain `stabilizing`.
 
 ## Closeout
 
-- Result: verified implementation; S01-S04 are closed, S06 is the active evidence-integrity correction and S05 is collecting elapsed operational evidence before
+- Result: stabilizing; S01-S04 are closed, S06 is collecting corrected evidence and S05 is collecting elapsed operational evidence before
   acceptance and closeout. This releases the single implementation WIP slot but does not satisfy WI-030 activation.
 - Remaining risk: reconstructed-history bias.
 - Follow-up Work Item: WI-030.

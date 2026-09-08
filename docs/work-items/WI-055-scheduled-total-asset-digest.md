@@ -1,7 +1,7 @@
 ---
 id: WI-055
 title: Deliver a scheduled privacy-safe total-asset Telegram digest
-status: verified
+status: stabilizing
 type: change
 owner: owner
 decision_refs: DEC-054, DEC-048, DEC-053
@@ -10,6 +10,9 @@ milestone_ref: MS-002
 delivery_refs: none
 parent_work_item: none
 depends_on: WI-033, WI-030
+stabilization_window: first scheduled 10:00 and 16:00 KST owner receipts plus delivery-ledger reconciliation
+stabilization_exit_refs: owner receipts for both slots and terminal Control-ledger evidence
+rollback_plan: disable total-asset digest composition or restore the last safe image and append a linked corrective Work Item
 architecture_impact: reuses the fixed-slot V2 core Jobs and Rich Telegram adapter without a new service or schedule
 data_impact: reads exact same-slot V2 canonical states and records redacted control-ledger evidence; no schema change
 security_impact: omits absolute assets, changes, account values and identifiers while reusing pinned Telegram secrets
@@ -67,6 +70,13 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 
 - `none`; implementation is one bounded outcome.
 
+## Stabilization plan
+
+- Observe the first scheduled 10:00 and 16:00 KST deliveries and reconcile each with terminal Control-ledger state.
+- If a delivery defect appears, preserve the logical run and provider result, disable only digest composition or restore
+  the prior safe image, and append a corrective Work Item instead of erasing this deployment history.
+- Exit requires both slot receipts and explicit owner acceptance of the digest's information value.
+
 ## Evidence
 
 - Focused tests: 68 passed across digest, Telegram, valuation-change and deployment suites.
@@ -80,6 +90,7 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 
 ## Closeout
 
-- Result: repository implementation, governance contracts and production deployment are verified.
+- Result: repository implementation, governance contracts and production deployment are verified; production use is
+  `stabilizing` pending scheduled owner evidence.
 - Remaining risk: first production receipt and unavailable-message ergonomics require owner observation.
 - Follow-up Work Item: none identified.

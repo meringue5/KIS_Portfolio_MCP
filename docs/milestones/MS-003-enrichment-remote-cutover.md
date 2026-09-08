@@ -1,6 +1,6 @@
 # MS-003 — Enrichment, stateless Remote MCP V2 and production cutover
 
-> 상태: proposed
+> 상태: ready; isolated overlap only
 > 선행 milestone: MS-002
 > machine registry: `governance/project/milestones.toml`
 
@@ -36,10 +36,21 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 - V1/V2 dual-write/read reconciliation과 rollback evidence가 있고 V2 schedule SLO가 충족된다.
 - production cutover와 외부 resource 변경은 당시 승인 gate를 따른다.
 
+## Implementation and production gates
+
+- implementation gate: MS-002가 최소 `stabilizing`이면 MS-003은 `ready`가 된다. 현재 조기 실행 allowlist는
+  WI-035와 WI-040뿐이며, 각 Work Item이 `execution_scope: isolated`, `production_effects: none`으로 활성화된
+  동안 repository implementation·fixture·local verification만 수행할 수 있다.
+- production gate: MS-002가 `closed`여야 migration, live DB write, external source activation, credential/IAM,
+  Cloud Run/Scheduler, public MCP surface와 traffic cutover를 수행할 수 있다.
+- 안정화 중 발견된 rollback은 dependency를 역전시키지 않고 새 corrective Work Item의 append-only feedback
+  관계로 기록한다.
+
 ## Revision log
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-08.14 | 2026-09-08 | WI-056에 따라 milestone을 ready로 열고 WI-035/WI-040 isolated overlap과 production close gate를 분리 | ID/dependency 불변; production 권한 없음 |
 | 2026-09-02.13 | 2026-09-02 | WI-042-S01 completed exact 35-to-18 grouping and froze research inputs for parallel V2 catalog, request actor, scope and official stateless JSON transport | S01 closed as final planned MS-003 pre-research before MS-002 close; no implementation, OAuth grant, public catalog, client, deployment, parent or milestone status change |
 | 2026-09-02.12 | 2026-09-02 | WI-042-S01 opened for research-only V1 tool, OAuth, V2 budget and thin read-adapter audit | parent, milestone and implementation gate unchanged; no public MCP, OAuth, code, deployment or runtime change |
 | 2026-09-02.11 | 2026-09-02 | Owner approved all WI-040-S02 recommendations; S03 adopted six Control dataset and three inactive read-model contracts plus bounded fail-closed checker rules | S03 closed; 161 DGH contracts and full 443 pass; no DTO, DDL, DB, source, credential, infrastructure, schedule, MCP activation, parent or milestone status change |

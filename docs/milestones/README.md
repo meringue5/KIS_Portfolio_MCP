@@ -23,8 +23,8 @@ machine-readable SSOT는 `governance/project/milestones.toml`, 상태·작업·�
 flowchart LR
     MSGOV["MS-GOV<br/>Project OS<br/>closed"]
     MS1["MS-001<br/>Canonical portfolio + managed collection<br/>closed"]
-    MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>in progress"]
-    MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>proposed"]
+    MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>stabilizing"]
+    MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>ready / isolated overlap"]
     MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>proposed"]
 
     MS1 --> MS2 --> MS3 --> MS4
@@ -37,13 +37,14 @@ flowchart LR
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     class MS1,MSGOV closed;
     class MS2 active;
-    class MS3,MS4 proposed;
+    class MS3 active;
+    class MS4 proposed;
 ```
 
-이 마일스톤 화살표는 현재 승인된 **formal start gate**다. 따라서 MS-002가 닫히기 전에는 MS-003의
-읽기 전용 조사·설계 준비는 가능하지만, production code·data·infrastructure를 바꾸는 구현 착수는 현재
-baseline상 허용되지 않는다. 조기 병행 구현을 원하면 MS-003의 `depends_on = ["MS-002"]`를 바꾸는 별도
-governance 결정과 revision log가 먼저 필요하다.
+실선 화살표는 구조적 dependency DAG다. 실행 gate는 두 단계다. MS-002가 `stabilizing`이면 MS-003을
+`ready`로 두고 registry allowlist의 isolated 구현만 병행할 수 있다. MS-002가 `closed`가 되기 전에는
+production DB migration, source activation, Cloud Run/Scheduler 변경, public MCP activation과 cutover를
+할 수 없다. rollback은 실선을 역방향으로 연결하지 않고 append-only feedback edge로 기록한다.
 
 ## 완료된 기반에서 현재 위치까지
 
@@ -125,7 +126,8 @@ flowchart LR
 - `WI-000`~`WI-008`은 현재 milestone registry가 도입되기 전 Project OS, architecture, Data Governance,
   source inventory, V2 foundation과 V1→V2 전환을 만든 bootstrap/history다. 현재 실행순서를 결정하지 않으므로
   위 제품 dependency graph에는 넣지 않았고, 상태와 증거는 각 Work Item과 `docs/traceability.md`에 보존한다.
-- MS-GOV 경로는 `WI-018 → WI-031 → WI-034 → WI-052 → WI-053`이며 모두 닫혔다. 이 경로가 milestone
+- MS-GOV 경로는 `WI-018 → WI-031 → WI-034 → WI-052 → WI-053 → WI-056`이며 모두 닫혔다. WI-056이
+  lifecycle과 overlap/recovery gate를 MS-002/MS-003에 dogfood했다. 이 경로가 milestone
   identity, MS-003/004 baseline, 잔여 delivery ownership과 ETF 초기 V2 제외 결정, 이 dependency map을
   만들었다.
 - 따라서 `docs/work-items/`에 파일이 있지만 그래프에 없는 번호가 곧 누락 작업을 뜻하지는 않는다.
@@ -137,19 +139,19 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    subgraph M2["MS-002 — 현재 실행 경로"]
-        W29["WI-029 / S05<br/>2주 shadow 증적 수집<br/>verified / collecting"]
-        W30["WI-030 / S02<br/>transport canary<br/>in progress"]
+    subgraph M2["MS-002 — stabilization 경로"]
+        W29["WI-029 / S05-S06<br/>shadow 증적<br/>stabilizing"]
+        W30["WI-030 / S04<br/>calendar evidence<br/>stabilizing"]
         W54["WI-054<br/>production readiness audit<br/>closed"]
-        W30S3["WI-030 / S03<br/>production-value real use<br/>ready"]
+        W55["WI-055<br/>scheduled asset digest<br/>stabilizing"]
         M2DONE{"MS-002<br/>acceptance complete"}
-        W29 --> W30S3
-        W30 --> W30S3
-        W54 --> W30S3 --> M2DONE
+        W29 --> W30 --> M2DONE
+        W30 --> W55 --> M2DONE
+        W54 -. readiness evidence .-> W30
     end
 
     subgraph M3["MS-003 — enrichment, Remote MCP V2, cutover"]
-        M3OPEN{"MS-003<br/>formal start gate"}
+        M3OPEN{"MS-003<br/>implementation gate<br/>ready"}
         W35["WI-035<br/>operations / cost / release"]
         W37["WI-037<br/>filing + fundamental facts"]
         W38["WI-038<br/>dividend ledger"]
@@ -198,16 +200,20 @@ flowchart TB
         W51 --> W32
     end
 
-    M2DONE -. milestone gate .-> M3OPEN
+    W29 -. stabilizing opens isolated work .-> M3OPEN
+    M2DONE -. closed opens production .-> M3OPEN
 
     classDef active fill:#fff1bf,stroke:#9a6b00,color:#4b3500;
+    classDef closed fill:#d7f5df,stroke:#2d7a46,color:#173b24;
+    classDef ready fill:#e8f1ff,stroke:#175cd3,color:#123b72;
     classDef blocked fill:#fde2e2,stroke:#b42318,color:#5b1712;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     classDef gate fill:#e8f1ff,stroke:#175cd3,color:#123b72;
-    class W29,W30 blocked;
+    class W29,W30 active;
     class W54 closed;
-    class W30S3 proposed;
-    class W35,W37,W38,W39,W40,W41,W42,W43,W44,W45,W46,W47,W48,W49,W50,W51,W32 proposed;
+    class W55 active;
+    class W35,W40 ready;
+    class W37,W38,W39,W41,W42,W43,W44,W45,W46,W47,W48,W49,W50,W51,W32 proposed;
     class M2DONE,M3OPEN gate;
 ```
 
@@ -215,12 +221,12 @@ flowchart TB
 
 | 구분 | 현재 가능한 범위 |
 | --- | --- |
-| 계속 자동 진행 | `WI-029-S05`: 2026-09-10까지 DB-only shadow 증적 축적 |
-| 운영 중 | `WI-030-S02`: immutable transport canary; 기술 증거로 보존하되 제품 인수로 간주하지 않음 |
-| 즉시 다음 구현 | `WI-030-S03`: production-value 메시지로 실사용하고 발견 문제를 안정화 |
-| 인수 전 필수 | `WI-054` readiness matrix의 drawdown·valuation contribution production blocker 해소와 owner acceptance |
-| MS-003 사전 준비 | `WI-035`, `WI-037`, `WI-039`, `WI-040`의 source·비용·권리·계약 read-only 조사 |
-| 현재 baseline에서 불가 | MS-003 production 구현·migration·배포. MS-002가 닫히거나 formal start gate가 개정돼야 함 |
+| 계속 자동 진행 | `WI-029-S05/S06`: 2026-09-14까지 corrected DB-only shadow 증적 축적 |
+| 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
+| 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
+| 다음 격리 구현 | 한 번에 하나의 `WI-035` 또는 `WI-040`; 활성화 시 overlap metadata와 scope 재확인 |
+| MS-003 격리 구현 | registry allowlist의 `WI-035`, `WI-040`; 활성화 시 isolated scope와 production effects none 필수 |
+| MS-002 종료 전 불가 | MS-003 production DB migration·source activation·Cloud Run/Scheduler·public MCP·cutover |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 
 `WI-038`은 `WI-037`, `WI-041`도 `WI-037`을 기다린다. 사용자-facing Remote MCP 경로인 `WI-042`는
@@ -233,6 +239,8 @@ managed command(`WI-043`)와 client compatibility(`WI-044`)를 거쳐 dual-run�
 - 번호는 정렬이나 우선순위가 아니다. 실행순서는 `sequence`와 `depends_on`으로 관리한다.
 - milestone 간 실행순서도 registry의 `depends_on`으로 관리하며 알 수 없는 dependency와 cycle은 gate에서
   실패한다.
+- rollback/recovery는 dependency를 되감거나 cycle로 만들지 않는다. 새 sub-item/Work Item을 append하고
+  `discovered_from`, `rollback_of`, `supersedes` feedback 관계로 연결한다.
 - 기존 outcome 안의 발견 작업은 `WI-NNN-SNN` sub-item으로 append한다.
 - 독립 acceptance 또는 rollback이 필요하면 현재 최댓값 다음의 새 WI를 발급한다.
 - 순서·의존관계 변경은 해당 milestone 문서의 revision log에 남긴다.

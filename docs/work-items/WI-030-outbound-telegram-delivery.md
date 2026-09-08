@@ -1,7 +1,7 @@
 ---
 id: WI-030
 title: Enable approved outbound Telegram delivery
-status: verified
+status: stabilizing
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051, DEC-052, DEC-053
@@ -10,6 +10,9 @@ milestone_ref: MS-002
 delivery_refs: V2-W0508
 parent_work_item: none
 depends_on: WI-029
+stabilization_window: daily weekly monthly quarterly and annual acceptance windows tracked by WI-030-S04
+stabilization_exit_refs: WI-030-S04 and explicit owner acceptance
+rollback_plan: disable the affected Telegram rule or restore the last safe image and append a linked corrective Work Item
 architecture_impact: adds the approved outbound-only Telegram transport behind the delivery ledger
 data_impact: versioned alert evaluation and presentation semantics; no physical schema change
 security_impact: Secret Manager token and destination reference with strict redaction and resource-level access
@@ -85,9 +88,16 @@ collecting the separate formal shadow evidence.
 - `WI-030-S01`: implement and verify the disabled Telegram delivery path without external requests.
 - `WI-030-S02`: verify destination, send the approved finance-free test message and activate the bounded canary (`closed`).
 - `WI-030-S03`: activate and stabilize the production-value Telegram alert experience after the MS-002 readiness audit (`closed`).
-- `WI-030-S04`: establish calendar-window replay, fixture and live-observation acceptance evidence (`ready`; follows S03).
+- `WI-030-S04`: establish calendar-window replay, fixture and live-observation acceptance evidence (`stabilizing`; follows S03).
 - `WI-030-S05`: make repeated closed-market sessions idempotent and recover the 2026-09-08 failed slot
   (`closed`; defect discovered and recovered during S03 stabilization).
+
+## Stabilization plan
+
+- Continue actual-use observation across the calendar windows owned by S04; transport receipt alone is insufficient.
+- On a severe message or delivery defect, preserve provider/ledger evidence, disable the affected rule or restore the
+  last safe image, and create a linked corrective sub-item/Work Item. The parent stays `stabilizing`.
+- Exit requires the declared temporal evidence and explicit owner acceptance of information value.
 
 ## Evidence
 
@@ -184,7 +194,7 @@ collecting the separate formal shadow evidence.
 ## Closeout
 
 - Result: S01, S02, S03 and S05 are closed; production-value Rich Message delivery is owner-accepted and WI-030 is
-  implementation-verified while S04 continues temporal acceptance evidence.
+  `stabilizing` while S04 continues temporal acceptance evidence.
 - Remaining risk: corrected immutable RC deployment, subsequent transition semantics, false-positive/miss review,
   duplicate suppression and owner acceptance are not yet proven. Episode drawdown and KRW valuation-change
   contribution remain explicit `계산 보류` until their upstream governed readiness passes. Monthly, quarterly and

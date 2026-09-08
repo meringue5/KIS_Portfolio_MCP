@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0002, V2-W0003, V2-W0106
 parent_work_item: none
 depends_on: WI-012
+execution_scope: isolated
+production_effects: none
 architecture_impact: none; completes approved operational controls
 data_impact: inventory metadata only
 security_impact: resource names and IAM metadata only; no secret payload
