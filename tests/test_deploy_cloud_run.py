@@ -245,6 +245,7 @@ def test_v2_pipeline_env_includes_explicit_telegram_canary_flags():
             "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
             "KIS_TELEGRAM_CANARY_ENABLED": "true",
             "KIS_TELEGRAM_REAL_USE_ENABLED": "false",
+            "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "true",
             "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
         },
         "grand-forge-279904",
@@ -252,7 +253,30 @@ def test_v2_pipeline_env_includes_explicit_telegram_canary_flags():
     assert payload["KIS_TELEGRAM_DELIVERY_ENABLED"] == "true"
     assert payload["KIS_TELEGRAM_CANARY_ENABLED"] == "true"
     assert payload["KIS_TELEGRAM_REAL_USE_ENABLED"] == "false"
+    assert payload["KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED"] == "true"
     assert payload["KIS_TELEGRAM_DESTINATION_REF"] == "dest.owner.primary"
+
+
+def test_wi055_deploy_enables_digest_on_existing_jobs(monkeypatch):
+    captured = {}
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi055", dry_run=True,
+        secret_mode="secret-manager",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_deploy_v2_core_jobs",
+        lambda args, **kwargs: captured.update(kwargs) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi055(
+        args, env={"KIS_DB_MODE": "motherduck"}, project="grand-forge-279904",
+    )
+
+    assert result == 0
+    assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED"] == "true"
+    assert captured["env"]["KIS_TELEGRAM_DELIVERY_ENABLED"] == "true"
+    assert captured["env"]["KIS_TELEGRAM_REAL_USE_ENABLED"] == "true"
+    assert captured["deploy_label"] == "wi055-total-asset-digest"
 
 
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):

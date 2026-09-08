@@ -718,7 +718,7 @@ backup_policy = "parquet"
 freshness_slo = "10:00, 14:30 and 16:00 KST on applicable KR market days plus one Korean-morning U.S. close state"
 quality_rules = ["positions, price and FX watermarks recorded", "aggregate totals reconcile to components", "partial or stale inputs block official publish or carry explicit degraded status", "normal evaluations persist even when no alert is sent"]
 producer_pipeline_ids = []
-consumer_ids = ["asset trend", "portfolio impact", "signal evaluation", "Telegram alerting", "Remote MCP"]
+consumer_ids = ["asset trend", "portfolio impact", "signal evaluation", "Telegram alerting", "scheduled Telegram total-asset digest", "Remote MCP"]
 
 [[contracts]]
 id = "dataset.metric-value"

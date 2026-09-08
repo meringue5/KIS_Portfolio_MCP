@@ -324,6 +324,16 @@ WI-033은 양일 canonical daily state를 동일한 계산 계약으로 비교�
 저장한다. 따라서 부분 수집이 급락이나 전량 매도로 승격되지 않는다. 해외 보유분은 가격과 환율 효과를
 분리하지 않고 `KRW valuation change including FX`로 표시한다.
 
+WI-055의 `pipeline.telegram-total-asset-digest-v1`은 이 동일 계산기를 새 물리 테이블 없이 소비한다.
+기존 V2 core Job의 `kr-1000`, `kr-1600` 완료 뒤 전 거래일의 정확히 같은 slot을 비교하며 `kr-1430`은
+건너뛴다. Telegram에는 총자산 변화율과 상승·하락 Top 3의 총자산 영향 `%p`, 현금 영향과 정합성만
+보내고 절대 총자산·증감액·계좌값은 제외한다. 비교쌍 품질이나 reconciliation이 실패하면 숫자 없는
+`계산 보류` 메시지를 보내 침묵과 전송 장애를 구분한다.
+
+전송 원장은 기존 `control.pipeline_runs`와 `control.pipeline_stage_runs`를 사용한다. 날짜·slot·pipeline
+version의 논리 키당 한 번만 terminal 처리하며, `send-rich-message`가 시작된 뒤 프로세스가 중단되면
+다음 실행은 `unknown`으로 봉인하고 재전송하지 않는다. event-driven WI-030 경보 원장과 identity는 분리한다.
+
 ## 향후 정제 작업 후보
 
 - `portfolio_minute_snapshots`: 같은 계좌의 같은 분 내 마지막 스냅샷

@@ -48,6 +48,7 @@ from kis_portfolio.services.trade_cash_backfill_pipeline import build_trade_cash
 from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
 from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
 from kis_portfolio.services.token_warmup import warm_token_cache
+from kis_portfolio.services.total_asset_digest import run_total_asset_digest
 from kis_portfolio.services.telegram_delivery import (
     run_telegram_delivery,
     run_telegram_rich_transport_smoke,
@@ -349,6 +350,9 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
                 get_connection(), logical_date=logical_date, source_slot=args.slot,
             )
         result["telegram_delivery"] = run_telegram_delivery(get_connection())
+        result["total_asset_digest"] = run_total_asset_digest(
+            get_connection(), logical_date=logical_date, slot=args.slot,
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
 
