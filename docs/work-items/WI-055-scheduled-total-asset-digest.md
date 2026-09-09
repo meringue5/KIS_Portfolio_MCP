@@ -76,6 +76,12 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - `WI-055-S02` (`closed`): correct the protected workflow dispatch after run `34335622544` accepted the new
   target but skipped every deploy step. The run changed no external resource and sent no Telegram message. S02 adds
   the missing exact target condition/command and a regression assertion before the release is retried.
+- `WI-055-S03` (`in_progress`): add the owner-requested Top 5 total-asset change-impact infographic. Rank eligible
+  holdings by absolute KRW valuation change, then show the signed KRW contribution and signed total-asset impact
+  percentage points in a diverging bar chart and caption. This is a DEC-055 presentation clarification that reuses
+  WI-033 values; it does not change calculation, storage or public MCP contracts. Current execution scope is
+  repository-only with `production_effects: none`; no Telegram request, production DB write, Cloud Run/Scheduler,
+  IAM/secret, source activation or public cutover is authorized during implementation.
 
 ## Stabilization plan
 
@@ -124,5 +130,5 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - Result: repository implementation, governance contracts and production deployment are verified; production use is
   `stabilizing` pending scheduled owner evidence.
 - Remaining risk: first production receipt and unavailable-message ergonomics require owner observation.
-- Follow-up Work Item: none currently. Observe the next scheduled 10:00 owner receipt, reconcile its v2 Control row,
-  and obtain owner acceptance of amounts, aliases and chart before closing S01/WI-055.
+- Follow-up Work Item: WI-055-S03 is the active presentation correction. Complete repository verification first;
+  production release and owner receipt observation remain separate guarded steps.
