@@ -68,12 +68,12 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 
 ## Sub-items
 
-- `WI-055-S01` (`verified`): correct the owner-visible report after the first 10:00/16:00 receipts showed that
+- `WI-055-S01` (`stabilizing`): correct the owner-visible report after the first 10:00/16:00 receipts showed that
   the DEC-054 absolute-value suppression made a "total asset" report materially incomplete. DEC-055 permits exact
   owner-only amounts, alias-only composition and a deterministic chart while retaining fail-closed quality,
   no-sensitive-log and terminal-unknown boundaries. Current execution scope is repository-only and
   `production_effects: none`; no Cloud Run/Scheduler/secret/DB/public MCP mutation is authorized in this stage.
-- `WI-055-S02` (`verified`): correct the protected workflow dispatch after run `34335622544` accepted the new
+- `WI-055-S02` (`closed`): correct the protected workflow dispatch after run `34335622544` accepted the new
   target but skipped every deploy step. The run changed no external resource and sent no Telegram message. S02 adds
   the missing exact target condition/command and a regression assertion before the release is retried.
 
@@ -111,11 +111,18 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - `WI-055-S02` correction evidence: the workflow now has an exact `wi055-s01` condition and invokes that exact script
   target with the existing smoke Job. The focused workflow/deploy suite passed 39 and the full gate passed 502 tests;
   production remained unchanged during verification.
+- Release evidence: PR #59 merged the report as master `8105652`; PR #60 merged the workflow correction as master
+  `23707e7`. Protected deploy run `34336332698` passed. Same-image finance-free photo smoke execution
+  `kis-portfolio-wi030-s03-prjlf` succeeded before core Job updates. All three fixed-slot Jobs now reference image
+  `sha256:b54a9819...9ffd`, git SHA `23707e7`, GitHub run `34336332698`, deploy target
+  `wi055-s01-owner-report`, `legacy=false`, `v2=true`, `owner-approved=true` and `dest.owner.primary`.
+- Provider confirmation: the smoke command returns zero only for `outcome=sent`; both its Cloud Run execution and the
+  protected workflow succeeded. Raw provider response, chat ID and message content were not copied into evidence.
 
 ## Closeout
 
 - Result: repository implementation, governance contracts and production deployment are verified; production use is
   `stabilizing` pending scheduled owner evidence.
 - Remaining risk: first production receipt and unavailable-message ergonomics require owner observation.
-- Follow-up Work Item: release the verified S01 candidate through its protected same-image smoke and observe the next
-  scheduled owner receipt before accepting WI-055.
+- Follow-up Work Item: none currently. Observe the next scheduled 10:00 owner receipt, reconcile its v2 Control row,
+  and obtain owner acceptance of amounts, aliases and chart before closing S01/WI-055.

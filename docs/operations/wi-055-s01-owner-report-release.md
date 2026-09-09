@@ -75,3 +75,16 @@ misleading partial total, unreadable chart, unexpected provider-cost increase or
 
 The legacy percentage-only presentation is retained as evidence but is not the preferred user-facing fallback because
 the owner rejected its information value. Disabling only the report is therefore the default safe rollback.
+
+## Release evidence — 2026-09-09
+
+- First workflow attempt `34335622544` was a safe no-op because the new target had no matching workflow step. It sent
+  no message and changed no Cloud Run resource; WI-055-S02 preserves and corrects that defect.
+- PR #60/master `23707e7` added the exact dispatch. Protected run `34336332698` then passed tests, authentication,
+  finance-free photo smoke execution `kis-portfolio-wi030-s03-prjlf`, and all three core Job updates.
+- Deployed image: `sha256:b54a9819...9ffd`; labels on every Job are git SHA `23707e7`, GitHub run
+  `34336332698`, deploy source `github-actions` and target `wi055-s01-owner-report`.
+- Read-only verification confirmed the three non-sensitive controls: legacy `false`, v2 `true`, owner approval
+  `true`, with destination alias `dest.owner.primary`. Scheduler, DB, IAM and Secret resources were not changed.
+- Stabilization exit remains the next scheduled owner receipt plus matching terminal v2 Control-ledger evidence and
+  explicit owner acceptance of the exact amounts, alias composition and chart information value.

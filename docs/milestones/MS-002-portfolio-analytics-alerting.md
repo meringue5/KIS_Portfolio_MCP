@@ -38,7 +38,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | stabilizing; S05/S06 collect corrected window through 2026-09-14 |
 | 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | stabilizing; S01/S02/S03/S05 closed; S04 temporal acceptance ongoing |
 | 20 | WI-054 production-readiness correction | review gate | WI-028 | closed; live readiness matrix and WI-030-S03 handoff established |
-| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | stabilizing; S01 repository correction verified (full 501), protected release and owner acceptance pending |
+| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | stabilizing; S01 image `b54a9819...9ffd` deployed after photo smoke, next receipt/owner acceptance pending; S02 closed |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
