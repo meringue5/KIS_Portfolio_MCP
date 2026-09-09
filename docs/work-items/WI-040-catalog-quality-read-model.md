@@ -1,7 +1,7 @@
 ---
 id: WI-040
 title: Publish the DB-only catalog and quality read model
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023
@@ -36,9 +36,9 @@ lineage and pipeline status to Remote MCP.
 
 ## Acceptance criteria
 
-- [ ] model explains version/grain/freshness/gaps and rejects restricted leakage.
-- [ ] partial and failed runs are not presented as green.
-- [ ] deterministic query, authorization and full gates pass.
+- [x] model explains version/grain/freshness/gaps and rejects restricted leakage.
+- [x] partial and failed runs are not presented as green.
+- [x] deterministic query, authorization and full gates pass.
 
 ## Change impact
 
@@ -59,6 +59,10 @@ No DDL or migration, live DB write, source call or activation, IAM/Secret change
 MCP registration, cleanup or cutover is authorized. If the existing Control schema cannot support the approved DTOs
 without semantic overloading, implementation stops and records an additive migration proposal instead of changing
 the schema.
+
+The isolated implementation reached `verified` on 2026-09-09. Existing Control columns were sufficient, so no DDL or
+migration proposal was needed. Verification is limited to packaged manifests, synthetic DuckDB Control evidence and
+local repository gates; it does not activate the inactive read-model contracts or authorize production/public use.
 
 ## Sub-items
 
@@ -88,12 +92,26 @@ calls.
 
 - `WI-040-S01` closed on 2026-09-01 with no production mutation.
 - `docs/operations/wi-040-pre-research-2026-09.md`: read-model contract and fail-closed implementation inputs.
+- `src/kis_portfolio/services/governance_read_models.py`: immutable envelope and policy DTOs, fixed packaged catalog
+  projection, bounded parameterized Control queries, strict cursor validation, sensitivity filtering, opaque refs and
+  fail-closed status composition.
+- `tests/test_governance_read_models.py`: 12 synthetic tests covering six catalog kinds, proposed/restricted/raw-field
+  suppression, pass/failed/partial/stale/not-assessed/unavailable, unknown evidence, authorization, bounds and stable
+  cursor pagination.
+- `tests/test_project_os_contract.py`: overlap fixture no longer inherits whichever Work Item is active in the source
+  checkout, keeping the full gate reproducible during an authorized implementation.
+- `bash scripts/check.sh quick`: passed throughout implementation.
+- `bash scripts/check.sh full`: 518 passed on 2026-09-09 with one existing Authlib deprecation warning.
 
 ## Closeout
 
-- Result: parent proposed; `WI-040-S01` research closed without opening the MS-003 formal gate.
-- Remaining risk: public scope compatibility belongs to WI-042.
-- Follow-up Work Item: WI-042.
+- Result: parent `verified`; internal application DTO/query implementation and synthetic local verification complete
+  with no production effects. `WI-040-S01..S03` remain closed design/adoption history.
+- Remaining risk: no default executable per-pipeline coverage/freshness policy is inferred from prose, so pipelines
+  without a separately registered exact policy remain `not_assessed`. No live Control query was performed in this
+  isolated phase.
+- Follow-up Work Item: WI-042 owns public MCP names, OAuth actor/scope wiring, serialization and client compatibility;
+  activation remains blocked by the MS-003 production gate.
 
 ## Contract design checkpoint — 2026-09-02
 
