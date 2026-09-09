@@ -300,6 +300,21 @@ def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None
         ),
         encoding="utf-8",
     )
+    # The copied repository may legitimately have the current Work Item active.
+    # Normalize that runtime state before constructing this synthetic one-item
+    # overlap fixture, otherwise the test depends on when the suite is run.
+    for candidate in (target / "docs/work-items").glob("WI-*.md"):
+        if candidate.name == filename:
+            continue
+        candidate.write_text(
+            re.sub(
+                r"(?m)^status: in_progress$",
+                "status: proposed",
+                candidate.read_text(encoding="utf-8"),
+                count=1,
+            ),
+            encoding="utf-8",
+        )
     registry = target / "governance/project/milestones.toml"
     registry.write_text(
         registry.read_text(encoding="utf-8").replace(

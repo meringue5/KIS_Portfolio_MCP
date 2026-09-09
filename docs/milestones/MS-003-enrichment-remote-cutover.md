@@ -17,7 +17,7 @@
 | 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01~S04 closed; ADR-027 and 23 new approved-inactive macro contracts adopted; implementation/formal gate unchanged |
-| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | proposed; S01~S03 closed; owner-approved DB-only authority, 6 approved Control datasets and 3 approved-inactive read models adopted; implementation/formal gate unchanged |
+| 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | verified; internal DTO/query and synthetic local evidence complete; contracts remain inactive and public MCP/production effects stay gated |
 | 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed; S01 research-only audit closed with parallel V2 builder, scope/context and stateless transport boundaries; implementation gate unchanged |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
@@ -50,6 +50,8 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-09.18 | 2026-09-09 | Verified WI-040 six-kind catalog and bounded fail-closed Control read models with 12 focused and 518 full tests | synthetic local evidence only; no DDL, live DB, source, credential, infrastructure, schedule, public MCP or production effect |
+| 2026-09-09.17 | 2026-09-09 | Activated WI-040 under the allowlisted isolated overlap gate | repository DTO/query/fixture/local verification only; no production effects |
 | 2026-09-09.16 | 2026-09-09 | Verified WI-035 inventory, cost, release/rollback and cleanup dry-run contracts with 493 full tests | no production capture/apply/effects; production gate unchanged |
 | 2026-09-09.15 | 2026-09-09 | Activated WI-035 under the allowlisted isolated overlap gate | repository implementation/fixtures/local verification only; no production effects |
 | 2026-09-08.14 | 2026-09-08 | WI-056에 따라 milestone을 ready로 열고 WI-035/WI-040 isolated overlap과 production close gate를 분리 | ID/dependency 불변; production 권한 없음 |
