@@ -68,7 +68,11 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 
 ## Sub-items
 
-- `none`; implementation is one bounded outcome.
+- `WI-055-S01` (`in_progress`): correct the owner-visible report after the first 10:00/16:00 receipts showed that
+  the DEC-054 absolute-value suppression made a "total asset" report materially incomplete. DEC-055 permits exact
+  owner-only amounts, alias-only composition and a deterministic chart while retaining fail-closed quality,
+  no-sensitive-log and terminal-unknown boundaries. Current execution scope is repository-only and
+  `production_effects: none`; no Cloud Run/Scheduler/secret/DB/public MCP mutation is authorized in this stage.
 
 ## Stabilization plan
 
@@ -87,6 +91,10 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   `wi055-total-asset-digest` and `KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED=true`. The 14:30 runtime remains a
   pre-ledger/pre-provider skip by contract; only 10:00 and 16:00 can send.
 - Operational evidence: first scheduled owner receipt remains pending.
+- `WI-055-S01` intake evidence: on 2026-09-09 the owner supplied the 16:00 receipt and rejected its information value
+  because it showed only percentage-point contributors. Cloud Run executions `...1000-tc9mf` and `...1600-886tl`
+  both succeeded on master `1025f4a`; the Control ledger recorded `quality_status=pass` and `outcome=sent` for both
+  slots. This is an approved presentation/privacy contract correction, not a calculation or transport defect.
 
 ## Closeout
 

@@ -38,7 +38,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | stabilizing; S05/S06 collect corrected window through 2026-09-14 |
 | 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | stabilizing; S01/S02/S03/S05 closed; S04 temporal acceptance ongoing |
 | 20 | WI-054 production-readiness correction | review gate | WI-028 | closed; live readiness matrix and WI-030-S03 handoff established |
-| 21 | WI-055 scheduled total-asset digest | DEC-054 | WI-033, WI-030 | stabilizing; deployed and first 10:00/16:00 owner receipt pending |
+| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | stabilizing; S01 corrects rejected information value with owner-only amounts and charts |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
@@ -59,7 +59,9 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 - 2주 DB-only shadow에서 중복, 누락, 민감정보와 최대 오탐 사례를 검토한다.
 - Telegram은 owner가 rule version, destination과 finance-free test message를 승인한 뒤에만 활성화한다.
 - 10:00, 14:30, 16:00 KST 평가와 미국장 오전 마감 요약이 동일한 alert state machine을 사용한다.
-- 전체 계좌번호, 총자산 절대액, credential과 raw source content가 payload/log에 없다.
+- 전체 계좌번호, 내부 account ID, credential과 raw source content가 payload/log에 없다. DEC-055가 승인한
+  개인 Telegram destination에는 총자산·증감·alias별 구성 금액을 표시하되 본문과 chart bytes를 로그에
+  저장하지 않는다.
 - Telegram production candidate는 안전한 종목 식별, 시장·자산 유형, 변동, 보유 에피소드 낙폭, 원화
   평가액 변화 기여, 추세, 품질·freshness와 사람이 읽는 근거를 제공한다.
 - 위 production-equivalent 메시지를 실제 destination에서 사용하며 발견한 문제를 안정화하고 owner가
@@ -83,6 +85,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-09.1 | 2026-09-09 | 첫 10:00/16:00 실사용에서 정보가치가 거부되어 DEC-055와 WI-055-S01로 총액·alias 구성·chart 표시 경계를 보정 | parent와 실행 이력 불변; corrective sub-item append, production effects none |
 | 2026-09-08.2 | 2026-09-08 | WI-056 lifecycle을 dogfood해 MS-002와 WI-029/030/055를 stabilizing으로 재기준선화 | ID/dependency 불변; exit set과 append-only rollback feedback만 명시 |
 | 2026-09-08.1 | 2026-09-08 | owner receipt로 WI-030-S03을 닫고 10:00/16:00 총자산 리포트를 DEC-054/WI-055로 추가 | WI-055 append; 기존 WI·S04 장기 증거 불변 |
 | 2026-09-07.1 | 2026-09-07 | S02 canary를 18/18 provider-confirmed 및 owner receipt로 닫고, shadow slot 과대계상과 masked rollback을 S06으로 보정 | WI-029-S06 append; 9/10은 자동 종료가 아닌 중간 review gate, corrected window는 9/14까지 |

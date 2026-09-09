@@ -573,6 +573,25 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 기존 scale-to-zero V2 core Job, Telegram secret과 MotherDuck control ledger를 재사용한다. 별도 상시 서비스,
   Scheduler, 물리 데이터 테이블 또는 신규 secret을 만들지 않는다.
 
+### DEC-055: owner 개인 총자산 리포트는 금액과 구성을 표시하고 식별자를 숨긴다
+
+- 2026-09-09 owner는 첫 10:00/16:00 실사용 결과를 검토하고, DEC-054의 절대액 비노출 경계가 개인
+  자산관리 리포트의 정보가치를 훼손한다고 판정했다. 이 결정은 DEC-054의 표시·privacy 경계를 대체하되
+  동일-slot 계산, 품질 gate, 기존 schedule과 불변 실행 증거는 보존한다.
+- owner가 승인한 개인 Telegram destination에는 정확한 현재 총자산 원화 금액, 전 거래일 동일 시각 대비
+  원화 증감액과 변화율, account alias별 금액·비중 및 자산 구성 금액·비중을 표시한다.
+- 원계좌번호, 내부 account ID, token, secret, chat ID와 credential fingerprint는 payload와 chart에 싣지
+  않는다. account 표시는 allowlist된 `ria`, `isa`, `brokerage`, `irp`, `pension` alias만 허용한다.
+- 메시지 본문과 chart bytes는 application log나 Control ledger에 저장하지 않는다. ledger에는 presentation
+  version, content hash, provider result hash, 품질 상태와 bounded counts만 보존한다.
+- 구성비와 주요 보유·변화 기여를 한눈에 볼 수 있는 결정적 PNG chart를 같은 provider operation으로
+  전송한다. caption은 총액·증감과 핵심 구성을 포함하며 별도 plain fallback이나 후속 메시지를 보내지 않는다.
+- 필수 계좌 coverage, current/prior state 품질 또는 reconciliation이 실패하면 금액·차트를 모두 억제하고
+  기존 `계산 보류` 표현만 보낸다. 불완전한 합계를 총자산으로 표시하지 않는다.
+- presentation v2는 v1과 다른 idempotency identity를 사용한다. provider 요청 뒤 결과가 불명확하면
+  `unknown`으로 봉인하고 자동 재전송하지 않는다. repository 검증만으로 운영 활성화하지 않으며,
+  독립 rollback은 v2 flag 비활성화 또는 마지막 안전 image 복원이다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1135,6 +1154,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-09 | 총자산 리포트 표시·privacy 경계 보정 승인 | DEC-055로 개인 Telegram destination에 정확한 총액·증감액, alias별 구성과 결정적 chart를 허용하고 원계좌번호·내부 ID·secret·본문 로그를 금지함; DEC-054 계산·품질·schedule 이력은 보존함 |
 | 2026-09-08 | 정기 총자산 리포트 승인 | DEC-054로 10시·16시 동일-slot 총자산 변화율, Top 3 영향, 현금·정합성 Rich Message와 절대액 비노출·계산 보류·중복방지 계약을 승인함 |
 | 2026-09-07 | Rich Message 전환 승인 | DEC-053으로 심각도 아이콘, 산출값 표, 접힌 미산출 항목, 단일 시각 footer를 채택하고 plain fallback과 반복·오해 문구를 금지함 |
 | 2026-09-03 | 실사용 의미 보정 승인 | DEC-052로 이동평균 상태/교차, 초기 baseline, 장중 거래량, 품질 문구를 정정하고 일·주·월·분기·연간 인수 증거를 replay·fixture·live observation으로 분리함 |
