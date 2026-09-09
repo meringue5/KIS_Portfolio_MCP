@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from kis_portfolio.adapters.outbound.alert_warehouse import TelegramDispatchCandidate
+from kis_portfolio.adapters.outbound.portfolio_chart import ChartAllocation, render_portfolio_chart
 
 
 TELEGRAM_API_ROOT = "https://api.telegram.org"
@@ -74,6 +75,32 @@ class TotalAssetDigest:
     cash_impact_percent_points: Decimal | None = None
     reconciliation_status: str | None = None
     unavailable_codes: Sequence[str] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class OwnerPortfolioReport:
+    """Owner-only total-asset report with alias-only allocation dimensions."""
+
+    slot: str
+    source_at: datetime
+    quality_status: str
+    total_asset_krw: int | None = None
+    total_change_krw: int | None = None
+    total_change_percent: Decimal | None = None
+    asset_allocations: Sequence[ChartAllocation] = ()
+    account_allocations: Sequence[ChartAllocation] = ()
+    positive: Sequence[TotalAssetDigestContributor] = ()
+    negative: Sequence[TotalAssetDigestContributor] = ()
+    unavailable_codes: Sequence[str] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class TelegramPhotoMessage:
+    """Validated single-operation Telegram photo and HTML caption."""
+
+    caption_html: str
+    png_bytes: bytes
+    filename: str = "total-asset-report.png"
 
 
 def _safe_text(value: object, *, field: str, maximum: int, forbid_absolute: bool = False) -> str:
@@ -180,6 +207,114 @@ def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
     if len(html) > 3500 or _ACCOUNT_NUMBER.search(html):
         raise UnsafeTelegramPayload("rendered total-asset digest is unsafe or too large")
     return TelegramRichMessage(html=html)
+
+
+_OWNER_ACCOUNT_ALIASES = frozenset({"ria", "isa", "brokerage", "irp", "pension"})
+_ASSET_LABELS = frozenset({"DOMESTIC", "OVERSEAS", "CASH"})
+
+
+def _format_krw(value: int, *, signed: bool = False) -> str:
+    prefix = "+" if signed and value > 0 else ""
+    return f"{prefix}₩{value:,}"
+
+
+def _validate_allocations(
+    allocations: Sequence[ChartAllocation], *, allowed: frozenset[str], field: str,
+) -> tuple[ChartAllocation, ...]:
+    if not allocations or len(allocations) > 5:
+        raise UnsafeTelegramPayload(f"{field} must contain one to five rows")
+    checked: list[ChartAllocation] = []
+    for item in allocations:
+        label = item.label.strip().lower() if field == "account_allocations" else item.label.strip().upper()
+        if label not in allowed or item.value_krw < 0:
+            raise UnsafeTelegramPayload(f"{field} contains an unsafe label or value")
+        if not item.percent.is_finite() or item.percent < 0 or item.percent > Decimal("100"):
+            raise UnsafeTelegramPayload(f"{field} contains an unsafe percentage")
+        checked.append(ChartAllocation(label, int(item.value_krw), item.percent))
+    return tuple(checked)
+
+
+def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichMessage | TelegramPhotoMessage:
+    """Render exact owner values only after complete state and alias-boundary validation."""
+    slot_labels = {"kr-1000": "오전 10시", "kr-1600": "오후 4시"}
+    slot_label = slot_labels.get(report.slot)
+    if slot_label is None or report.source_at.tzinfo is None:
+        raise UnsafeTelegramPayload("owner report slot and source_at must be valid")
+    source_at = report.source_at.astimezone(_SEOUL)
+    if report.quality_status == "unavailable":
+        if any(value is not None for value in (
+            report.total_asset_krw, report.total_change_krw, report.total_change_percent,
+        )) or report.asset_allocations or report.account_allocations or report.positive or report.negative:
+            raise UnsafeTelegramPayload("unavailable owner report cannot contain financial values")
+        return render_total_asset_digest(TotalAssetDigest(
+            report.slot, report.source_at, "unavailable", unavailable_codes=report.unavailable_codes,
+        ))
+    if report.quality_status != "pass":
+        raise UnsafeTelegramPayload("owner report quality is not allowlisted")
+    if report.total_asset_krw is None or report.total_asset_krw <= 0:
+        raise UnsafeTelegramPayload("owner report requires a positive total")
+    if report.total_change_krw is None or report.total_change_percent is None:
+        raise UnsafeTelegramPayload("owner report requires exact change values")
+    if not report.total_change_percent.is_finite() or abs(report.total_change_percent) > Decimal("1000"):
+        raise UnsafeTelegramPayload("owner report change percentage is unsafe")
+    assets = _validate_allocations(report.asset_allocations, allowed=_ASSET_LABELS, field="asset_allocations")
+    accounts = _validate_allocations(
+        report.account_allocations, allowed=_OWNER_ACCOUNT_ALIASES, field="account_allocations",
+    )
+    tolerance = max(1, round(report.total_asset_krw * 0.000001))
+    if abs(sum(item.value_krw for item in assets) - report.total_asset_krw) > tolerance:
+        raise UnsafeTelegramPayload("asset allocation does not reconcile to total")
+    if abs(sum(item.value_krw for item in accounts) - report.total_asset_krw) > tolerance:
+        raise UnsafeTelegramPayload("account allocation does not reconcile to total")
+    for item in (*assets, *accounts):
+        expected = Decimal(item.value_krw) / Decimal(report.total_asset_krw) * Decimal("100")
+        if abs(item.percent - expected) > Decimal("0.02"):
+            raise UnsafeTelegramPayload("allocation percentage does not reconcile to value")
+
+    change_prefix = "+" if report.total_change_percent > 0 else ""
+    lines = [
+        f"<b>📊 총자산 현황 · {slot_label}</b>",
+        f"<b>{_format_krw(report.total_asset_krw)}</b>",
+        (
+            "전 거래일 동일 시각 대비 "
+            f"{_format_krw(report.total_change_krw, signed=True)} "
+            f"({change_prefix}{report.total_change_percent.quantize(Decimal('0.01')):.2f}%)"
+        ),
+        "",
+        "<b>계좌 구성</b>",
+    ]
+    lines.extend(
+        f"• {escape(item.label.upper())}: {_format_krw(item.value_krw)} · {item.percent:.2f}%"
+        for item in accounts
+    )
+    lines.extend(("", "<b>자산 구성</b>"))
+    asset_names = {"DOMESTIC": "국내", "OVERSEAS": "해외", "CASH": "현금"}
+    lines.extend(
+        f"• {asset_names[item.label]}: {_format_krw(item.value_krw)} · {item.percent:.2f}%"
+        for item in assets
+    )
+    if report.positive or report.negative:
+        lines.extend(("", "<b>평가액 변화 기여</b>"))
+    for marker, contributors in (("▲", report.positive), ("▼", report.negative)):
+        for item in contributors[:3]:
+            label = _safe_text(item.label, field="contributor_label", maximum=80)
+            impact = _bounded_percent(item.impact_percent_points, field="impact_percent_points")
+            prefix = "+" if item.impact_percent_points > 0 else ""
+            lines.append(f"{marker} {escape(label)} {prefix}{impact}%p")
+    lines.extend(("", "해외 자산은 환율 효과를 포함한 원화 평가액입니다.", f"{source_at:%Y-%m-%d %H:%M} · KST"))
+    caption = "\n".join(lines)
+    if len(caption) > 1000 or _ACCOUNT_NUMBER.search(caption):
+        raise UnsafeTelegramPayload("owner report caption is unsafe or too large")
+    png = render_portfolio_chart(
+        total_asset_krw=report.total_asset_krw,
+        change_krw=report.total_change_krw,
+        change_percent=report.total_change_percent,
+        asset_allocations=assets,
+        account_allocations=accounts,
+    )
+    if not png.startswith(b"\x89PNG\r\n\x1a\n") or len(png) > 10_000_000:
+        raise UnsafeTelegramPayload("owner report chart is invalid or too large")
+    return TelegramPhotoMessage(caption, png)
 
 
 def _production_value_message(candidate: TelegramDispatchCandidate, severity: str, transition: str) -> str:
@@ -389,6 +524,38 @@ class TelegramBotClient:
         except httpx.RequestError:
             return TelegramSendResult("unknown", error_code="TRANSPORT_UNKNOWN")
 
+        if response.status_code == 429:
+            return TelegramSendResult("retryable_failure", error_code="RATE_LIMITED")
+        if response.status_code >= 500:
+            return TelegramSendResult("retryable_failure", error_code="TELEGRAM_5XX")
+        if response.status_code >= 400:
+            return TelegramSendResult("permanent_failure", error_code="TELEGRAM_4XX")
+        try:
+            document = response.json()
+            message_id = document["result"]["message_id"] if document.get("ok") is True else None
+        except (KeyError, TypeError, ValueError):
+            message_id = None
+        if not isinstance(message_id, int):
+            return TelegramSendResult("unknown", error_code="INVALID_RESPONSE")
+        return TelegramSendResult("sent", response_ref=f"telegram-message:{message_id}")
+
+    def send_photo_message(
+        self, *, bot_token: str, chat_id: str, message: TelegramPhotoMessage,
+    ) -> TelegramSendResult:
+        """Send one photo+caption operation without logging or retrying financial content."""
+        if not bot_token or not chat_id or not message.caption_html or not message.png_bytes:
+            raise ValueError("Telegram credentials and photo message are required")
+        try:
+            response = self._client.post(
+                f"{TELEGRAM_API_ROOT}/bot{bot_token}/sendPhoto",
+                data={"chat_id": chat_id, "caption": message.caption_html, "parse_mode": "HTML"},
+                files={"photo": (message.filename, message.png_bytes, "image/png")},
+                timeout=self._timeout_seconds,
+            )
+        except httpx.TimeoutException:
+            return TelegramSendResult("unknown", error_code="POST_SEND_TIMEOUT")
+        except httpx.RequestError:
+            return TelegramSendResult("unknown", error_code="TRANSPORT_UNKNOWN")
         if response.status_code == 429:
             return TelegramSendResult("retryable_failure", error_code="RATE_LIMITED")
         if response.status_code >= 500:

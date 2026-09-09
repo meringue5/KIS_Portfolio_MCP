@@ -299,6 +299,12 @@ claim 이전에 종료하므로 DB-only shadow 동작을 유지한다. DEC-050�
   candidate producer is active and the S02 rule/ledger remains immutable history
 - non-secret WI-055: `KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED=true`; the composed digest sends only at `kr-1000`
   and `kr-1600`, while `kr-1430` exits before a claim or provider request
+- non-secret WI-055-S01 release candidate: atomically set the legacy flag to `false`,
+  `KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED=true`,
+  `KIS_TELEGRAM_OWNER_DESTINATION_APPROVED=true` and keep
+  `KIS_TELEGRAM_DESTINATION_REF=dest.owner.primary`. The `wi055-s01` target changes only the existing three core Job
+  revisions; it does not create a Scheduler, service, secret or database object. Roll back by restoring the last safe
+  image or by setting both report flags to `false`; never enable both report versions together.
 
 Bounded S02 release 전제는 DEC-050 owner approval, one complete scheduled-day smoke, owner-verified private
 destination과 별도 승인된 finance-free test message다. permanent rule은 verified WI-029 shadow를 계속 요구한다.

@@ -330,9 +330,17 @@ WI-055의 `pipeline.telegram-total-asset-digest-v1`은 이 동일 계산기를 �
 보내고 절대 총자산·증감액·계좌값은 제외한다. 비교쌍 품질이나 reconciliation이 실패하면 숫자 없는
 `계산 보류` 메시지를 보내 침묵과 전송 장애를 구분한다.
 
+WI-055-S01의 `pipeline.telegram-total-asset-report-v2`는 같은 state와 비교 계산을 읽되 DEC-055의
+owner-only presentation을 적용한다. current component를 승인된 account alias와 국내·해외 경제노출·현금
+bucket으로 합산하고 각 합계가 canonical total과 허용오차 안에서 일치할 때만 정확한 원화 금액과 비중을
+caption/PNG에 렌더링한다. `silver.instrument_versions_effective`의 snapshot-as-of 분류를 우선 사용하고
+분류가 없을 때만 market/currency custody 경계로 보수적으로 대체한다. 원계좌번호와 내부 account ID는
+presentation DTO에 전달하지 않으며 본문과 PNG bytes는 Control 원장에 저장하지 않는다.
+
 전송 원장은 기존 `control.pipeline_runs`와 `control.pipeline_stage_runs`를 사용한다. 날짜·slot·pipeline
 version의 논리 키당 한 번만 terminal 처리하며, `send-rich-message`가 시작된 뒤 프로세스가 중단되면
 다음 실행은 `unknown`으로 봉인하고 재전송하지 않는다. event-driven WI-030 경보 원장과 identity는 분리한다.
+v2는 별도 pipeline/version identity와 `send-owner-report` stage를 사용하고 caption/chart hash만 보존한다.
 
 ## 향후 정제 작업 후보
 

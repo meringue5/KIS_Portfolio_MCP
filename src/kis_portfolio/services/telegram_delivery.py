@@ -13,11 +13,13 @@ import duckdb
 from kis_portfolio.adapters.outbound.alert_warehouse import AlertWarehouseRepository
 from kis_portfolio.adapters.outbound.telegram import (
     TelegramBotClient,
+    TelegramPhotoMessage,
     TelegramRichMessage,
     TelegramSendResult,
     UnsafeTelegramPayload,
     render_telegram_alert,
 )
+from kis_portfolio.adapters.outbound.portfolio_chart import render_photo_transport_smoke_chart
 from kis_portfolio.modules.monitoring.alerts import validate_opaque_code
 
 
@@ -31,6 +33,11 @@ RICH_TRANSPORT_SMOKE_HTML = (
     "</tbody></table>"
     "<details><summary>안내</summary><p>이 메시지는 배포 차단형 전송 점검입니다.</p></details>"
     "<footer>KIS Portfolio · transport smoke</footer>"
+)
+
+PHOTO_TRANSPORT_SMOKE_CAPTION = (
+    "<b>🟢 KIS Portfolio 이미지 전송 점검</b>\n"
+    "실제 금융 데이터가 없는 배포 차단형 테스트입니다."
 )
 
 
@@ -49,6 +56,24 @@ def run_telegram_rich_transport_smoke(
         bot_token=config.bot_token,
         chat_id=config.chat_id,
         message=TelegramRichMessage(RICH_TRANSPORT_SMOKE_HTML),
+    )
+
+
+def run_telegram_photo_transport_smoke(
+    *,
+    config: TelegramDeliveryConfig | None = None,
+    client: TelegramBotClient | None = None,
+) -> TelegramSendResult:
+    """Send one finance-free PNG and fail the release unless Telegram confirms it."""
+    config = config or TelegramDeliveryConfig.from_env()
+    config.validate_for_send()
+    if not config.enabled or config.destination_ref != "dest.owner.primary":
+        raise RuntimeError("Telegram photo smoke requires the verified owner destination")
+    transport = client or TelegramBotClient(timeout_seconds=30.0)
+    return transport.send_photo_message(
+        bot_token=config.bot_token,
+        chat_id=config.chat_id,
+        message=TelegramPhotoMessage(PHOTO_TRANSPORT_SMOKE_CAPTION, render_photo_transport_smoke_chart()),
     )
 
 

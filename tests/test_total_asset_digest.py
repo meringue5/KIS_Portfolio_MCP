@@ -5,13 +5,17 @@ from datetime import UTC, date, datetime
 import duckdb
 import pytest
 
-from kis_portfolio.adapters.outbound.telegram import TelegramSendResult
+from kis_portfolio.adapters.outbound.telegram import TelegramPhotoMessage, TelegramRichMessage, TelegramSendResult
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig
 from kis_portfolio.services.total_asset_digest import (
     PIPELINE_ID,
+    V2_PIPELINE_ID,
+    OwnerPortfolioReportConfig,
     TotalAssetDigestConfig,
+    run_owner_portfolio_report,
     run_total_asset_digest,
+    validate_total_asset_report_modes,
 )
 
 
@@ -31,6 +35,26 @@ class CrashAfterSendClient(RecordingClient):
         raise SystemExit("simulated process death after provider request")
 
 
+class RecordingPhotoClient:
+    def __init__(self) -> None:
+        self.photos: list[TelegramPhotoMessage] = []
+        self.rich: list[TelegramRichMessage] = []
+
+    def send_photo_message(self, *, bot_token, chat_id, message):
+        self.photos.append(message)
+        return TelegramSendResult("sent", response_ref="telegram-message:456")
+
+    def send_rich_message(self, *, bot_token, chat_id, message):
+        self.rich.append(message)
+        return TelegramSendResult("sent", response_ref="telegram-message:457")
+
+
+class CrashAfterPhotoClient(RecordingPhotoClient):
+    def send_photo_message(self, *, bot_token, chat_id, message):
+        self.photos.append(message)
+        raise SystemExit("simulated process death after photo request")
+
+
 def _telegram_config() -> TelegramDeliveryConfig:
     return TelegramDeliveryConfig(enabled=True, bot_token="test-token", chat_id="test-chat")
 
@@ -44,7 +68,7 @@ def _connection() -> duckdb.DuckDBPyConnection:
         [[date(2026, 9, 7)], [date(2026, 9, 8)]],
     )
     connection.execute(
-        "INSERT INTO silver.accounts VALUES ('acct-1','owner','brokerage','KRW',?,NULL,'{}')",
+        "INSERT INTO silver.accounts VALUES ('acct-1','brokerage','brokerage','KRW',?,NULL,'{}')",
         [datetime(2026, 9, 1, tzinfo=UTC)],
     )
     connection.executemany("""
@@ -170,3 +194,110 @@ def test_digest_is_disabled_by_default_before_any_ledger_write() -> None:
     assert connection.execute(
         "SELECT count(*) FROM control.pipeline_runs WHERE pipeline_id=?", [PIPELINE_ID],
     ).fetchone()[0] == 0
+
+
+def test_owner_report_sends_exact_values_alias_composition_and_chart_once() -> None:
+    connection = _connection()
+    client = RecordingPhotoClient()
+    kwargs = {
+        "logical_date": date(2026, 9, 8),
+        "slot": "kr-1000",
+        "config": OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        "telegram_config": _telegram_config(),
+        "client": client,
+    }
+
+    first = run_owner_portfolio_report(connection, **kwargs)
+    replay = run_owner_portfolio_report(connection, **kwargs)
+
+    assert first["outcome"] == "sent" and first["reused"] is False
+    assert replay["outcome"] == "sent" and replay["reused"] is True
+    assert len(client.photos) == 1 and not client.rich
+    message = client.photos[0]
+    assert "₩1,050" in message.caption_html
+    assert "+₩50 (+5.00%)" in message.caption_html
+    assert "BROKERAGE: ₩1,050 · 100.00%" in message.caption_html
+    assert "국내: ₩840 · 80.00%" in message.caption_html
+    assert "현금: ₩210 · 20.00%" in message.caption_html
+    assert "acct-1" not in message.caption_html
+    assert message.png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+    assert message.png_bytes[16:24] == (1200).to_bytes(4, "big") + (800).to_bytes(4, "big")
+
+    evidence = connection.execute("""
+        SELECT s.evidence FROM control.pipeline_runs r
+        JOIN control.pipeline_stage_runs s USING(run_id)
+        WHERE r.pipeline_id=? AND s.stage_name='send-owner-report'
+    """, [V2_PIPELINE_ID]).fetchone()[0]
+    evidence_text = str(evidence)
+    assert "report_hash" in evidence_text and "chart_hash" in evidence_text
+    assert "₩1,050" not in evidence_text and "BROKERAGE" not in evidence_text
+
+
+def test_owner_report_suppresses_amounts_and_chart_when_state_is_incomplete() -> None:
+    connection = _connection()
+    connection.execute("DELETE FROM gold.portfolio_daily_state WHERE evaluation_date='2026-09-07'")
+    client = RecordingPhotoClient()
+
+    result = run_owner_portfolio_report(
+        connection,
+        logical_date=date(2026, 9, 8),
+        slot="kr-1000",
+        config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        telegram_config=_telegram_config(),
+        client=client,
+    )
+
+    assert result["quality_status"] == "unavailable"
+    assert not client.photos and len(client.rich) == 1
+    assert "계산 보류" in client.rich[0].html
+    assert "₩" not in client.rich[0].html
+
+
+def test_owner_report_requires_private_destination_approval_and_exclusive_mode() -> None:
+    with pytest.raises(ValueError, match="approved private destination"):
+        OwnerPortfolioReportConfig(enabled=True).validate()
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        validate_total_asset_report_modes(
+            TotalAssetDigestConfig(enabled=True),
+            OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        )
+
+
+def test_owner_report_rejects_non_owner_destination_before_ledger_or_send() -> None:
+    connection = _connection()
+    client = RecordingPhotoClient()
+    with pytest.raises(RuntimeError, match="verified owner destination"):
+        run_owner_portfolio_report(
+            connection,
+            logical_date=date(2026, 9, 8),
+            slot="kr-1000",
+            config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+            telegram_config=TelegramDeliveryConfig(
+                enabled=True, bot_token="test-token", chat_id="test-chat", destination_ref="dest.group",
+            ),
+            client=client,
+        )
+    assert not client.photos and not client.rich
+    assert connection.execute(
+        "SELECT count(*) FROM control.pipeline_runs WHERE pipeline_id=?", [V2_PIPELINE_ID],
+    ).fetchone()[0] == 0
+
+
+def test_ambiguous_owner_photo_send_is_sealed_and_never_replayed() -> None:
+    connection = _connection()
+    crashed = CrashAfterPhotoClient()
+    kwargs = {
+        "logical_date": date(2026, 9, 8),
+        "slot": "kr-1000",
+        "config": OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        "telegram_config": _telegram_config(),
+    }
+    with pytest.raises(SystemExit):
+        run_owner_portfolio_report(connection, client=crashed, **kwargs)
+    replacement = RecordingPhotoClient()
+
+    recovered = run_owner_portfolio_report(connection, client=replacement, **kwargs)
+
+    assert recovered["outcome"] == "unknown"
+    assert recovered["error_code"] == "PREVIOUS_SEND_AMBIGUOUS"
+    assert len(crashed.photos) == 1 and not replacement.photos and not replacement.rich

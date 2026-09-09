@@ -48,9 +48,16 @@ from kis_portfolio.services.trade_cash_backfill_pipeline import build_trade_cash
 from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
 from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
 from kis_portfolio.services.token_warmup import warm_token_cache
-from kis_portfolio.services.total_asset_digest import run_total_asset_digest
+from kis_portfolio.services.total_asset_digest import (
+    OwnerPortfolioReportConfig,
+    TotalAssetDigestConfig,
+    run_owner_portfolio_report,
+    run_total_asset_digest,
+    validate_total_asset_report_modes,
+)
 from kis_portfolio.services.telegram_delivery import (
     run_telegram_delivery,
+    run_telegram_photo_transport_smoke,
     run_telegram_rich_transport_smoke,
 )
 from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfolio_pipeline
@@ -274,6 +281,10 @@ def build_parser() -> argparse.ArgumentParser:
         "send-telegram-rich-transport-smoke",
         help="Send one finance-free Rich Message and fail unless Telegram confirms it.",
     )
+    subparsers.add_parser(
+        "send-telegram-photo-transport-smoke",
+        help="Send one finance-free PNG and fail unless Telegram confirms it.",
+    )
     return parser
 
 
@@ -325,6 +336,9 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
         raise RuntimeError(
             "Telegram canary and production-value producers are mutually exclusive"
         )
+    legacy_digest_config = TotalAssetDigestConfig.from_env()
+    owner_report_config = OwnerPortfolioReportConfig.from_env()
+    validate_total_asset_report_modes(legacy_digest_config, owner_report_config)
 
     result = run_owned_portfolio_pipeline(
         get_connection(), logical_date=logical_date, slot=args.slot, partition_key=args.partition_key,
@@ -351,7 +365,10 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
             )
         result["telegram_delivery"] = run_telegram_delivery(get_connection())
         result["total_asset_digest"] = run_total_asset_digest(
-            get_connection(), logical_date=logical_date, slot=args.slot,
+            get_connection(), logical_date=logical_date, slot=args.slot, config=legacy_digest_config,
+        )
+        result["owner_portfolio_report"] = run_owner_portfolio_report(
+            get_connection(), logical_date=logical_date, slot=args.slot, config=owner_report_config,
         )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
@@ -663,6 +680,10 @@ def main() -> None:
         raise SystemExit(_run_wi030_real_use_activation(args))
     if args.command == "send-telegram-rich-transport-smoke":
         raise SystemExit(_run_telegram_rich_transport_smoke(args))
+    if args.command == "send-telegram-photo-transport-smoke":
+        result = run_telegram_photo_transport_smoke()
+        print(json.dumps({"outcome": result.outcome, "error_code": result.error_code}))
+        raise SystemExit(0 if result.outcome == "sent" else 1)
 
     parser.print_help()
     raise SystemExit(2)
