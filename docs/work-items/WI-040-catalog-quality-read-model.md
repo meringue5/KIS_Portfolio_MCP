@@ -1,7 +1,7 @@
 ---
 id: WI-040
 title: Publish the DB-only catalog and quality read model
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023
@@ -47,6 +47,18 @@ lineage and pipeline status to Remote MCP.
 ## Plan
 
 1. Freeze DTOs. 2. Implement projections. 3. Verify sensitivity and degraded states.
+
+## Isolated implementation checkpoint — 2026-09-09
+
+`WI-040` entered `in_progress` under the MS-003 isolated-overlap gate after the owner approved implementation.
+This stage is limited to typed application DTOs, fixed packaged-registry readers, bounded read-only Control queries,
+synthetic fixtures and local verification. It must retain `execution_scope: isolated` and
+`production_effects: none`.
+
+No DDL or migration, live DB write, source call or activation, IAM/Secret change, Cloud Run/Scheduler change, public
+MCP registration, cleanup or cutover is authorized. If the existing Control schema cannot support the approved DTOs
+without semantic overloading, implementation stops and records an additive migration proposal instead of changing
+the schema.
 
 ## Sub-items
 
