@@ -2,7 +2,8 @@
 
 ## Scope and immutable baseline
 
-- Corrective presentation: `pipeline.telegram-total-asset-report-v2` / `2.0.0`.
+- Corrective presentation: `pipeline.telegram-total-asset-report-v2` / `2.1.0`. WI-055-S03 adds the owner-approved
+  absolute-impact Top 5 holding chart while preserving the S01 destination, quality and privacy boundaries.
 - Preserved baseline: legacy `pipeline.telegram-total-asset-digest-v1`, master `1025f4a`, and the 2026-09-09
   10:00/16:00 delivery ledgers remain immutable evidence.
 - Existing three fixed-slot core Jobs and their Schedulers are reused. No database migration, source activation,
@@ -26,8 +27,8 @@
 
 - Steady state remains at most two Telegram provider operations per applicable market day. `sendPhoto` replaces the
   legacy digest operation; it is not an additional recurring call.
-- The deterministic 1200x800 RGB PNG is capped at 10 MB. The synthetic verification fixture is approximately 12 KB;
-  actual size is data-independent apart from compressibility and remains bounded.
+- The deterministic 1200x1080 RGB PNG is capped at 10 MB. It includes a five-row diverging impact panel; synthetic
+  verification uses fabricated values only, and actual size remains data-independent apart from compressibility.
 - The release builds one immutable image. Before any core Job revision changes, that same image must run one
   finance-free `sendPhoto` smoke from the existing pipeline service account with pinned Telegram secret versions.
 - A timeout or malformed response is terminal `unknown`; the smoke blocks deployment, and a production report is
@@ -51,7 +52,7 @@ sealing. No real Telegram request is part of repository verification.
 1. Confirm the candidate is merged to current `origin/master` and the protected full gate passed.
 2. Confirm numeric pinned versions exist for `KIS_TELEGRAM_BOT_TOKEN_VERSION` and
    `KIS_TELEGRAM_CHAT_ID_VERSION`; do not read or print their values.
-3. Run the `wi055-s01` deploy target. It builds once, performs the same-image finance-free photo smoke, then updates
+3. Run the `wi055-s03` deploy target. It builds once, performs the same-image finance-free photo smoke, then updates
    the three existing core Jobs with:
    - legacy report `false`
    - v2 report `true`
@@ -59,6 +60,9 @@ sealing. No real Telegram request is part of repository verification.
    - destination alias `dest.owner.primary`
 4. Do not manually execute a production-value slot. Observe the next scheduled slot and reconcile owner receipt with
    one terminal Control-ledger row containing matching report/chart hashes.
+
+S03 must not reuse the historical S01 label: all three Jobs must show deploy target `wi055-s03-top5-impact`. The
+`wi055-s01` target remains available only to reproduce or restore its immutable release behavior.
 
 ## Rollback manifest
 

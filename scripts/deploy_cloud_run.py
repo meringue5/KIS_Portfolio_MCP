@@ -1080,6 +1080,8 @@ def _deploy_wi055_s01(
     *,
     env: dict[str, str],
     project: str,
+    deploy_label: str = "wi055-s01-owner-report",
+    smoke_label: str = "wi055-s01-photo-transport-smoke",
 ) -> int:
     """Atomically replace the legacy digest with the approved owner-only photo report."""
     for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
@@ -1117,7 +1119,7 @@ def _deploy_wi055_s01(
             "--task-timeout", "120s", "--max-retries", "0",
             "--service-account", service_account,
             *_build_secret_flags(smoke_secret_refs),
-            *_build_label_flags("wi055-s01-photo-transport-smoke"),
+            *_build_label_flags(smoke_label),
             "--project", project,
         ]
         if _run(smoke_command, dry_run=args.dry_run) != 0:
@@ -1147,7 +1149,23 @@ def _deploy_wi055_s01(
         env=report_env,
         project=project,
         image=image,
-        deploy_label="wi055-s01-owner-report",
+        deploy_label=deploy_label,
+    )
+
+
+def _deploy_wi055_s03(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Release the Top 5 impact presentation through the proven owner-report guardrails."""
+    return _deploy_wi055_s01(
+        args,
+        env=env,
+        project=project,
+        deploy_label="wi055-s03-top5-impact",
+        smoke_label="wi055-s03-photo-transport-smoke",
     )
 
 
@@ -1550,6 +1568,7 @@ def main() -> int:
             "wi030-s03",
             "wi055",
             "wi055-s01",
+            "wi055-s03",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1759,6 +1778,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi055_s01(args, env=env, project=project)
+
+    if args.target == "wi055-s03":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi055_s03(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

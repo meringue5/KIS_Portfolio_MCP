@@ -27,6 +27,7 @@ on:
           - wi030-s03
           - wi055
           - wi055-s01
+          - wi055-s03
 
 permissions:
   contents: read
@@ -333,6 +334,15 @@ jobs:
         if: github.event.inputs.target == 'wi055-s01'
         run: |
           uv run python scripts/deploy_cloud_run.py wi055-s01 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI030_S03_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-055-S03 Top 5 impact infographic
+        if: github.event.inputs.target == 'wi055-s03'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi055-s03 \
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI030_S03_JOB_NAME}" \
