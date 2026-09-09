@@ -13,7 +13,7 @@
 
 | Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- | --- |
-| 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | proposed; S01 research-only closed |
+| 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | in_progress; isolated repository implementation only; S01 research closed |
 | 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01~S04 closed; ADR-027 and 23 new approved-inactive macro contracts adopted; implementation/formal gate unchanged |
@@ -50,6 +50,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-09.15 | 2026-09-09 | Activated WI-035 under the allowlisted isolated overlap gate | repository implementation/fixtures/local verification only; no production effects |
 | 2026-09-08.14 | 2026-09-08 | WI-056에 따라 milestone을 ready로 열고 WI-035/WI-040 isolated overlap과 production close gate를 분리 | ID/dependency 불변; production 권한 없음 |
 | 2026-09-02.13 | 2026-09-02 | WI-042-S01 completed exact 35-to-18 grouping and froze research inputs for parallel V2 catalog, request actor, scope and official stateless JSON transport | S01 closed as final planned MS-003 pre-research before MS-002 close; no implementation, OAuth grant, public catalog, client, deployment, parent or milestone status change |
 | 2026-09-02.12 | 2026-09-02 | WI-042-S01 opened for research-only V1 tool, OAuth, V2 budget and thin read-adapter audit | parent, milestone and implementation gate unchanged; no public MCP, OAuth, code, deployment or runtime change |

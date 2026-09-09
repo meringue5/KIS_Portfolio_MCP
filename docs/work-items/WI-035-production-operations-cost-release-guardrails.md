@@ -1,7 +1,7 @@
 ---
 id: WI-035
 title: Complete production inventory cost and release cleanup guardrails
-status: proposed
+status: in_progress
 type: maintenance
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -53,10 +53,21 @@ Registry cleanup remain separate delivery gaps.
 
 - `WI-035-S01` — research production inventory, cost and rollback cleanup evidence (`closed`).
 
+## Isolated implementation checkpoint
+
+`WI-035` entered `in_progress` on 2026-09-09 under the MS-003 isolated-overlap gate. This phase is limited to
+repository implementation, fixtures and local verification. It has no production effects and does not authorize
+production inventory mutation, DB migration/write, source activation, IAM/Secret changes, Cloud Run/Scheduler changes,
+public MCP activation, Artifact Registry cleanup apply or cutover.
+
+The implementation order is rollback/release manifest, deterministic cost guardrail, reproducible non-secret resource
+inventory, then a fail-closed cleanup dry-run planner. Any apply path remains blocked until the MS-003 production gate
+is satisfied and separately approved.
+
 ## Pre-research checkpoint
 
-`WI-035-S01` is a research-only sub-item. The parent `WI-035` remains `proposed`, and this checkpoint does not open
-the MS-003 formal start gate.
+`WI-035-S01` was a research-only sub-item. The parent `WI-035` remained `proposed` at that checkpoint, and the
+checkpoint did not open the MS-003 formal start gate.
 
 | Checkpoint | State | Evidence |
 | --- | --- | --- |
@@ -76,6 +87,6 @@ database mutation, deploy/cleanup apply, code implementation and approved contra
 
 ## Closeout
 
-- Result: parent proposed; `WI-035-S01` research closed without opening the MS-003 formal gate.
+- Result at the S01 checkpoint: parent proposed; `WI-035-S01` research closed without opening the MS-003 formal gate.
 - Remaining risk: current billing export granularity may remain limited.
 - Follow-up Work Item: WI-045.
