@@ -4,8 +4,8 @@ title: Deliver a scheduled privacy-safe total-asset Telegram digest
 status: stabilizing
 type: change
 owner: owner
-decision_refs: DEC-054, DEC-048, DEC-053
-requirement_refs: DEC-006, DEC-026, DEC-028, DEC-038, DEC-048, DEC-053, DEC-054
+decision_refs: DEC-055, DEC-054, DEC-048, DEC-053
+requirement_refs: DEC-006, DEC-026, DEC-028, DEC-038, DEC-048, DEC-053, DEC-054, DEC-055
 milestone_ref: MS-002
 delivery_refs: none
 parent_work_item: none
@@ -15,7 +15,7 @@ stabilization_exit_refs: owner receipts for both slots and terminal Control-ledg
 rollback_plan: disable total-asset digest composition or restore the last safe image and append a linked corrective Work Item
 architecture_impact: reuses the fixed-slot V2 core Jobs and Rich Telegram adapter without a new service or schedule
 data_impact: reads exact same-slot V2 canonical states and records redacted control-ledger evidence; no schema change
-security_impact: omits absolute assets, changes, account values and identifiers while reusing pinned Telegram secrets
+security_impact: exact values are limited to the verified owner destination; account numbers, internal IDs and secrets remain prohibited
 cost_impact: two additional bounded Telegram calls per open market day; no always-on compute
 ---
 
@@ -76,7 +76,7 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - `WI-055-S02` (`closed`): correct the protected workflow dispatch after run `34335622544` accepted the new
   target but skipped every deploy step. The run changed no external resource and sent no Telegram message. S02 adds
   the missing exact target condition/command and a regression assertion before the release is retried.
-- `WI-055-S03` (`in_progress`): add the owner-requested Top 5 total-asset change-impact infographic. Rank eligible
+- `WI-055-S03` (`verified`): add the owner-requested Top 5 total-asset change-impact infographic. Rank eligible
   holdings by absolute KRW valuation change, then show the signed KRW contribution and signed total-asset impact
   percentage points in a diverging bar chart and caption. This is a DEC-055 presentation clarification that reuses
   WI-033 values; it does not change calculation, storage or public MCP contracts. Current execution scope is
@@ -124,11 +124,19 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   `wi055-s01-owner-report`, `legacy=false`, `v2=true`, `owner-approved=true` and `dest.owner.primary`.
 - Provider confirmation: the smoke command returns zero only for `outcome=sent`; both its Cloud Run execution and the
   protected workflow succeeded. Raw provider response, chat ID and message content were not copied into evidence.
+- `WI-055-S03` repository evidence: presentation `2.1.0` ranks non-cash holding contributors by absolute KRW
+  valuation change and renders at most five signed KRW/%p rows in a 1200x1080 diverging chart. A fabricated preview
+  was visually inspected. Focused report/Telegram/release tests passed 74 and the final full gate passed 506 tests.
+  Boundary tests reject internal-format symbols, inconsistent signs and unreconciled contribution percentages.
+- `WI-055-S03` release guard evidence: the `wi055-s03` dry-run used synthetic secret version numbers and performed no
+  external action. It showed one build digest, finance-free photo smoke first, then the same digest and atomic
+  legacy-off/v2-on owner-only flags for all three fixed-slot Jobs under label `wi055-s03-top5-impact`.
 
 ## Closeout
 
-- Result: repository implementation, governance contracts and production deployment are verified; production use is
-  `stabilizing` pending scheduled owner evidence.
-- Remaining risk: first production receipt and unavailable-message ergonomics require owner observation.
-- Follow-up Work Item: WI-055-S03 is the active presentation correction. Complete repository verification first;
-  production release and owner receipt observation remain separate guarded steps.
+- Result: S03 repository implementation and rollback/release guardrails are verified; S01 production use remains
+  `stabilizing` pending the corrected release and scheduled owner evidence.
+- Remaining risk: the Top 5 layout has synthetic visual evidence only until a protected same-image smoke and the next
+  scheduled owner receipt confirm provider rendering and information value.
+- Follow-up Work Item: none. Merge the verified S03 change, invoke only its protected release target, then observe the
+  next scheduled slot without manually replaying a production-value report.

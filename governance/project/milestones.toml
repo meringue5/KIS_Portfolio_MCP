@@ -800,7 +800,7 @@ status = "closed"
 id = "WI-055-S03"
 parent_id = "WI-055"
 title = "Add a Top 5 total-asset impact infographic to the owner report"
-status = "in_progress"
+status = "verified"
 
 [[subitems]]
 id = "WI-037-S01"
