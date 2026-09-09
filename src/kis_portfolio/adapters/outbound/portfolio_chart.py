@@ -10,7 +10,7 @@ from decimal import Decimal
 
 
 WIDTH = 1200
-HEIGHT = 800
+HEIGHT = 1080
 _BACKGROUND = (15, 23, 42)
 _PANEL = (30, 41, 59)
 _TEXT = (241, 245, 249)
@@ -33,6 +33,15 @@ class ChartAllocation:
     label: str
     value_krw: int
     percent: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class ChartContribution:
+    """One safe holding contribution used by the diverging impact chart."""
+
+    label: str
+    change_krw: int
+    impact_percent_points: Decimal
 
 
 # Compact 5x7 ASCII glyphs keep the image deterministic and avoid runtime font dependencies.
@@ -161,12 +170,13 @@ def render_portfolio_chart(
     change_percent: Decimal,
     asset_allocations: tuple[ChartAllocation, ...],
     account_allocations: tuple[ChartAllocation, ...],
+    contributions: tuple[ChartContribution, ...] = (),
 ) -> bytes:
     """Render an exact-value portfolio allocation dashboard as deterministic PNG bytes."""
     if total_asset_krw <= 0:
         raise ValueError("total_asset_krw must be positive")
     canvas = _Canvas()
-    canvas.rect(32, 28, 1136, 744, _PANEL)
+    canvas.rect(32, 28, 1136, 1024, _PANEL)
     canvas.text(64, 58, "TOTAL ASSET", scale=6, color=_TEXT)
     canvas.text(64, 120, _money(total_asset_krw), scale=6, color=_TEXT)
     change_prefix = "+" if change_krw > 0 else ""
@@ -198,13 +208,39 @@ def render_portfolio_chart(
         width = max(2, round(420 * item.value_krw / maximum)) if item.value_krw > 0 else 0
         canvas.rect(690, y + 34, width, 18, _PALETTE[index % len(_PALETTE)])
         canvas.text(690, y + 58, _money(item.value_krw), scale=2, color=_MUTED)
+
+    canvas.rect(64, 752, 1072, 2, (51, 65, 85))
+    canvas.text(64, 782, "TOP 5 TOTAL-ASSET IMPACT", scale=4, color=_MUTED)
+    canvas.text(64, 824, "HOLDING", scale=2, color=_MUTED)
+    canvas.text(260, 824, "KRW CHANGE", scale=2, color=_MUTED)
+    canvas.text(970, 824, "IMPACT", scale=2, color=_MUTED)
+    center_x = 740
+    canvas.rect(center_x, 850, 2, 174, (100, 116, 139))
+    maximum_impact = max((abs(item.change_krw) for item in contributions), default=0)
+    for index, item in enumerate(contributions[:5]):
+        y = 855 + index * 34
+        color = _GREEN if item.change_krw >= 0 else _RED
+        canvas.text(64, y, f"{index + 1} {item.label[:14]}", scale=2, color=_TEXT)
+        sign = "+" if item.change_krw > 0 else ""
+        canvas.text(260, y, f"{sign}{_money(item.change_krw)}", scale=2, color=color)
+        width = max(2, round(190 * abs(item.change_krw) / maximum_impact)) if maximum_impact else 0
+        if item.change_krw >= 0:
+            canvas.rect(center_x + 2, y + 2, width, 10, color)
+        else:
+            canvas.rect(center_x - width, y + 2, width, 10, color)
+        impact_sign = "+" if item.impact_percent_points > 0 else ""
+        canvas.text(
+            970, y, f"{impact_sign}{item.impact_percent_points:.2f}%P", scale=2, color=color,
+        )
+    if not contributions:
+        canvas.text(430, 910, "NO MATERIAL HOLDING CHANGE", scale=3, color=_MUTED)
     return canvas.png()
 
 
 def render_photo_transport_smoke_chart() -> bytes:
     """Render a finance-free image that exercises the same PNG transport path."""
     canvas = _Canvas()
-    canvas.rect(32, 28, 1136, 744, _PANEL)
+    canvas.rect(32, 28, 1136, 1024, _PANEL)
     canvas.text(105, 210, "KIS PORTFOLIO", scale=10, color=_TEXT)
     canvas.text(165, 340, "PHOTO TRANSPORT", scale=7, color=_PALETTE[0])
     canvas.text(260, 455, "NO FINANCIAL DATA", scale=5, color=_MUTED)

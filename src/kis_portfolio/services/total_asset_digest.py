@@ -13,6 +13,7 @@ from typing import Any, Mapping
 import duckdb
 
 from kis_portfolio.adapters.outbound.telegram import (
+    OwnerPortfolioImpact,
     OwnerPortfolioReport,
     TelegramBotClient,
     TelegramPhotoMessage,
@@ -37,7 +38,7 @@ PIPELINE_VERSION = "1.0.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1600"})
 PARTITION_KEY = "owner-consolidated"
 V2_PIPELINE_ID = "pipeline.telegram-total-asset-report-v2"
-V2_PIPELINE_VERSION = "2.0.0"
+V2_PIPELINE_VERSION = "2.1.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +65,7 @@ class OwnerPortfolioReportConfig:
 
     enabled: bool = False
     owner_destination_approved: bool = False
-    top_n: int = 3
+    top_n: int = 5
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "OwnerPortfolioReportConfig":
@@ -82,8 +83,8 @@ class OwnerPortfolioReportConfig:
         )
 
     def validate(self) -> None:
-        if self.top_n != 3:
-            raise ValueError("owner portfolio report top_n is fixed at 3")
+        if self.top_n != 5:
+            raise ValueError("owner portfolio report top_n is fixed at 5")
         if self.enabled and not self.owner_destination_approved:
             raise ValueError("owner portfolio report requires approved private destination")
 
@@ -321,6 +322,27 @@ def _build_owner_report(
             for item in items[:top_n]
         )
 
+    ranked_impacts = sorted(
+        (
+            item for item in result["contributors"]
+            if _decimal(item.get("valuation_change_krw")) != 0
+        ),
+        key=lambda item: (
+            -abs(_decimal(item.get("valuation_change_krw"))),
+            str(item.get("symbol") or ""),
+            str(item.get("instrument_id") or ""),
+        ),
+    )[:top_n]
+    top_impacts = tuple(
+        OwnerPortfolioImpact(
+            label=_contributor_label(item),
+            symbol=str(item.get("symbol") or ""),
+            change_krw=_whole_krw(_decimal(item.get("valuation_change_krw"))),
+            impact_percent_points=_decimal(item.get("total_asset_impact_pct")),
+        )
+        for item in ranked_impacts
+    )
+
     total_change = _decimal(result["totals"]["total_asset_change_krw"])
     prior_total = _decimal(result["totals"]["previous_total_asset_krw"])
     report = OwnerPortfolioReport(
@@ -334,6 +356,7 @@ def _build_owner_report(
         account_allocations=allocations(account_totals),
         positive=contributors(result["top_positive_contributors"]),
         negative=contributors(result["top_negative_contributors"]),
+        top_impacts=top_impacts,
     )
     return report, {
         "quality_status": "pass",
@@ -343,6 +366,7 @@ def _build_owner_report(
         "asset_bucket_count": len(asset_totals),
         "positive_count": len(report.positive),
         "negative_count": len(report.negative),
+        "top_impact_count": len(report.top_impacts),
         "reconciliation_status": "pass",
     }
 

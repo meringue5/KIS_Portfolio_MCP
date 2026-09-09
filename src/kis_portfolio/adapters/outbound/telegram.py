@@ -13,7 +13,11 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from kis_portfolio.adapters.outbound.alert_warehouse import TelegramDispatchCandidate
-from kis_portfolio.adapters.outbound.portfolio_chart import ChartAllocation, render_portfolio_chart
+from kis_portfolio.adapters.outbound.portfolio_chart import (
+    ChartAllocation,
+    ChartContribution,
+    render_portfolio_chart,
+)
 
 
 TELEGRAM_API_ROOT = "https://api.telegram.org"
@@ -78,6 +82,16 @@ class TotalAssetDigest:
 
 
 @dataclass(frozen=True, slots=True)
+class OwnerPortfolioImpact:
+    """Exact owner-only holding impact with a safe public market symbol."""
+
+    label: str
+    symbol: str
+    change_krw: int
+    impact_percent_points: Decimal
+
+
+@dataclass(frozen=True, slots=True)
 class OwnerPortfolioReport:
     """Owner-only total-asset report with alias-only allocation dimensions."""
 
@@ -91,6 +105,7 @@ class OwnerPortfolioReport:
     account_allocations: Sequence[ChartAllocation] = ()
     positive: Sequence[TotalAssetDigestContributor] = ()
     negative: Sequence[TotalAssetDigestContributor] = ()
+    top_impacts: Sequence[OwnerPortfolioImpact] = ()
     unavailable_codes: Sequence[str] = ()
 
 
@@ -211,11 +226,12 @@ def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
 
 _OWNER_ACCOUNT_ALIASES = frozenset({"ria", "isa", "brokerage", "irp", "pension"})
 _ASSET_LABELS = frozenset({"DOMESTIC", "OVERSEAS", "CASH"})
+_SAFE_CHART_SYMBOL = re.compile(r"^[A-Za-z0-9._-]{1,16}$")
 
 
 def _format_krw(value: int, *, signed: bool = False) -> str:
-    prefix = "+" if signed and value > 0 else ""
-    return f"{prefix}₩{value:,}"
+    prefix = "+" if signed and value > 0 else "-" if value < 0 else ""
+    return f"{prefix}₩{abs(value):,}"
 
 
 def _validate_allocations(
@@ -244,7 +260,8 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
     if report.quality_status == "unavailable":
         if any(value is not None for value in (
             report.total_asset_krw, report.total_change_krw, report.total_change_percent,
-        )) or report.asset_allocations or report.account_allocations or report.positive or report.negative:
+        )) or (report.asset_allocations or report.account_allocations or report.positive
+               or report.negative or report.top_impacts):
             raise UnsafeTelegramPayload("unavailable owner report cannot contain financial values")
         return render_total_asset_digest(TotalAssetDigest(
             report.slot, report.source_at, "unavailable", unavailable_codes=report.unavailable_codes,
@@ -293,14 +310,37 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
         f"• {asset_names[item.label]}: {_format_krw(item.value_krw)} · {item.percent:.2f}%"
         for item in assets
     )
-    if report.positive or report.negative:
-        lines.extend(("", "<b>평가액 변화 기여</b>"))
-    for marker, contributors in (("▲", report.positive), ("▼", report.negative)):
-        for item in contributors[:3]:
-            label = _safe_text(item.label, field="contributor_label", maximum=80)
-            impact = _bounded_percent(item.impact_percent_points, field="impact_percent_points")
-            prefix = "+" if item.impact_percent_points > 0 else ""
-            lines.append(f"{marker} {escape(label)} {prefix}{impact}%p")
+    chart_contributions: list[ChartContribution] = []
+    if report.top_impacts:
+        lines.extend(("", "<b>총자산 변동 기여 Top 5</b>"))
+    if len(report.top_impacts) > 5:
+        raise UnsafeTelegramPayload("owner report can contain at most five holding impacts")
+    previous_magnitude: int | None = None
+    prior_total = report.total_asset_krw - report.total_change_krw
+    if report.top_impacts and prior_total <= 0:
+        raise UnsafeTelegramPayload("owner report contributions require a positive prior total")
+    for index, item in enumerate(report.top_impacts, start=1):
+        label = _safe_text(item.label, field="contributor_label", maximum=80)
+        symbol = item.symbol.strip().upper()
+        if not _SAFE_CHART_SYMBOL.fullmatch(symbol):
+            raise UnsafeTelegramPayload("owner report contribution symbol is unsafe")
+        impact = _bounded_percent(item.impact_percent_points, field="impact_percent_points")
+        if item.change_krw == 0 or (item.change_krw > 0) != (item.impact_percent_points > 0):
+            raise UnsafeTelegramPayload("owner report contribution direction is inconsistent")
+        magnitude = abs(item.change_krw)
+        if previous_magnitude is not None and magnitude > previous_magnitude:
+            raise UnsafeTelegramPayload("owner report contributions are not ordered by absolute impact")
+        previous_magnitude = magnitude
+        expected_impact = Decimal(item.change_krw) / Decimal(prior_total) * Decimal("100")
+        if abs(item.impact_percent_points - expected_impact) > Decimal("0.02"):
+            raise UnsafeTelegramPayload("owner report contribution percentage does not reconcile")
+        marker = "▲" if item.change_krw > 0 else "▼"
+        impact_prefix = "+" if item.impact_percent_points > 0 else ""
+        lines.append(
+            f"{index}. {marker} {escape(label)} · {_format_krw(item.change_krw, signed=True)} "
+            f"· {impact_prefix}{impact}%p"
+        )
+        chart_contributions.append(ChartContribution(symbol, item.change_krw, item.impact_percent_points))
     lines.extend(("", "해외 자산은 환율 효과를 포함한 원화 평가액입니다.", f"{source_at:%Y-%m-%d %H:%M} · KST"))
     caption = "\n".join(lines)
     if len(caption) > 1000 or _ACCOUNT_NUMBER.search(caption):
@@ -311,6 +351,7 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
         change_percent=report.total_change_percent,
         asset_allocations=assets,
         account_allocations=accounts,
+        contributions=tuple(chart_contributions),
     )
     if not png.startswith(b"\x89PNG\r\n\x1a\n") or len(png) > 10_000_000:
         raise UnsafeTelegramPayload("owner report chart is invalid or too large")

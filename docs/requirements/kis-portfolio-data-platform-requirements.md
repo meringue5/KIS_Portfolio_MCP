@@ -586,6 +586,9 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   version, content hash, provider result hash, 품질 상태와 bounded counts만 보존한다.
 - 구성비와 주요 보유·변화 기여를 한눈에 볼 수 있는 결정적 PNG chart를 같은 provider operation으로
   전송한다. caption은 총액·증감과 핵심 구성을 포함하며 별도 plain fallback이나 후속 메시지를 보내지 않는다.
+- 종목 기여 infographic은 현금과 잔차를 제외한 WI-033 보유종목 기여 중 원화 평가액 변화 절대값이 큰
+  순서로 최대 5개를 고른다. 양·음 방향을 한 축에 표시하고 각 종목의 signed 원화 기여액과 직전 총자산
+  대비 signed 영향 `%p`를 함께 제공하되 투자수익 기여도로 표현하지 않는다.
 - 필수 계좌 coverage, current/prior state 품질 또는 reconciliation이 실패하면 금액·차트를 모두 억제하고
   기존 `계산 보류` 표현만 보낸다. 불완전한 합계를 총자산으로 표시하지 않는다.
 - presentation v2는 v1과 다른 idempotency identity를 사용한다. provider 요청 뒤 결과가 불명확하면
@@ -1154,6 +1157,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-09 | 총자산 변동 Top 5 infographic 보강 | DEC-055의 주요 변화 기여를 보유종목 절대 원화 영향 Top 5, signed 금액·총자산 `%p`, 양방향 chart로 명확화; 계산·저장·식별자 비노출 경계는 유지함 |
 | 2026-09-09 | 총자산 리포트 표시·privacy 경계 보정 승인 | DEC-055로 개인 Telegram destination에 정확한 총액·증감액, alias별 구성과 결정적 chart를 허용하고 원계좌번호·내부 ID·secret·본문 로그를 금지함; DEC-054 계산·품질·schedule 이력은 보존함 |
 | 2026-09-08 | 정기 총자산 리포트 승인 | DEC-054로 10시·16시 동일-slot 총자산 변화율, Top 3 영향, 현금·정합성 Rich Message와 절대액 비노출·계산 보류·중복방지 계약을 승인함 |
 | 2026-09-07 | Rich Message 전환 승인 | DEC-053으로 심각도 아이콘, 산출값 표, 접힌 미산출 항목, 단일 시각 footer를 채택하고 plain fallback과 반복·오해 문구를 금지함 |

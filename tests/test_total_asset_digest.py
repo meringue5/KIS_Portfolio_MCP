@@ -1,11 +1,21 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import duckdb
 import pytest
 
-from kis_portfolio.adapters.outbound.telegram import TelegramPhotoMessage, TelegramRichMessage, TelegramSendResult
+from kis_portfolio.adapters.outbound.portfolio_chart import ChartAllocation
+from kis_portfolio.adapters.outbound.telegram import (
+    OwnerPortfolioImpact,
+    OwnerPortfolioReport,
+    TelegramPhotoMessage,
+    TelegramRichMessage,
+    TelegramSendResult,
+    UnsafeTelegramPayload,
+    render_owner_portfolio_report,
+)
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig
 from kis_portfolio.services.total_asset_digest import (
@@ -219,9 +229,12 @@ def test_owner_report_sends_exact_values_alias_composition_and_chart_once() -> N
     assert "BROKERAGE: ₩1,050 · 100.00%" in message.caption_html
     assert "국내: ₩840 · 80.00%" in message.caption_html
     assert "현금: ₩210 · 20.00%" in message.caption_html
+    assert "총자산 변동 기여 Top 5" in message.caption_html
+    assert "1. ▲ 삼성전자 (005930) · +₩60 · +6.00%p" in message.caption_html
+    assert "2. ▼ SK하이닉스 (000660) · -₩20 · -2.00%p" in message.caption_html
     assert "acct-1" not in message.caption_html
     assert message.png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
-    assert message.png_bytes[16:24] == (1200).to_bytes(4, "big") + (800).to_bytes(4, "big")
+    assert message.png_bytes[16:24] == (1200).to_bytes(4, "big") + (1080).to_bytes(4, "big")
 
     evidence = connection.execute("""
         SELECT s.evidence FROM control.pipeline_runs r
@@ -231,6 +244,83 @@ def test_owner_report_sends_exact_values_alias_composition_and_chart_once() -> N
     evidence_text = str(evidence)
     assert "report_hash" in evidence_text and "chart_hash" in evidence_text
     assert "₩1,050" not in evidence_text and "BROKERAGE" not in evidence_text
+
+
+def test_owner_report_ranks_top_five_holdings_by_absolute_krw_impact() -> None:
+    connection = _connection()
+    additions = [
+        ("100001", "Impact A", 200, 290),
+        ("100002", "Impact B", 200, 120),
+        ("100003", "Impact C", 200, 270),
+        ("100004", "Impact D", 200, 140),
+        ("100005", "Impact E", 200, 250),
+        ("100006", "Impact F", 200, 160),
+    ]
+    for symbol, name, prior_value, current_value in additions:
+        instrument = f"KRX:{symbol}"
+        connection.execute(
+            "INSERT INTO silver.instruments VALUES(?,?,?,?,?,'KRW',NULL,?,NULL,'source','{}')",
+            [instrument, "KRX", symbol, name, "equity", datetime(2026, 9, 1, tzinfo=UTC)],
+        )
+        for day, value in ((7, prior_value), (8, current_value)):
+            connection.execute("""
+                INSERT INTO gold.portfolio_daily_state(
+                    evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,quantity,
+                    value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,as_of,
+                    input_watermarks,quality_status,lineage_hash
+                ) VALUES (?, 'kr-1000','acct-1',?,'position',NULL,?,NULL,NULL,NULL,NULL,?,'{}','pass',?)
+            """, [
+                date(2026, 9, day), instrument, value,
+                datetime(2026, 9, day, 1, tzinfo=UTC), f"lineage-{day}-{instrument}",
+            ])
+    client = RecordingPhotoClient()
+
+    result = run_owner_portfolio_report(
+        connection,
+        logical_date=date(2026, 9, 8),
+        slot="kr-1000",
+        config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        telegram_config=_telegram_config(),
+        client=client,
+    )
+
+    assert result["outcome"] == "sent"
+    lines = [line for line in client.photos[0].caption_html.splitlines() if line[:2] in {"1.", "2.", "3.", "4.", "5."}]
+    assert [line.split(" ", 3)[2] for line in lines] == ["Impact", "Impact", "Impact", "삼성전자", "Impact"]
+    assert [token for line in lines for token in line.split() if token.startswith(("+₩", "-₩"))] == [
+        "+₩90", "-₩80", "+₩70", "+₩60", "-₩60",
+    ]
+    assert "Impact E" not in "\n".join(lines) and "Impact F" not in "\n".join(lines)
+
+
+def test_owner_report_rejects_internal_or_unreconciled_impact_values() -> None:
+    base = OwnerPortfolioReport(
+        slot="kr-1000",
+        source_at=datetime(2026, 9, 8, 1, tzinfo=UTC),
+        quality_status="pass",
+        total_asset_krw=1_050,
+        total_change_krw=50,
+        total_change_percent=Decimal("5"),
+        asset_allocations=(ChartAllocation("DOMESTIC", 1_050, Decimal("100")),),
+        account_allocations=(ChartAllocation("brokerage", 1_050, Decimal("100")),),
+        top_impacts=(OwnerPortfolioImpact("삼성전자 (005930)", "KRX:005930", 60, Decimal("6")),),
+    )
+    with pytest.raises(UnsafeTelegramPayload, match="symbol is unsafe"):
+        render_owner_portfolio_report(base)
+
+    unreconciled = OwnerPortfolioReport(
+        slot=base.slot,
+        source_at=base.source_at,
+        quality_status=base.quality_status,
+        total_asset_krw=base.total_asset_krw,
+        total_change_krw=base.total_change_krw,
+        total_change_percent=base.total_change_percent,
+        asset_allocations=base.asset_allocations,
+        account_allocations=base.account_allocations,
+        top_impacts=(OwnerPortfolioImpact("삼성전자 (005930)", "005930", 60, Decimal("60")),),
+    )
+    with pytest.raises(UnsafeTelegramPayload, match="percentage does not reconcile"):
+        render_owner_portfolio_report(unreconciled)
 
 
 def test_owner_report_suppresses_amounts_and_chart_when_state_is_incomplete() -> None:
