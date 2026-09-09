@@ -73,6 +73,9 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   owner-only amounts, alias-only composition and a deterministic chart while retaining fail-closed quality,
   no-sensitive-log and terminal-unknown boundaries. Current execution scope is repository-only and
   `production_effects: none`; no Cloud Run/Scheduler/secret/DB/public MCP mutation is authorized in this stage.
+- `WI-055-S02` (`verified`): correct the protected workflow dispatch after run `34335622544` accepted the new
+  target but skipped every deploy step. The run changed no external resource and sent no Telegram message. S02 adds
+  the missing exact target condition/command and a regression assertion before the release is retried.
 
 ## Stabilization plan
 
@@ -102,6 +105,12 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   ambiguous-send sealing, finance-free same-image smoke and atomic legacy-off/v2-on release flags.
 - Production effects: none. No Telegram request, production DB write, Cloud Run/Scheduler/IAM/secret change, public
   MCP activation or source call was performed by S01 repository verification.
+- `WI-055-S02` incident evidence: GitHub Actions run `34335622544` passed tests and authentication but displayed the
+  WI-055 deploy step as skipped because `.github/workflows/deploy-cloud-run.yml` had no step whose condition matched
+  `wi055-s01`. This is a release-workflow defect and a safe no-op, not a provider or runtime failure.
+- `WI-055-S02` correction evidence: the workflow now has an exact `wi055-s01` condition and invokes that exact script
+  target with the existing smoke Job. The focused workflow/deploy suite passed 39 and the full gate passed 502 tests;
+  production remained unchanged during verification.
 
 ## Closeout
 

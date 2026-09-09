@@ -4,10 +4,17 @@ from pathlib import Path
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "deploy_cloud_run.py"
+WORKFLOW_PATH = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "deploy-cloud-run.yml"
 SPEC = importlib.util.spec_from_file_location("deploy_cloud_run", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 deploy_cloud_run = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(deploy_cloud_run)
+
+
+def test_workflow_dispatches_wi055_s01_to_exact_deploy_target():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi055-s01'" in workflow
+    assert "scripts/deploy_cloud_run.py wi055-s01" in workflow
 
 
 def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
