@@ -76,7 +76,7 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - `WI-055-S02` (`closed`): correct the protected workflow dispatch after run `34335622544` accepted the new
   target but skipped every deploy step. The run changed no external resource and sent no Telegram message. S02 adds
   the missing exact target condition/command and a regression assertion before the release is retried.
-- `WI-055-S03` (`verified`): add the owner-requested Top 5 total-asset change-impact infographic. Rank eligible
+- `WI-055-S03` (`stabilizing`): add the owner-requested Top 5 total-asset change-impact infographic. Rank eligible
   holdings by absolute KRW valuation change, then show the signed KRW contribution and signed total-asset impact
   percentage points in a diverging bar chart and caption. This is a DEC-055 presentation clarification that reuses
   WI-033 values; it does not change calculation, storage or public MCP contracts. Current execution scope is
@@ -131,12 +131,17 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - `WI-055-S03` release guard evidence: the `wi055-s03` dry-run used synthetic secret version numbers and performed no
   external action. It showed one build digest, finance-free photo smoke first, then the same digest and atomic
   legacy-off/v2-on owner-only flags for all three fixed-slot Jobs under label `wi055-s03-top5-impact`.
+- `WI-055-S03` production release evidence: PR #62 merged as master `46b6e74`; CI run `34338982164` passed. Protected
+  deploy run `34339178599` passed in 3m7s after finance-free photo smoke execution
+  `kis-portfolio-wi030-s03-9hv7s` succeeded. Read-only verification found all three fixed-slot Jobs on image
+  `sha256:b7c82ed0...41c9a`, git SHA `46b6e74`, that run ID and target `wi055-s03-top5-impact`; each retained
+  legacy `false`, v2 `true`, owner approval `true` and `dest.owner.primary`.
 
 ## Closeout
 
-- Result: S03 repository implementation and rollback/release guardrails are verified; S01 production use remains
-  `stabilizing` pending the corrected release and scheduled owner evidence.
-- Remaining risk: the Top 5 layout has synthetic visual evidence only until a protected same-image smoke and the next
-  scheduled owner receipt confirm provider rendering and information value.
-- Follow-up Work Item: none. Merge the verified S03 change, invoke only its protected release target, then observe the
-  next scheduled slot without manually replaying a production-value report.
+- Result: S03 repository implementation and protected release are verified; S01/S03 production use is `stabilizing`
+  pending the next scheduled owner receipt.
+- Remaining risk: the Top 5 layout has synthetic visual and finance-free provider evidence only until the next
+  scheduled production-value report confirms information value.
+- Follow-up Work Item: none. Observe the next scheduled 10:00 slot, reconcile its terminal Control row and obtain
+  owner acceptance without manually replaying a production-value report.

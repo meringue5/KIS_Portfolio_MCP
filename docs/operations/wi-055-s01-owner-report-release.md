@@ -92,3 +92,14 @@ the owner rejected its information value. Disabling only the report is therefore
   `true`, with destination alias `dest.owner.primary`. Scheduler, DB, IAM and Secret resources were not changed.
 - Stabilization exit remains the next scheduled owner receipt plus matching terminal v2 Control-ledger evidence and
   explicit owner acceptance of the exact amounts, alias composition and chart information value.
+
+## WI-055-S03 release evidence — 2026-09-09
+
+- PR #62 merged the Top 5 presentation as master `46b6e74`; CI run `34338982164` passed.
+- Protected deploy run `34339178599` passed in 3m7s. Finance-free same-image smoke execution
+  `kis-portfolio-wi030-s03-9hv7s` completed successfully before any core Job update.
+- All three fixed-slot core Jobs now use image `sha256:b7c82ed0...41c9a` and labels for git SHA `46b6e74`, GitHub run
+  `34339178599`, deploy source `github-actions` and target `wi055-s03-top5-impact`.
+- Read-only verification confirmed legacy `false`, v2 `true`, owner approval `true` and `dest.owner.primary` on every
+  Job. No Scheduler, DB, IAM, Secret or public MCP resource was changed, and no production-value report was manually
+  executed. The next scheduled owner receipt is the stabilization evidence.
