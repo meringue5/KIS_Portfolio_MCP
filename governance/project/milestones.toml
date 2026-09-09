@@ -788,13 +788,13 @@ status = "closed"
 id = "WI-055-S01"
 parent_id = "WI-055"
 title = "Correct the owner total-asset report with alias-only amounts and charts"
-status = "verified"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-055-S02"
 parent_id = "WI-055"
 title = "Correct the no-op owner-report release workflow dispatch"
-status = "verified"
+status = "closed"
 
 [[subitems]]
 id = "WI-037-S01"
