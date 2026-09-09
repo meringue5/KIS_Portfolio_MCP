@@ -791,6 +791,12 @@ title = "Correct the owner total-asset report with alias-only amounts and charts
 status = "verified"
 
 [[subitems]]
+id = "WI-055-S02"
+parent_id = "WI-055"
+title = "Correct the no-op owner-report release workflow dispatch"
+status = "verified"
+
+[[subitems]]
 id = "WI-037-S01"
 parent_id = "WI-037"
 title = "Research filing sources identity taxonomy and point-in-time controls"
