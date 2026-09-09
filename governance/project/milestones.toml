@@ -788,7 +788,7 @@ status = "closed"
 id = "WI-055-S01"
 parent_id = "WI-055"
 title = "Correct the owner total-asset report with alias-only amounts and charts"
-status = "in_progress"
+status = "verified"
 
 [[subitems]]
 id = "WI-037-S01"
