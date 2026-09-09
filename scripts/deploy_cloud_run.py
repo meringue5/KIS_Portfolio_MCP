@@ -291,6 +291,8 @@ def _build_v2_pipeline_env(env: dict[str, str], project: str) -> dict[str, str]:
         "KIS_TELEGRAM_CANARY_ENABLED",
         "KIS_TELEGRAM_REAL_USE_ENABLED",
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED",
+        "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED",
         "KIS_TELEGRAM_DESTINATION_REF",
     ):
         if env.get(key, "") != "":
@@ -1073,6 +1075,82 @@ def _deploy_wi055(
     )
 
 
+def _deploy_wi055_s01(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Atomically replace the legacy digest with the approved owner-only photo report."""
+    for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
+        if not env.get(key, "").strip().isdigit():
+            print(f"Missing or non-numeric pinned secret version: {key}")
+            return 1
+    image = _build_release_image(args, project=project)
+    if not image:
+        print("Failed to resolve the build-once image digest.")
+        return 1
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    smoke_job = getattr(args, "job", None) or DEFAULT_WI030_S03_JOB
+    smoke_env, smoke_secret_refs = _split_runtime_env(
+        env=env,
+        payload={
+            "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+            "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+        },
+        required=["KIS_TELEGRAM_BOT_TOKEN", "KIS_TELEGRAM_CHAT_ID"],
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    smoke_env_path = _write_env_yaml(smoke_env)
+    try:
+        smoke_command = [
+            "gcloud", "run", "jobs", "deploy", smoke_job,
+            "--image", image, "--region", args.region,
+            "--env-vars-file", smoke_env_path,
+            "--command", "kis-portfolio-batch",
+            "--args", "send-telegram-photo-transport-smoke",
+            "--tasks", "1", "--parallelism", "1",
+            "--task-timeout", "120s", "--max-retries", "0",
+            "--service-account", service_account,
+            *_build_secret_flags(smoke_secret_refs),
+            *_build_label_flags("wi055-s01-photo-transport-smoke"),
+            "--project", project,
+        ]
+        if _run(smoke_command, dry_run=args.dry_run) != 0:
+            return 1
+        if _run([
+            "gcloud", "run", "jobs", "execute", smoke_job,
+            "--region", args.region, "--wait", "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(smoke_env_path)
+        except FileNotFoundError:
+            pass
+    report_env = dict(env)
+    report_env.update({
+        "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+        "KIS_TELEGRAM_CANARY_ENABLED": "false",
+        "KIS_TELEGRAM_REAL_USE_ENABLED": "true",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "false",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED": "true",
+        "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED": "true",
+        "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+    })
+    return _deploy_v2_core_jobs(
+        args,
+        env=report_env,
+        project=project,
+        image=image,
+        deploy_label="wi055-s01-owner-report",
+    )
+
+
 def _deploy_wi029_s04(
     args: argparse.Namespace,
     *,
@@ -1471,6 +1549,7 @@ def main() -> int:
             "wi030-s02",
             "wi030-s03",
             "wi055",
+            "wi055-s01",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1674,6 +1753,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi055(args, env=env, project=project)
+
+    if args.target == "wi055-s01":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi055_s01(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

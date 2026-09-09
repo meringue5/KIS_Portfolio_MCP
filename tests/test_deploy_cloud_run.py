@@ -279,6 +279,44 @@ def test_wi055_deploy_enables_digest_on_existing_jobs(monkeypatch):
     assert captured["deploy_label"] == "wi055-total-asset-digest"
 
 
+def test_wi055_s01_deploy_atomically_replaces_legacy_report(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi055-s01", dry_run=True,
+        secret_mode="secret-manager", allow_local_source=False,
+    )
+    captured = {}
+    commands = []
+
+    def fake_deploy(_args, **kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", fake_deploy)
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *args, **kwargs: "image@sha256:test")
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, **kwargs: commands.append(command) or 0,
+    )
+    result = deploy_cloud_run._deploy_wi055_s01(
+        args,
+        env={
+            "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
+            "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+        },
+        project="project",
+    )
+
+    assert result == 0
+    assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED"] == "false"
+    assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
+    assert captured["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
+    assert captured["env"]["KIS_TELEGRAM_DESTINATION_REF"] == "dest.owner.primary"
+    assert captured["deploy_label"] == "wi055-s01-owner-report"
+    assert captured["image"] == "image@sha256:test"
+    assert len(commands) == 2
+    assert "send-telegram-photo-transport-smoke" in commands[0]
+    assert commands[1][0:4] == ["gcloud", "run", "jobs", "execute"]
+
+
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
     commands = []
     args = argparse.Namespace(

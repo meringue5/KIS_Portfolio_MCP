@@ -11,6 +11,7 @@ from kis_portfolio.adapters.outbound.alert_warehouse import AlertClaimError, Ale
 from kis_portfolio.adapters.outbound.telegram import (
     TelegramBotClient,
     TelegramRichMessage,
+    TelegramPhotoMessage,
     TelegramSendResult,
     UnsafeTelegramPayload,
     render_telegram_alert,
@@ -20,6 +21,7 @@ from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.telegram_delivery import (
     TelegramDeliveryConfig,
     run_telegram_delivery,
+    run_telegram_photo_transport_smoke,
     run_telegram_rich_transport_smoke,
 )
 
@@ -37,6 +39,17 @@ class FakeTelegramClient:
     ) -> TelegramSendResult:
         assert bot_token == "bot-secret" and chat_id == "private-chat"
         assert "private-chat" not in message.html and "bot-secret" not in message.html
+        self.calls += 1
+        return self.result
+
+
+class FakePhotoClient(FakeTelegramClient):
+    def send_photo_message(
+        self, *, bot_token: str, chat_id: str, message: TelegramPhotoMessage,
+    ) -> TelegramSendResult:
+        assert bot_token == "bot-secret" and chat_id == "private-chat"
+        assert message.png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+        assert "NO FINANCIAL DATA" not in message.caption_html
         self.calls += 1
         return self.result
 
@@ -312,6 +325,14 @@ def test_rich_transport_smoke_requires_provider_confirmed_send() -> None:
     assert sent_client.calls == 1 and failed_client.calls == 1
 
 
+def test_photo_transport_smoke_uses_one_finance_free_owner_operation() -> None:
+    client = FakePhotoClient(TelegramSendResult("sent", response_ref="telegram-message:89"))
+
+    result = run_telegram_photo_transport_smoke(config=_config(), client=client)
+
+    assert result.outcome == "sent" and client.calls == 1
+
+
 def test_success_is_hashed_in_ledger_and_never_persists_destination_secret() -> None:
     connection, _, _ = _external_candidate()
     client = FakeTelegramClient(TelegramSendResult("sent", response_ref="telegram-message:42"))
@@ -455,6 +476,28 @@ def test_http_client_uses_send_rich_message_contract_without_plain_fallback() ->
         "rich_message": {"html": "<h3>🟡 test</h3>", "skip_entity_detection": True},
     }
     assert result == TelegramSendResult("sent", response_ref="telegram-message:77")
+
+
+def test_http_client_sends_photo_and_caption_in_one_provider_operation() -> None:
+    requests: list[httpx.Request] = []
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": 88}})
+
+    client = TelegramBotClient(client=httpx.Client(transport=httpx.MockTransport(capture)))
+    result = client.send_photo_message(
+        bot_token="bot-secret",
+        chat_id="private-chat",
+        message=TelegramPhotoMessage("<b>owner report</b>", b"\x89PNG\r\n\x1a\nfixture"),
+    )
+
+    assert len(requests) == 1
+    assert requests[0].url.path.endswith("/sendPhoto")
+    assert b'name="caption"' in requests[0].content
+    assert b"owner report" in requests[0].content
+    assert b'name="photo"; filename="total-asset-report.png"' in requests[0].content
+    assert result == TelegramSendResult("sent", response_ref="telegram-message:88")
 
 
 def test_config_repr_does_not_expose_runtime_secrets() -> None:

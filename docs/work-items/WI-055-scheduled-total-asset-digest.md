@@ -68,7 +68,11 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 
 ## Sub-items
 
-- `none`; implementation is one bounded outcome.
+- `WI-055-S01` (`verified`): correct the owner-visible report after the first 10:00/16:00 receipts showed that
+  the DEC-054 absolute-value suppression made a "total asset" report materially incomplete. DEC-055 permits exact
+  owner-only amounts, alias-only composition and a deterministic chart while retaining fail-closed quality,
+  no-sensitive-log and terminal-unknown boundaries. Current execution scope is repository-only and
+  `production_effects: none`; no Cloud Run/Scheduler/secret/DB/public MCP mutation is authorized in this stage.
 
 ## Stabilization plan
 
@@ -87,10 +91,22 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   `wi055-total-asset-digest` and `KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED=true`. The 14:30 runtime remains a
   pre-ledger/pre-provider skip by contract; only 10:00 and 16:00 can send.
 - Operational evidence: first scheduled owner receipt remains pending.
+- `WI-055-S01` intake evidence: on 2026-09-09 the owner supplied the 16:00 receipt and rejected its information value
+  because it showed only percentage-point contributors. Cloud Run executions `...1000-tc9mf` and `...1600-886tl`
+  both succeeded on master `1025f4a`; the Control ledger recorded `quality_status=pass` and `outcome=sent` for both
+  slots. This is an approved presentation/privacy contract correction, not a calculation or transport defect.
+- `WI-055-S01` repository evidence: focused report/transport/release tests passed 69; `bash scripts/check.sh quick`
+  passed during implementation and `bash scripts/check.sh full` passed 501 tests. A synthetic 1200x800 chart was
+  rendered and visually inspected. Tests verify exact amount/allocation reconciliation, allowlisted aliases, verified
+  owner destination, no internal ID in caption, content-hash-only ledger evidence, single `sendPhoto`, terminal
+  ambiguous-send sealing, finance-free same-image smoke and atomic legacy-off/v2-on release flags.
+- Production effects: none. No Telegram request, production DB write, Cloud Run/Scheduler/IAM/secret change, public
+  MCP activation or source call was performed by S01 repository verification.
 
 ## Closeout
 
 - Result: repository implementation, governance contracts and production deployment are verified; production use is
   `stabilizing` pending scheduled owner evidence.
 - Remaining risk: first production receipt and unavailable-message ergonomics require owner observation.
-- Follow-up Work Item: none identified.
+- Follow-up Work Item: release the verified S01 candidate through its protected same-image smoke and observe the next
+  scheduled owner receipt before accepting WI-055.
