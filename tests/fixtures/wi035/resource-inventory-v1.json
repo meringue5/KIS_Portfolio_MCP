@@ -1,0 +1,67 @@
+{
+  "schema_version": "kis-portfolio.resource-inventory/v1",
+  "observed_at": "2026-09-09T00:00:00Z",
+  "project_id": "fixture-project",
+  "regions": ["asia-northeast3"],
+  "complete": true,
+  "collection_errors": [],
+  "resources": [
+    {
+      "kind": "cloud_run_service",
+      "name": "kis-portfolio-remote",
+      "region": "asia-northeast3",
+      "state": "ready",
+      "labels": {"deploy-source": "github-actions", "git-sha": "1111111111111111111111111111111111111111"},
+      "image_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "configuration_sha256": "1010101010101010101010101010101010101010101010101010101010101010"
+    },
+    {
+      "kind": "cloud_run_job",
+      "name": "kis-portfolio-owned-core-v2-1000",
+      "region": "asia-northeast3",
+      "state": "ready",
+      "labels": {"deploy-source": "github-actions", "git-sha": "1111111111111111111111111111111111111111"},
+      "image_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "configuration_sha256": "2020202020202020202020202020202020202020202020202020202020202020"
+    },
+    {
+      "kind": "artifact_repository",
+      "name": "kis-portfolio",
+      "region": "asia-northeast3",
+      "state": "active",
+      "labels": {},
+      "image_digest": null,
+      "configuration_sha256": "3030303030303030303030303030303030303030303030303030303030303030"
+    }
+  ],
+  "artifact_versions": [
+    {
+      "repository": "kis-portfolio",
+      "package": "runtime",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tags": ["prod-current"],
+      "created_at": "2026-09-08T00:00:00Z"
+    },
+    {
+      "repository": "kis-portfolio",
+      "package": "runtime",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "tags": ["prod-previous", "rollback-20260901"],
+      "created_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "repository": "kis-portfolio",
+      "package": "runtime",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "tags": [],
+      "created_at": "2026-08-20T00:00:00Z"
+    },
+    {
+      "repository": "kis-portfolio",
+      "package": "runtime",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "tags": [],
+      "created_at": "2026-06-01T00:00:00Z"
+    }
+  ]
+}

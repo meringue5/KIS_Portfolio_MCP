@@ -23,6 +23,10 @@ immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP
 이 목표는 아직 현재 배포 절차를 바꾸지 않는다. build-once workflow, secret migration, Firestore
 provisioning과 connector cutover는 각각 별도 Work Item과 rollback evidence를 필요로 한다.
 
+Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
+contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply
+path; cleanup activation remains a separately approved production action.
+
 ## Remote MCP 인증
 
 remote resource server는 두 가지 모드를 지원한다.
