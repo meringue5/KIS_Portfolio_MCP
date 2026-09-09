@@ -1,7 +1,7 @@
 ---
 id: WI-035
 title: Complete production inventory cost and release cleanup guardrails
-status: in_progress
+status: verified
 type: maintenance
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -37,9 +37,9 @@ Registry cleanup remain separate delivery gaps.
 
 ## Acceptance criteria
 
-- [ ] inventory is reproducible without secrets; cost states and stop actions are deterministic.
-- [ ] cleanup cannot select active or rollback digests and has restore evidence.
-- [ ] release and full gates pass.
+- [x] inventory is reproducible without secrets; cost states and stop actions are deterministic.
+- [x] cleanup cannot select active or rollback digests and has restore evidence.
+- [x] release and full gates pass.
 
 ## Change impact
 
@@ -64,6 +64,10 @@ The implementation order is rollback/release manifest, deterministic cost guardr
 inventory, then a fail-closed cleanup dry-run planner. Any apply path remains blocked until the MS-003 production gate
 is satisfied and separately approved.
 
+The isolated implementation reached `verified` on 2026-09-09. Verification covers the versioned contracts, synthetic
+fixtures and local dry-run behavior only; it is not current production inventory, a production release manifest or
+cleanup authorization.
+
 ## Pre-research checkpoint
 
 `WI-035-S01` was a research-only sub-item. The parent `WI-035` remained `proposed` at that checkpoint, and the
@@ -84,9 +88,21 @@ database mutation, deploy/cleanup apply, code implementation and approved contra
 
 - `WI-035-S01` start checkpoint: 2026-08-30.
 - `docs/operations/wi-035-pre-research-2026-08.md`: closed read-only evidence and implementation inputs.
+- `src/kis_portfolio/platform/production_guardrails.py`: side-effect-free inventory/release validators, cost evaluator
+  and cleanup dry-run planner.
+- `scripts/production_guardrails.py`: review-only CLI with no apply command.
+- `tests/fixtures/wi035/`: synthetic v1 inventory, cost and release/rollback manifest evidence.
+- `tests/test_production_guardrails.py`: 18 focused tests covering schema safety, exact threshold boundaries,
+  stale/incomplete cost evidence, active/rollback/recent protection, digest mismatch and restore-evidence expiry.
+- `bash scripts/check.sh quick`: pass during implementation.
+- `bash scripts/check.sh full`: 493 passed on 2026-09-09; one upstream Authlib deprecation warning.
 
 ## Closeout
 
-- Result at the S01 checkpoint: parent proposed; `WI-035-S01` research closed without opening the MS-003 formal gate.
-- Remaining risk: current billing export granularity may remain limited.
-- Follow-up Work Item: WI-045.
+- Result: parent `verified`; repository implementation, fixtures and local verification complete with no production
+  effects. `WI-035-S01` remains closed research history.
+- Remaining risk: no fresh production inventory/release manifest was captured in this isolated phase; current billing
+  export granularity remains limited; cleanup apply is intentionally unavailable.
+- Production exit gate: after MS-002 closes, require fresh complete inventory, current target-specific rollback
+  manifest, in-window restore evidence, owner/release approval and a separately reviewed apply mechanism.
+- Follow-up Work Item: WI-045 consumes this readiness contract; production cleanup activation remains gated work.

@@ -311,8 +311,11 @@ def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None
     )
     work_item = target / f"docs/work-items/{filename}"
     work_item.write_text(
-        work_item.read_text(encoding="utf-8").replace(
-            "status: proposed", "status: in_progress", 1
+        re.sub(
+            r"(?m)^status: (?:proposed|ready|verified|stabilizing|closed)$",
+            "status: in_progress",
+            work_item.read_text(encoding="utf-8"),
+            count=1,
         ),
         encoding="utf-8",
     )
