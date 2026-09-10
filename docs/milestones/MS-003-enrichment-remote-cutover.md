@@ -1,6 +1,6 @@
 # MS-003 — Enrichment, stateless Remote MCP V2 and production cutover
 
-> 상태: ready; isolated overlap only
+> 상태: in_progress; continuous isolated overlap
 > 선행 milestone: MS-002
 > machine registry: `governance/project/milestones.toml`
 
@@ -38,9 +38,11 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 ## Implementation and production gates
 
-- implementation gate: MS-002가 최소 `stabilizing`이면 MS-003은 `ready`가 된다. 현재 조기 실행 allowlist는
-  WI-035와 WI-040뿐이며, 각 Work Item이 `execution_scope: isolated`, `production_effects: none`으로 활성화된
-  동안 repository implementation·fixture·local verification만 수행할 수 있다.
+- implementation gate: MS-002가 최소 `stabilizing`이면 MS-003은 `in_progress`로 전환한다. WI-046 cutover를
+  제외한 검토된 Work Item은 dependency가 최소 `verified`이고 현재 phase가 `execution_scope: isolated`,
+  `production_effects: none`인 동안 단일 `in_progress` 제한 아래 repository implementation·fixture·local
+  또는 inactive verification을 연속 수행해 `verified`까지 전진할 수 있다. WI-035와 WI-040은 이미
+  `verified`이며 다음 dependency-ready 구현 단위는 WI-037이다.
 - production gate: MS-002가 `closed`여야 migration, live DB write, external source activation, credential/IAM,
   Cloud Run/Scheduler, public MCP surface와 traffic cutover를 수행할 수 있다.
 - 안정화 중 발견된 rollback은 dependency를 역전시키지 않고 새 corrective Work Item의 append-only feedback
@@ -50,6 +52,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.19 | 2026-09-10 | Corrected the implementation gate to continuous dependency-ordered isolated overlap and moved MS-003 to in progress | WI identities and dependencies unchanged; production gate and cutover exclusion preserved |
 | 2026-09-09.18 | 2026-09-09 | Verified WI-040 six-kind catalog and bounded fail-closed Control read models with 12 focused and 518 full tests | synthetic local evidence only; no DDL, live DB, source, credential, infrastructure, schedule, public MCP or production effect |
 | 2026-09-09.17 | 2026-09-09 | Activated WI-040 under the allowlisted isolated overlap gate | repository DTO/query/fixture/local verification only; no production effects |
 | 2026-09-09.16 | 2026-09-09 | Verified WI-035 inventory, cost, release/rollback and cleanup dry-run contracts with 493 full tests | no production capture/apply/effects; production gate unchanged |

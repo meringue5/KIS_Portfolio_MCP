@@ -85,7 +85,8 @@ repository를 변경하거나 비사소한 버그·요구·incident를 분류하
 
 운영 증거를 모으는 항목은 `stabilizing`으로 표시한다. milestone dependency는 DAG로 유지하되 rollback과
 보정은 이력을 되감지 않고 `discovered_from`/`rollback_of`/`supersedes` 관계의 새 sub-item 또는 Work Item으로
-append한다. 선행 milestone 안정화 중 후속 구현은 registry의 isolated overlap gate만 허용하며 production
+append한다. 선행 milestone 안정화 중 후속 milestone은 `in_progress`로 전환해 registry의 reviewed
+continuous isolated-overlap Work Item을 dependency 순서대로 하나씩 `verified`까지 계속 진행한다. production
 migration·배포·source activation·public cutover는 선행 milestone `closed` 전까지 금지한다.
 
 Issue/Work Item은 추적 레코드이며 결정 SSOT가 아니다. 승인된 제품 요구는 `docs/requirements/`, 장기

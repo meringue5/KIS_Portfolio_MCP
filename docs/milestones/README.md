@@ -24,7 +24,7 @@ flowchart LR
     MSGOV["MS-GOV<br/>Project OS<br/>closed"]
     MS1["MS-001<br/>Canonical portfolio + managed collection<br/>closed"]
     MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>stabilizing"]
-    MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>ready / isolated overlap"]
+    MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>in progress / continuous isolated overlap"]
     MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>proposed"]
 
     MS1 --> MS2 --> MS3 --> MS4
@@ -33,6 +33,7 @@ flowchart LR
     MSGOV -. governs .-> MS4
 
     classDef closed fill:#d7f5df,stroke:#2d7a46,color:#173b24;
+    classDef verified fill:#e5f4ff,stroke:#0870a8,color:#123b72;
     classDef active fill:#fff1bf,stroke:#9a6b00,color:#4b3500;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     class MS1,MSGOV closed;
@@ -42,9 +43,11 @@ flowchart LR
 ```
 
 실선 화살표는 구조적 dependency DAG다. 실행 gate는 두 단계다. MS-002가 `stabilizing`이면 MS-003을
-`ready`로 두고 registry allowlist의 isolated 구현만 병행할 수 있다. MS-002가 `closed`가 되기 전에는
-production DB migration, source activation, Cloud Run/Scheduler 변경, public MCP activation과 cutover를
-할 수 없다. rollback은 실선을 역방향으로 연결하지 않고 append-only feedback edge로 기록한다.
+`in_progress`로 열고, registry에서 검토된 Work Item을 dependency 순서와 단일 `in_progress` 제한 아래
+repository 구현·fixture·local 또는 inactive 검증까지 연속 진행한다. 각 구현 단위는 `verified`까지 전진할
+수 있지만 MS-002가 `closed`가 되기 전에는 production DB migration, live source activation,
+Cloud Run/Scheduler 변경, public MCP activation과 cutover를 할 수 없다. rollback은 실선을 역방향으로
+연결하지 않고 append-only feedback edge로 기록한다.
 
 ## 완료된 기반에서 현재 위치까지
 
@@ -126,8 +129,9 @@ flowchart LR
 - `WI-000`~`WI-008`은 현재 milestone registry가 도입되기 전 Project OS, architecture, Data Governance,
   source inventory, V2 foundation과 V1→V2 전환을 만든 bootstrap/history다. 현재 실행순서를 결정하지 않으므로
   위 제품 dependency graph에는 넣지 않았고, 상태와 증거는 각 Work Item과 `docs/traceability.md`에 보존한다.
-- MS-GOV 경로는 `WI-018 → WI-031 → WI-034 → WI-052 → WI-053 → WI-056`이며 모두 닫혔다. WI-056이
-  lifecycle과 overlap/recovery gate를 MS-002/MS-003에 dogfood했다. 이 경로가 milestone
+- MS-GOV 경로는 `WI-018 → WI-031 → WI-034 → WI-052 → WI-053 → WI-056 → WI-057`이며 모두 닫혔다.
+  WI-056이 lifecycle과 overlap/recovery gate를 MS-002/MS-003에 dogfood했고 WI-057이 이를 continuous,
+  phase-aware overlap으로 바로잡았다. 이 경로가 milestone
   identity, MS-003/004 baseline, 잔여 delivery ownership과 ETF 초기 V2 제외 결정, 이 dependency map을
   만들었다.
 - 따라서 `docs/work-items/`에 파일이 있지만 그래프에 없는 번호가 곧 누락 작업을 뜻하지는 않는다.
@@ -151,7 +155,7 @@ flowchart TB
     end
 
     subgraph M3["MS-003 — enrichment, Remote MCP V2, cutover"]
-        M3OPEN{"MS-003<br/>implementation gate<br/>ready"}
+        M3OPEN{"MS-003<br/>implementation gate<br/>in progress"}
         W35["WI-035<br/>operations / cost / release"]
         W37["WI-037<br/>filing + fundamental facts"]
         W38["WI-038<br/>dividend ledger"]
@@ -212,7 +216,7 @@ flowchart TB
     class W29,W30 active;
     class W54 closed;
     class W55 active;
-    class W35,W40 ready;
+    class W35,W40 verified;
     class W37,W38,W39,W41,W42,W43,W44,W45,W46,W47,W48,W49,W50,W51,W32 proposed;
     class M2DONE,M3OPEN gate;
 ```
@@ -224,8 +228,8 @@ flowchart TB
 | 계속 자동 진행 | `WI-029-S05/S06`: 2026-09-14까지 corrected DB-only shadow 증적 축적 |
 | 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
-| 다음 격리 구현 | 한 번에 하나의 `WI-035` 또는 `WI-040`; 활성화 시 overlap metadata와 scope 재확인 |
-| MS-003 격리 구현 | registry allowlist의 `WI-035`, `WI-040`; 활성화 시 isolated scope와 production effects none 필수 |
+| 다음 격리 구현 | dependency-ready인 `WI-037`; 활성화 시 overlap metadata와 scope 재확인 |
+| MS-003 격리 구현 | registry의 reviewed continuous-overlap 목록을 dependency 순서대로 한 번에 하나씩 진행; isolated scope와 production effects none 필수 |
 | MS-002 종료 전 불가 | MS-003 production DB migration·source activation·Cloud Run/Scheduler·public MCP·cutover |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 

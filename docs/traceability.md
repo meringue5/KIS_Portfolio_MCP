@@ -7,6 +7,7 @@
 
 | Requirement / feedback | Decision | Work Item | Implementation artifacts | Verification / evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| 선행 milestone 안정화와 후속 milestone 구현 검증을 지속적으로 병행하고 closure는 production effect에만 요구 | owner clarification of approved stabilization intent | WI-057 discovered from WI-056 | Project OS policy, phase-aware milestone registry, checker, Skill and graph correction | 21 focused + 521 full passed; MS-003 in progress and WI-037 positive fixture | closed |
 | owner 개인 총자산 리포트에 정확한 총액·증감액, alias 구성과 절대 영향 Top 5 차트를 제공하고 식별자·본문 로그는 숨김 | DEC-055 supersedes DEC-054 presentation/privacy boundary | WI-055-S01/S02/S03 | presentation 2.1.0, deterministic allocation/diverging-impact PNG, terminal owner-report ledger, same-image photo smoke and atomic release/rollback guard | PR #62/master `46b6e74`; deploy `34339178599`; smoke `...9hv7s`; three Jobs `b7c82ed0...41c9a` | S01/S03 stabilizing; S02 closed; next owner receipt pending |
 | 구현 완료 뒤 실사용 안정화를 별도 상태로 관리하고 rollback·보정 loop와 milestone 병행 gate를 통제 | owner-approved Project OS lifecycle revision | WI-056 | Project OS policy, schema-v2 milestone registry, shared checker, template, Skill and dependency map | focused 18/full 475; positive loop dogfood and negative gate fixtures; no runtime/data/deployment mutation | closed |
 | 오전 10시·오후 4시 총자산 변화와 보유종목 절대 영향 Top 5를 owner-only photo report로 수신 | DEC-054/055 | WI-055 | exact same-slot V2 reader, exact amount/allocation caption and deterministic Top 5 impact chart | S03 image `b7c82ed0...41c9a` deployed by run `34339178599` after photo smoke | stabilizing; next production-value receipt and owner acceptance pending |
@@ -112,7 +113,7 @@
 | GOV-007 | 계약 변경은 사용자 승인 뒤 반영하고, 구현에 맞춘 silent widening을 금지한다. | owner |
 | GOV-008 | Project OS 자체 변경도 Work Item과 dogfood 검증을 거친다. | owner / maintainer |
 | GOV-009 | 구현 검증 뒤 시간축 운영 증거가 필요한 작업과 milestone은 `stabilizing`으로 관리한다. | owner / maintainer |
-| GOV-010 | 선행 milestone 안정화 중 후속 작업은 allowlisted isolated scope만 허용하고 production effect는 선행 `closed`까지 막는다. | maintainer / CI |
+| GOV-010 | 선행 milestone 안정화 중 후속 milestone은 `in_progress`로 열고 reviewed Work Item을 dependency 순서와 단일 WIP 아래 isolated 검증까지 연속 진행하며, production effect는 선행 `closed`까지 막는다. | maintainer / CI |
 | GOV-011 | 구조적 dependency는 DAG로 유지하며 rollback/recovery는 append-only feedback 관계와 새 corrective work로 기록한다. | owner / maintainer |
 | GOV-012 | `closed`는 stabilization exit evidence와 필요한 owner acceptance가 충족된 뒤에만 허용한다. | owner |
 

@@ -44,6 +44,10 @@ Also read:
 - If another Work Item is already `in_progress`, finish, block or explicitly supersede it before starting implementation.
 - Keep `depends_on` acyclic. Represent rollback and correction as an append-only sub-item or Work Item connected by
   `discovered_from`, `rollback_of` or `supersedes`; do not erase evidence or rewind milestone history.
-- While a predecessor milestone is `stabilizing`, start only an allowlisted overlap Work Item whose current
-  `execution_scope` is `isolated` and `production_effects` is `none`. Deployment, migration, source activation,
-  public-surface activation and cutover wait for the production gate.
+- While a predecessor milestone is `stabilizing`, continue the successor milestone one Work Item at a time through
+  the reviewed continuous-overlap allowlist. The active phase requires satisfied Work Item dependencies,
+  `execution_scope: isolated` and `production_effects: none`; verified repository work may feed the next Work Item.
+  Deployment, migration, source activation, public-surface activation and cutover wait for the production gate.
+- Treat `execution_scope` and `production_effects` as current-phase metadata. A potential production outcome does not
+  block its isolated implementation phase, but no Work Item status may declare or execute production effects before
+  the milestone production gate is satisfied.

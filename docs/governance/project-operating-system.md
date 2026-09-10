@@ -183,15 +183,28 @@ Milestone 상태는 `proposed → ready → in_progress → stabilizing → clos
 state다. milestone에는 구조적 `depends_on`과 별도로 각 dependency를 정확히 한 번 포함하는 두 gate가 있다.
 
 - `implementation_gate`: 선행 milestone이 최소 `stabilizing`이면 후속 milestone을 `ready`로 만들 수 있다.
-  이때 실행 가능한 것은 `overlap_work_item_ids`에 등록되고 `execution_scope: isolated`,
-  `production_effects: none`인 Work Item뿐이다.
+  후속 milestone은 첫 구현 Work Item이 시작되면 `in_progress`로 전환하고, 선행 milestone의 안정화가 끝날
+  때까지 멈추지 않고 dependency 순서에 따라 격리 구현·fixture·local 또는 production-equivalent 비활성
+  검증을 계속한다. 한 번에 하나의 구현 Work Item만 `in_progress`일 수 있다.
+- `overlap_mode = "continuous_isolated"`: `overlap_work_item_ids`는 단발성 예외가 아니라 production gate가
+  닫힌 동안 격리 단계로 진행할 수 있는 현재 milestone의 reviewed phase allowlist다. 각 Work Item은 활성화
+  시점의 `execution_scope: isolated`, `production_effects: none`을 가져야 하며 dependency Work Item은 최소
+  `verified`여야 한다. repository 검증이 끝난 Work Item은 `verified`에 둘 수 있고, 후속 dependency는 이를
+  구현 입력으로 사용할 수 있다.
 - `production_gate`: 선행 milestone이 `closed`여야 production DB migration, external source activation,
   Scheduler/Cloud Run 변경, public MCP surface, traffic cutover, destructive cleanup을 실행할 수 있다.
 
 후속 milestone이 `stabilizing` 또는 `closed`가 되려면 production gate도 충족해야 한다. overlap allowlist는
-작업 outcome 전체의 조기 production 권한이 아니라 현재 격리 구현 단계만 승인하며, production effect로
-전환할 때 frontmatter와 registry를 갱신해 gate를 다시 통과해야 한다. `blocked`인 선행 milestone은 gate
-진전으로 계산하지 않는다.
+작업 outcome 전체의 조기 production 권한이 아니라 현재 격리 구현 단계만 승인한다. `execution_scope`와
+`production_effects`는 Work Item 전체의 잠재 영향이 아니라 **현재 실행 단계**를 나타낸다. production
+gate가 열린 뒤 실제 effect를 시작할 때 frontmatter와 증거를 갱신하며, 이미 `verified`인 구현은 승인된
+release/migration 뒤 `stabilizing`으로 진행할 수 있다. checker는 production gate가 닫혀 있는 동안 모든
+상태의 Work Item에서 명시된 production effect를 거부한다. `blocked`인 선행 milestone은 gate 진전으로
+계산하지 않는다.
+
+지속적 overlap은 Work Item dependency를 완화하지 않는다. 선행 Work Item이 `proposed`, `ready`,
+`in_progress`, `blocked` 또는 `rejected`이면 그에 의존하는 구현은 시작할 수 없다. 안정화 중 선행 기능의
+중대한 결함이 발견되면 append-only recovery 작업이 우선하며 필요하면 후속 구현을 `blocked`로 전환한다.
 
 ## 7. Change Set 계약
 

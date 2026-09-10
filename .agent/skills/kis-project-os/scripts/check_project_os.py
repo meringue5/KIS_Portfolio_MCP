@@ -80,6 +80,8 @@ FEEDBACK_RELATIONSHIP_FIELDS = {
     "rollback_of",
 }
 VALID_GATE_STATUSES = {"stabilizing", "closed"}
+VALID_OVERLAP_MODES = {"none", "continuous_isolated"}
+IMPLEMENTATION_DEPENDENCY_STATUSES = {"verified", "stabilizing", "closed"}
 
 
 def parse_frontmatter(path: Path) -> tuple[dict[str, str], str]:
@@ -238,6 +240,19 @@ def check_milestone_registry(
         if not isinstance(overlap_ids, list):
             errors.append(
                 f"{path.relative_to(root)}: {milestone_id} overlap_work_item_ids must be an array"
+            )
+        overlap_mode = milestone.get("overlap_mode")
+        if overlap_mode not in VALID_OVERLAP_MODES:
+            errors.append(
+                f"{path.relative_to(root)}: {milestone_id} invalid overlap_mode {overlap_mode!r}"
+            )
+        if overlap_mode == "none" and overlap_ids:
+            errors.append(
+                f"{path.relative_to(root)}: {milestone_id} overlap_mode=none requires an empty allowlist"
+            )
+        if overlap_mode == "continuous_isolated" and dependencies and not overlap_ids:
+            errors.append(
+                f"{path.relative_to(root)}: {milestone_id} continuous overlap requires reviewed Work Items"
             )
         if milestone.get("status") == "stabilizing":
             exit_ids = milestone.get("stabilization_exit_work_item_ids")
@@ -458,14 +473,8 @@ def check_milestone_registry(
 
     for item_id, item in item_by_id.items():
         fields = work_item_fields.get(item_id, {})
-        if fields.get("status") != "in_progress":
-            continue
         milestone_id = item.get("milestone_id", "")
         milestone = milestone_by_id.get(milestone_id, {})
-        if milestone.get("status") not in {"in_progress", "ready"}:
-            errors.append(
-                f"{item_id}: in_progress requires milestone {milestone_id} to be ready or in_progress"
-            )
         production_gate_satisfied = True
         for requirement in milestone.get("production_gate", []):
             if not isinstance(requirement, dict):
@@ -479,8 +488,31 @@ def check_milestone_registry(
                 or MILESTONE_STATUS_RANK[actual_status] < MILESTONE_STATUS_RANK[minimum_status]
             ):
                 production_gate_satisfied = False
+        production_effects = fields.get("production_effects")
+        if not production_gate_satisfied and production_effects not in {None, "none"}:
+            errors.append(
+                f"{item_id}: production gate is not satisfied and forbids production_effects="
+                f"{production_effects}"
+            )
+        if fields.get("status") != "in_progress":
+            continue
+        if milestone.get("status") not in {"in_progress", "ready"}:
+            errors.append(
+                f"{item_id}: in_progress requires milestone {milestone_id} to be ready or in_progress"
+            )
+        for dependency_id in item.get("depends_on", []):
+            dependency_status = work_item_fields.get(dependency_id, {}).get("status")
+            if dependency_status not in IMPLEMENTATION_DEPENDENCY_STATUSES:
+                errors.append(
+                    f"{item_id}: implementation dependency {dependency_id} must be verified, "
+                    f"stabilizing or closed; got {dependency_status or '<missing>'}"
+                )
         if not production_gate_satisfied:
             overlap_ids = milestone.get("overlap_work_item_ids", [])
+            if milestone.get("overlap_mode") != "continuous_isolated":
+                errors.append(
+                    f"{item_id}: unsatisfied production gate requires continuous_isolated overlap mode"
+                )
             if item_id not in overlap_ids:
                 errors.append(
                     f"{item_id}: production gate is not satisfied and Work Item is not approved "
