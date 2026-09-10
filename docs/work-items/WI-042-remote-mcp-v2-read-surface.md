@@ -1,7 +1,7 @@
 ---
 id: WI-042
 title: Implement the stateless Remote MCP V2 read surface
-status: in_progress
+status: verified
 type: architecture
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -35,9 +35,9 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Acceptance criteria
 
-- [ ] approved tool budget, scopes, replicas and compatibility tests pass.
-- [ ] handlers delegate to application queries and preserve quality/lineage.
-- [ ] remote, security, cost and full gates pass.
+- [x] approved tool budget, scopes, local replica-equivalent and protocol compatibility fixtures pass.
+- [x] handlers delegate to application queries and preserve quality/lineage.
+- [x] remote, security, cost and full gates pass.
 
 ## Change impact
 
@@ -59,6 +59,11 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
   typed read DTOs/application ports, request-scoped authorization, deterministic fixtures and local verification.
 - Activation does not authorize the V2 public endpoint, OAuth grant expansion, Cloud Run/IAM/Secret changes, live
   DB or KIS calls, deployment, traffic, client cutover or V1 retirement.
+- `docs/operations/wi-042-isolated-verification-2026-09.md`: exact 15-read catalog, typed query port and envelope,
+  request-scoped scope/resource enforcement, sensitive-field suppression, official stateless JSON transport and
+  independent local transport evidence.
+- Focused WI-042 suite passed 19; Remote/OAuth/governance/cost integration passed 136; full gate passed 575 with one
+  existing third-party Authlib deprecation warning. V1 remains 35 tools and the V2 module is not runtime-activated.
 
 - `docs/operations/wi-042-s01-remote-read-surface-audit-2026-09.md`: exact 35-to-18 migration grouping, current
   endpoint-wide read scope gap, parallel V2 builder, request actor, official stateless transport and implementation
@@ -69,6 +74,6 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Closeout
 
-- Result: parent in progress under the MS-003 isolated-overlap gate; S01 research remains closed.
+- Result: parent verified in isolated scope; S01 research remains closed. No production effect occurred.
 - Remaining risk: real client behavior belongs to WI-044.
 - Follow-up Work Item: WI-043.
