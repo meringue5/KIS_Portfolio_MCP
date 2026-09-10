@@ -1,7 +1,7 @@
 ---
 id: WI-042
 title: Implement the stateless Remote MCP V2 read surface
-status: proposed
+status: verified
 type: architecture
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0601, V2-W0602, V2-W0603
 parent_work_item: none
 depends_on: WI-030, WI-040, WI-041
+execution_scope: isolated
+production_effects: none
 architecture_impact: implements approved stateless transport and 18-tool public boundary
 data_impact: governed query DTOs only
 security_impact: mcp:read scope and bearer validation
@@ -33,9 +35,9 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Acceptance criteria
 
-- [ ] approved tool budget, scopes, replicas and compatibility tests pass.
-- [ ] handlers delegate to application queries and preserve quality/lineage.
-- [ ] remote, security, cost and full gates pass.
+- [x] approved tool budget, scopes, local replica-equivalent and protocol compatibility fixtures pass.
+- [x] handlers delegate to application queries and preserve quality/lineage.
+- [x] remote, security, cost and full gates pass.
 
 ## Change impact
 
@@ -52,6 +54,17 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Evidence
 
+- 2026-09-11 isolated activation: dependencies are at least verified/stabilizing, MS-003 is in continuous isolated
+  overlap, and no other implementation Work Item is in progress. This phase is limited to the parallel V2 builder,
+  typed read DTOs/application ports, request-scoped authorization, deterministic fixtures and local verification.
+- Activation does not authorize the V2 public endpoint, OAuth grant expansion, Cloud Run/IAM/Secret changes, live
+  DB or KIS calls, deployment, traffic, client cutover or V1 retirement.
+- `docs/operations/wi-042-isolated-verification-2026-09.md`: exact 15-read catalog, typed query port and envelope,
+  request-scoped scope/resource enforcement, sensitive-field suppression, official stateless JSON transport and
+  independent local transport evidence.
+- Focused WI-042 suite passed 19; Remote/OAuth/governance/cost integration passed 136; full gate passed 575 with one
+  existing third-party Authlib deprecation warning. V1 remains 35 tools and the V2 module is not runtime-activated.
+
 - `docs/operations/wi-042-s01-remote-read-surface-audit-2026-09.md`: exact 35-to-18 migration grouping, current
   endpoint-wide read scope gap, parallel V2 builder, request actor, official stateless transport and implementation
   gate inputs.
@@ -61,7 +74,6 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Closeout
 
-- Result: parent proposed; S01 research closed. This is the last planned MS-003 pre-research checkpoint before MS-002
-  close; subsequent implementation remains dependency-gated.
+- Result: parent verified in isolated scope; S01 research remains closed. No production effect occurred.
 - Remaining risk: real client behavior belongs to WI-044.
 - Follow-up Work Item: WI-043.
