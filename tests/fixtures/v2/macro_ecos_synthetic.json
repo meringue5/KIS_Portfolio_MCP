@@ -1,0 +1,26 @@
+{
+  "fixture_only": true,
+  "source": "Bank of Korea ECOS synthetic contract fixture",
+  "observations": [
+    {
+      "STAT_CODE": "901Y009",
+      "CYCLE": "M",
+      "ITEM_CODE1": "0",
+      "TIME": "202608",
+      "DATA_VALUE": "115.20",
+      "unit": "index 2020=100",
+      "frequency": "monthly",
+      "seasonal_adjustment": "not-seasonally-adjusted"
+    },
+    {
+      "STAT_CODE": "901Y009",
+      "CYCLE": "M",
+      "ITEM_CODE1": "0",
+      "TIME": "202608",
+      "DATA_VALUE": "115.30",
+      "unit": "index 2020=100",
+      "frequency": "monthly",
+      "seasonal_adjustment": "not-seasonally-adjusted"
+    }
+  ]
+}
