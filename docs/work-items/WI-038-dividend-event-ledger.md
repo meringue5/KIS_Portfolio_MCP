@@ -1,7 +1,7 @@
 ---
 id: WI-038
 title: Build declared entitled and received dividend ledger
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, ADR-026
@@ -14,6 +14,8 @@ architecture_impact: ADR-026 approved; separate action entitlement and cash rece
 data_impact: append-only dividend states and reconciliation links
 security_impact: account-level received amounts remain confidential
 cost_impact: bounded filing and account-history processing
+execution_scope: isolated
+production_effects: none
 ---
 
 # WI-038 — Build declared entitled and received dividend ledger
@@ -45,6 +47,17 @@ reconciled to positions and cash events.
 ## Plan
 
 1. Freeze state transitions. 2. Implement reconciliation. 3. Verify account/source gaps.
+
+## Isolated implementation checkpoint — 2026-09-10
+
+- Activated after WI-037 reached `verified` under the MS-003 continuous isolated-overlap gate.
+- This phase is limited to additive migration 0015, repository code, safe fixtures, local DuckDB verification,
+  backup/restore and reconciliation evidence.
+- Production DB migration, live DB writes, source activation or calls, credentials/IAM, Cloud Run/Scheduler,
+  public MCP/Telegram activation, cleanup and cutover remain prohibited.
+- Exit line: action, account entitlement and reversible receipt-link revisions preserve cash-event monetary SSOT;
+  monthly native/FX read models reproduce from local fixtures; fresh migration, fail-closed legacy preflight and
+  restore checks pass.
 
 ## Sub-items
 

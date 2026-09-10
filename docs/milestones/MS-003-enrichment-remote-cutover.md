@@ -15,7 +15,7 @@
 | ---: | --- | --- | --- | --- |
 | 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | verified; isolated contracts/fixtures/local dry-run only; production inventory and cleanup apply remain gated |
 | 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | verified; additive 0014, dual-clock revision repository, safe fixtures, budget/quality and fresh restore complete; contracts approved-inactive, production effects none |
-| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
+| 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | in progress; isolated migration/repository/fixture/local recovery only; production effects none |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01~S04 closed; ADR-027 and 23 new approved-inactive macro contracts adopted; implementation/formal gate unchanged |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | verified; internal DTO/query and synthetic local evidence complete; contracts remain inactive and public MCP/production effects stay gated |
 | 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
@@ -52,6 +52,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.22 | 2026-09-10 | Activated WI-038 after WI-037 under continuous dependency-ready isolated overlap | additive 0015, repository, fixtures and local recovery only; no source, credential, live DB, infrastructure, schedule or public effect |
 | 2026-09-10.21 | 2026-09-10 | Verified WI-037 additive filing revision pipeline with 15 focused and 532 full tests | local fixture/migration/recovery evidence only; no source, credential, live DB, infrastructure, schedule or public effect |
 | 2026-09-10.20 | 2026-09-10 | Activated WI-037 after WI-057 under continuous dependency-ready isolated overlap | migration code, repository, safe fixtures and local verification only; no source/live DB/credential/schedule/public effect |
 | 2026-09-10.19 | 2026-09-10 | Corrected the implementation gate to continuous dependency-ordered isolated overlap and moved MS-003 to in progress | WI identities and dependencies unchanged; production gate and cutover exclusion preserved |
