@@ -113,7 +113,7 @@
 | GOV-007 | 계약 변경은 사용자 승인 뒤 반영하고, 구현에 맞춘 silent widening을 금지한다. | owner |
 | GOV-008 | Project OS 자체 변경도 Work Item과 dogfood 검증을 거친다. | owner / maintainer |
 | GOV-009 | 구현 검증 뒤 시간축 운영 증거가 필요한 작업과 milestone은 `stabilizing`으로 관리한다. | owner / maintainer |
-| GOV-010 | 선행 milestone 안정화 중 후속 작업은 allowlisted isolated scope만 허용하고 production effect는 선행 `closed`까지 막는다. | maintainer / CI |
+| GOV-010 | 선행 milestone 안정화 중 후속 milestone은 `in_progress`로 열고 reviewed Work Item을 dependency 순서와 단일 WIP 아래 isolated 검증까지 연속 진행하며, production effect는 선행 `closed`까지 막는다. | maintainer / CI |
 | GOV-011 | 구조적 dependency는 DAG로 유지하며 rollback/recovery는 append-only feedback 관계와 새 corrective work로 기록한다. | owner / maintainer |
 | GOV-012 | `closed`는 stabilization exit evidence와 필요한 owner acceptance가 충족된 뒤에만 허용한다. | owner |
 

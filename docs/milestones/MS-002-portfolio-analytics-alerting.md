@@ -73,8 +73,10 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 - exit Work Item은 WI-029, WI-030, WI-055다. 각자의 관찰창과 owner acceptance가 충족돼야 milestone을 닫는다.
 - 중대한 결함이면 해당 경로를 비활성화하거나 마지막 안전 image로 복원한다. 기존 상태·run·release는
   지우지 않고 새 corrective sub-item/Work Item을 append해 재검증·재안정화한다.
-- 이 기간 MS-003은 `ready`지만 WI-035와 WI-040의 `isolated` 구현만 병행 가능하다. production DB migration,
-  source activation, Cloud Run/Scheduler 변경, public MCP와 cutover는 MS-002가 `closed`일 때까지 금지한다.
+- 이 기간 MS-003은 `in_progress`이며 registry에서 검토된 Work Item을 dependency 순서와 단일
+  `in_progress` 제한 아래 `isolated` 구현·fixture·local 또는 inactive verification까지 연속 진행할 수
+  있다. production DB migration, live source activation, Cloud Run/Scheduler 변경, public MCP와 cutover는
+  MS-002가 `closed`일 때까지 금지한다.
 
 ## Known work outside this baseline
 
@@ -85,6 +87,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.3 | 2026-09-10 | Corrected the successor gate to continuous isolated MS-003 implementation while this milestone stabilizes | MS-002 exit evidence and production close gate unchanged |
 | 2026-09-09.2 | 2026-09-09 | owner 요청에 따라 총자산 변동 절대 영향 Top 5를 기여액·%p 양방향 infographic으로 보강 | parent와 release 이력 불변; WI-055-S03 append, repository stage production effects none |
 | 2026-09-09.1 | 2026-09-09 | 첫 10:00/16:00 실사용에서 정보가치가 거부되어 DEC-055와 WI-055-S01로 총액·alias 구성·chart 표시 경계를 보정 | parent와 실행 이력 불변; corrective sub-item append, production effects none |
 | 2026-09-08.2 | 2026-09-08 | WI-056 lifecycle을 dogfood해 MS-002와 WI-029/030/055를 stabilizing으로 재기준선화 | ID/dependency 불변; exit set과 append-only rollback feedback만 명시 |

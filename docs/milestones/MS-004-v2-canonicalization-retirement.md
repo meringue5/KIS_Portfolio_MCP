@@ -23,6 +23,14 @@ V2 cutover 뒤 V1 runtime·data consumer·문서 잔존물을 검증 가능한 �
 WI-032는 문서 정본화 outcome만 소유하며 live resource 삭제를 자동으로 포함하지 않는다. 실제 resource
 cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변경 승인 아래에서만 수행한다.
 
+## Implementation and production gates
+
+- implementation gate: MS-003가 최소 `stabilizing`이면 MS-004를 `in_progress`로 열 수 있다. registry에서
+  검토된 Work Item은 dependency 순서와 단일 `in_progress` 제한 아래 repository 구현·fixture·local 또는
+  inactive verification을 연속 수행해 `verified`까지 전진할 수 있다.
+- production gate: MS-003가 `closed`이기 전에는 public V1 surface retirement, compatibility migration,
+  runtime resource cleanup, canonical production switch와 final cutover effect를 수행할 수 없다.
+
 ## Acceptance gate
 
 - V2-W0801~0806의 retirement/audit evidence와 MS-003 cutover evidence가 닫혀 있다.
@@ -36,5 +44,6 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.3 | 2026-09-10 | Added continuous isolated implementation overlap at MS-003 stabilizing while preserving MS-003 closed for retirement and cleanup effects | Work Item identities and dependencies unchanged |
 | 2026-08-28.2 | 2026-08-28 | V2-W0801~0806을 WI-047~051로 배정하고 WI-032를 최종 문서 gate로 연결 | 신규 WI append; WI-032 identity 불변 |
 | 2026-08-28.1 | 2026-08-28 | final MS-004와 WI-032 문서 정본화 작업을 최초 기준선화 | 기존 WI 변경 없음; WI-032 신규 발급 |
