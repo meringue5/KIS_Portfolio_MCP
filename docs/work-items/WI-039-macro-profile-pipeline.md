@@ -1,7 +1,7 @@
 ---
 id: WI-039
 title: Build the governed macro profile pipeline
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, ADR-027
@@ -35,9 +35,9 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 
 ## Acceptance criteria
 
-- [ ] vintage replay excludes later revisions and preserves units/frequency.
-- [ ] license, call budget, freshness, backup and full gates pass.
-- [ ] missing observations remain explicit.
+- [x] vintage replay excludes later revisions and preserves units/frequency.
+- [x] license, call budget, freshness, backup and full gates pass.
+- [x] missing observations remain explicit.
 
 ## Change impact
 
@@ -87,13 +87,19 @@ backup/restore and stop at `verified`; source and schedule activation remain pro
 ## Evidence
 
 - `docs/operations/wi-039-pre-research-2026-09.md`
+- `docs/operations/wi-039-s02-contract-design-2026-09.md`
+- `docs/operations/wi-039-s03-ecos-source-sampling-2026-09.md`
+- `docs/operations/wi-039-s04-contract-adoption-2026-09.md`
+- `docs/operations/wi-039-isolated-verification-2026-09.md`
 - `bash scripts/check.sh quick`
+- `bash scripts/check.sh full`
 
 ## Closeout
 
-- Result: parent remains proposed; `WI-039-S01` research-only checkpoint closed.
-- Remaining risk: exact ECOS identity, profile-scope reconciliation, rights and heterogeneous source revision contract.
-- Follow-up Work Item: formal WI-039 contract hardening after owner review.
+- Result: `verified` in isolated scope with no production effects.
+- Remaining production gate: migration application, live source data, credential, schedule, deployment and consumer
+  activation remain prohibited until MS-002 closes and a separately approved release is executed.
+- Follow-up Work Item: dependency-ready WI-041; future WI-039 production activation stays a release-gated operation.
 
 ## Contract design checkpoint — 2026-09-02
 
@@ -139,3 +145,21 @@ backup/restore and stop at `verified`; source and schedule activation remain pro
 - Result: `WI-039-S04` is closed. Parent `WI-039` and MS-003 remain proposed; implementation and every external or
   production mutation remain gated. No DDL, DB, credential, infrastructure, source call, schedule, deployment or MCP
   activation occurred.
+
+## Isolated implementation verification — 2026-09-10
+
+- The exact 17 approved-inactive series project into immutable Control definitions. Unknown series and source calls
+  fail closed before any I/O.
+- Additive migration 0016 adds an append-only heterogeneous revision ledger, current/system-as-of projections and an
+  immutable Gold profile snapshot. A non-empty legacy foundation aborts migration without adopting or deleting rows.
+- Synthetic FRED/ALFRED fixtures preserve provider vintage intervals. Synthetic ECOS fixtures append observed-content
+  revisions without fabricating provider realtime intervals; retrospective source-as-of is therefore unavailable and
+  labeled rather than silently substituted.
+- Missing provider markers remain null with an explicit reason. Five approved Decimal metrics have deterministic
+  missing/denominator and regime boundary behavior.
+- Routine/backfill physical-call ceilings, ten-page partition caps, 80% capacity review thresholds, hard stop lines,
+  passing-quality-only watermarks and monotonic cursor checks are implemented as inactive planning guards.
+- Governed Parquet export and fresh local DuckDB restore reproduce the new tables and compile both macro views.
+- Evidence: `docs/operations/wi-039-isolated-verification-2026-09.md`.
+- Result: parent `WI-039` is `verified` in `execution_scope: isolated`, `production_effects: none`. No production DB,
+  source, credential, infrastructure, schedule, public MCP, Telegram, cleanup or cutover effect occurred.
