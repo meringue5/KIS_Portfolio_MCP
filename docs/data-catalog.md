@@ -104,6 +104,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `silver.cash_flow_event_amount_components` | source가 실제 제공한 gross/tax/net component revision; 현금액 SSOT는 계속 `cash_flow_events` | Parquet / confidential |
 | `silver.macro_observations` | ADR-027 이전 빈 foundation; migration 0016이 0행을 preflight하고 자동 변환·삭제하지 않음 | Parquet / internal |
 | `silver.macro_observation_revisions`, `silver.macro_observations_current`, `silver.macro_observations_as_of` | exact series/period의 provider-vintage 또는 observed-content immutable revision과 latest/knowledge-interval projection | Parquet table + rebuild views / internal |
+| `silver.alpha_vantage_consensus_forward_snapshots`, `silver.alpha_vantage_consensus_forward_latest` | owner-only 미국 직접주식의 provider forecast date/metric/horizon/fetched-at normalized snapshot과 latest projection; raw payload·provider message·historical provider PIT 주장 제외 | Parquet table + rebuild view / restricted |
 | `silver.owner_research_extractions` | document/extractor/version/revision/page·section locator | private object / restricted |
 
 ### V2 Gold and Control
@@ -134,7 +135,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.macro_series_definitions` | exact macro series contract/version/hash, native metadata, rights, attribution과 inactive activation state | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 100개 V2 object는 74 tables + 26 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 102개 V2 object는 75 tables + 27 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.
