@@ -36,9 +36,9 @@ reconciled to positions and cash events.
 
 ## Acceptance criteria
 
-- [ ] state gaps and corrections remain explicit and reversible.
-- [ ] cash and filing reconciliation, restore and full gates pass.
-- [ ] monthly history and change can be reproduced.
+- [x] state gaps and corrections remain explicit and reversible.
+- [x] cash and filing reconciliation, restore and full gates pass.
+- [x] monthly history and change can be reproduced.
 
 ## Change impact
 
