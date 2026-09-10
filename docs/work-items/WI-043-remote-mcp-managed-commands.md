@@ -1,7 +1,7 @@
 ---
 id: WI-043
 title: Add governed collection and journal commands to Remote MCP V2
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-023
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0604, V2-W0605
 parent_work_item: none
 depends_on: WI-024, WI-042
+execution_scope: isolated
+production_effects: none
 architecture_impact: implements approved collect and journal scopes without adding order authority
 data_impact: managed run requests and append-only journal/thread revisions
 security_impact: mcp:collect and mcp:journal.write least-privilege scopes
@@ -52,10 +54,14 @@ arguments, SQL or order capability.
 
 ## Evidence
 
-- Pending.
+- 2026-09-11 isolated activation: WI-024 is closed, WI-042 is verified, MS-003 remains in continuous isolated
+  overlap and no other implementation Work Item is in progress. This phase is limited to typed command/application
+  ports, fixed-job and append-only revision fixtures, authorization/idempotency/concurrency tests and local gates.
+- Activation does not authorize OAuth grant expansion, actual Job execution, live DB writes, IAM/Secret or Cloud Run
+  changes, public V2 catalog activation, deployment, traffic cutover or external messages.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress under the MS-003 isolated-overlap gate.
 - Remaining risk: actual client flows belong to WI-044.
 - Follow-up Work Item: WI-044.
