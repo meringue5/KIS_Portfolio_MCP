@@ -120,12 +120,12 @@ work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032"]
 [[milestones]]
 id = "MS-GOV"
 title = "Project Operating System improvements"
-status = "closed"
+status = "in_progress"
 depends_on = []
 implementation_gate = []
 production_gate = []
 overlap_work_item_ids = []
-work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056"]
+work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056", "WI-057"]
 
 [[work_items]]
 id = "WI-009"
@@ -609,6 +609,19 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 6
+
+[[work_items]]
+id = "WI-057"
+identity = "continuous-milestone-overlap"
+title = "Make milestone overlap continuous and phase-aware"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-056"]
+discovered_from = ["WI-056"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 7
 
 [[subitems]]
 id = "WI-018-S01"
