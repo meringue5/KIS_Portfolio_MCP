@@ -105,7 +105,7 @@ the owner rejected its information value. Disabling only the report is therefore
   Job. No Scheduler, DB, IAM, Secret or public MCP resource was changed, and no production-value report was manually
   executed. The next scheduled owner receipt is the stabilization evidence.
 
-## WI-055-S04 repository and pending release manifest — 2026-09-10
+## WI-055-S04 release evidence — 2026-09-10
 
 - The 10:00 v2.1 report was reconciled and provider-sent; the owner confirmed client receipt and accepted its values,
   coverage and chart. Only caption structure was requested for correction.
@@ -115,6 +115,14 @@ the owner rejected its information value. Disabling only the report is therefore
   three-asset caption was visually reviewed.
 - The `wi055-s04` dry-run proved one build digest, finance-free photo smoke first, then the same image and atomic
   legacy-off/v2-on owner-only flags for all three fixed-slot Jobs under `wi055-s04-caption-layout`.
-- Production release remains pending. After merge and explicit approval, use only the protected `wi055-s04` target.
-  Do not manually replay a production-value slot. If client rendering regresses, preserve the attempt and restore S03
-  image `sha256:b7c82ed0...41c9a` or disable both report flags; Scheduler and portfolio data remain untouched.
+- The owner separately confirmed that the 16:00 pre-release v2.1 report was client-visible. PR #68 then merged the
+  structured caption as master `c1481b6`; its required CI passed before release.
+- Protected deploy run `34466281709` passed in 3m20s. It built image
+  `sha256:be069287...ddf9` once, then finance-free photo-smoke execution
+  `kis-portfolio-wi030-s03-gsplw` completed successfully in 10.57s before any core Job update.
+- Read-only verification confirmed all three fixed-slot core Jobs are `Ready=True` on that same image, with git SHA
+  `c1481b6`, GitHub run `34466281709`, deploy source `github-actions`, target
+  `wi055-s04-caption-layout`, legacy `false`, v2 `true`, owner approval `true` and `dest.owner.primary`.
+- No production-value slot was manually executed. Scheduler, DB, IAM, Secret and public MCP resources were not
+  changed. If client rendering regresses on the next scheduled report, preserve the attempt and restore S03 image
+  `sha256:b7c82ed0...41c9a` or disable both report flags; Scheduler and portfolio data remain untouched.
