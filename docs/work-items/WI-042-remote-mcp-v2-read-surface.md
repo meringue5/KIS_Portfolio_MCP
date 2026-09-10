@@ -1,7 +1,7 @@
 ---
 id: WI-042
 title: Implement the stateless Remote MCP V2 read surface
-status: proposed
+status: in_progress
 type: architecture
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0601, V2-W0602, V2-W0603
 parent_work_item: none
 depends_on: WI-030, WI-040, WI-041
+execution_scope: isolated
+production_effects: none
 architecture_impact: implements approved stateless transport and 18-tool public boundary
 data_impact: governed query DTOs only
 security_impact: mcp:read scope and bearer validation
@@ -52,6 +54,12 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Evidence
 
+- 2026-09-11 isolated activation: dependencies are at least verified/stabilizing, MS-003 is in continuous isolated
+  overlap, and no other implementation Work Item is in progress. This phase is limited to the parallel V2 builder,
+  typed read DTOs/application ports, request-scoped authorization, deterministic fixtures and local verification.
+- Activation does not authorize the V2 public endpoint, OAuth grant expansion, Cloud Run/IAM/Secret changes, live
+  DB or KIS calls, deployment, traffic, client cutover or V1 retirement.
+
 - `docs/operations/wi-042-s01-remote-read-surface-audit-2026-09.md`: exact 35-to-18 migration grouping, current
   endpoint-wide read scope gap, parallel V2 builder, request actor, official stateless transport and implementation
   gate inputs.
@@ -61,7 +69,6 @@ The V1 35-tool adapter remains public; the approved outcome-oriented V2 catalog 
 
 ## Closeout
 
-- Result: parent proposed; S01 research closed. This is the last planned MS-003 pre-research checkpoint before MS-002
-  close; subsequent implementation remains dependency-gated.
+- Result: parent in progress under the MS-003 isolated-overlap gate; S01 research remains closed.
 - Remaining risk: real client behavior belongs to WI-044.
 - Follow-up Work Item: WI-043.
