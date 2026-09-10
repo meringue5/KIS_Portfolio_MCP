@@ -127,7 +127,7 @@ work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032"]
 [[milestones]]
 id = "MS-GOV"
 title = "Project Operating System improvements"
-status = "in_progress"
+status = "closed"
 depends_on = []
 implementation_gate = []
 production_gate = []

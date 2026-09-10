@@ -1,7 +1,7 @@
 ---
 id: WI-057
 title: Make milestone overlap continuous and phase-aware
-status: in_progress
+status: closed
 type: governance
 owner: maintainer
 decision_refs: ADR-022
@@ -68,9 +68,18 @@ fixtures. 4. Verify and close. 5. Activate WI-037 under the corrected gate.
 
 ## Evidence
 
-- Pending.
+- `uv run pytest tests/test_project_os_contract.py -q`: 21 passed, including positive WI-037 overlap and negative
+  dependency, cutover and pre-gate production-effect fixtures.
+- `bash scripts/check.sh quick`: passed with 58 tracked Work Items, one active Work Item and 162 Data Governance
+  contracts before closeout.
+- `bash scripts/check.sh full`: 521 passed with all Project OS, Data Governance, Architecture, Warehouse and MCP
+  surface contracts passing.
+- Commit `ae2fca5` contains the policy, registry, checker, Skill, agent context, milestone and traceability correction.
 
 ## Closeout
 
-- Result: in progress.
+- Result: closed. MS-003 is now `in_progress` under continuous dependency-ordered isolated overlap; the checker
+  permits WI-037 and preserves the MS-002 `closed` production gate and WI-046 cutover exclusion.
+- Remaining risk: actual production migration, live source activation, infrastructure/public surface changes and
+  cutover remain unavailable until the predecessor production gate opens.
 - Follow-up Work Item: WI-037.

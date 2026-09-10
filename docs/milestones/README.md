@@ -129,8 +129,9 @@ flowchart LR
 - `WI-000`~`WI-008`은 현재 milestone registry가 도입되기 전 Project OS, architecture, Data Governance,
   source inventory, V2 foundation과 V1→V2 전환을 만든 bootstrap/history다. 현재 실행순서를 결정하지 않으므로
   위 제품 dependency graph에는 넣지 않았고, 상태와 증거는 각 Work Item과 `docs/traceability.md`에 보존한다.
-- MS-GOV 경로는 `WI-018 → WI-031 → WI-034 → WI-052 → WI-053 → WI-056`이며 모두 닫혔다. WI-056이
-  lifecycle과 overlap/recovery gate를 MS-002/MS-003에 dogfood했다. 이 경로가 milestone
+- MS-GOV 경로는 `WI-018 → WI-031 → WI-034 → WI-052 → WI-053 → WI-056 → WI-057`이며 모두 닫혔다.
+  WI-056이 lifecycle과 overlap/recovery gate를 MS-002/MS-003에 dogfood했고 WI-057이 이를 continuous,
+  phase-aware overlap으로 바로잡았다. 이 경로가 milestone
   identity, MS-003/004 baseline, 잔여 delivery ownership과 ETF 초기 V2 제외 결정, 이 dependency map을
   만들었다.
 - 따라서 `docs/work-items/`에 파일이 있지만 그래프에 없는 번호가 곧 누락 작업을 뜻하지는 않는다.
