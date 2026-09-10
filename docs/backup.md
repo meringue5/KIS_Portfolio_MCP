@@ -48,7 +48,9 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.dividend_entitlements`, `silver.dividend_entitlement_revisions`,
   `silver.dividend_receipt_links`, `silver.dividend_receipt_link_revisions`,
   `silver.cash_flow_event_amount_components`, `silver.macro_observations`,
+  `silver.macro_observation_revisions`,
   `gold.portfolio_daily_state`, `gold.metric_values`, `gold.alert_candidates`,
+  `gold.macro_profile_snapshots`,
   `control.pipeline_definitions`, `control.metric_definitions`, `control.alert_rule_versions`,
   `control.alert_state_revisions`, `control.alert_candidate_outcomes`,
   `control.alert_dispatch_claims`, `control.alert_delivery_attempts`,
@@ -58,7 +60,8 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`,
   `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`,
   `control.owner_review_items`, `control.owner_review_item_revisions`,
-  `control.etf_instrument_routes`, `control.fundamental_concept_mappings`.
+  `control.etf_instrument_routes`, `control.fundamental_concept_mappings`,
+  `control.macro_series_definitions`.
 - Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
   `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
 - Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
@@ -71,7 +74,8 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.issuer_source_aliases_current`, `silver.filing_revisions_current`,
   `silver.financial_fact_revisions_current`, `control.fundamental_concept_mappings_current`,
   `silver.dividend_actions_current`, `silver.dividend_entitlements_current`,
-  `silver.dividend_receipt_links_current`, `gold.dividend_monthly_native`,
+  `silver.dividend_receipt_links_current`, `silver.macro_observations_current`,
+  `silver.macro_observations_as_of`, `gold.dividend_monthly_native`,
   `gold.dividend_monthly_krw`, `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.reconstruction_exceptions_current`,
   `control.owner_review_items_current`,

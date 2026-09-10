@@ -102,7 +102,8 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `silver.dividend_entitlements`, `silver.dividend_entitlement_revisions`, `silver.dividend_entitlements_current` | action/account identity, source-confirmed 또는 명시적 PIT estimate 권리와 coverage revision | Parquet tables + rebuild view / confidential |
 | `silver.dividend_receipt_links`, `silver.dividend_receipt_link_revisions`, `silver.dividend_receipt_links_current` | action/entitlement/cash fact의 many-to-many relation identity, reversible state revision과 latest projection | Parquet tables + rebuild view / confidential |
 | `silver.cash_flow_event_amount_components` | source가 실제 제공한 gross/tax/net component revision; 현금액 SSOT는 계속 `cash_flow_events` | Parquet / confidential |
-| `silver.macro_observations` | series/vintage/revision | Parquet / internal |
+| `silver.macro_observations` | ADR-027 이전 빈 foundation; migration 0016이 0행을 preflight하고 자동 변환·삭제하지 않음 | Parquet / internal |
+| `silver.macro_observation_revisions`, `silver.macro_observations_current`, `silver.macro_observations_as_of` | exact series/period의 provider-vintage 또는 observed-content immutable revision과 latest/knowledge-interval projection | Parquet table + rebuild views / internal |
 | `silver.owner_research_extractions` | document/extractor/version/revision/page·section locator | private object / restricted |
 
 ### V2 Gold and Control
@@ -114,6 +115,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `gold.alert_candidates` | rule/version/opaque subject/session/slot point-in-time state, severity, quality, lineage and allowlisted redacted context; presence alone is not slot-completion evidence | Parquet / confidential |
 | `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
 | `gold.dividend_monthly_native`, `gold.dividend_monthly_krw` | linked received cash의 month/account/instrument/currency 합계와 별도 labeled governed-FX projection; component/receipt gap은 partial 유지 | rebuild views / confidential |
+| `gold.macro_profile_snapshots` | profile/version/evaluation cutoff/metric-set의 PIT metric, coverage, rights, attribution과 revision lineage | Parquet rebuildable materialization / internal |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
 | `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
 | `control.metric_definitions` | metric/version approved contract definition hash | Parquet / internal |
@@ -129,9 +131,10 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.owner_review_items`, `control.owner_review_item_revisions`, `control.owner_review_items_current` | 누락 thread plan/journal·미확정 sell allocation review identity, append-only 상태와 latest projection | Parquet tables + rebuild view / confidential |
 | `control.etf_instrument_routes` | exact instrument→provider profile route; account·quantity·valuation fields prohibited | Parquet / internal |
 | `control.fundamental_concept_mappings`, `control.fundamental_concept_mappings_current` | source taxonomy를 덮어쓰지 않는 reviewed mapping version과 latest projection; query cutoff에서 독립 선택 | Parquet table + rebuild view / internal |
+| `control.macro_series_definitions` | exact macro series contract/version/hash, native metadata, rights, attribution과 inactive activation state | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 95개 V2 object는 71 tables + 24 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 100개 V2 object는 74 tables + 26 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

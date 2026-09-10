@@ -359,6 +359,24 @@ version의 논리 키당 한 번만 terminal 처리하며, `send-rich-message`�
 다음 실행은 `unknown`으로 봉인하고 재전송하지 않는다. event-driven WI-030 경보 원장과 identity는 분리한다.
 v2는 별도 pipeline/version identity와 `send-owner-report` stage를 사용하고 caption/chart hash만 보존한다.
 
+## Macro profile V2 isolated implementation
+
+WI-039은 `collection.macro-profile-v1` 2.0.0의 ECOS 5개와 FRED/ALFRED 12개 series만 runtime registry에
+투영한다. 모든 definition은 `approved + inactive`이며 외부 source adapter는 production activation 없이는
+I/O 전에 실패한다. 임의 series ID, URL, transform 또는 date range는 입력 표면에 없다.
+
+`silver.macro_observation_revisions`는 provider별 시간 의미를 하나로 꾸미지 않는다. FRED/ALFRED는
+`provider_vintage`와 realtime 유효구간을 저장하고, ECOS는 `observed_content`와 수집 시점의
+`knowledge_at`만 저장한다. 운영 기본은 `system_as_of`이며, FRED/ALFRED에 한해 provider interval이 있는
+경우만 `retrospective_source_as_of`를 제공한다. ECOS retrospective 요청은 빈 coverage로 남고 system clock으로
+몰래 대체하지 않는다. missing marker는 `NULL + missing_reason`이며 0으로 치환하지 않는다.
+
+Gold `macro_profile_snapshots`는 definition-set hash, 선택된 revision lineage, 다섯 approved metric 결과,
+missing coverage, rights, attribution과 query mode를 하나의 immutable evaluation으로 보존한다. routine/backfill
+call budget, partition page cap, capacity review/stop line과 passing-quality-only watermark는 source activation 전에도
+검증 가능한 fail-closed guard다. 이 단계의 fixture, migration과 backup/restore는 local-only이며 production DB,
+Scheduler, Cloud Run, public MCP와 Telegram을 변경하지 않는다.
+
 ## 향후 정제 작업 후보
 
 - `portfolio_minute_snapshots`: 같은 계좌의 같은 분 내 마지막 스냅샷

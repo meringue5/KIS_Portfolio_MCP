@@ -13,7 +13,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner = MigrationRunner(con)
     assert runner.apply() == [
         "0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-        "0011", "0012", "0013", "0014", "0015",
+        "0011", "0012", "0013", "0014", "0015", "0016",
     ]
     assert runner.apply() == []
     runner.require("0006")
@@ -26,9 +26,10 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner.require("0013")
     runner.require("0014")
     runner.require("0015")
+    runner.require("0016")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 15
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 16
     con.close()
 
 
@@ -71,6 +72,27 @@ def test_dividend_migration_refuses_nonempty_legacy_foundation(tmp_path: Path) -
 
     assert "0015" not in runner.applied()
     assert con.execute("SELECT count(*) FROM silver.dividend_events").fetchone()[0] == 1
+    con.close()
+
+
+def test_macro_migration_refuses_nonempty_legacy_foundation(tmp_path: Path) -> None:
+    con = duckdb.connect(str(tmp_path / "legacy-macro.duckdb"))
+    runner = MigrationRunner(con)
+    assert runner.apply(through="0015")[-1] == "0015"
+    con.execute(
+        """
+        INSERT INTO silver.macro_observations VALUES (
+            'macro.fixture', DATE '2026-09-10', DATE '2026-09-10',
+            'legacy-revision', 1, 'index', 'source.fixture', current_timestamp, 'pass'
+        )
+        """
+    )
+
+    with pytest.raises(duckdb.Error, match="requires empty legacy macro foundation"):
+        runner.apply()
+
+    assert "0016" not in runner.applied()
+    assert con.execute("SELECT count(*) FROM silver.macro_observations").fetchone()[0] == 1
     con.close()
 
 

@@ -1,0 +1,36 @@
+{
+  "fixture_only": true,
+  "source": "FRED/ALFRED synthetic contract fixture",
+  "observations": [
+    {
+      "series_id": "DFF",
+      "date": "2026-08-31",
+      "realtime_start": "2026-09-01",
+      "realtime_end": "2026-09-04",
+      "value": "5.25",
+      "unit": "percent",
+      "frequency": "daily",
+      "seasonal_adjustment": "not-seasonally-adjusted"
+    },
+    {
+      "series_id": "DFF",
+      "date": "2026-08-31",
+      "realtime_start": "2026-09-05",
+      "realtime_end": "9999-12-31",
+      "value": "5.24",
+      "unit": "percent",
+      "frequency": "daily",
+      "seasonal_adjustment": "not-seasonally-adjusted"
+    },
+    {
+      "series_id": "DFF",
+      "date": "2026-09-01",
+      "realtime_start": "2026-09-02",
+      "realtime_end": "9999-12-31",
+      "value": ".",
+      "unit": "percent",
+      "frequency": "daily",
+      "seasonal_adjustment": "not-seasonally-adjusted"
+    }
+  ]
+}
