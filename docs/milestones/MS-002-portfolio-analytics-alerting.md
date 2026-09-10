@@ -38,7 +38,7 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | stabilizing; S05/S06 collect corrected window through 2026-09-14 |
 | 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | stabilizing; S01/S02/S03/S05 closed; S04 temporal acceptance ongoing |
 | 20 | WI-054 production-readiness correction | review gate | WI-028 | closed; live readiness matrix and WI-030-S03 handoff established |
-| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | stabilizing; S02 closed; S03 image `b7c82ed0...41c9a` deployed after photo smoke; next receipt/owner acceptance pending |
+| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | stabilizing; 10:00 v2.1 content/chart owner-accepted; S04 caption layout clarification in progress; 16:00 receipt remains |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
@@ -87,6 +87,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.4 | 2026-09-10 | owner가 첫 v2.1의 chart와 정보 범위를 인수하고 caption의 구획·표 정돈을 요청 | WI-055-S04 append; 계산·privacy·transport·release 이력 불변, repository stage production effects none |
 | 2026-09-10.3 | 2026-09-10 | Corrected the successor gate to continuous isolated MS-003 implementation while this milestone stabilizes | MS-002 exit evidence and production close gate unchanged |
 | 2026-09-09.2 | 2026-09-09 | owner 요청에 따라 총자산 변동 절대 영향 Top 5를 기여액·%p 양방향 infographic으로 보강 | parent와 release 이력 불변; WI-055-S03 append, repository stage production effects none |
 | 2026-09-09.1 | 2026-09-09 | 첫 10:00/16:00 실사용에서 정보가치가 거부되어 DEC-055와 WI-055-S01로 총액·alias 구성·chart 표시 경계를 보정 | parent와 실행 이력 불변; corrective sub-item append, production effects none |

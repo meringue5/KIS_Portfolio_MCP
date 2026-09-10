@@ -82,6 +82,11 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   WI-033 values; it does not change calculation, storage or public MCP contracts. Current execution scope is
   repository-only with `production_effects: none`; no Telegram request, production DB write, Cloud Run/Scheduler,
   IAM/secret, source activation or public cutover is authorized during implementation.
+- `WI-055-S04` (`in_progress`): preserve the owner-accepted v2.1 values and chart while restructuring the Telegram
+  photo caption into explicit summary, account, asset and Top 5 sections with compact fixed-width numeric columns.
+  This is a DEC-055 presentation clarification only: calculation, privacy allowlists, idempotency and transport remain
+  unchanged. Current execution scope is repository-only with `production_effects: none`; no Telegram request,
+  production DB write, Cloud Run/Scheduler, IAM/secret, source activation or public cutover is authorized.
 
 ## Stabilization plan
 
@@ -136,6 +141,9 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   `kis-portfolio-wi030-s03-9hv7s` succeeded. Read-only verification found all three fixed-slot Jobs on image
   `sha256:b7c82ed0...41c9a`, git SHA `46b6e74`, that run ID and target `wi055-s03-top5-impact`; each retained
   legacy `false`, v2 `true`, owner approval `true` and `dest.owner.primary`.
+- `WI-055-S04` intake evidence: the 2026-09-10 10:00 owner report v2.1 built with `quality_status=pass`, reconciled,
+  rendered five Top impacts and a chart, and recorded provider `sent`. The owner separately confirmed client receipt,
+  accepted the chart and information coverage, and requested only a cleaner table/section treatment for the caption.
 
 ## Closeout
 
