@@ -435,15 +435,20 @@ def test_project_os_rejects_declared_production_effect_before_gate_at_any_status
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     path = target / "docs/work-items/WI-037-filing-actual-fundamental-pipeline.md"
+    document = re.sub(
+        r"(?m)^status: .+$",
+        "status: verified",
+        path.read_text(encoding="utf-8"),
+        count=1,
+    )
+    document = re.sub(
+        r"(?m)^execution_scope: .+$", "execution_scope: production", document, count=1
+    )
+    document = re.sub(
+        r"(?m)^production_effects: .+$", "production_effects: deploy", document, count=1
+    )
     path.write_text(
-        re.sub(
-            r"(?m)^(depends_on: .+)$",
-            r"\1\nexecution_scope: production\nproduction_effects: deploy",
-            path.read_text(encoding="utf-8").replace(
-                "status: proposed", "status: verified", 1
-            ),
-            count=1,
-        ),
+        document,
         encoding="utf-8",
     )
 
