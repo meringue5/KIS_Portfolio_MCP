@@ -1,7 +1,7 @@
 ---
 id: WI-038
 title: Build declared entitled and received dividend ledger
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, ADR-026
@@ -85,14 +85,32 @@ reconciled to positions and cash events.
 ## Evidence
 
 - `docs/operations/wi-038-pre-research-2026-09.md`
+- `docs/operations/wi-038-s02-contract-design-2026-09.md`
+- `docs/operations/wi-038-s03-contract-adoption-2026-09.md`
+- `docs/operations/wi-038-isolated-verification-2026-09.md`
 - `bash scripts/check.sh quick`
+
+## Isolated verification — 2026-09-10
+
+- Added checksum-verified migration 0015 with 7 additive tables and 5 rebuild views. A non-empty legacy dividend
+  foundation fails closed without applying the migration.
+- Implemented safe fixture normalization, hash-verified private source landing, immutable action/entitlement/link and
+  sourced component repositories, explicit `system_as_of` queries, reversible link corrections and monthly native/FX
+  projections.
+- Verified source gaps, cash classification/account/currency matching, many-to-many allocation bounds, 64/320 call
+  budgets, 10-page cap, 1 GiB/500,000-row stop lines, quality-gated monotonic watermark and fresh backup restore.
+- Focused: 10 passed. Filing/dividend/warehouse/package integration: 33 passed. Full: 539 passed with one existing
+  Authlib deprecation warning.
+- No source call, live DB access or migration, credential/IAM, infrastructure, schedule, public MCP/Telegram,
+  cleanup, cutover or production effect occurred.
 
 ## Closeout
 
-- Result: parent remains proposed; `WI-038-S01` research-only checkpoint closed.
-- Remaining risk: action/entitlement grain, KIS domestic field semantics, historical PIT positions and overseas/IRP
-  receipt coverage require formal contract decisions and bounded fixtures.
-- Follow-up Work Item: formal WI-038 contract hardening after WI-037.
+- Result: parent is `verified` in isolated scope; S01~S03 remain closed and approved contracts remain inactive.
+- Remaining risk: KIS domestic field semantics and history depth need a separately approved bounded source sampling;
+  IRP and U.S. actual receipt remain `source_gap`. Production migration, backfill and consumer acceptance remain gated.
+- Follow-up Work Item: dependency-ordered MS-003 work may continue with WI-039. WI-038 production activation waits for
+  the MS-002 closure and a separate release decision.
 
 ## Contract design checkpoint — 2026-09-02
 
