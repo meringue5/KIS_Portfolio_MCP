@@ -377,6 +377,29 @@ call budget, partition page cap, capacity review/stop line과 passing-quality-on
 검증 가능한 fail-closed guard다. 이 단계의 fixture, migration과 backup/restore는 local-only이며 production DB,
 Scheduler, Cloud Run, public MCP와 Telegram을 변경하지 않는다.
 
+## Alpha Vantage forward outlook isolated implementation
+
+WI-041은 canonical historical `dataset.consensus-snapshot`을 구현하거나 완화하지 않는다. 별도 승인된
+`source.alpha-vantage-personal`과 `dataset.alpha-vantage-consensus-forward-snapshot`만 하나의 exact inactive
+runtime bundle로 읽는다. 대상은 최신 canonical holdings 중 positive
+`NASD / equity / overseas_direct / USD` 직접주식이며 issuer/provider symbol identity나 classification quality가
+불완전하면 호출 계획 전에 실패한다.
+
+fixture-only memory parser는 Alpha `EARNINGS_ESTIMATES`의 allowlisted 18 fields를 EPS와 revenue typed row로
+정규화한다. raw response, provider `Information`/error message와 API key는 migration schema에도 없고 backup에도
+들어가지 않는다. provider envelope, empty result, shape drift, 일부 issuer 누락은 generic partial/failed coverage로
+남고 Silver publish나 watermark를 정상으로 만들지 않는다.
+
+`fetched_at`은 activation 이후 시스템이 실제로 알게 된 최초 시각이다. 동일 issuer/date/metric/horizon의
+두 실제 fetch를 비교할 때만 forward revision을 계산하며 cutoff 뒤 snapshot은 제외한다. Alpha 응답 안의
+7/30/60/90-day average는 `provider_attribute_not_historical_snapshot`으로 표시하고 그 과거 날짜의 knowledge를
+복원한 것으로 사용하지 않는다. user/model scenario도 provider consensus와 별도 origin을 요구한다.
+
+4-call current scope, 8-call hard maximum, account-wide 25/day 상한, 15초 간격, no same-run retry, 분기 terms
+review와 즉시 kill switch, 500,000 Silver row/512 MiB private-backup stop line 및 3년 retention 후보 dry-run이
+release guard다. 현재 단계는 synthetic local migration/recovery만 수행하며 실제 source/secret, production DB,
+Scheduler, Cloud Run, private/public MCP, Telegram과 retention 삭제는 비활성이다.
+
 ## 향후 정제 작업 후보
 
 - `portfolio_minute_snapshots`: 같은 계좌의 같은 분 내 마지막 스냅샷

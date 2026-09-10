@@ -1,7 +1,7 @@
 ---
 id: WI-041
 title: Implement point-in-time consensus and forward outlook analysis
-status: proposed
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023
@@ -10,10 +10,12 @@ milestone_ref: MS-003
 delivery_refs: V2-W0506
 parent_work_item: none
 depends_on: WI-037
-architecture_impact: possible provider activation gate; no provider chosen by this baseline
-data_impact: point-in-time consensus snapshots and outlook metrics
+architecture_impact: existing ADR-021/023 and approved Alpha-specific contracts; shared scale-to-zero runtime only
+data_impact: additive forward-only normalized consensus snapshots; canonical historical PIT remains unsupported
 security_impact: licensed content rights and redistribution controls
-cost_impact: provider cost must be separately approved
+cost_impact: approved free-tier planning guard; no provider call or production cost in this phase
+execution_scope: isolated
+production_effects: none
 ---
 
 # WI-041 — Implement point-in-time consensus and forward outlook analysis
@@ -34,9 +36,9 @@ historical point-in-time coverage.
 
 ## Acceptance criteria
 
-- [ ] provider rights, point-in-time history, coverage and monthly cost are approved.
-- [ ] future leakage and scenario/consensus confusion tests pass.
-- [ ] missing coverage is explicit and full gates pass.
+- [x] approved personal-use rights and free-tier bounds are enforced without raw retention or redistribution.
+- [x] forward-only knowledge time, future leakage and scenario/consensus confusion tests pass; historical PIT stays unsupported.
+- [x] missing coverage is explicit, local backup/restore reconciles and full gates pass.
 
 ## Change impact
 
@@ -44,7 +46,25 @@ historical point-in-time coverage.
 
 ## Plan
 
-1. Sample candidate providers. 2. Approve contract/cost. 3. Implement and replay event windows.
+1. Project the approved Alpha-only runtime contract. 2. Add an additive normalized forward-snapshot migration and
+repository. 3. Implement fixture-only parsing, held-issuer/budget/rights/quality guards and outlook revision metrics.
+4. Verify fresh local backup/restore and stop before production activation.
+
+## Isolated implementation checkpoint — 2026-09-10
+
+- Activated after WI-039 reached `verified`; dependency WI-037 is already `verified`, MS-003 is in continuous isolated
+  overlap, and no other implementation Work Item is `in_progress`.
+- This phase is limited to repository implementation, an additive migration, conspicuously synthetic Alpha fixtures,
+  deterministic forward-only metrics and local DuckDB migration/recovery verification.
+- `source.alpha-vantage-personal`, `collection.alpha-vantage-consensus-forward-v1`,
+  `dataset.alpha-vantage-consensus-forward-snapshot` and `pipeline.alpha-vantage-consensus-forward-v1` remain
+  approved but inactive.
+- Historical provider PIT, pre-activation backfill, live Alpha/KIS calls, research Secret access or IAM changes,
+  production DB writes/migration, Cloud Run/Scheduler, public/private MCP activation, Telegram, cleanup and cutover are
+  prohibited.
+- Exit line: exact issuer scope and normalized field allowlist fail closed; fetched-at is the earliest knowledge clock;
+  missing/partial coverage and scenario separation remain explicit; call/capacity/terms guards and fresh local restore
+  pass the full gate.
 
 ## Sub-items
 
@@ -66,6 +86,7 @@ historical point-in-time coverage.
 - `docs/operations/wi-041-s02-bounded-sampling-2026-09.md`
 - `docs/operations/wi-041-s03-owner-credentialed-sampling-2026-09.md`
 - `docs/operations/wi-041-s04-bounded-personal-use-review-2026-09.md`
+- `docs/operations/wi-041-isolated-verification-2026-09.md`
 - The research found no currently approvable canonical provider. Alpha Vantage is the first U.S. no-cost schema
   sampling candidate; KIS remains the domestic bounded sampling candidate. Both require rights, semantic and PIT gates.
 - KIS live sampling confirmed endpoint connectivity but failed metric identity, analyst count/distribution and PIT
@@ -83,9 +104,30 @@ historical point-in-time coverage.
   gaps remain unresolved. Approved does not mean active: there is no runtime accessor, collection, DB write, MCP
   exposure or deployment, and implementation requires a later sub-item after the MS-003 formal gate.
 
+## Isolated implementation verification — 2026-09-10
+
+- The four exact approved Alpha contracts load as one immutable inactive runtime bundle; source access remains blocked
+  before I/O.
+- Additive migration 0017 creates one restricted, append-only normalized Silver table and one rebuildable latest view.
+  Neither object can retain raw payload, provider free text or an API key.
+- The fixture-only parser requires the observed 18-field estimate shape, typed strings, exact requested symbol and
+  complete EPS/revenue ranges. `Information`, rate-limit and provider error envelopes return generic non-pass outcomes
+  without copying their message.
+- Eligible scope is exact positive `NASD / equity / overseas_direct / USD` holdings with passing identity quality.
+  Duplicate, ambiguous or more-than-eight issuer partitions fail closed.
+- Fetched-at is the earliest system knowledge time. Actual snapshot-to-snapshot revision excludes future fetches;
+  provider rolling comparisons are labeled attributes and never historical PIT snapshots. User/model scenarios cannot
+  be labeled provider consensus.
+- Quarterly terms expiry, 4-current/8-hard/25-account call bounds, 15-second spacing, no same-run retry, capacity,
+  explicit coverage, passing-quality-only watermark and three-year retention dry-run guards are deterministic.
+- Private governed Parquet export and fresh local DuckDB restore reproduce all normalized rows and the latest view.
+- Evidence: `docs/operations/wi-041-isolated-verification-2026-09.md`.
+
 ## Closeout
 
-- Result: proposed.
+- Result: `verified` in `execution_scope: isolated`, `production_effects: none`.
 - Remaining risk: Alpha's revocable personal-use license does not explicitly describe private normalized retention;
-  quarterly terms review and a kill switch bound that risk. U.S. licensed historical PIT remains unresolved.
-- Follow-up Work Item: WI-042.
+  quarterly terms review and a kill switch bound that risk. U.S. licensed historical PIT remains unresolved and the
+  approved Alpha dataset is not canonical historical consensus.
+- Follow-up Work Item: WI-042. Alpha source/secret, production migration, retention apply, schedule and private MCP
+  activation require a separately approved production-gated release.

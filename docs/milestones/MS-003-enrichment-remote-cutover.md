@@ -18,7 +18,7 @@
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | verified; additive 0015, action/entitlement/reversible receipt-link repository and fresh local restore; contracts inactive, production effects none |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | verified; exact 17-series registry, additive 0016, heterogeneous PIT revisions, five metrics, guardrails and fresh local restore; contracts inactive and production effects none |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | verified; internal DTO/query and synthetic local evidence complete; contracts remain inactive and public MCP/production effects stay gated |
-| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | proposed; S01/S02 closed; S03 rejected; S04 closed with four approved-but-inactive Alpha contracts; historical PIT gap remains |
+| 6 | WI-041 consensus forward outlook | V2-W0506 | WI-037 | verified; exact inactive Alpha bundle, additive 0017, normalized forward-only snapshots, fixture guards and fresh local restore; historical PIT and production effects remain prohibited |
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | proposed; S01 research-only audit closed with parallel V2 builder, scope/context and stateless transport boundaries; implementation gate unchanged |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | proposed |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | proposed |
@@ -42,7 +42,8 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
   제외한 검토된 Work Item은 dependency가 최소 `verified`이고 현재 phase가 `execution_scope: isolated`,
   `production_effects: none`인 동안 단일 `in_progress` 제한 아래 repository implementation·fixture·local
   또는 inactive verification을 연속 수행해 `verified`까지 전진할 수 있다. WI-035와 WI-040은 이미
-  `verified`이며 WI-039도 isolated verification을 마쳤다. 다음 dependency-ready 구현 단위는 WI-041이다.
+  `verified`이며 WI-039와 WI-041도 isolated verification을 마쳤다. 다음 dependency-ready 구현 단위는
+  WI-042다.
 - production gate: MS-002가 `closed`여야 migration, live DB write, external source activation, credential/IAM,
   Cloud Run/Scheduler, public MCP surface와 traffic cutover를 수행할 수 있다.
 - 안정화 중 발견된 rollback은 dependency를 역전시키지 않고 새 corrective Work Item의 append-only feedback
@@ -52,6 +53,8 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.27 | 2026-09-10 | Verified WI-041 approved-inactive Alpha forward-only pipeline with strict fixtures, fetched-at revision analysis and fresh local recovery | synthetic local evidence only; no source, secret, live DB, infrastructure, schedule, MCP, Telegram, retention apply or production effect |
+| 2026-09-10.26 | 2026-09-10 | Activated WI-041 after WI-039 under continuous dependency-ready isolated overlap | Alpha forward-only migration code, repository, synthetic fixtures and local recovery only; no source, secret, live DB, infrastructure, schedule, consumer or production effect |
 | 2026-09-10.25 | 2026-09-10 | Verified WI-039 exact inactive macro registry, heterogeneous revision ledger, five metrics and fresh local recovery | synthetic local evidence only; no source, credential, live DB, infrastructure, schedule, public MCP, Telegram or production effect |
 | 2026-09-10.24 | 2026-09-10 | Activated WI-039 after WI-038 under continuous dependency-ready isolated overlap | migration 0016 code, repository, safe fixtures and local recovery only; no source, credential, live DB, infrastructure, schedule or public effect |
 | 2026-09-10.23 | 2026-09-10 | Verified WI-038 additive dividend revision ledger with 10 focused, 33 integration and 539 full tests | local fixture/migration/recovery evidence only; no source, credential, live DB, infrastructure, schedule or public effect |

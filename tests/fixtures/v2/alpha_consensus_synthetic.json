@@ -1,0 +1,49 @@
+{
+  "fixture_only": true,
+  "source": "synthetic Alpha EARNINGS_ESTIMATES contract fixture",
+  "payload": {
+    "symbol": "SYNTH",
+    "estimates": [
+      {
+        "date": "2026-12-31",
+        "horizon": "current fiscal year",
+        "eps_estimate_analyst_count": "12",
+        "eps_estimate_average": "10.00",
+        "eps_estimate_high": "12.00",
+        "eps_estimate_low": "8.00",
+        "eps_estimate_average_7_days_ago": "9.90",
+        "eps_estimate_average_30_days_ago": "9.75",
+        "eps_estimate_average_60_days_ago": "9.50",
+        "eps_estimate_average_90_days_ago": "9.25",
+        "eps_estimate_revision_up_trailing_7_days": "2",
+        "eps_estimate_revision_up_trailing_30_days": "4",
+        "eps_estimate_revision_down_trailing_7_days": null,
+        "eps_estimate_revision_down_trailing_30_days": "1",
+        "revenue_estimate_analyst_count": "10",
+        "revenue_estimate_average": "1000.00",
+        "revenue_estimate_high": "1200.00",
+        "revenue_estimate_low": "800.00"
+      },
+      {
+        "date": "2027-12-31",
+        "horizon": "next fiscal year",
+        "eps_estimate_analyst_count": "9",
+        "eps_estimate_average": "11.00",
+        "eps_estimate_high": "13.00",
+        "eps_estimate_low": "9.00",
+        "eps_estimate_average_7_days_ago": "10.90",
+        "eps_estimate_average_30_days_ago": "10.70",
+        "eps_estimate_average_60_days_ago": "10.50",
+        "eps_estimate_average_90_days_ago": "10.25",
+        "eps_estimate_revision_up_trailing_7_days": "1",
+        "eps_estimate_revision_up_trailing_30_days": "3",
+        "eps_estimate_revision_down_trailing_7_days": "0",
+        "eps_estimate_revision_down_trailing_30_days": "1",
+        "revenue_estimate_analyst_count": "8",
+        "revenue_estimate_average": "1100.00",
+        "revenue_estimate_high": "1300.00",
+        "revenue_estimate_low": "900.00"
+      }
+    ]
+  }
+}
