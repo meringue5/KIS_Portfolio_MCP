@@ -827,7 +827,7 @@ status = "stabilizing"
 id = "WI-055-S04"
 parent_id = "WI-055"
 title = "Structure the owner report caption into compact readable tables"
-status = "in_progress"
+status = "verified"
 
 [[subitems]]
 id = "WI-037-S01"
