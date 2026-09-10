@@ -23,6 +23,12 @@ def test_workflow_dispatches_wi055_s03_to_exact_deploy_target():
     assert "scripts/deploy_cloud_run.py wi055-s03" in workflow
 
 
+def test_workflow_dispatches_wi055_s04_to_exact_deploy_target():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi055-s04'" in workflow
+    assert "scripts/deploy_cloud_run.py wi055-s04" in workflow
+
+
 def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     env = {
         "KIS_DB_MODE": "motherduck",
@@ -348,6 +354,27 @@ def test_wi055_s03_reuses_atomic_owner_report_release_with_new_labels(monkeypatc
         "project": "project",
         "deploy_label": "wi055-s03-top5-impact",
         "smoke_label": "wi055-s03-photo-transport-smoke",
+    }
+
+
+def test_wi055_s04_reuses_atomic_owner_report_release_with_new_labels(monkeypatch):
+    captured = {}
+    args = argparse.Namespace(target="wi055-s04")
+
+    def fake_release(_args, **kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_wi055_s01", fake_release)
+
+    result = deploy_cloud_run._deploy_wi055_s04(args, env={"safe": "value"}, project="project")
+
+    assert result == 0
+    assert captured == {
+        "env": {"safe": "value"},
+        "project": "project",
+        "deploy_label": "wi055-s04-caption-layout",
+        "smoke_label": "wi055-s04-photo-transport-smoke",
     }
 
 

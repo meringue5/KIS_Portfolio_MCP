@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -234,6 +235,32 @@ def _format_krw(value: int, *, signed: bool = False) -> str:
     return f"{prefix}₩{abs(value):,}"
 
 
+def _display_width(value: str) -> int:
+    return sum(2 if unicodedata.east_asian_width(character) in {"F", "W"} else 1 for character in value)
+
+
+def _pad_cell(value: str, width: int, *, align: str = "left") -> str:
+    padding = max(0, width - _display_width(value))
+    return (" " * padding + value) if align == "right" else (value + " " * padding)
+
+
+def _fixed_width_rows(rows: Sequence[tuple[str, str, str | None]]) -> str:
+    """Return a compact mobile-safe table for Telegram's supported PRE entity."""
+    label_width = max(_display_width(label) for label, _, _ in rows)
+    value_width = max(_display_width(value) for _, value, _ in rows)
+    percent_width = max(
+        (_display_width(percent) for _, _, percent in rows if percent is not None),
+        default=0,
+    )
+    lines = []
+    for label, value, percent in rows:
+        cells = [_pad_cell(label, label_width), _pad_cell(value, value_width, align="right")]
+        if percent is not None:
+            cells.append(_pad_cell(percent, percent_width, align="right"))
+        lines.append("  ".join(cells))
+    return "\n".join(lines)
+
+
 def _validate_allocations(
     allocations: Sequence[ChartAllocation], *, allowed: frozenset[str], field: str,
 ) -> tuple[ChartAllocation, ...]:
@@ -289,28 +316,37 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
             raise UnsafeTelegramPayload("allocation percentage does not reconcile to value")
 
     change_prefix = "+" if report.total_change_percent > 0 else ""
-    lines = [
-        f"<b>📊 총자산 현황 · {slot_label}</b>",
-        f"<b>{_format_krw(report.total_asset_krw)}</b>",
+    summary_rows = (
+        ("총자산", _format_krw(report.total_asset_krw), None),
         (
-            "전 거래일 동일 시각 대비 "
-            f"{_format_krw(report.total_change_krw, signed=True)} "
-            f"({change_prefix}{report.total_change_percent.quantize(Decimal('0.01')):.2f}%)"
+            "전일대비",
+            _format_krw(report.total_change_krw, signed=True),
+            f"{change_prefix}{report.total_change_percent.quantize(Decimal('0.01')):.2f}%",
         ),
-        "",
-        "<b>계좌 구성</b>",
-    ]
-    lines.extend(
-        f"• {escape(item.label.upper())}: {_format_krw(item.value_krw)} · {item.percent:.2f}%"
+    )
+    account_rows = tuple(
+        (item.label.upper(), _format_krw(item.value_krw), f"{item.percent:.2f}%")
         for item in accounts
     )
-    lines.extend(("", "<b>자산 구성</b>"))
     asset_names = {"DOMESTIC": "국내", "OVERSEAS": "해외", "CASH": "현금"}
-    lines.extend(
-        f"• {asset_names[item.label]}: {_format_krw(item.value_krw)} · {item.percent:.2f}%"
+    asset_rows = tuple(
+        (asset_names[item.label], _format_krw(item.value_krw), f"{item.percent:.2f}%")
         for item in assets
     )
+    lines = [
+        f"<b>📊 총자산 현황 · {slot_label}</b>",
+        "",
+        "<b>자산 요약</b>",
+        f"<pre>{escape(_fixed_width_rows(summary_rows))}</pre>",
+        "",
+        "<b>계좌 구성</b>",
+        f"<pre>{escape(_fixed_width_rows(account_rows))}</pre>",
+        "",
+        "<b>자산 구성</b>",
+        f"<pre>{escape(_fixed_width_rows(asset_rows))}</pre>",
+    ]
     chart_contributions: list[ChartContribution] = []
+    top_rows: list[str] = []
     if report.top_impacts:
         lines.extend(("", "<b>총자산 변동 기여 Top 5</b>"))
     if len(report.top_impacts) > 5:
@@ -336,11 +372,14 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
             raise UnsafeTelegramPayload("owner report contribution percentage does not reconcile")
         marker = "▲" if item.change_krw > 0 else "▼"
         impact_prefix = "+" if item.impact_percent_points > 0 else ""
-        lines.append(
-            f"{index}. {marker} {escape(label)} · {_format_krw(item.change_krw, signed=True)} "
-            f"· {impact_prefix}{impact}%p"
-        )
+        top_rows.extend((
+            f"{index}. {marker} {label}",
+            f"   {_pad_cell(_format_krw(item.change_krw, signed=True), 18)}"
+            f"{_pad_cell(f'{impact_prefix}{impact}%p', 9, align='right')}",
+        ))
         chart_contributions.append(ChartContribution(symbol, item.change_krw, item.impact_percent_points))
+    if top_rows:
+        lines.append(f"<pre>{escape(chr(10).join(top_rows))}</pre>")
     lines.extend(("", "해외 자산은 환율 효과를 포함한 원화 평가액입니다.", f"{source_at:%Y-%m-%d %H:%M} · KST"))
     caption = "\n".join(lines)
     if len(caption) > 1000 or _ACCOUNT_NUMBER.search(caption):

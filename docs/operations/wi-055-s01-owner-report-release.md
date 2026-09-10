@@ -2,14 +2,15 @@
 
 ## Scope and immutable baseline
 
-- Corrective presentation: `pipeline.telegram-total-asset-report-v2` / `2.1.0`. WI-055-S03 adds the owner-approved
-  absolute-impact Top 5 holding chart while preserving the S01 destination, quality and privacy boundaries.
+- Corrective presentation: `pipeline.telegram-total-asset-report-v2`. S01 established the exact-value report, S03
+  added the owner-approved absolute-impact Top 5 holding chart in `2.1.0`, and S04 structures the caption in `2.2.0`
+  while preserving the destination, quality and privacy boundaries.
 - Preserved baseline: legacy `pipeline.telegram-total-asset-digest-v1`, master `1025f4a`, and the 2026-09-09
   10:00/16:00 delivery ledgers remain immutable evidence.
 - Existing three fixed-slot core Jobs and their Schedulers are reused. No database migration, source activation,
   service, Scheduler, IAM grant or secret is created by this release.
 - Repository verification is side-effect free. Production execution requires the normal protected GitHub environment
-  and an explicit `wi055-s01` deploy target invocation.
+  and the explicit deploy target matching the reviewed presentation revision.
 
 ## Security and information boundary
 
@@ -103,3 +104,17 @@ the owner rejected its information value. Disabling only the report is therefore
 - Read-only verification confirmed legacy `false`, v2 `true`, owner approval `true` and `dest.owner.primary` on every
   Job. No Scheduler, DB, IAM, Secret or public MCP resource was changed, and no production-value report was manually
   executed. The next scheduled owner receipt is the stabilization evidence.
+
+## WI-055-S04 repository and pending release manifest — 2026-09-10
+
+- The 10:00 v2.1 report was reconciled and provider-sent; the owner confirmed client receipt and accepted its values,
+  coverage and chart. Only caption structure was requested for correction.
+- Presentation `2.2.0` groups summary, account allocation and asset allocation into Telegram-supported fixed-width
+  blocks and renders Top 5 as paired label/value rows. Korean display width is accounted for without changing values.
+- Focused report, transport and release tests passed 76; the full gate passed 541 tests. A fabricated five-account,
+  three-asset caption was visually reviewed.
+- The `wi055-s04` dry-run proved one build digest, finance-free photo smoke first, then the same image and atomic
+  legacy-off/v2-on owner-only flags for all three fixed-slot Jobs under `wi055-s04-caption-layout`.
+- Production release remains pending. After merge and explicit approval, use only the protected `wi055-s04` target.
+  Do not manually replay a production-value slot. If client rendering regresses, preserve the attempt and restore S03
+  image `sha256:b7c82ed0...41c9a` or disable both report flags; Scheduler and portfolio data remain untouched.

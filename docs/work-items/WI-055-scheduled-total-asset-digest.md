@@ -82,6 +82,11 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   WI-033 values; it does not change calculation, storage or public MCP contracts. Current execution scope is
   repository-only with `production_effects: none`; no Telegram request, production DB write, Cloud Run/Scheduler,
   IAM/secret, source activation or public cutover is authorized during implementation.
+- `WI-055-S04` (`verified`): preserve the owner-accepted v2.1 values and chart while restructuring the Telegram
+  photo caption into explicit summary, account, asset and Top 5 sections with compact fixed-width numeric columns.
+  This is a DEC-055 presentation clarification only: calculation, privacy allowlists, idempotency and transport remain
+  unchanged. Current execution scope is repository-only with `production_effects: none`; no Telegram request,
+  production DB write, Cloud Run/Scheduler, IAM/secret, source activation or public cutover is authorized.
 
 ## Stabilization plan
 
@@ -136,12 +141,24 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
   `kis-portfolio-wi030-s03-9hv7s` succeeded. Read-only verification found all three fixed-slot Jobs on image
   `sha256:b7c82ed0...41c9a`, git SHA `46b6e74`, that run ID and target `wi055-s03-top5-impact`; each retained
   legacy `false`, v2 `true`, owner approval `true` and `dest.owner.primary`.
+- `WI-055-S04` intake evidence: the 2026-09-10 10:00 owner report v2.1 built with `quality_status=pass`, reconciled,
+  rendered five Top impacts and a chart, and recorded provider `sent`. The owner separately confirmed client receipt,
+  accepted the chart and information coverage, and requested only a cleaner table/section treatment for the caption.
+- `WI-055-S04` repository evidence: presentation `2.2.0` uses Telegram-supported `<pre>` blocks, East-Asian-width-aware
+  label padding, right-aligned KRW/percent columns and two-line Top 5 rows that resist mobile wrapping. A fabricated
+  five-account/three-asset/three-impact caption was visually reviewed; focused report/transport/release tests passed 76,
+  quick passed and full passed 541 tests. The `wi055-s04` dry-run preserved build-once, finance-free photo smoke first,
+  same-image three-Job update and atomic legacy-off/v2-on owner-only flags. No provider call, production DB write,
+  Cloud Run/Scheduler/IAM/secret mutation, source activation or public MCP effect occurred.
+- 2026-09-10 interim review: both 10:00 and 16:00 v2.1 builds passed reconciliation with five impacts and recorded
+  provider `sent`; the owner confirmed only the 10:00 client receipt so far. Full evidence and claim boundaries are in
+  `docs/operations/ms-002-interim-review-2026-09-10.md`.
 
 ## Closeout
 
-- Result: S03 repository implementation and protected release are verified; S01/S03 production use is `stabilizing`
-  pending the next scheduled owner receipt.
-- Remaining risk: the Top 5 layout has synthetic visual and finance-free provider evidence only until the next
-  scheduled production-value report confirms information value.
-- Follow-up Work Item: none. Observe the next scheduled 10:00 slot, reconcile its terminal Control row and obtain
-  owner acceptance without manually replaying a production-value report.
+- Result: S03 release is stabilizing and its 2026-09-10 10:00 content/chart is owner-accepted; S04 caption refinement is
+  repository-verified with no production effects.
+- Remaining risk: S04 is not deployed or client-rendered; the 16:00 owner receipt and terminal ledger remain part of
+  the parent stabilization exit.
+- Follow-up Work Item: none. Release S04 only through the protected target after approval, never manually replay a
+  production-value slot, and observe the next scheduled report.

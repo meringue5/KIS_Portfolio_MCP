@@ -1169,6 +1169,22 @@ def _deploy_wi055_s03(
     )
 
 
+def _deploy_wi055_s04(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Release the structured caption through the proven owner-report guardrails."""
+    return _deploy_wi055_s01(
+        args,
+        env=env,
+        project=project,
+        deploy_label="wi055-s04-caption-layout",
+        smoke_label="wi055-s04-photo-transport-smoke",
+    )
+
+
 def _deploy_wi029_s04(
     args: argparse.Namespace,
     *,
@@ -1569,6 +1585,7 @@ def main() -> int:
             "wi055",
             "wi055-s01",
             "wi055-s03",
+            "wi055-s04",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1784,6 +1801,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi055_s03(args, env=env, project=project)
+
+    if args.target == "wi055-s04":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi055_s04(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")
