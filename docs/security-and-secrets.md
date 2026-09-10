@@ -82,6 +82,11 @@ WI-037의 isolated repository 단계는 OpenDART credential을 만들거나 읽�
 MotherDuck row, log 또는 fixture에 넣지 않는다. SEC fixture path는 contact-bearing User-Agent를 실행하지 않으며
 network I/O 자체가 없다.
 
+WI-038의 isolated repository 단계도 KIS/OpenDART credential을 읽거나 source call을 하지 않는다. Dividend
+action은 internal이지만 account entitlement, cash receipt-link, gross/tax/net component와 monthly read model은
+confidential이며 full account identifier를 MCP, Telegram, fixture evidence와 로그에 노출하지 않는다. Owner
+manual evidence는 private provenance로만 append하고 broker cash fact를 덮어쓰지 않는다.
+
 | Name or pattern | Source of truth | Runtime consumer | DB storage | Stored form | Rotation notes |
 | --- | --- | --- | --- | --- | --- |
 | `KIS_APP_KEY_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy. Cache key includes app key, so new keys create new KIS token cache rows. |

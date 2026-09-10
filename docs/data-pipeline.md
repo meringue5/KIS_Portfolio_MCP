@@ -52,6 +52,14 @@ query cutoff에서 `control.fundamental_concept_mappings`의 reviewed version을
 local restore 검증 전용이며 source accessor, credential, Scheduler, production migration과 public consumer는
 계속 inactive다.
 
+WI-038의 repository stage는 migration 0015로 legacy `silver.dividend_events`가 0행인지 fail-closed
+preflight한 뒤 action, account entitlement와 cash receipt-link identity/revision ledger를 additive하게 만든다.
+실수령 monetary SSOT는 `silver.cash_flow_events`이며 배당 repository는 현금액을 독립 원장으로 복제하지
+않는다. Source-confirmed gross/tax/net component, `system_as_of` query와 rebuildable monthly native/명시적 FX
+projection만 결합하며 correction/reversal은 이전 revision을 보존한다. 이 구현은 safe fixture와 local restore
+검증 전용이고 KIS/OpenDART call, credential, runtime registry, Scheduler, production migration과 public
+consumer는 계속 inactive다.
+
 WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio-v2`다. 허용 slot은
 `kr-1000`, `kr-1430`, `kr-1600`, partition은 `all-accounts` 하나뿐이다. 각 slot은 별도 fixed-argument
 Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미국 최근 마감 입력도 함께 읽고,

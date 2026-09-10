@@ -13,7 +13,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner = MigrationRunner(con)
     assert runner.apply() == [
         "0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-        "0011", "0012", "0013", "0014",
+        "0011", "0012", "0013", "0014", "0015",
     ]
     assert runner.apply() == []
     runner.require("0006")
@@ -25,9 +25,10 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner.require("0012")
     runner.require("0013")
     runner.require("0014")
+    runner.require("0015")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 14
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 15
     con.close()
 
 
@@ -49,6 +50,27 @@ def test_filing_migration_refuses_nonempty_legacy_foundation(tmp_path: Path) -> 
 
     assert "0014" not in runner.applied()
     assert con.execute("SELECT count(*) FROM silver.filing_events").fetchone()[0] == 1
+    con.close()
+
+
+def test_dividend_migration_refuses_nonempty_legacy_foundation(tmp_path: Path) -> None:
+    con = duckdb.connect(str(tmp_path / "legacy-dividend.duckdb"))
+    runner = MigrationRunner(con)
+    assert runner.apply(through="0014")[-1] == "0014"
+    con.execute(
+        """
+        INSERT INTO silver.dividend_events VALUES (
+            'legacy-dividend','instrument','account','declared',DATE '2026-09-10',
+            NULL,NULL,NULL,'KRW','legacy-source-fact','pass'
+        )
+        """
+    )
+
+    with pytest.raises(duckdb.Error, match="requires empty legacy dividend foundation"):
+        runner.apply()
+
+    assert "0015" not in runner.applied()
+    assert con.execute("SELECT count(*) FROM silver.dividend_events").fetchone()[0] == 1
     con.close()
 
 
