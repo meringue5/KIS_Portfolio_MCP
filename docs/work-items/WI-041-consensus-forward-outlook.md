@@ -1,7 +1,7 @@
 ---
 id: WI-041
 title: Implement point-in-time consensus and forward outlook analysis
-status: proposed
+status: in_progress
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023
@@ -10,10 +10,12 @@ milestone_ref: MS-003
 delivery_refs: V2-W0506
 parent_work_item: none
 depends_on: WI-037
-architecture_impact: possible provider activation gate; no provider chosen by this baseline
-data_impact: point-in-time consensus snapshots and outlook metrics
+architecture_impact: existing ADR-021/023 and approved Alpha-specific contracts; shared scale-to-zero runtime only
+data_impact: additive forward-only normalized consensus snapshots; canonical historical PIT remains unsupported
 security_impact: licensed content rights and redistribution controls
-cost_impact: provider cost must be separately approved
+cost_impact: approved free-tier planning guard; no provider call or production cost in this phase
+execution_scope: isolated
+production_effects: none
 ---
 
 # WI-041 — Implement point-in-time consensus and forward outlook analysis
@@ -34,9 +36,9 @@ historical point-in-time coverage.
 
 ## Acceptance criteria
 
-- [ ] provider rights, point-in-time history, coverage and monthly cost are approved.
-- [ ] future leakage and scenario/consensus confusion tests pass.
-- [ ] missing coverage is explicit and full gates pass.
+- [ ] approved personal-use rights and free-tier bounds are enforced without raw retention or redistribution.
+- [ ] forward-only knowledge time, future leakage and scenario/consensus confusion tests pass; historical PIT stays unsupported.
+- [ ] missing coverage is explicit, local backup/restore reconciles and full gates pass.
 
 ## Change impact
 
@@ -44,7 +46,25 @@ historical point-in-time coverage.
 
 ## Plan
 
-1. Sample candidate providers. 2. Approve contract/cost. 3. Implement and replay event windows.
+1. Project the approved Alpha-only runtime contract. 2. Add an additive normalized forward-snapshot migration and
+repository. 3. Implement fixture-only parsing, held-issuer/budget/rights/quality guards and outlook revision metrics.
+4. Verify fresh local backup/restore and stop before production activation.
+
+## Isolated implementation checkpoint — 2026-09-10
+
+- Activated after WI-039 reached `verified`; dependency WI-037 is already `verified`, MS-003 is in continuous isolated
+  overlap, and no other implementation Work Item is `in_progress`.
+- This phase is limited to repository implementation, an additive migration, conspicuously synthetic Alpha fixtures,
+  deterministic forward-only metrics and local DuckDB migration/recovery verification.
+- `source.alpha-vantage-personal`, `collection.alpha-vantage-consensus-forward-v1`,
+  `dataset.alpha-vantage-consensus-forward-snapshot` and `pipeline.alpha-vantage-consensus-forward-v1` remain
+  approved but inactive.
+- Historical provider PIT, pre-activation backfill, live Alpha/KIS calls, research Secret access or IAM changes,
+  production DB writes/migration, Cloud Run/Scheduler, public/private MCP activation, Telegram, cleanup and cutover are
+  prohibited.
+- Exit line: exact issuer scope and normalized field allowlist fail closed; fetched-at is the earliest knowledge clock;
+  missing/partial coverage and scenario separation remain explicit; call/capacity/terms guards and fresh local restore
+  pass the full gate.
 
 ## Sub-items
 
