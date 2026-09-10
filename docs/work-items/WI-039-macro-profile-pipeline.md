@@ -1,19 +1,21 @@
 ---
 id: WI-039
 title: Build the governed macro profile pipeline
-status: proposed
+status: in_progress
 type: change
 owner: owner
-decision_refs: ADR-021, ADR-023
+decision_refs: ADR-021, ADR-023, ADR-027
 requirement_refs: DEC-024, DEC-026, DEC-041
 milestone_ref: MS-003
 delivery_refs: V2-W0408
 parent_work_item: none
 depends_on: WI-012
-architecture_impact: pending owner decision on proposed ADR-027 profile source revision and time semantics
+architecture_impact: ADR-027 approved; exact registry and heterogeneous revision clocks on the shared runtime
 data_impact: versioned macro observations and vintages
 security_impact: API keys remain in Secret Manager
 cost_impact: small allowlisted series set and source budgets
+execution_scope: isolated
+production_effects: none
 ---
 
 # WI-039 — Build the governed macro profile pipeline
@@ -43,7 +45,20 @@ The approved ECOS/FRED-ALFRED/Cboe macro contract is not yet collected or publis
 
 ## Plan
 
-1. Freeze series allowlist. 2. Implement source adapters. 3. Replay and activate cadence-aware jobs.
+1. Project the exact approved registry into runtime definitions. 2. Add migration 0016 and append-only repositories.
+3. Implement offline parsers, PIT selection and five transparent metrics with safe fixtures. 4. Verify local
+backup/restore and stop at `verified`; source and schedule activation remain production-gated.
+
+## Isolated implementation checkpoint — 2026-09-10
+
+- Activated after WI-038 reached `verified` under the MS-003 continuous isolated-overlap gate; WI-012 is already
+  closed and no other implementation Work Item is `in_progress`.
+- This phase is limited to the exact 17-series runtime registry, additive migration 0016, repository code, synthetic
+  ECOS/FRED fixtures, local DuckDB migration/recovery and deterministic metric verification.
+- Production DB migration, live DB writes, source calls or activation, credentials/IAM/Secret changes,
+  Cloud Run/Scheduler, public MCP/Telegram activation, cleanup and cutover remain prohibited.
+- Exit line: typed observed-content/provider-vintage revisions are append-only and PIT-correct; missing observations
+  remain explicit; the five approved metrics, call/capacity guards and fresh local restore reconcile under full gate.
 
 ## Sub-items
 
