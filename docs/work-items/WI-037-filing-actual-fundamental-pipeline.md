@@ -1,7 +1,7 @@
 ---
 id: WI-037
 title: Build filing actual and fundamental fact pipeline
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, ADR-025
@@ -35,9 +35,9 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 
 ## Acceptance criteria
 
-- [ ] corrections preserve knowledge time and original taxonomy facts.
-- [ ] bounded source, object backup/restore and reconciliation gates pass.
-- [ ] official facts are queryable without future leakage.
+- [x] corrections preserve knowledge time and original taxonomy facts.
+- [x] bounded source plans, object backup/restore and reconciliation gates pass locally.
+- [x] official fixture facts are queryable without future leakage in both labeled modes.
 
 ## Change impact
 
@@ -87,11 +87,16 @@ scheduled activation.
   object, budget, migration and approval package; no production mutation.
 - `WI-037-S03` start checkpoint: 2026-09-02.
 - `docs/operations/wi-037-s03-contract-adoption-2026-09.md`: canonical ADR/DGH adoption and full verification.
+- `docs/operations/wi-037-isolated-implementation-2026-09.md`: migration, revision repository, fixture, security,
+  budget, quality-watermark, backup/restore and excluded production effects.
+- Focused migration/filing/recovery suite: 15 passed. `bash scripts/check.sh full`: 532 passed.
+- Implementation commits: `1078d67`, `68877a8`.
 
 ## Closeout
 
-- Result: in progress; approved-but-inactive contracts are being implemented with local fixtures and verification.
-- Remaining risk: taxonomy coverage, source payload shape and object volume require bounded fixtures and sampling;
-  no filing contract is active.
-- Follow-up Work Item: WI-038 and WI-041 remain downstream of the parent outcome; source/runtime activation remains a
-  separate production-gated phase.
+- Result: verified for the isolated repository phase. Additive migration 0014, immutable revision repositories,
+  dual-as-of reads, safe fixtures, budget/quality guardrails and fresh local restore are complete.
+- Remaining risk: real OpenDART/SEC payload coverage, taxonomy volume and object capacity require bounded source
+  sampling after the production gate; no filing contract is active and no production resource changed.
+- Follow-up Work Item: WI-038 and WI-041 are dependency-ready; source/runtime activation remains a separate
+  production-gated phase.

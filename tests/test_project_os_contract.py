@@ -406,6 +406,16 @@ def test_project_os_rejects_overlap_before_work_item_dependencies_are_verified(
     filename = "WI-038-dividend-event-ledger.md"
     _activate_overlap_fixture(target, "WI-038", filename)
     _set_isolated_phase_metadata(target / f"docs/work-items/{filename}")
+    dependency = target / "docs/work-items/WI-037-filing-actual-fundamental-pipeline.md"
+    dependency.write_text(
+        re.sub(
+            r"(?m)^status: .+$",
+            "status: proposed",
+            dependency.read_text(encoding="utf-8"),
+            count=1,
+        ),
+        encoding="utf-8",
+    )
 
     errors = checker.check(target)
 
