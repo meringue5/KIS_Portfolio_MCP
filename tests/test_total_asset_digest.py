@@ -224,14 +224,17 @@ def test_owner_report_sends_exact_values_alias_composition_and_chart_once() -> N
     assert replay["outcome"] == "sent" and replay["reused"] is True
     assert len(client.photos) == 1 and not client.rich
     message = client.photos[0]
-    assert "₩1,050" in message.caption_html
-    assert "+₩50 (+5.00%)" in message.caption_html
-    assert "BROKERAGE: ₩1,050 · 100.00%" in message.caption_html
-    assert "국내: ₩840 · 80.00%" in message.caption_html
-    assert "현금: ₩210 · 20.00%" in message.caption_html
+    assert "<b>자산 요약</b>" in message.caption_html
+    assert "<pre>총자산    ₩1,050\n전일대비    +₩50  +5.00%</pre>" in message.caption_html
+    assert "<b>계좌 구성</b>" in message.caption_html
+    assert "<pre>BROKERAGE  ₩1,050  100.00%</pre>" in message.caption_html
+    assert "<b>자산 구성</b>" in message.caption_html
+    assert "국내  ₩840  80.00%" in message.caption_html
+    assert "현금  ₩210  20.00%" in message.caption_html
     assert "총자산 변동 기여 Top 5" in message.caption_html
-    assert "1. ▲ 삼성전자 (005930) · +₩60 · +6.00%p" in message.caption_html
-    assert "2. ▼ SK하이닉스 (000660) · -₩20 · -2.00%p" in message.caption_html
+    assert "1. ▲ 삼성전자 (005930)\n   +₩60" in message.caption_html
+    assert "2. ▼ SK하이닉스 (000660)\n   -₩20" in message.caption_html
+    assert "+6.00%p" in message.caption_html and "-2.00%p" in message.caption_html
     assert "acct-1" not in message.caption_html
     assert message.png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
     assert message.png_bytes[16:24] == (1200).to_bytes(4, "big") + (1080).to_bytes(4, "big")
@@ -285,12 +288,12 @@ def test_owner_report_ranks_top_five_holdings_by_absolute_krw_impact() -> None:
     )
 
     assert result["outcome"] == "sent"
-    lines = [line for line in client.photos[0].caption_html.splitlines() if line[:2] in {"1.", "2.", "3.", "4.", "5."}]
-    assert [line.split(" ", 3)[2] for line in lines] == ["Impact", "Impact", "Impact", "삼성전자", "Impact"]
-    assert [token for line in lines for token in line.split() if token.startswith(("+₩", "-₩"))] == [
-        "+₩90", "-₩80", "+₩70", "+₩60", "-₩60",
-    ]
-    assert "Impact E" not in "\n".join(lines) and "Impact F" not in "\n".join(lines)
+    caption = client.photos[0].caption_html
+    labels = ["Impact A", "Impact B", "Impact C", "삼성전자", "Impact D"]
+    assert [caption.index(label) for label in labels] == sorted(caption.index(label) for label in labels)
+    top_block = caption.split("<b>총자산 변동 기여 Top 5</b>", 1)[1]
+    assert all(value in top_block for value in ("+₩90", "-₩80", "+₩70", "+₩60", "-₩60"))
+    assert "Impact E" not in top_block and "Impact F" not in top_block
 
 
 def test_owner_report_rejects_internal_or_unreconciled_impact_values() -> None:

@@ -38,7 +38,7 @@ PIPELINE_VERSION = "1.0.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1600"})
 PARTITION_KEY = "owner-consolidated"
 V2_PIPELINE_ID = "pipeline.telegram-total-asset-report-v2"
-V2_PIPELINE_VERSION = "2.1.0"
+V2_PIPELINE_VERSION = "2.2.0"
 
 
 @dataclass(frozen=True, slots=True)
