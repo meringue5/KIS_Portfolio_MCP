@@ -13,7 +13,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner = MigrationRunner(con)
     assert runner.apply() == [
         "0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-        "0011", "0012", "0013",
+        "0011", "0012", "0013", "0014",
     ]
     assert runner.apply() == []
     runner.require("0006")
@@ -24,9 +24,31 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner.require("0011")
     runner.require("0012")
     runner.require("0013")
+    runner.require("0014")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 13
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 14
+    con.close()
+
+
+def test_filing_migration_refuses_nonempty_legacy_foundation(tmp_path: Path) -> None:
+    con = duckdb.connect(str(tmp_path / "legacy-filing.duckdb"))
+    runner = MigrationRunner(con)
+    assert runner.apply(through="0013")[-1] == "0013"
+    con.execute(
+        """
+        INSERT INTO silver.filing_events VALUES (
+            'issuer','legacy-filing','v1','annual',current_timestamp,current_timestamp,
+            'source.sec-edgar',NULL,'pass'
+        )
+        """
+    )
+
+    with pytest.raises(duckdb.Error, match="requires empty legacy filing foundations"):
+        runner.apply()
+
+    assert "0014" not in runner.applied()
+    assert con.execute("SELECT count(*) FROM silver.filing_events").fetchone()[0] == 1
     con.close()
 
 

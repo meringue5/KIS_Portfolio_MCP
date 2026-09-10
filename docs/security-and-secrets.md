@@ -77,6 +77,11 @@ Firestore 활성화 또는 token migration을 수행하지 않았다.
 
 ## Secret Inventory
 
+WI-037의 isolated repository 단계는 OpenDART credential을 만들거나 읽지 않는다. 미래 source activation에서
+필요한 key는 별도 security/release gate로 Secret Manager에 추가해야 하며 Bronze payload, raw-object metadata,
+MotherDuck row, log 또는 fixture에 넣지 않는다. SEC fixture path는 contact-bearing User-Agent를 실행하지 않으며
+network I/O 자체가 없다.
+
 | Name or pattern | Source of truth | Runtime consumer | DB storage | Stored form | Rotation notes |
 | --- | --- | --- | --- | --- | --- |
 | `KIS_APP_KEY_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy. Cache key includes app key, so new keys create new KIS token cache rows. |

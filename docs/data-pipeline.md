@@ -43,6 +43,15 @@ logical pipeline은 다음과 같다.
 watermark, budget, quality와 failure만 분리하고 공통 image, runner, adapters, Bronze landing, repositories,
 MotherDuck, GCS와 release artifact를 재사용한다. 별도 service/repository/always-on worker를 만들지 않는다.
 
+WI-037의 repository stage는 migration 0014로 legacy empty foundation을 보존한 채
+`issuer_alias_revisions → filing_identities/filing_revisions → financial_fact_revisions`를 additive하게 만든다.
+Bronze observation과 private object hash가 일치하고 official issuer alias가 `verified`인 partition만 Silver에
+기록한다. correction은 verified target만 current/as-of 선택에서 supersede하며 OpenDART day-grain은 다음 KST
+00:00, SEC accepted timestamp는 second precision으로 유지한다. concept mapping은 source fact를 갱신하지 않고
+query cutoff에서 `control.fundamental_concept_mappings`의 reviewed version을 독립 선택한다. 이 구현은 fixture와
+local restore 검증 전용이며 source accessor, credential, Scheduler, production migration과 public consumer는
+계속 inactive다.
+
 WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio-v2`다. 허용 slot은
 `kr-1000`, `kr-1430`, `kr-1600`, partition은 `all-accounts` 하나뿐이다. 각 slot은 별도 fixed-argument
 Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미국 최근 마감 입력도 함께 읽고,

@@ -42,7 +42,9 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.corporate_actions`, `silver.corporate_action_revisions`,
   `silver.corporate_action_adjustment_effects`,
   `silver.fx_rates_daily`, `silver.etf_constituent_snapshots`, `silver.filing_events`,
-  `silver.financial_facts`, `silver.dividend_events`, `silver.macro_observations`,
+  `silver.financial_facts`, `silver.issuer_alias_revisions`, `silver.filing_identities`,
+  `silver.filing_revisions`, `silver.financial_fact_revisions`,
+  `silver.dividend_events`, `silver.macro_observations`,
   `gold.portfolio_daily_state`, `gold.metric_values`, `gold.alert_candidates`,
   `control.pipeline_definitions`, `control.metric_definitions`, `control.alert_rule_versions`,
   `control.alert_state_revisions`, `control.alert_candidate_outcomes`,
@@ -53,7 +55,7 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `control.pipeline_stage_runs`, `control.quality_results`, `control.lineage_edges`, `control.watermarks`,
   `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`,
   `control.owner_review_items`, `control.owner_review_item_revisions`,
-  `control.etf_instrument_routes`.
+  `control.etf_instrument_routes`, `control.fundamental_concept_mappings`.
 - Object metadata Parquet: `bronze.raw_object_manifest`, `bronze.owner_research_documents`,
   `silver.owner_research_extractions`. 이 세 table의 metadata row도 manifest에 포함한다.
 - Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
@@ -63,6 +65,8 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.position_episodes_current`, `silver.purchase_lot_states_current`, `silver.sell_allocations_current`,
   `silver.trade_thread_risk_plans_current`,
   `silver.corporate_actions_current`,
+  `silver.issuer_source_aliases_current`, `silver.filing_revisions_current`,
+  `silver.financial_fact_revisions_current`, `control.fundamental_concept_mappings_current`,
   `gold.portfolio_daily_summary`, `control.pipeline_run_summary`,
   `control.reconstruction_exceptions_current`,
   `control.owner_review_items_current`,

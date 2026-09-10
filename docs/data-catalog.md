@@ -93,7 +93,10 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `silver.corporate_actions`, `silver.corporate_action_revisions`, `silver.corporate_actions_current` | source action identity, point-in-time terms/status revision과 latest knowledge projection | Parquet tables + rebuild view / internal |
 | `silver.corporate_action_adjustment_effects` | action revision별 price·quantity·instrument successor effect; factor 방향과 적용시점 명시 | Parquet / internal |
 | `silver.etf_constituent_snapshots` | ETF/source date/file hash/constituent ordinal | Parquet / internal |
-| `silver.filing_events`, `silver.financial_facts` | filing document version과 point-in-time taxonomy fact | Parquet / internal |
+| `silver.filing_events`, `silver.financial_facts` | ADR-025 이전 빈 foundation; migration 0014가 0행을 preflight하고 자동 변환·삭제하지 않음 | Parquet / internal |
+| `silver.issuer_alias_revisions`, `silver.issuer_source_aliases_current` | official corp-code/CIK 등 alias의 bitemporal revision과 latest knowledge projection | Parquet table + rebuild view / internal |
+| `silver.filing_identities`, `silver.filing_revisions`, `silver.filing_revisions_current` | stable source filing identity, immutable content/correction dual-clock revision과 verified supersession projection | Parquet tables + rebuild view / internal |
+| `silver.financial_fact_revisions`, `silver.financial_fact_revisions_current` | source taxonomy·lexical value·period·dimension을 보존하는 immutable fact revision과 latest projection | Parquet table + rebuild view / internal |
 | `silver.dividend_events`, `silver.macro_observations` | dividend state event와 series/vintage/revision | Parquet / confidential·internal |
 | `silver.owner_research_extractions` | document/extractor/version/revision/page·section locator | private object / restricted |
 
@@ -119,9 +122,10 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.reconstruction_exceptions`, `control.reconstruction_exception_revisions`, `control.reconstruction_exceptions_current` | 비식별 partition/episode 예외 identity, append-only 검토·해결 이력과 latest projection | Parquet tables + rebuild view / internal |
 | `control.owner_review_items`, `control.owner_review_item_revisions`, `control.owner_review_items_current` | 누락 thread plan/journal·미확정 sell allocation review identity, append-only 상태와 latest projection | Parquet tables + rebuild view / confidential |
 | `control.etf_instrument_routes` | exact instrument→provider profile route; account·quantity·valuation fields prohibited | Parquet / internal |
+| `control.fundamental_concept_mappings`, `control.fundamental_concept_mappings_current` | source taxonomy를 덮어쓰지 않는 reviewed mapping version과 latest projection; query cutoff에서 독립 선택 | Parquet table + rebuild view / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 74개 V2 object는 59 tables + 15 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 83개 V2 object는 64 tables + 19 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

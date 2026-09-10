@@ -1,7 +1,7 @@
 ---
 id: WI-037
 title: Build filing actual and fundamental fact pipeline
-status: proposed
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, ADR-025
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0406
 parent_work_item: none
 depends_on: WI-012, WI-017
+execution_scope: isolated
+production_effects: none
 architecture_impact: ADR-025 approved; shared modular-monolith runtime with filing-specific SSOT and dual clocks
 data_impact: approved inactive Bronze filing artifacts, issuer aliases, filing/fact revisions and point-in-time views
 security_impact: official public filings; private storage remains access controlled
@@ -33,9 +35,9 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 
 ## Acceptance criteria
 
-- [ ] corrections preserve knowledge time and original taxonomy facts.
-- [ ] bounded source, object backup/restore and reconciliation gates pass.
-- [ ] official facts are queryable without future leakage.
+- [x] corrections preserve knowledge time and original taxonomy facts.
+- [x] bounded source plans, object backup/restore and reconciliation gates pass locally.
+- [x] official fixture facts are queryable without future leakage in both labeled modes.
 
 ## Change impact
 
@@ -43,7 +45,10 @@ Approved OpenDART/SEC contracts have schema foundations but no production collec
 
 ## Plan
 
-1. Record bounded fixtures. 2. Implement adapters/parsers. 3. Activate scheduled held-issuer shards.
+1. Add migration 0014 and governed physical objects with non-zero legacy-foundation preflight. 2. Implement shared
+filing domain/parser/repository and bounded redistribution-safe fixtures. 3. Verify immutable correction, dual as-of,
+object restore and fail-closed quality locally. 4. Stop at `verified`; credential, source sampling, live migration,
+backfill, Scheduler and public consumption remain later gated phases.
 
 ## Sub-items
 
@@ -73,6 +78,8 @@ scheduled activation.
 
 ## Evidence
 
+- Parent implementation activated 2026-09-10 from merged master `bb0718c` under
+  `execution_scope: isolated`, `production_effects: none`.
 - `WI-037-S01` start checkpoint: 2026-08-31.
 - `docs/operations/wi-037-pre-research-2026-08.md`: closed evidence and contract-hardening inputs.
 - `WI-037-S02` start checkpoint: 2026-09-02.
@@ -80,11 +87,16 @@ scheduled activation.
   object, budget, migration and approval package; no production mutation.
 - `WI-037-S03` start checkpoint: 2026-09-02.
 - `docs/operations/wi-037-s03-contract-adoption-2026-09.md`: canonical ADR/DGH adoption and full verification.
+- `docs/operations/wi-037-isolated-implementation-2026-09.md`: migration, revision repository, fixture, security,
+  budget, quality-watermark, backup/restore and excluded production effects.
+- Focused migration/filing/recovery suite: 15 passed. `bash scripts/check.sh full`: 532 passed.
+- Implementation commits: `1078d67`, `68877a8`.
 
 ## Closeout
 
-- Result: parent proposed; `WI-037-S01` research closed without opening the MS-003 formal gate.
-- Remaining risk: taxonomy coverage, source payload shape and object volume require bounded fixtures and sampling;
-  no filing contract is active.
-- Follow-up Work Item: after approval, append a sequential WI-037 implementation sub-item; WI-038 and WI-041 remain
-  downstream of the parent outcome.
+- Result: verified for the isolated repository phase. Additive migration 0014, immutable revision repositories,
+  dual-as-of reads, safe fixtures, budget/quality guardrails and fresh local restore are complete.
+- Remaining risk: real OpenDART/SEC payload coverage, taxonomy volume and object capacity require bounded source
+  sampling after the production gate; no filing contract is active and no production resource changed.
+- Follow-up Work Item: WI-038 and WI-041 are dependency-ready; source/runtime activation remains a separate
+  production-gated phase.
