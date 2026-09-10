@@ -14,7 +14,7 @@
 | Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- | --- |
 | 1 | WI-035 production operations/cost/release guardrails | V2-W0002/0003/0106 | WI-012 | verified; isolated contracts/fixtures/local dry-run only; production inventory and cleanup apply remain gated |
-| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | proposed; S01~S03 closed; ADR-025 and 7 contracts approved but inactive; implementation/formal gate unchanged |
+| 2 | WI-037 filing actual/fundamental pipeline | V2-W0406 | WI-012, WI-017 | in progress; isolated migration/fixture/repository/local verification only; contracts remain approved-inactive and production effects none |
 | 3 | WI-038 dividend event ledger | V2-W0407 | WI-020, WI-021, WI-037 | proposed; S01~S03 closed; ADR-026 and 8 contract deltas approved but inactive; implementation/formal gate unchanged |
 | 4 | WI-039 macro profile pipeline | V2-W0408 | WI-012 | proposed; S01~S04 closed; ADR-027 and 23 new approved-inactive macro contracts adopted; implementation/formal gate unchanged |
 | 5 | WI-040 catalog/quality read model | V2-W0410 | WI-012, WI-019, WI-020 | verified; internal DTO/query and synthetic local evidence complete; contracts remain inactive and public MCP/production effects stay gated |
@@ -52,6 +52,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-10.20 | 2026-09-10 | Activated WI-037 after WI-057 under continuous dependency-ready isolated overlap | migration code, repository, safe fixtures and local verification only; no source/live DB/credential/schedule/public effect |
 | 2026-09-10.19 | 2026-09-10 | Corrected the implementation gate to continuous dependency-ordered isolated overlap and moved MS-003 to in progress | WI identities and dependencies unchanged; production gate and cutover exclusion preserved |
 | 2026-09-09.18 | 2026-09-09 | Verified WI-040 six-kind catalog and bounded fail-closed Control read models with 12 focused and 518 full tests | synthetic local evidence only; no DDL, live DB, source, credential, infrastructure, schedule, public MCP or production effect |
 | 2026-09-09.17 | 2026-09-09 | Activated WI-040 under the allowlisted isolated overlap gate | repository DTO/query/fixture/local verification only; no production effects |
