@@ -35,6 +35,16 @@ def test_workflow_dispatches_wi046_zero_traffic_stage_target():
     assert "scripts/deploy_cloud_run.py wi046-stage" in workflow
 
 
+def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+    test_step = workflow.split("- name: Run test suite", 1)[1].split(
+        "- name: Authenticate to Google Cloud", 1
+    )[0]
+
+    assert "KIS_STATE_BACKEND: motherduck" in test_step
+    assert "KIS_REMOTE_SURFACE_VERSION: v1" in test_step
+
+
 def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     env = {
         "KIS_DB_MODE": "motherduck",
