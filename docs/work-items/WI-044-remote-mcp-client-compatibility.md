@@ -1,7 +1,7 @@
 ---
 id: WI-044
 title: Verify Remote MCP V2 clients and publish the migration guide
-status: proposed
+status: in_progress
 type: maintenance
 owner: owner
 decision_refs: ADR-015, ADR-020, ADR-021
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0606, V2-W0607
 parent_work_item: none
 depends_on: WI-042, WI-043
+execution_scope: isolated
+production_effects: none
 architecture_impact: none; verifies approved public boundary
 data_impact: none beyond synthetic/read-only smoke
 security_impact: real OAuth discovery and scope negative tests
@@ -51,10 +53,19 @@ Transport tests do not prove Claude, ChatGPT and iPhone connector behavior or a 
 
 ## Evidence
 
-- Pending.
+- 2026-09-11 isolated activation: WI-042 and WI-043 are verified, MS-003 remains in continuous isolated overlap and
+  no other implementation Work Item is in progress. This phase is limited to recorded client-profile protocol
+  fixtures, the inactive V2 transport, an exact V1-to-V2 migration manifest/guide and local verification.
+- Official OpenAI documentation was refreshed for MCP server testing: Streamable HTTP, per-request authorization,
+  public HTTPS or Secure MCP Tunnel for ChatGPT developer-mode testing, a new conversation for tool use and metadata
+  refresh after contract changes. Repository guidance will cite the official source rather than preserve local-MCP
+  product instructions.
+- Activation does not authorize a public V2 endpoint, connector registration/reconnect, OAuth grant expansion,
+  Cloud Run/IAM/Secret changes, live DB/KIS calls, deployment, traffic, client cutover or external messages. Actual
+  client UI evidence remains an explicit production-gated acceptance item and will not be inferred from fixtures.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress under the MS-003 isolated-overlap gate.
 - Remaining risk: client UI caching must be verified separately from logs.
 - Follow-up Work Item: WI-045.
