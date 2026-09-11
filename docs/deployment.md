@@ -36,13 +36,18 @@ GitHub Actions의 `Deploy Cloud Run` workflow에서 `wi046-stage`를 선택한�
 1. commit당 한 번 build하고 image digest를 고정한다.
 2. 전용 migration Job으로 MotherDuck schema를 `0018`까지 적용한다.
 3. 활성 OAuth/KIS 상태를 MotherDuck에서 `kis-portfolio-state`로 append-only 복사하고 count를 검증한다.
-4. auth와 Remote에 전용 service account와 필요한 secret/job 권한만 부여한다.
+4. owner가 미리 bootstrap한 전용 service account가 존재하는지 확인한다. 권한은 아래 최소 경계로 제한한다.
 5. `wi046-auth`, `wi046-v2` tag의 no-traffic 후보를 배포하고 health/discovery/401 경계를 검사한다.
 
 serving V1 auth/remote revision은 계속 100% traffic을 받는다. 현재 owned-core V2 수집 스케줄 세 개도 그대로
 유지하며, 국내/해외 주문이력과 token warm-up schedule은 V1 중복 스케줄이 아니므로 pause 대상이 아니다.
 candidate 실패 시 traffic 변경 없이 종료하고, Firestore/MotherDuck 및 V1 revision을 삭제하거나 역복사하지
 않는다.
+
+GitHub deployer는 service-account 생성이나 IAM policy 변경 권한을 갖지 않는다. owner bootstrap은 auth에
+`roles/datastore.user`, auth 전용 여섯 secret accessor와 deployer의 service-account user만 부여한다. Remote는
+`roles/datastore.user`, MotherDuck/OAuth-pepper secret accessor, 고정 owned-core Job 세 개의 invoker와 deployer의
+service-account user만 부여한다. 이후 protected stage는 identity를 재바인딩하지 않는다.
 
 ## Remote MCP 인증
 

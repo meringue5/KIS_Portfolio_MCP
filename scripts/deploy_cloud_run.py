@@ -869,7 +869,9 @@ def _ensure_runtime_identity(
         exists = _run_capture([
             "gcloud", "iam", "service-accounts", "describe", email, "--project", project,
         ], dry_run=False)
-        if exists.returncode != 0 and _run([
+        if exists.returncode == 0:
+            return email
+        if _run([
             "gcloud", "iam", "service-accounts", "create", account_id,
             "--display-name", f"KIS Portfolio {account_id} Runtime", "--project", project,
         ], dry_run=False) != 0:

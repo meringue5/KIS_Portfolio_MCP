@@ -564,6 +564,30 @@ def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypat
     }]
 
 
+def test_existing_runtime_identity_is_not_rebound_by_protected_stage(monkeypatch):
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run_capture",
+        lambda *_args, **_kwargs: argparse.Namespace(returncode=0),
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda *_args, **_kwargs: pytest.fail("existing identity must not mutate IAM"),
+    )
+
+    result = deploy_cloud_run._ensure_runtime_identity(
+        project="project-1",
+        region="asia-northeast3",
+        account_id="kis-portfolio-remote",
+        secret_ids={"secret-a"},
+        job_names=("job-a",),
+        dry_run=False,
+    )
+
+    assert result == "kis-portfolio-remote@project-1.iam.gserviceaccount.com"
+
+
 def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
     commands = []
     args = argparse.Namespace(
