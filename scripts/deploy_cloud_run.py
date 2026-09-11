@@ -937,10 +937,19 @@ def _tagged_service_url(
     completed = _run_capture([
         "gcloud", "run", "services", "describe", service,
         "--region", region, "--project", project,
-        f"--format=value(status.traffic[?tag={tag}].url)",
+        "--format=json(status.traffic)",
     ], dry_run=False)
-    value = completed.stdout.strip()
-    return value if completed.returncode == 0 and value.startswith("https://") else None
+    if completed.returncode != 0:
+        return None
+    try:
+        traffic = json.loads(completed.stdout).get("status", {}).get("traffic", [])
+    except (AttributeError, json.JSONDecodeError):
+        return None
+    for target in traffic:
+        value = target.get("url") if target.get("tag") == tag else None
+        if isinstance(value, str) and value.startswith("https://"):
+            return value
+    return None
 
 
 def _smoke_wi046_tagged_urls(*, auth_url: str, remote_url: str, expected_resource: str) -> bool:
