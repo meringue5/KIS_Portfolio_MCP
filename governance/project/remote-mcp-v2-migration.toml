@@ -1,0 +1,254 @@
+schema_version = "1.0.0"
+v2_tools = [
+  "get-portfolio-overview", "get-position-analysis", "get-performance-history",
+  "get-market-snapshot", "get-market-history", "get-trade-ledger", "get-trade-thread",
+  "get-dividend-summary", "get-fundamental-outlook", "get-exposure-analysis",
+  "get-signal-status", "get-data-catalog", "get-data-quality", "get-pipeline-run",
+  "get-journal-review-queue", "run-managed-pipeline", "upsert-trade-journal",
+  "revise-trade-thread",
+]
+
+[[mappings]]
+v1_tool = "get-configured-accounts"
+v2_tools = ["get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "account_alias_projection"
+guidance = "Use get-portfolio-overview; accounts are exposed by alias with masked metadata."
+
+[[mappings]]
+v1_tool = "get-all-token-statuses"
+v2_tools = ["get-data-quality"]
+disposition = "consolidated"
+reason_code = "credential_detail_removed"
+guidance = "Use get-data-quality for readiness; token-specific details are not a V2 public capability."
+
+[[mappings]]
+v1_tool = "get-account-balance"
+v2_tools = ["get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "portfolio_overview_account_filter"
+guidance = "Use get-portfolio-overview with account_alias."
+
+[[mappings]]
+v1_tool = "refresh-all-account-snapshots"
+v2_tools = ["run-managed-pipeline", "get-pipeline-run"]
+disposition = "async"
+reason_code = "managed_async_refresh"
+guidance = "Request portfolio-refresh, then poll get-pipeline-run with the returned run_id."
+
+[[mappings]]
+v1_tool = "get-total-asset-overview"
+v2_tools = ["get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "canonical_portfolio_overview"
+guidance = "Use get-portfolio-overview."
+
+[[mappings]]
+v1_tool = "get-stock-price"
+v2_tools = ["get-market-snapshot"]
+disposition = "consolidated"
+reason_code = "market_snapshot"
+guidance = "Use get-market-snapshot with market KR."
+
+[[mappings]]
+v1_tool = "get-stock-ask"
+v2_tools = ["get-market-snapshot"]
+disposition = "consolidated"
+reason_code = "market_snapshot_quote"
+guidance = "Use get-market-snapshot with market KR and inspect available quote coverage."
+
+[[mappings]]
+v1_tool = "get-stock-info"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "governed_market_context"
+guidance = "Use get-market-history for governed instrument and price context."
+
+[[mappings]]
+v1_tool = "get-stock-history"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "market_history"
+guidance = "Use get-market-history with market KR."
+
+[[mappings]]
+v1_tool = "get-overseas-stock-price"
+v2_tools = ["get-market-snapshot"]
+disposition = "consolidated"
+reason_code = "market_snapshot"
+guidance = "Use get-market-snapshot with market US."
+
+[[mappings]]
+v1_tool = "get-overseas-balance"
+v2_tools = ["get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "canonical_portfolio_overview"
+guidance = "Use get-portfolio-overview with the brokerage alias."
+
+[[mappings]]
+v1_tool = "get-overseas-deposit"
+v2_tools = ["get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "canonical_cash_projection"
+guidance = "Use get-portfolio-overview for canonical cash and total assets."
+
+[[mappings]]
+v1_tool = "get-exchange-rate-history"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "fx_market_history"
+guidance = "Use get-market-history with market FX."
+
+[[mappings]]
+v1_tool = "get-overseas-stock-history"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "market_history"
+guidance = "Use get-market-history with market US."
+
+[[mappings]]
+v1_tool = "get-period-trade-profit"
+v2_tools = ["get-performance-history", "get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "performance_and_ledger_split"
+guidance = "Use get-performance-history for the result and get-trade-ledger for evidence."
+
+[[mappings]]
+v1_tool = "get-overseas-period-profit"
+v2_tools = ["get-performance-history", "get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "performance_and_ledger_split"
+guidance = "Use get-performance-history for the result and get-trade-ledger for evidence."
+
+[[mappings]]
+v1_tool = "get-overseas-transaction-history"
+v2_tools = ["get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "canonical_trade_ledger"
+guidance = "Use get-trade-ledger."
+
+[[mappings]]
+v1_tool = "get-overseas-order-history"
+v2_tools = ["get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "canonical_trade_ledger"
+guidance = "Use get-trade-ledger."
+
+[[mappings]]
+v1_tool = "get-overseas-settlement-balance"
+v2_tools = ["get-portfolio-overview", "get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "cash_and_settlement_split"
+guidance = "Use get-portfolio-overview for cash and get-trade-ledger for settlement evidence."
+
+[[mappings]]
+v1_tool = "get-order-list"
+v2_tools = ["get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "canonical_trade_ledger"
+guidance = "Use get-trade-ledger."
+
+[[mappings]]
+v1_tool = "get-order-detail"
+v2_tools = ["get-trade-ledger"]
+disposition = "consolidated"
+reason_code = "canonical_trade_ledger"
+guidance = "Use get-trade-ledger with the relevant filters."
+
+[[mappings]]
+v1_tool = "submit-stock-order"
+v2_tools = []
+disposition = "unsupported"
+reason_code = "unsupported_order_authority_absent"
+guidance = "Remote MCP V2 does not expose live order placement. Use the broker's authorized trading interface."
+
+[[mappings]]
+v1_tool = "submit-overseas-stock-order"
+v2_tools = []
+disposition = "unsupported"
+reason_code = "unsupported_order_authority_absent"
+guidance = "Remote MCP V2 does not expose live order placement. Use the broker's authorized trading interface."
+
+[[mappings]]
+v1_tool = "get-portfolio-history"
+v2_tools = ["get-performance-history"]
+disposition = "consolidated"
+reason_code = "performance_history"
+guidance = "Use get-performance-history."
+
+[[mappings]]
+v1_tool = "get-price-from-db"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "market_history"
+guidance = "Use get-market-history with freshness and quality metadata."
+
+[[mappings]]
+v1_tool = "get-exchange-rate-from-db"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "fx_market_history"
+guidance = "Use get-market-history with market FX."
+
+[[mappings]]
+v1_tool = "get-bollinger-bands"
+v2_tools = ["get-market-history"]
+disposition = "consolidated"
+reason_code = "technical_context"
+guidance = "Use get-market-history; Bollinger is one versioned technical context, not a separate tool."
+
+[[mappings]]
+v1_tool = "get-latest-portfolio-summary"
+v2_tools = ["get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "canonical_portfolio_overview"
+guidance = "Use get-portfolio-overview."
+
+[[mappings]]
+v1_tool = "get-portfolio-daily-change"
+v2_tools = ["get-performance-history"]
+disposition = "consolidated"
+reason_code = "performance_history"
+guidance = "Use get-performance-history for daily valuation change and quality."
+
+[[mappings]]
+v1_tool = "get-portfolio-anomalies"
+v2_tools = ["get-signal-status"]
+disposition = "consolidated"
+reason_code = "versioned_signal_status"
+guidance = "Use get-signal-status with rule, inputs and quality."
+
+[[mappings]]
+v1_tool = "get-portfolio-trend"
+v2_tools = ["get-performance-history"]
+disposition = "consolidated"
+reason_code = "performance_history"
+guidance = "Use get-performance-history."
+
+[[mappings]]
+v1_tool = "get-total-asset-history"
+v2_tools = ["get-performance-history", "get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "history_and_snapshot_split"
+guidance = "Use get-performance-history for history and get-portfolio-overview for the current snapshot."
+
+[[mappings]]
+v1_tool = "get-total-asset-daily-change"
+v2_tools = ["get-performance-history"]
+disposition = "consolidated"
+reason_code = "valuation_change_contribution"
+guidance = "Use get-performance-history for separately labelled KRW valuation-change contribution."
+
+[[mappings]]
+v1_tool = "get-total-asset-trend"
+v2_tools = ["get-performance-history"]
+disposition = "consolidated"
+reason_code = "performance_history"
+guidance = "Use get-performance-history."
+
+[[mappings]]
+v1_tool = "get-total-asset-allocation-history"
+v2_tools = ["get-performance-history", "get-portfolio-overview"]
+disposition = "consolidated"
+reason_code = "allocation_history_and_snapshot"
+guidance = "Use get-performance-history for allocation history and get-portfolio-overview for the current allocation."
