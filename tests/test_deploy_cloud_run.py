@@ -36,6 +36,12 @@ def test_workflow_dispatches_wi046_zero_traffic_stage_target():
     assert "scripts/deploy_cloud_run.py wi046-stage" in workflow
 
 
+def test_workflow_dispatches_wi046_candidate_resume_without_migrations():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi046-candidate-resume'" in workflow
+    assert "--wi046-candidates-only" in workflow
+
+
 def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     test_step = workflow.split("- name: Run test suite", 1)[1].split(
@@ -563,6 +569,20 @@ def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypat
         "remote_url": "https://wi046-v2.example.test",
         "expected_resource": "https://remote.example.com/mcp",
     }]
+
+    commands.clear()
+    deployments.clear()
+    smokes.clear()
+    args.wi046_candidates_only = True
+
+    result = deploy_cloud_run._deploy_wi046_stage(
+        args, env=env, project="project-1"
+    )
+
+    assert result == 0
+    assert not any(command[:3] == ["gcloud", "run", "jobs"] for command in commands)
+    assert [item["tag"] for item in deployments] == ["wi046-auth", "wi046-v2", "wi046-v2"]
+    assert len(smokes) == 1
 
 
 def test_existing_runtime_identity_is_not_rebound_by_protected_stage(monkeypatch):
