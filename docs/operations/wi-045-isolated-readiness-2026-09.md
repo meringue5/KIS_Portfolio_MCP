@@ -51,6 +51,8 @@ uv run python scripts/assess_dual_run_readiness.py \
 The expected exit code is 3 because fixture-only evidence is intentionally blocked. Contract validation errors return
 2; a fully passing production-observation input would return 0 but still would not apply a change.
 
+Verification completed with 29 focused and recovery-adjacent tests, the quick gate and the full gate at 607 passed.
+
 ## Production gate left intact
 
 No production system was queried or changed. This work did not read or write MotherDuck, activate a source, change a
