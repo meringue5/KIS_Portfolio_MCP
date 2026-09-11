@@ -1028,70 +1028,71 @@ def _deploy_wi046_stage(
     if not auth_identity or not remote_identity:
         return 1
 
-    migration_payload = {
-        key: stage_env[key]
-        for key in ("KIS_DB_MODE", "MOTHERDUCK_DATABASE") if stage_env.get(key)
-    }
-    migration_env = _write_env_yaml(migration_payload)
-    try:
-        migration_secret = {
-            "MOTHERDUCK_TOKEN": _secret_id_for_env_key("MOTHERDUCK_TOKEN")
+    if not getattr(args, "wi046_candidates_only", False):
+        migration_payload = {
+            key: stage_env[key]
+            for key in ("KIS_DB_MODE", "MOTHERDUCK_DATABASE") if stage_env.get(key)
         }
-        pipeline_identity = stage_env.get(
-            "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
-            f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
-        )
-        if _run([
-            "gcloud", "run", "jobs", "deploy", DEFAULT_WI046_MIGRATION_JOB,
-            "--image", image, "--region", args.region,
-            "--env-vars-file", migration_env, "--command", "kis-portfolio-migrate",
-            "--args=--motherduck,--through,0018", "--tasks", "1", "--parallelism", "1",
-            "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT, "--max-retries", "0",
-            "--service-account", pipeline_identity, *_build_secret_flags(migration_secret),
-            *_build_label_flags("wi046-stage-migration"), "--project", project,
-        ], dry_run=args.dry_run) != 0:
-            return 1
-        if _run([
-            "gcloud", "run", "jobs", "execute", DEFAULT_WI046_MIGRATION_JOB,
-            "--region", args.region, "--wait", "--project", project,
-        ], dry_run=args.dry_run) != 0:
-            return 1
-
-        state_migration_payload = {
-            "KIS_DB_MODE": "motherduck",
-            "MOTHERDUCK_DATABASE": stage_env["MOTHERDUCK_DATABASE"],
-            "KIS_GCP_PROJECT": project,
-            "KIS_FIRESTORE_DATABASE": stage_env["KIS_FIRESTORE_DATABASE"],
-        }
-        state_migration_env = _write_env_yaml(state_migration_payload)
+        migration_env = _write_env_yaml(migration_payload)
         try:
+            migration_secret = {
+                "MOTHERDUCK_TOKEN": _secret_id_for_env_key("MOTHERDUCK_TOKEN")
+            }
+            pipeline_identity = stage_env.get(
+                "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+                f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+            )
             if _run([
-                "gcloud", "run", "jobs", "deploy", DEFAULT_WI046_STATE_MIGRATION_JOB,
+                "gcloud", "run", "jobs", "deploy", DEFAULT_WI046_MIGRATION_JOB,
                 "--image", image, "--region", args.region,
-                "--env-vars-file", state_migration_env, "--command", "python",
-                "--args=scripts/migrate_operational_state.py",
-                "--tasks", "1", "--parallelism", "1",
+                "--env-vars-file", migration_env, "--command", "kis-portfolio-migrate",
+                "--args=--motherduck,--through,0018", "--tasks", "1", "--parallelism", "1",
                 "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT, "--max-retries", "0",
-                "--service-account", pipeline_identity,
-                *_build_secret_flags(migration_secret),
-                *_build_label_flags("wi046-stage-state-migration"), "--project", project,
+                "--service-account", pipeline_identity, *_build_secret_flags(migration_secret),
+                *_build_label_flags("wi046-stage-migration"), "--project", project,
             ], dry_run=args.dry_run) != 0:
                 return 1
             if _run([
-                "gcloud", "run", "jobs", "execute", DEFAULT_WI046_STATE_MIGRATION_JOB,
+                "gcloud", "run", "jobs", "execute", DEFAULT_WI046_MIGRATION_JOB,
                 "--region", args.region, "--wait", "--project", project,
             ], dry_run=args.dry_run) != 0:
                 return 1
+
+            state_migration_payload = {
+                "KIS_DB_MODE": "motherduck",
+                "MOTHERDUCK_DATABASE": stage_env["MOTHERDUCK_DATABASE"],
+                "KIS_GCP_PROJECT": project,
+                "KIS_FIRESTORE_DATABASE": stage_env["KIS_FIRESTORE_DATABASE"],
+            }
+            state_migration_env = _write_env_yaml(state_migration_payload)
+            try:
+                if _run([
+                    "gcloud", "run", "jobs", "deploy", DEFAULT_WI046_STATE_MIGRATION_JOB,
+                    "--image", image, "--region", args.region,
+                    "--env-vars-file", state_migration_env, "--command", "python",
+                    "--args=scripts/migrate_operational_state.py",
+                    "--tasks", "1", "--parallelism", "1",
+                    "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT, "--max-retries", "0",
+                    "--service-account", pipeline_identity,
+                    *_build_secret_flags(migration_secret),
+                    *_build_label_flags("wi046-stage-state-migration"), "--project", project,
+                ], dry_run=args.dry_run) != 0:
+                    return 1
+                if _run([
+                    "gcloud", "run", "jobs", "execute", DEFAULT_WI046_STATE_MIGRATION_JOB,
+                    "--region", args.region, "--wait", "--project", project,
+                ], dry_run=args.dry_run) != 0:
+                    return 1
+            finally:
+                try:
+                    os.unlink(state_migration_env)
+                except FileNotFoundError:
+                    pass
         finally:
             try:
-                os.unlink(state_migration_env)
+                os.unlink(migration_env)
             except FileNotFoundError:
                 pass
-    finally:
-        try:
-            os.unlink(migration_env)
-        except FileNotFoundError:
-            pass
 
     auth_service = stage_env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
     remote_service = stage_env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
@@ -1944,6 +1945,7 @@ def main() -> int:
     parser.add_argument("--allow-local-source", action="store_true")
     parser.add_argument("--reason")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--wi046-candidates-only", action="store_true")
     args = parser.parse_args()
 
     env = _load_env()
