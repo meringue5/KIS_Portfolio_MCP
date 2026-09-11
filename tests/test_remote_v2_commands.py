@@ -399,8 +399,9 @@ def test_command_actor_projection_requires_an_owner_subject(monkeypatch):
         ))
 
 
-def test_v2_command_catalog_remains_inactive_in_production_composition():
+def test_v2_command_catalog_is_guarded_by_explicit_production_surface_flag():
     remote_source = Path("src/kis_portfolio/remote.py").read_text(encoding="utf-8")
 
-    assert "build_v2_server" not in remote_source
-    assert "RemoteCommandApplication" not in remote_source
+    assert 'KIS_REMOTE_SURFACE_VERSION", "v1"' in remote_source
+    assert "_build_v2_runtime_server" in remote_source
+    assert "RemoteCommandApplication" in remote_source

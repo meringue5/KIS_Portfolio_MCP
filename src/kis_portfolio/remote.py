@@ -197,15 +197,65 @@ def _transport_security(resource_server_url: str | None) -> TransportSecuritySet
 
 
 def _create_mcp_handler(resource_server_url: str | None = None) -> tuple[ASGIApp, object]:
-    server = build_mcp_server()
-    server.streamable_http_app(
-        transport_security=_transport_security(resource_server_url),
-    )
+    surface = os.environ.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower()
+    if surface == "v1":
+        server = build_mcp_server()
+        server.streamable_http_app(
+            transport_security=_transport_security(resource_server_url),
+        )
+    elif surface == "v2":
+        if not resource_server_url:
+            raise RuntimeError("KIS_RESOURCE_SERVER_URL is required for Remote MCP V2")
+        server = _build_v2_runtime_server(resource_server_url)
+        server.streamable_http_app(
+            json_response=True,
+            stateless_http=True,
+            max_request_body_size=4 * 1024 * 1024,
+            transport_security=_transport_security(resource_server_url),
+        )
+    else:
+        raise RuntimeError("KIS_REMOTE_SURFACE_VERSION must be 'v1' or 'v2'")
 
     async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
         await server.session_manager.handle_request(scope, receive, send)
 
     return handle_streamable_http, server
+
+
+def _build_v2_runtime_server(resource_server_url: str):
+    from kis_portfolio.adapters.mcp.v2 import build_v2_server
+    from kis_portfolio.adapters.outbound.remote_v2_pipeline import CloudRunManagedPipelineCommands
+    from kis_portfolio.adapters.outbound.remote_v2_revisions import WarehouseJournalRevisionCommands
+    from kis_portfolio.adapters.outbound.remote_v2_warehouse import WarehouseReadQueryPort
+    from kis_portfolio.db.connection import get_connection
+    from kis_portfolio.platform.migrations import MigrationRunner
+    from kis_portfolio.platform.state_runtime import get_state_store
+    from kis_portfolio.services.remote_commands import RemoteCommandApplication
+    from kis_portfolio.services.remote_read_surface import RemoteReadApplication
+
+    project = (
+        os.environ.get("KIS_GCP_PROJECT")
+        or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or ""
+    ).strip()
+    region = os.environ.get("KIS_CLOUD_RUN_REGION", "asia-northeast3").strip()
+    if not project:
+        raise RuntimeError("KIS_GCP_PROJECT or GOOGLE_CLOUD_PROJECT is required for Remote MCP V2")
+    if os.environ.get("KIS_STATE_BACKEND", "").strip().lower() != "firestore":
+        raise RuntimeError("Remote MCP V2 requires KIS_STATE_BACKEND=firestore")
+    connection = get_connection()
+    MigrationRunner(connection).require("0018")
+    resource = resource_server_url.rstrip("/")
+    read_application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=resource
+    )
+    command_application = RemoteCommandApplication(
+        state=get_state_store(),
+        managed_pipeline=CloudRunManagedPipelineCommands(project=project, region=region),
+        revisions=WarehouseJournalRevisionCommands(connection),
+        expected_resource=resource,
+    )
+    return build_v2_server(read_application, command_application)
 
 
 def _build_bearer_app(auth_token: str) -> ASGIApp:
@@ -364,6 +414,9 @@ def create_app() -> ASGIApp:
         auth_mode = "disabled"
     else:
         auth_mode = get_remote_auth_mode()
+
+    if os.environ.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2" and auth_mode != "oauth":
+        raise RuntimeError("Remote MCP V2 requires oauth auth mode")
 
     if auth_mode == "disabled":
         mcp_handler, server = _create_mcp_handler()

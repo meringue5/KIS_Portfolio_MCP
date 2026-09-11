@@ -123,6 +123,7 @@ def _required_keys_for_auth(env: dict[str, str]) -> list[str]:
     ]
     if env.get("KIS_DB_MODE", "").lower() == "motherduck":
         keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
+
     return keys
 
 
@@ -133,6 +134,15 @@ def _required_keys_for_remote(env: dict[str, str]) -> list[str]:
     ]
     if env.get("KIS_DB_MODE", "").lower() == "motherduck":
         keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
+
+    if env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2":
+        keys.extend([
+            "KIS_REMOTE_SURFACE_VERSION",
+            "KIS_STATE_BACKEND",
+            "KIS_GCP_PROJECT",
+            "KIS_CLOUD_RUN_REGION",
+            "KIS_FIRESTORE_DATABASE",
+        ])
 
     auth_mode = _effective_remote_auth_mode(env)
     if auth_mode == "oauth":
@@ -226,6 +236,11 @@ def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_AUTH_REQUIRED_SCOPES",
         "KIS_AUTH_ALLOWED_SCOPES",
         "KIS_AUTH_TOKEN_PEPPER",
+        "KIS_REMOTE_SURFACE_VERSION",
+        "KIS_STATE_BACKEND",
+        "KIS_GCP_PROJECT",
+        "KIS_CLOUD_RUN_REGION",
+        "KIS_FIRESTORE_DATABASE",
         "KIS_REAL_API_MIN_INTERVAL_SECONDS",
         "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
         "KIS_TOKEN_MIN_INTERVAL_SECONDS",

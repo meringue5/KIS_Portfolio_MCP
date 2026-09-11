@@ -182,6 +182,33 @@ def test_remote_deploy_keeps_explicit_bearer_override():
     assert payload["KIS_REMOTE_AUTH_MODE"] == "bearer"
 
 
+def test_remote_v2_deploy_requires_and_forwards_managed_runtime_boundary():
+    env = {
+        "KIS_DB_MODE": "local",
+        "KIS_TOKEN_ENCRYPTION_KEY": "enc-key",
+        "KIS_REMOTE_AUTH_MODE": "oauth",
+        "KIS_AUTH_ISSUER_URL": "https://auth.example.com",
+        "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
+        "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+        "KIS_AUTH_TOKEN_PEPPER": "pepper",
+        "KIS_REMOTE_SURFACE_VERSION": "v2",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": "project-1",
+        "KIS_CLOUD_RUN_REGION": "asia-northeast3",
+        "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
+    }
+
+    required = deploy_cloud_run._required_keys_for_remote(env)
+    payload = deploy_cloud_run._build_remote_env(env)
+
+    assert {
+        "KIS_REMOTE_SURFACE_VERSION", "KIS_STATE_BACKEND", "KIS_GCP_PROJECT",
+        "KIS_CLOUD_RUN_REGION", "KIS_FIRESTORE_DATABASE",
+    } <= set(required)
+    assert payload["KIS_REMOTE_SURFACE_VERSION"] == "v2"
+    assert payload["KIS_STATE_BACKEND"] == "firestore"
+
+
 def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
     env = {
         "KIS_DB_MODE": "local",
