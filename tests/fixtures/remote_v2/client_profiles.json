@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "profiles": [
+    {
+      "profile_id": "claude-web-recorded",
+      "client_name": "Claude",
+      "handshake": "server/discover",
+      "protocol_version": "2026-07-28",
+      "origin": "https://claude.ai",
+      "calls": [
+        {"name": "get-portfolio-overview", "arguments": {}},
+        {"name": "get-market-snapshot", "arguments": {"instrument_id": "KRX:005930", "market": "KR"}}
+      ]
+    },
+    {
+      "profile_id": "chatgpt-web-recorded",
+      "client_name": "ChatGPT Connector",
+      "handshake": "initialize",
+      "protocol_version": "2025-06-18",
+      "origin": null,
+      "calls": [
+        {"name": "get-data-catalog", "arguments": {"kind": "dataset"}},
+        {"name": "get-pipeline-run", "arguments": {"run_id": "fixture-run-1"}}
+      ]
+    },
+    {
+      "profile_id": "claude-ios-cloud-recorded",
+      "client_name": "Claude iOS",
+      "handshake": "initialize",
+      "protocol_version": "2025-06-18",
+      "origin": null,
+      "calls": [
+        {
+          "name": "upsert-trade-journal",
+          "arguments": {
+            "journal_id": "fixture-journal-1",
+            "thread_id": "fixture-thread-1",
+            "body": "Owner-authored compatibility fixture.",
+            "authored_at": "2026-09-11T01:00:00Z",
+            "expected_revision": 0,
+            "idempotency_key": "ios-journal-0001"
+          }
+        }
+      ]
+    }
+  ]
+}

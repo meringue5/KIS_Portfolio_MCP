@@ -401,3 +401,41 @@ def create_v2_stateless_transport(
     app.state.kis_max_response_bytes = MAX_RESPONSE_BYTES
     app.state.kis_public_activation = False
     return app
+
+
+def create_v2_full_stateless_transport(
+    read_application: RemoteReadApplication,
+    command_application: RemoteCommandApplication,
+    *,
+    resource_server_url: str,
+    read_actor_provider: ActorProvider = actor_from_auth_context,
+    command_actor_provider: CommandActorProvider = command_actor_from_auth_context,
+):
+    """Build the inactive 18-tool transport for local client-profile tests."""
+    resource = resource_server_url.rstrip("/")
+    parts = urlsplit(resource)
+    security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[parts.netloc],
+        allowed_origins=[
+            f"{parts.scheme}://{parts.netloc}",
+            "https://claude.ai",
+            "https://claude.com",
+        ],
+    )
+    server = build_v2_server(
+        read_application,
+        command_application,
+        read_actor_provider=read_actor_provider,
+        command_actor_provider=command_actor_provider,
+    )
+    app = server.streamable_http_app(
+        json_response=True,
+        stateless_http=True,
+        max_request_body_size=MAX_REQUEST_BODY_BYTES,
+        transport_security=security,
+    )
+    app.state.kis_max_response_bytes = MAX_RESPONSE_BYTES
+    app.state.kis_public_activation = False
+    app.state.kis_client_profile_fixture_only = True
+    return app
