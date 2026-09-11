@@ -568,6 +568,7 @@ def run_owned_portfolio_pipeline(
     slot: str,
     partition_key: str = "all-accounts",
     object_store: ObjectStorePort | None = None,
+    requested_run_id: str | None = None,
 ) -> dict[str, Any]:
     if slot not in ALLOWED_SLOTS:
         raise ValueError(f"slot must be one of {sorted(ALLOWED_SLOTS)}")
@@ -598,6 +599,7 @@ def run_owned_portfolio_pipeline(
     try:
         outcome = runner.run(
             definition, logical_date=logical_date, slot=slot, partition_key=partition_key, state={},
+            requested_run_id=requested_run_id,
         )
         if state_store:
             state_store.put("run_requests", logical_key, {
