@@ -1,7 +1,7 @@
 ---
 id: WI-045
 title: Complete V1 V2 dual-run recovery and cost readiness
-status: proposed
+status: in_progress
 type: architecture
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-023
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0701, V2-W0702, V2-W0703, V2-W0706
 parent_work_item: none
 depends_on: WI-035, WI-044
+execution_scope: isolated
+production_effects: none
 architecture_impact: cutover readiness evidence without switching SSOT
 data_impact: comparison reports only; both writers preserved
 security_impact: confidential reports remain private and redacted
@@ -25,6 +27,8 @@ V2 cannot become SSOT until monetary, quantity, freshness, signal, recovery and 
 ## Classification and contract
 
 - `architecture` readiness gate; no traffic switch in this WI.
+- Current phase is isolated contract, fixture and local verification only. It does not claim elapsed production
+  dual-run, live restore or current billing evidence.
 
 ## Scope
 
@@ -51,10 +55,14 @@ V2 cannot become SSOT until monetary, quantity, freshness, signal, recovery and 
 
 ## Evidence
 
-- Pending.
+- 2026-09-11 activation: WI-035 and WI-044 are verified, MS-003 permits WI-045 as the next reviewed continuous-overlap
+  item and no other implementation Work Item is in progress. This phase is restricted to deterministic comparison,
+  recovery, cost and rollback contracts with synthetic fixtures and local verification.
+- Activation does not authorize production inventory capture, live database reads or writes, source activation,
+  IAM/Secret changes, Cloud Run/Scheduler changes, public MCP activation, cleanup, traffic cutover or V1 retirement.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress under the isolated overlap gate.
 - Remaining risk: cutover requires explicit approval.
 - Follow-up Work Item: WI-046.
