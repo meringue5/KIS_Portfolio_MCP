@@ -31,6 +31,7 @@ DEFAULT_WI029_S04_JOB = "kis-portfolio-wi029-s04"
 DEFAULT_WI030_S02_JOB = "kis-portfolio-wi030-s02"
 DEFAULT_WI030_S03_JOB = "kis-portfolio-wi030-s03"
 DEFAULT_WI046_MIGRATION_JOB = "kis-portfolio-wi046-migration"
+DEFAULT_WI046_STATE_MIGRATION_JOB = "kis-portfolio-wi046-state-migration"
 DEFAULT_WI046_AUTH_TAG = "wi046-auth"
 DEFAULT_WI046_REMOTE_TAG = "wi046-v2"
 DEFAULT_V2_CORE_JOBS = {
@@ -114,7 +115,6 @@ def _collect_prefixed(env: dict[str, str], prefixes: tuple[str, ...]) -> dict[st
 
 def _required_keys_for_auth(env: dict[str, str]) -> list[str]:
     keys = [
-        "KIS_DB_MODE",
         "KIS_AUTH_BASE_URL",
         "KIS_AUTH_OWNER_EMAILS",
         "KIS_AUTH_SESSION_SECRET",
@@ -126,21 +126,25 @@ def _required_keys_for_auth(env: dict[str, str]) -> list[str]:
         "KIS_OAUTH_GITHUB_CLIENT_ID",
         "KIS_OAUTH_GITHUB_CLIENT_SECRET",
     ]
-    if env.get("KIS_DB_MODE", "").lower() == "motherduck":
-        keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
+    if env.get("KIS_STATE_BACKEND", "motherduck").strip().lower() == "firestore":
+        keys.extend(["KIS_STATE_BACKEND", "KIS_GCP_PROJECT", "KIS_FIRESTORE_DATABASE"])
+    else:
+        keys.append("KIS_DB_MODE")
+        if env.get("KIS_DB_MODE", "").lower() == "motherduck":
+            keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
 
     return keys
 
 
 def _required_keys_for_remote(env: dict[str, str]) -> list[str]:
-    keys = [
-        "KIS_DB_MODE",
-        "KIS_TOKEN_ENCRYPTION_KEY",
-    ]
+    is_v2 = env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2"
+    keys = ["KIS_DB_MODE"]
+    if not is_v2:
+        keys.append("KIS_TOKEN_ENCRYPTION_KEY")
     if env.get("KIS_DB_MODE", "").lower() == "motherduck":
         keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
 
-    if env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2":
+    if is_v2:
         keys.extend([
             "KIS_REMOTE_SURFACE_VERSION",
             "KIS_STATE_BACKEND",
@@ -221,11 +225,19 @@ def _build_auth_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_OAUTH_GITHUB_CLIENT_ID",
         "KIS_OAUTH_GITHUB_CLIENT_SECRET",
         "KIS_DATA_DIR",
+        "KIS_STATE_BACKEND",
+        "KIS_GCP_PROJECT",
+        "KIS_FIRESTORE_DATABASE",
     }
-    return {key: env[key] for key in keys if env.get(key, "") != ""}
+    payload = {key: env[key] for key in keys if env.get(key, "") != ""}
+    if env.get("KIS_STATE_BACKEND", "motherduck").strip().lower() == "firestore":
+        for key in ("KIS_DB_MODE", "MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"):
+            payload.pop(key, None)
+    return payload
 
 
 def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
+    is_v2 = env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2"
     keys = {
         "KIS_DB_MODE",
         "MOTHERDUCK_DATABASE",
@@ -261,7 +273,20 @@ def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload["KIS_REMOTE_AUTH_MODE"] = _effective_remote_auth_mode(env)
-    payload.update(_build_account_env(env))
+    if not is_v2:
+        payload.update(_build_account_env(env))
+    else:
+        payload.pop("KIS_TOKEN_ENCRYPTION_KEY", None)
+        for key in (
+            "KIS_ACCOUNT_TYPE", "KIS_ENABLE_ORDER_TOOLS", "KIS_DATA_DIR",
+            "KIS_REAL_API_MIN_INTERVAL_SECONDS", "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
+            "KIS_TOKEN_MIN_INTERVAL_SECONDS", "KIS_RATE_LIMIT_RETRY_DELAY_SECONDS",
+            "KIS_RATE_LIMIT_MAX_COOLDOWN_SECONDS", "KIS_REAL_API_MAX_IN_FLIGHT",
+            "KIS_VIRTUAL_API_MAX_IN_FLIGHT", "KIS_API_MAX_QUEUE_SIZE",
+            "KIS_CIRCUIT_FAILURE_THRESHOLD", "KIS_CIRCUIT_WINDOW_SECONDS",
+            "KIS_CIRCUIT_OPEN_SECONDS",
+        ):
+            payload.pop(key, None)
     return payload
 
 
@@ -978,7 +1003,7 @@ def _deploy_wi046_stage(
     remote_payload, remote_secrets = _split_runtime_env(
         env=stage_env, payload=_build_remote_env(stage_env),
         required=_required_keys_for_remote(stage_env), secret_mode=args.secret_mode,
-        include_account_secrets=True,
+        include_account_secrets=False,
     )
     auth_identity = _ensure_runtime_identity(
         project=project, region=args.region, account_id="kis-portfolio-auth",
@@ -1020,6 +1045,37 @@ def _deploy_wi046_stage(
             "--region", args.region, "--wait", "--project", project,
         ], dry_run=args.dry_run) != 0:
             return 1
+
+        state_migration_payload = {
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": stage_env["MOTHERDUCK_DATABASE"],
+            "KIS_GCP_PROJECT": project,
+            "KIS_FIRESTORE_DATABASE": stage_env["KIS_FIRESTORE_DATABASE"],
+        }
+        state_migration_env = _write_env_yaml(state_migration_payload)
+        try:
+            if _run([
+                "gcloud", "run", "jobs", "deploy", DEFAULT_WI046_STATE_MIGRATION_JOB,
+                "--image", image, "--region", args.region,
+                "--env-vars-file", state_migration_env, "--command", "python",
+                "--args=scripts/migrate_operational_state.py",
+                "--tasks", "1", "--parallelism", "1",
+                "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT, "--max-retries", "0",
+                "--service-account", pipeline_identity,
+                *_build_secret_flags(migration_secret),
+                *_build_label_flags("wi046-stage-state-migration"), "--project", project,
+            ], dry_run=args.dry_run) != 0:
+                return 1
+            if _run([
+                "gcloud", "run", "jobs", "execute", DEFAULT_WI046_STATE_MIGRATION_JOB,
+                "--region", args.region, "--wait", "--project", project,
+            ], dry_run=args.dry_run) != 0:
+                return 1
+        finally:
+            try:
+                os.unlink(state_migration_env)
+            except FileNotFoundError:
+                pass
     finally:
         try:
             os.unlink(migration_env)
@@ -1926,7 +1982,9 @@ def main() -> int:
             payload=_build_remote_env(env),
             required=required,
             secret_mode=args.secret_mode,
-            include_account_secrets=True,
+            include_account_secrets=(
+                env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() != "v2"
+            ),
         )
         return _deploy_service_or_job(
             args=args,

@@ -213,6 +213,28 @@ def test_remote_v2_deploy_requires_and_forwards_managed_runtime_boundary():
     } <= set(required)
     assert payload["KIS_REMOTE_SURFACE_VERSION"] == "v2"
     assert payload["KIS_STATE_BACKEND"] == "firestore"
+    assert "KIS_TOKEN_ENCRYPTION_KEY" not in required
+    assert "KIS_TOKEN_ENCRYPTION_KEY" not in payload
+    assert not any(key.startswith("KIS_APP_KEY_") for key in payload)
+    assert not any(key.startswith("KIS_CANO_") for key in payload)
+
+
+def test_auth_firestore_deploy_excludes_motherduck_state_access():
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "MOTHERDUCK_TOKEN": "md-token",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": "project-1",
+        "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
+    }
+
+    payload = deploy_cloud_run._build_auth_env(env)
+
+    assert payload["KIS_STATE_BACKEND"] == "firestore"
+    assert "KIS_DB_MODE" not in payload
+    assert "MOTHERDUCK_DATABASE" not in payload
+    assert "MOTHERDUCK_TOKEN" not in payload
 
 
 def test_batch_deploy_builds_batch_runtime_env_without_remote_auth_fields():
@@ -445,6 +467,7 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
 def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypatch):
     commands = []
     deployments = []
+    identities = []
     smokes = []
     args = argparse.Namespace(
         region="asia-northeast3", target="wi046-stage", dry_run=False,
@@ -473,10 +496,11 @@ def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypat
         deploy_cloud_run, "_build_release_image",
         lambda *_args, **_kwargs: "image@sha256:" + "a" * 64,
     )
-    monkeypatch.setattr(
-        deploy_cloud_run, "_ensure_runtime_identity",
-        lambda account_id, **_kwargs: f"{account_id}@project-1.iam.gserviceaccount.com",
-    )
+    def ensure_identity(account_id, **kwargs):
+        identities.append({"account_id": account_id, **kwargs})
+        return f"{account_id}@project-1.iam.gserviceaccount.com"
+
+    monkeypatch.setattr(deploy_cloud_run, "_ensure_runtime_identity", ensure_identity)
     monkeypatch.setattr(
         deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0,
     )
@@ -501,10 +525,26 @@ def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypat
 
     assert result == 0
     assert any("--args=--motherduck,--through,0018" in command for command in commands)
+    assert any(
+        "--args=scripts/migrate_operational_state.py" in command for command in commands
+    )
     assert any(command[:4] == ["gcloud", "run", "jobs", "execute"] for command in commands)
     assert [item["tag"] for item in deployments] == ["wi046-auth", "wi046-v2", "wi046-v2"]
     assert deployments[0]["command_name"] == "kis-portfolio-auth"
     assert deployments[1]["command_name"] == "kis-portfolio-remote"
+    assert deployments[0]["payload"]["KIS_STATE_BACKEND"] == "firestore"
+    assert "MOTHERDUCK_TOKEN" not in deployments[0]["secret_refs"]
+    assert set(deployments[1]["secret_refs"]) == {
+        "KIS_AUTH_TOKEN_PEPPER", "MOTHERDUCK_TOKEN"
+    }
+    assert identities[0]["secret_ids"] == {
+        "kis-portfolio-kis-auth-claude-client-secret",
+        "kis-portfolio-kis-auth-owner-emails",
+        "kis-portfolio-kis-auth-session-secret",
+        "kis-portfolio-kis-auth-token-pepper",
+        "kis-portfolio-kis-oauth-github-client-secret",
+        "kis-portfolio-kis-oauth-google-client-secret",
+    }
     assert deployments[2]["payload"]["KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS"] == "wi046-v2.example.test"
     assert "--no-traffic" in Path(deploy_cloud_run.__file__).read_text()
     assert smokes == [{

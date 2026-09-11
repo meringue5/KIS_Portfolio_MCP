@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from kis_portfolio.services.remote_commands import MANAGED_JOB_BY_SLOT, ManagedRunCommand
@@ -36,7 +37,7 @@ class CloudRunManagedPipelineCommands:
             self._session = AuthorizedSession(credentials)
         return self._session
 
-    def enqueue(self, command: ManagedRunCommand) -> None:
+    async def enqueue(self, command: ManagedRunCommand) -> None:
         expected_job = MANAGED_JOB_BY_SLOT.get(command.slot)
         if expected_job is None or command.job_name != expected_job:
             raise ValueError("managed job is not allowlisted for the requested slot")
@@ -55,7 +56,8 @@ class CloudRunManagedPipelineCommands:
             "--requested-run-id",
             command.run_id,
         ]
-        response = self._authorized_session().post(
+        response = await asyncio.to_thread(
+            self._authorized_session().post,
             endpoint,
             json={"overrides": {"containerOverrides": [{"args": args}]}},
             timeout=self.timeout_seconds,

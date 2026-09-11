@@ -8,6 +8,11 @@ from kis_portfolio.adapters.outbound.remote_v2_pipeline import CloudRunManagedPi
 from kis_portfolio.services.remote_commands import ManagedRunCommand
 
 
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
 class _Response:
     def __init__(self, status_code: int) -> None:
         self.status_code = status_code
@@ -40,13 +45,14 @@ def _command(**overrides) -> ManagedRunCommand:
     return ManagedRunCommand(**values)
 
 
-def test_managed_pipeline_adapter_posts_only_fixed_job_and_normalized_args():
+@pytest.mark.anyio
+async def test_managed_pipeline_adapter_posts_only_fixed_job_and_normalized_args():
     session = _Session()
     adapter = CloudRunManagedPipelineCommands(
         project="project-1", region="asia-northeast3", session=session
     )
 
-    adapter.enqueue(_command())
+    await adapter.enqueue(_command())
 
     url, kwargs = session.calls[0]
     assert url.endswith("/jobs/kis-portfolio-owned-core-v2-1000:run")
@@ -64,22 +70,24 @@ def test_managed_pipeline_adapter_posts_only_fixed_job_and_normalized_args():
     assert kwargs["timeout"] == 30.0
 
 
-def test_managed_pipeline_adapter_rejects_job_slot_mismatch_before_network():
+@pytest.mark.anyio
+async def test_managed_pipeline_adapter_rejects_job_slot_mismatch_before_network():
     session = _Session()
     adapter = CloudRunManagedPipelineCommands(
         project="project-1", region="asia-northeast3", session=session
     )
 
     with pytest.raises(ValueError, match="not allowlisted"):
-        adapter.enqueue(_command(job_name="kis-portfolio-owned-core-v2-1430"))
+        await adapter.enqueue(_command(job_name="kis-portfolio-owned-core-v2-1430"))
 
     assert session.calls == []
 
 
-def test_managed_pipeline_adapter_fails_closed_on_cloud_run_error():
+@pytest.mark.anyio
+async def test_managed_pipeline_adapter_fails_closed_on_cloud_run_error():
     adapter = CloudRunManagedPipelineCommands(
         project="project-1", region="asia-northeast3", session=_Session(503)
     )
 
     with pytest.raises(RuntimeError, match="managed_job_enqueue_failed:503"):
-        adapter.enqueue(_command())
+        await adapter.enqueue(_command())
