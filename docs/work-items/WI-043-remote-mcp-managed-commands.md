@@ -1,7 +1,7 @@
 ---
 id: WI-043
 title: Add governed collection and journal commands to Remote MCP V2
-status: in_progress
+status: verified
 type: change
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-023
@@ -36,9 +36,9 @@ arguments, SQL or order capability.
 
 ## Acceptance criteria
 
-- [ ] read tokens cannot collect/write; invalid jobs and stale revisions fail closed.
-- [ ] long jobs return run IDs and journal changes append revisions.
-- [ ] audit, concurrency and full gates pass.
+- [x] read tokens cannot collect/write; invalid jobs and stale revisions fail closed.
+- [x] long jobs return run IDs and journal changes append revisions.
+- [x] audit, concurrency and full gates pass.
 
 ## Change impact
 
@@ -59,9 +59,21 @@ arguments, SQL or order capability.
   ports, fixed-job and append-only revision fixtures, authorization/idempotency/concurrency tests and local gates.
 - Activation does not authorize OAuth grant expansion, actual Job execution, live DB writes, IAM/Secret or Cloud Run
   changes, public V2 catalog activation, deployment, traffic cutover or external messages.
+- Implemented an inactive application command boundary for the exact three approved commands. `portfolio-refresh`
+  maps only to the fixed owned-core pipeline/version and three fixed Job slots; arbitrary command, SQL, args, env and
+  timeout input do not exist. A deterministic run ID is returned immediately for existing `get-pipeline-run` polling.
+- Added `mcp:collect` and `mcp:journal.write` per-tool plus application authorization, exact resource validation and
+  owner-subject projection without bearer retention. Existing grants and production auth configuration are unchanged.
+- Firestore-compatible state claims guard idempotency and concurrent replay. Local atomic revision fixtures append
+  journal and typed thread/lot/sell-allocation changes, retain actor/client/request audit evidence and fail stale
+  expected revisions closed.
+- Verification: focused and adjacent V2 tests `34 passed`; quick passed; full `590 passed` with all Project OS, data
+  governance, architecture, warehouse and MCP gates. See
+  `docs/operations/wi-043-isolated-verification-2026-09.md`.
 
 ## Closeout
 
-- Result: in progress under the MS-003 isolated-overlap gate.
-- Remaining risk: actual client flows belong to WI-044.
+- Result: verified under the MS-003 isolated-overlap gate; production effects remain none.
+- Remaining risk: actual client flows belong to WI-044; production adapter, consent/grant and infrastructure wiring
+  remain gated to WI-046.
 - Follow-up Work Item: WI-044.
