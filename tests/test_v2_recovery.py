@@ -48,6 +48,8 @@ def test_v2_recovery_functions_round_trip_complete_allowlist(tmp_path: Path) -> 
     )
     backup = tmp_path / "backup"
     manifest = export_v2_backup(source, backup, database="fixture")
+    assert manifest["manifest_version"] == 3
+    assert manifest["source_migrations"][-1]["version"] == "0017"
     source.close()
 
     store = MemoryStore()
@@ -66,6 +68,33 @@ def test_v2_recovery_functions_round_trip_complete_allowlist(tmp_path: Path) -> 
     assert restored["tables"] == len(manifest["tables"])
     check = duckdb.connect(str(target), read_only=True)
     assert check.execute("SELECT definition_hash FROM control.pipeline_definitions").fetchone()[0] == "fixture-hash"
+    check.close()
+
+
+def test_v2_recovery_round_trip_preserves_older_supported_migration_prefix(tmp_path: Path) -> None:
+    source = duckdb.connect(str(tmp_path / "source-0013.duckdb"))
+    MigrationRunner(source).apply(through="0013")
+    source.execute(
+        "INSERT INTO control.pipeline_definitions VALUES "
+        "('pipeline.fixture','1.0.0','approved','fixture-hash','{}',current_timestamp)"
+    )
+    backup = tmp_path / "backup-0013"
+    manifest = export_v2_backup(source, backup, database="fixture")
+    source.close()
+
+    assert manifest["source_migrations"][-1]["version"] == "0013"
+    assert "silver.issuer_alias_revisions" not in manifest["tables"]
+
+    target = tmp_path / "restored-0013.duckdb"
+    restored = restore_v2_backup(backup, target)
+    assert restored["through_migration"] == "0013"
+    check = duckdb.connect(str(target), read_only=True)
+    assert check.execute("SELECT max(version) FROM control.schema_migrations").fetchone()[0] == "0013"
+    assert check.execute("SELECT definition_hash FROM control.pipeline_definitions").fetchone()[0] == "fixture-hash"
+    assert check.execute(
+        "SELECT count(*) FROM information_schema.tables "
+        "WHERE table_schema='silver' AND table_name='issuer_alias_revisions'"
+    ).fetchone()[0] == 0
     check.close()
 
 

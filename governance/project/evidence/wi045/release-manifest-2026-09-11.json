@@ -1,0 +1,52 @@
+{
+  "schema_version": "kis-portfolio.release-manifest/v1",
+  "release_id": "wi045-production-baseline-20260911",
+  "created_at": "2026-09-11T09:54:11Z",
+  "git_sha": "65bda84e649e06545bc570943acaf6833ae9ac5d",
+  "active_targets": [
+    {"target":"kis-portfolio-auth","repository":"cloud-run-source-deploy","digest":"sha256:a0fbee1c5c6431875232fd1af59a518eb0c6797172fafadd7cb2f8c8a39d9027"},
+    {"target":"kis-portfolio-remote","repository":"cloud-run-source-deploy","digest":"sha256:a8f12c3fa070b4ddb85646c4f018ae1aae0a020329e31d370d30a2b91f6d06bb"},
+    {"target":"kis-portfolio-domestic-order-history","repository":"cloud-run-source-deploy","digest":"sha256:c3b15efd194887e1fad58901be6804926c61c0422ba95611bb50373e51719b49"},
+    {"target":"kis-portfolio-overseas-transaction-history","repository":"cloud-run-source-deploy","digest":"sha256:7a0846acc27718653159c22648990cd725f02e9ea255dae5c007556c52b7346f"},
+    {"target":"kis-portfolio-owned-core-v2-1000","repository":"kis-portfolio","digest":"sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9"},
+    {"target":"kis-portfolio-owned-core-v2-1430","repository":"kis-portfolio","digest":"sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9"},
+    {"target":"kis-portfolio-owned-core-v2-1600","repository":"kis-portfolio","digest":"sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9"},
+    {"target":"kis-portfolio-token-warmup-dry-run","repository":"cloud-run-source-deploy","digest":"sha256:394ddf8ceb4b4504c33ed0e5a68f5ab41a6cfebd202deb867e1b92b968cba3b2"},
+    {"target":"kis-portfolio-wi021-s06","repository":"kis-portfolio","digest":"sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863"},
+    {"target":"kis-portfolio-wi021-s06-migration","repository":"kis-portfolio","digest":"sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863"},
+    {"target":"kis-portfolio-wi022-s06","repository":"kis-portfolio","digest":"sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327"},
+    {"target":"kis-portfolio-wi022-s06-migration","repository":"kis-portfolio","digest":"sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327"},
+    {"target":"kis-portfolio-wi029-s04-migration","repository":"kis-portfolio","digest":"sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43"},
+    {"target":"kis-portfolio-wi029-s04-verify","repository":"kis-portfolio","digest":"sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43"},
+    {"target":"kis-portfolio-wi030-s02","repository":"kis-portfolio","digest":"sha256:b890023a54438f7a873923a75712238830c2ac30c18bb8a3d4a7c757f3cd6f5a"},
+    {"target":"kis-portfolio-wi030-s03","repository":"kis-portfolio","digest":"sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9"}
+  ],
+  "rollback_targets": [
+    {"target":"kis-portfolio-auth","repository":"cloud-run-source-deploy","digest":"sha256:e326674886c12ef5f9d2c7612aa2b3783026b7dc4c80c06fcf566c922e3b38a3"},
+    {"target":"kis-portfolio-remote","repository":"cloud-run-source-deploy","digest":"sha256:45b20a338e73ee52bef77f87730e302c5b3d7b1c772cd36d6b2f3b0950e2dc58"},
+    {"target":"kis-portfolio-domestic-order-history","repository":"cloud-run-source-deploy","digest":"sha256:c3b15efd194887e1fad58901be6804926c61c0422ba95611bb50373e51719b49"},
+    {"target":"kis-portfolio-overseas-transaction-history","repository":"cloud-run-source-deploy","digest":"sha256:7a0846acc27718653159c22648990cd725f02e9ea255dae5c007556c52b7346f"},
+    {"target":"kis-portfolio-owned-core-v2-1000","repository":"kis-portfolio","digest":"sha256:b7c82ed0370c6321b4a6eaff45479ee7886da60c2ef0d4f34f91e5e50a841c9a"},
+    {"target":"kis-portfolio-owned-core-v2-1430","repository":"kis-portfolio","digest":"sha256:b7c82ed0370c6321b4a6eaff45479ee7886da60c2ef0d4f34f91e5e50a841c9a"},
+    {"target":"kis-portfolio-owned-core-v2-1600","repository":"kis-portfolio","digest":"sha256:b7c82ed0370c6321b4a6eaff45479ee7886da60c2ef0d4f34f91e5e50a841c9a"},
+    {"target":"kis-portfolio-token-warmup-dry-run","repository":"cloud-run-source-deploy","digest":"sha256:394ddf8ceb4b4504c33ed0e5a68f5ab41a6cfebd202deb867e1b92b968cba3b2"},
+    {"target":"kis-portfolio-wi021-s06","repository":"kis-portfolio","digest":"sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863"},
+    {"target":"kis-portfolio-wi021-s06-migration","repository":"kis-portfolio","digest":"sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863"},
+    {"target":"kis-portfolio-wi022-s06","repository":"kis-portfolio","digest":"sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327"},
+    {"target":"kis-portfolio-wi022-s06-migration","repository":"kis-portfolio","digest":"sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327"},
+    {"target":"kis-portfolio-wi029-s04-migration","repository":"kis-portfolio","digest":"sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43"},
+    {"target":"kis-portfolio-wi029-s04-verify","repository":"kis-portfolio","digest":"sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43"},
+    {"target":"kis-portfolio-wi030-s02","repository":"kis-portfolio","digest":"sha256:b890023a54438f7a873923a75712238830c2ac30c18bb8a3d4a7c757f3cd6f5a"},
+    {"target":"kis-portfolio-wi030-s03","repository":"kis-portfolio","digest":"sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9"}
+  ],
+  "cleanup_policy": {
+    "minimum_recent_versions": 3,
+    "untagged_min_age_days": 30,
+    "rollback_retention_days": 30
+  },
+  "restore_evidence": {
+    "verified_at": "2026-09-11T09:54:11Z",
+    "reference": "gcs-private-index-sha256:f26ffc8bbc662f20738655cbe2149fa7dbb401bfec4c0c715db3cd5373fec4a7",
+    "result": "pass"
+  }
+}

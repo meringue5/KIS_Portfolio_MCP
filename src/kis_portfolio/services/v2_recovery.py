@@ -11,10 +11,102 @@ import duckdb
 
 from kis_portfolio.adapters.outbound.gcs_object_store import GCSObjectStore
 from kis_portfolio.db.catalog import v2_backup_table_names, v2_object_by_qualified_name
-from kis_portfolio.platform.migrations import MigrationRunner
+from kis_portfolio.platform.migrations import MigrationRunner, discover_migrations
 
 
 TABLES = v2_backup_table_names()
+
+
+def _applied_migration_prefix(
+    connection: duckdb.DuckDBPyConnection,
+) -> tuple[list[dict[str, str]], tuple[str, ...], tuple[str, ...]]:
+    """Return the verified migration prefix and its expected backup surface.
+
+    Production backup is read-only.  The source ledger is compared with the
+    immutable repository migrations, while a scratch database derives the exact
+    table/view surface for that prefix.  This lets an older, still-supported
+    production schema be backed up completely without pretending later objects
+    already exist.
+    """
+
+    rows = connection.execute(
+        "SELECT version, name, checksum FROM control.schema_migrations ORDER BY version"
+    ).fetchall()
+    discovered = discover_migrations(Path(__file__).parents[1] / "platform" / "sql")
+    expected_prefix = discovered[: len(rows)]
+    if not rows or len(rows) > len(discovered):
+        raise RuntimeError("source migration ledger is not a supported non-empty prefix")
+    manifest_rows: list[dict[str, str]] = []
+    for actual, expected in zip(rows, expected_prefix, strict=True):
+        version, name, checksum = map(str, actual)
+        if (version, name, checksum) != (expected.version, expected.name, expected.checksum):
+            raise RuntimeError(f"source migration ledger mismatch at version {version}")
+        manifest_rows.append({"version": version, "name": name, "checksum": checksum})
+
+    scratch = duckdb.connect(":memory:")
+    try:
+        MigrationRunner(scratch).apply(through=manifest_rows[-1]["version"])
+        present = {
+            f"{schema}.{name}": object_type
+            for schema, name, object_type in scratch.execute(
+                """
+                SELECT table_schema, table_name, table_type
+                FROM information_schema.tables
+                WHERE table_schema IN ('bronze','silver','gold','control')
+                """
+            ).fetchall()
+        }
+    finally:
+        scratch.close()
+    tables = tuple(name for name in TABLES if present.get(name) == "BASE TABLE")
+    views = tuple(
+        name
+        for name, item in v2_object_by_qualified_name().items()
+        if item.object_type == "view" and present.get(name) == "VIEW"
+    )
+    return manifest_rows, tables, views
+
+
+def _validate_manifest_migrations(
+    records: Any,
+) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    if not isinstance(records, list) or not records:
+        raise RuntimeError("version-aware V2 backup has no source migration prefix")
+    discovered = discover_migrations(Path(__file__).parents[1] / "platform" / "sql")
+    expected_prefix = discovered[: len(records)]
+    if len(records) > len(discovered):
+        raise RuntimeError("version-aware V2 backup has an unsupported migration prefix")
+    for record, expected in zip(records, expected_prefix, strict=True):
+        if not isinstance(record, dict) or set(record) != {"version", "name", "checksum"}:
+            raise RuntimeError("version-aware V2 backup has invalid migration evidence")
+        if (record["version"], record["name"], record["checksum"]) != (
+            expected.version,
+            expected.name,
+            expected.checksum,
+        ):
+            raise RuntimeError(f"backup migration evidence mismatch at version {record.get('version')}")
+    scratch = duckdb.connect(":memory:")
+    try:
+        MigrationRunner(scratch).apply(through=records[-1]["version"])
+        present = {
+            f"{schema}.{name}": object_type
+            for schema, name, object_type in scratch.execute(
+                """
+                SELECT table_schema, table_name, table_type
+                FROM information_schema.tables
+                WHERE table_schema IN ('bronze','silver','gold','control')
+                """
+            ).fetchall()
+        }
+    finally:
+        scratch.close()
+    tables = tuple(name for name in TABLES if present.get(name) == "BASE TABLE")
+    views = tuple(
+        name
+        for name, item in v2_object_by_qualified_name().items()
+        if item.object_type == "view" and present.get(name) == "VIEW"
+    )
+    return str(records[-1]["version"]), tables, views
 
 
 def _quote(path: Path) -> str:
@@ -31,16 +123,34 @@ def export_v2_backup(
 
     root = output_dir.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=False, mode=0o700)
+    migrations, source_tables, _ = _applied_migration_prefix(connection)
+    source_present = {
+        f"{schema}.{name}"
+        for schema, name in connection.execute(
+            """
+            SELECT table_schema, table_name FROM information_schema.tables
+            WHERE table_type='BASE TABLE'
+              AND table_schema IN ('bronze','silver','gold','control')
+            """
+        ).fetchall()
+    }
+    missing = sorted(set(source_tables) - source_present)
+    unexpected = sorted((source_present & set(TABLES)) - set(source_tables))
+    if missing or unexpected:
+        raise RuntimeError(
+            f"source backup surface does not match migration prefix: missing={missing}, unexpected={unexpected}"
+        )
     manifest: dict[str, Any] = {
-        "manifest_version": 2,
+        "manifest_version": 3,
         "created_at": datetime.now(UTC).isoformat(),
         "database": database,
+        "source_migrations": migrations,
         "tables": {},
         "object_bytes_included": False,
     }
     connection.execute("BEGIN TRANSACTION")
     try:
-        for qualified in TABLES:
+        for qualified in source_tables:
             schema, table = qualified.split(".", 1)
             directory = root / schema
             directory.mkdir(exist_ok=True, mode=0o700)
@@ -64,8 +174,8 @@ def upload_v2_backup(store: GCSObjectStore, backup_dir: Path) -> dict[str, Any]:
 
     root = backup_dir.expanduser().resolve()
     source_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    if source_manifest.get("manifest_version") != 2:
-        raise RuntimeError("only V2 backup manifest version 2 is supported")
+    if source_manifest.get("manifest_version") not in {2, 3}:
+        raise RuntimeError("only V2 backup manifest versions 2 and 3 are supported")
     objects = []
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
         relative = path.relative_to(root).as_posix()
@@ -138,10 +248,21 @@ def restore_v2_backup(backup_dir: Path, database_path: Path | str) -> dict[str, 
 
     root = backup_dir.expanduser().resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    if manifest.get("manifest_version") != 2:
+    manifest_version = manifest.get("manifest_version")
+    if manifest_version not in {2, 3}:
         raise RuntimeError("unsupported V2 backup manifest")
     manifest_tables = set(manifest.get("tables", {}))
-    expected_tables = set(TABLES)
+    if manifest_version == 3:
+        through_migration, expected_table_order, expected_views = _validate_manifest_migrations(
+            manifest.get("source_migrations")
+        )
+        expected_tables = set(expected_table_order)
+    else:
+        through_migration = None
+        expected_tables = set(TABLES)
+        expected_views = tuple(
+            name for name, item in v2_object_by_qualified_name().items() if item.object_type == "view"
+        )
     if manifest_tables != expected_tables:
         missing = sorted(expected_tables - manifest_tables)
         extra = sorted(manifest_tables - expected_tables)
@@ -157,7 +278,7 @@ def restore_v2_backup(backup_dir: Path, database_path: Path | str) -> dict[str, 
     connection = duckdb.connect(":memory:" if target is None else str(target))
     restored = 0
     try:
-        MigrationRunner(connection).apply()
+        MigrationRunner(connection).apply(through=through_migration)
         for qualified, record in manifest["tables"].items():
             if qualified not in allowed or allowed[qualified].object_type != "table":
                 raise RuntimeError(f"manifest contains unmanaged V2 table: {qualified}")
@@ -167,9 +288,8 @@ def restore_v2_backup(backup_dir: Path, database_path: Path | str) -> dict[str, 
             if actual != record["rows"]:
                 raise RuntimeError(f"row-count mismatch for {qualified}: {actual} != {record['rows']}")
             restored += 1
-        for qualified, item in allowed.items():
-            if item.object_type == "view":
-                connection.execute(f"SELECT count(*) FROM {qualified}").fetchone()
+        for qualified in expected_views:
+            connection.execute(f"SELECT count(*) FROM {qualified}").fetchone()
     finally:
         connection.close()
     if target is not None:
@@ -179,4 +299,5 @@ def restore_v2_backup(backup_dir: Path, database_path: Path | str) -> dict[str, 
         "tables": restored,
         "database": ":memory:" if target is None else str(target),
         "object_bytes_included": bool(manifest.get("object_bytes_included")),
+        "through_migration": through_migration or "latest",
     }

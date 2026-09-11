@@ -227,7 +227,7 @@ flowchart TB
 | 계속 자동 진행 | `WI-029-S05/S06`: 2026-09-14까지 corrected DB-only shadow 증적 축적 |
 | 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
-| 현재 격리 구현 | 활성 Work Item 없음; `WI-045`까지 isolated verification 완료. 다음 WI-046은 production cutover라 MS-002 closure 전 활성화 금지 |
+| 현재 production readiness | `WI-045` closed; ten-date comparison, 30/30 slots, private 0013 restore, current cost and immutable rollback baseline passed; explained V1 mirror gaps remain stabilization evidence |
 | MS-003 격리 구현 | registry의 reviewed continuous-overlap 목록을 dependency 순서대로 한 번에 하나씩 진행; isolated scope와 production effects none 필수 |
 | MS-002 종료 전 불가 | MS-003 production DB migration·source activation·Cloud Run/Scheduler·public MCP·cutover |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |

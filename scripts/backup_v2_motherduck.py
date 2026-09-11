@@ -11,7 +11,7 @@ import duckdb
 from dotenv import load_dotenv
 
 from kis_portfolio.config import PROJECT_ROOT, get_data_dir, get_motherduck_database, get_motherduck_token
-from kis_portfolio.services.v2_recovery import TABLES, export_v2_backup
+from kis_portfolio.services.v2_recovery import export_v2_backup
 
 
 def main() -> None:
@@ -26,11 +26,15 @@ def main() -> None:
     root = Path(args.output_dir).expanduser().resolve() if args.output_dir else get_data_dir() / "backup" / "v2-parquet" / stamp
     con = duckdb.connect(f"md:{get_motherduck_database()}?motherduck_token={token}")
     try:
-        export_v2_backup(con, root, database=get_motherduck_database())
+        manifest = export_v2_backup(con, root, database=get_motherduck_database())
     finally:
         con.close()
     print(f"V2 backup written: {root}")
-    print(f"tables={len(TABLES)} object_bytes_included=false")
+    print(
+        f"tables={len(manifest['tables'])} "
+        f"through_migration={manifest['source_migrations'][-1]['version']} "
+        "object_bytes_included=false"
+    )
 
 
 if __name__ == "__main__":
