@@ -1,7 +1,7 @@
 # MS-002 — Portfolio analytics, risk signals and Telegram delivery
 
-> 상태: stabilizing
-> 기준선: 2026-09-08.2
+> 상태: closed
+> 기준선: 2026-09-11.6
 > machine registry: `governance/project/milestones.toml`
 
 ## Outcome
@@ -35,10 +35,10 @@ sub-item 또는 현재 최댓값 다음 Work Item으로 append한다.
 | 15 | WI-027 nested ETF look-through | V2-W0505 | WI-009, WI-017, WI-026 | rejected from initial V2; no implementation claimed |
 | 16 | WI-033 total-asset valuation-change contribution | V2-W0510 | WI-009, WI-013 | closed; return attribution과 분리, production quality gate 유지 |
 | 17 | WI-028 alert state/delivery ledger | V2-W0507 | WI-019, WI-023, WI-025, WI-033 | closed; PR #25, shadow-only ledger |
-| 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | stabilizing; S05/S06 collect corrected window through 2026-09-14 |
-| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | stabilizing; S01/S02/S03/S05 closed; S04 temporal acceptance ongoing |
+| 18 | WI-029 replay/shadow calibration | V2-W0509 | WI-028 | closed; owner accepted corrected evidence through 2026-09-11 14:30 and ended the observation window early |
+| 19 | WI-030 outbound Telegram delivery | V2-W0508 | WI-029 | closed; production Rich delivery and owner receipt accepted, longer calendar observation waived |
 | 20 | WI-054 production-readiness correction | review gate | WI-028 | closed; live readiness matrix and WI-030-S03 handoff established |
-| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | stabilizing; 10:00 owner-accepted; 16:00 provider sent/client receipt pending; S04 repository-verified and release pending |
+| 21 | WI-055 scheduled total-asset digest | DEC-054/055 | WI-033, WI-030 | closed; S04 deployed and 2026-09-11 10:00 quality-pass/provider-sent evidence accepted with further observation waived |
 
 `WI-018`은 이 baseline을 만드는 Project OS 거버넌스 작업이므로 MS-002의 제품 실행순서에는 포함하지 않는다.
 기존에 텔레그램으로 논의했던 미완료 작업은 삭제되지 않았고, 완료된 `WI-017`을 보존하기 위해
@@ -87,6 +87,7 @@ MS-003과 MS-004의 승인 설계는 `WI-035`, `WI-037`~`WI-051`, `WI-032`에 �
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-11.6 | 2026-09-11 | owner accepted the corrected evidence through the successful and client-received 14:30 slot, ended the extended observation early and closed MS-002 | 9/14 extension and Friday U.S.-close observation explicitly waived, preserved as residual MS-003 stabilization risk; existing incident and release history unchanged |
 | 2026-09-10.5 | 2026-09-10 | completed the scheduled interim review through the 16:00 slot; daily ledgers pass and 10:00 information value accepted | no closure; corrected shadow continues through 9/14, 16:00 client receipt and longer windows remain |
 | 2026-09-10.4 | 2026-09-10 | owner가 첫 v2.1의 chart와 정보 범위를 인수하고 caption의 구획·표 정돈을 요청 | WI-055-S04 append; 계산·privacy·transport·release 이력 불변, repository stage production effects none |
 | 2026-09-10.3 | 2026-09-10 | Corrected the successor gate to continuous isolated MS-003 implementation while this milestone stabilizes | MS-002 exit evidence and production close gate unchanged |

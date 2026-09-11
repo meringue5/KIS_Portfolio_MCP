@@ -1,7 +1,7 @@
 ---
 id: WI-030
 title: Enable approved outbound Telegram delivery
-status: stabilizing
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-012, DEC-050, DEC-051, DEC-052, DEC-053
@@ -190,13 +190,14 @@ collecting the separate formal shadow evidence.
   both the Rich rendering and the 16:00 receipt after the Telegram client recovered. PR #53/master `90879150`, deploy
   run `34182558405` and same-image Cloud Run smoke remain immutable release evidence. Calendar-window stability claims
   remain in S04 and do not keep the completed implementation WIP open.
+- On 2026-09-11 the protected S04 image produced a successful 14:30 execution with one eligible attempt, one sent
+  outcome and zero unknown/retryable/permanent failures. The owner confirmed the Telegram alert was received and
+  explicitly accepted the observed period as sufficient, ending further MS-002 calendar observation.
 
 ## Closeout
 
-- Result: S01, S02, S03 and S05 are closed; production-value Rich Message delivery is owner-accepted and WI-030 is
-  `stabilizing` while S04 continues temporal acceptance evidence.
-- Remaining risk: corrected immutable RC deployment, subsequent transition semantics, false-positive/miss review,
-  duplicate suppression and owner acceptance are not yet proven. Episode drawdown and KRW valuation-change
-  contribution remain explicit `계산 보류` until their upstream governed readiness passes. Monthly, quarterly and
-  annual stability remain explicitly unclaimed until WI-030-S04 evidence matures.
+- Result: closed; production-value Rich delivery, client receipt and the deliberately shortened observation period are
+  owner-accepted.
+- Remaining risk: monthly, quarterly and annual stability remains unclaimed and moves to ordinary operations rather
+  than blocking cutover. Any false-positive, miss or duplicate regression uses append-only rollback/correction.
 - Follow-up Work Item: WI-055 adds the separately idempotent 10:00/16:00 total-asset digest; S04 retains long-window evidence.

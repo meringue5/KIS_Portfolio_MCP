@@ -82,7 +82,7 @@ work_item_ids = ["WI-009", "WI-010", "WI-011", "WI-012"]
 [[milestones]]
 id = "MS-002"
 title = "Portfolio analytics, risk signals and Telegram delivery"
-status = "stabilizing"
+status = "closed"
 depends_on = ["MS-001"]
 implementation_gate = [{ milestone_id = "MS-001", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-001", minimum_status = "closed" }]

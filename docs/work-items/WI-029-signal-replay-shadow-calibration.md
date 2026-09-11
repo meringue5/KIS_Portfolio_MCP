@@ -1,7 +1,7 @@
 ---
 id: WI-029
 title: Calibrate signals with replay and shadow evaluation
-status: stabilizing
+status: closed
 type: change
 owner: owner
 decision_refs: ADR-021, ADR-023, V2-ADR-007, V2-ADR-010, V2-ADR-012
@@ -10,7 +10,7 @@ milestone_ref: MS-002
 delivery_refs: V2-W0509
 parent_work_item: none
 depends_on: WI-028
-stabilization_window: corrected scheduled evidence through 2026-09-14 KST and owner review
+stabilization_window: owner-accepted corrected scheduled evidence through 2026-09-11 14:30 KST; planned 2026-09-14 end waived
 stabilization_exit_refs: WI-029-S05, WI-029-S06, owner rule-version acceptance
 rollback_plan: disable shadow schedules and preserve prior runs while a corrective Work Item re-enters verification
 architecture_impact: validates approved rule versions without changing transport boundaries
@@ -38,9 +38,9 @@ owner can approve external delivery.
 
 ## Acceptance criteria
 
-- [ ] daily alert budget, maximum miss and quality limitations are documented.
-- [ ] two-week shadow completes without external send and de-duplication is evidenced.
-- [ ] owner approves the selected rule version before WI-030 becomes ready.
+- [x] daily alert budget, maximum miss and quality limitations are documented.
+- [x] corrected shadow evidence through the owner-selected 2026-09-11 14:30 boundary has no external shadow send and de-duplication is evidenced; the remaining planned window was explicitly waived.
+- [x] owner approves the selected rule version and observed behavior.
 
 ## Change impact
 
@@ -105,10 +105,18 @@ owner can approve external delivery.
   build-once digest `sha256:dc009b95eaa2bdfd8ff0b37ba155a2a936ec8a1eaf3ac2ee3c0436b5162e8d1b` to all
   three owned-portfolio Jobs. Activation execution `kis-portfolio-wi030-s03-zdr98` completed successfully. The first
   scheduled post-cutover completion marker remains pending, so S06 and S05 remain `stabilizing`.
+- The 2026-09-10 interim review found 31/31 corrected due slots, zero missing/unexpected/incomplete/quality-suppressed
+  slots, zero external shadow sends and retained the single excluded 2026-09-03 failure without rewriting it.
+- On 2026-09-11 the 10:00 and 14:30 Cloud Run executions completed successfully. The 14:30 run
+  `kis-portfolio-owned-core-v2-1430-zsgnd` exited zero, evaluated 17 candidates, produced one transition and one
+  terminal Telegram send with zero unknown/retryable/permanent failures; the owner confirmed client receipt.
+- At 14:39 KST the owner judged the observation sufficient, explicitly ended the 9/14 extension and accepted the
+  residual Friday U.S.-close observation as an MS-003 stabilization item rather than an MS-002 close blocker.
 
 ## Closeout
 
-- Result: stabilizing; S01-S04 are closed, S06 is collecting corrected evidence and S05 is collecting elapsed operational evidence before
-  acceptance and closeout. This releases the single implementation WIP slot but does not satisfy WI-030 activation.
-- Remaining risk: reconstructed-history bias.
+- Result: closed by explicit owner acceptance at the 2026-09-11 14:30 boundary; the shortened observation window is
+  recorded as a conscious risk decision, not represented as completion through 9/14.
+- Remaining risk: reconstructed-history bias and the unobserved 2026-09-11 U.S. close are carried into MS-003
+  stabilization; any regression enters the append-only rollback/correction loop.
 - Follow-up Work Item: WI-030.
