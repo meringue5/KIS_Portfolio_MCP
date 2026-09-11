@@ -51,6 +51,8 @@ Firestore와 auth 전용 여섯 secret만, Remote V2 identity는 Firestore, Moth
 owned-core Job 실행권한만 가진다. V2 Remote는 KIS 계좌 key/secret/CANO와 token-encryption key를 받지 않는다.
 기존 개별 Secret Manager resource의 `latest` 참조는 이 staged cutover에서 유지하는 명시적 과도기 경계이며,
 숫자 version/bundle 전환은 별도 검증 없이는 함께 수행하지 않는다.
+GitHub deployer에는 IAM admin 권한을 추가하지 않는다. 두 runtime identity의 최초 생성과 exact binding은 owner
+bootstrap으로 분리하고, protected deploy는 이미 존재하는 identity만 사용한다.
 
 ### 2026-08-28 V2 state foundation inventory
 

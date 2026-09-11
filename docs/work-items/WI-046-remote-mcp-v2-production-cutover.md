@@ -73,13 +73,18 @@ traffic with rollback holds. 4. Observe and close the rollback window.
 - Repository production adapters now cover the exact 15 governed reads, three managed commands and append-only
   owner revisions through migration `0018`. Unsupported cursor/grain/account projections fail closed; account-filtered
   totals are calculated within the selected alias rather than returning a global total.
-- Protected `wi046-stage` builds one immutable image, applies `0018`, recopies active state, grants only required
+- Protected `wi046-stage` builds one immutable image, applies `0018`, recopies active state, uses only pre-provisioned
   Firestore/secret/fixed-Job permissions, deploys `wi046-auth`/`wi046-v2` no-traffic tags and checks
   health/discovery/unauthenticated rejection. Local dry-run and 98 focused tests passed.
+- Protected run `34615723372` stopped before Cloud authentication because deployment vars leaked into pytest
+  collection; PR #79/master `52de475` isolated the test runtime and 646 full tests passed. Retry `34616445622` built
+  immutable image `sha256:546fa373...6a371`, then stopped at `iam.serviceAccounts.create` because the deliberately
+  non-admin GitHub deployer cannot bootstrap identities. No migration, state copy, service revision, traffic or
+  Scheduler mutation occurred. Owner bootstrap of the two exact minimum identities is the next gate.
 
 ## Closeout
 
 - Result: in progress.
 - Remaining risk: live OAuth/client discovery and representative read/command evidence are still required before
-  traffic promotion. V1 retirement remains MS-004.
+  traffic promotion. Exact owner IAM bootstrap requires explicit execution approval. V1 retirement remains MS-004.
 - Follow-up Work Item: WI-047.
