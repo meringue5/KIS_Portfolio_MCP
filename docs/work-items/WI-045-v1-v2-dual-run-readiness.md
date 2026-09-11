@@ -1,7 +1,7 @@
 ---
 id: WI-045
 title: Complete V1 V2 dual-run recovery and cost readiness
-status: in_progress
+status: closed
 type: architecture
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-023
@@ -37,8 +37,8 @@ V2 cannot become SSOT until monetary, quantity, freshness, signal, recovery and 
 
 ## Acceptance criteria
 
-- [ ] unexplained differences are zero and partial gaps have quality reasons.
-- [ ] ten-day SLO, restore RPO/RTO and cost envelope pass.
+- [x] unexplained differences are zero and partial gaps have quality reasons.
+- [x] ten-day SLO, restore RPO/RTO and cost envelope pass.
 - [x] isolated fixture proves zero unexplained differences, explained partial gaps and all fail-closed comparison paths.
 - [x] isolated fixture proves the ten-session schedule/RPO/RTO/cost contract without claiming elapsed production SLO.
 - [x] rollback manifest contract is tested against immutable target-specific digests and restore evidence.
@@ -53,7 +53,11 @@ V2 cannot become SSOT until monetary, quantity, freshness, signal, recovery and 
 
 ## Sub-items
 
-- `none`.
+- `WI-045-S01` — make V2 backup/restore fail closed against the exact checksum-verified production migration prefix
+  (`closed`).
+  - [x] new exports record a version-aware manifest without weakening legacy full-manifest restore.
+  - [x] missing or unexpected managed tables fail before a backup can claim completeness.
+  - [x] production 0013 private upload, exact-hash download and fresh restore pass.
 
 ## Evidence
 
@@ -79,10 +83,26 @@ V2 cannot become SSOT until monetary, quantity, freshness, signal, recovery and 
 - Verification: focused/recovery-adjacent `29 passed`; quick passed; full `607 passed` with all Project OS, data
   governance, architecture, warehouse and MCP gates. See
   `docs/operations/wi-045-isolated-readiness-2026-09.md`.
+- Production observation: ten exact 14:30 trading-day sessions from 2026-08-31 through 2026-09-11; 220/220
+  holding-quantity rows and 170/170 adjusted KRX OHLCV rows matched exactly, orders were 0/0, freshness remained
+  inside five minutes, all 30 required owned-core schedule slots succeeded and duplicate terminal sends were zero.
+- The V1 global-total and legacy-signal mirror were not scheduled at matching slots. They remain 20 explicitly
+  explained partial rows across ten sessions rather than false matches; owner acceptance of the observed V2
+  total-asset/Telegram behavior carries those gaps into MS-003 stabilization.
+- Recovery: manifest v3 exported all 58 tables belonging to checksum-verified migration prefix 0013, uploaded 59
+  content-addressed objects to the private recovery bucket, downloaded by exact index hash and restored every table
+  plus version-appropriate views to a fresh memory DB. Conservative RPO/RTO evidence is 30/1 minutes.
+- Cost: current-month all-project Billing evidence was KRW 434 actual and KRW 119 forecast after savings; the
+  fail-closed evaluator used the larger value and returned `normal` below the KRW 7,500 target.
+- Production readiness evaluator: `pass`, ten trading days, zero unexplained differences, 20 explained partials and
+  no blockers. The output still says `production_cutover_allowed=false`; only WI-046 owns the protected cutover.
+- Full operational evidence: `docs/operations/wi-045-production-readiness-2026-09.md` and the three versioned JSON
+  artifacts under `governance/project/evidence/wi045/`.
 
 ## Closeout
 
-- Result: verified for the isolated repository phase under the MS-003 overlap gate; production effects remain none.
-- Remaining risk: actual ten-trading-day V1/V2 observations, current restore/cost evidence, MS-002 closure and explicit
-  release approval remain mandatory before WI-046 production cutover.
-- Follow-up Work Item: WI-046.
+- Result: closed after isolated verification and production readiness evidence; WI-046 may start.
+- Remaining risk: the matching-slot V1 global-total and legacy-signal mirrors were absent, migration 0014–0017 remains
+  unapplied, and actual connector/public-client smoke has not run. These stay explicit in WI-046 and MS-003
+  stabilization; no V1 cleanup or retirement is authorized here.
+- Follow-up Work Item: WI-046 production cutover through the protected release path.

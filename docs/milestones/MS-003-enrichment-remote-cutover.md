@@ -22,7 +22,7 @@
 | 7 | WI-042 stateless Remote MCP V2 read surface | V2-W0601~0603 | WI-030, WI-040, WI-041 | verified; exact inactive 15-read builder, typed DTO/query port, scope/resource and safe envelope enforcement, official stateless JSON transport plus local replica-equivalent fixtures; V1/public production unchanged |
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | verified; exact inactive 18-tool catalog, fixed-job async run ID, split command scopes, owner-subject/idempotency/concurrency and append-only journal/thread revision fixtures; production effects none |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | verified for isolated phase; three fresh-transport client profiles, exact 35-to-18 manifest, explicit order unsupported and Remote-only guide; actual connector/public smoke remains WI-046 production gate |
-| 10 | WI-045 V1/V2 dual-run readiness | V2-W0701/0702/0703/0706 | WI-035, WI-044 | in progress; production readiness evidence after MS-002 owner-accepted close |
+| 10 | WI-045 V1/V2 dual-run readiness | V2-W0701/0702/0703/0706 | WI-035, WI-044 | closed; ten production dates, 30/30 slots, exact quantity/price comparisons, explained partials, private 0013 restore and normal cost evidence |
 | 11 | WI-046 Remote MCP V2 production cutover | V2-W0704/0705/0707 | WI-045 | proposed; production gate |
 
 V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며 이 milestone의 잔여 범위가 아니다.
@@ -53,6 +53,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-11.37 | 2026-09-11 | Closed WI-045 with ten-date production observation, 30/30 required slots, version-aware 0013 backup/restore, immutable rollback baseline and current cost pass | 20 V1 global-total/legacy-signal gaps remain explicit partials; migrations 0014–0017, connector/public smoke and traffic switch remain WI-046; no cleanup or retirement |
 | 2026-09-11.36 | 2026-09-11 | Activated WI-045 production readiness after MS-002 owner-accepted close opened the production gate | inventory/reconciliation/cost and bounded restore evidence only; connector, schedule, public traffic, V1 pause/retirement and cleanup remain WI-046 or later |
 | 2026-09-11.35 | 2026-09-11 | Verified WI-045 fail-closed dual-run, schedule, restore, cost and immutable rollback readiness contracts with 607 full tests | synthetic ten-session/local recovery evidence only; actual elapsed production observation and WI-046 cutover remain gated; no production effect |
 | 2026-09-11.34 | 2026-09-11 | Activated WI-045 after WI-035/044 under continuous dependency-ready isolated overlap | comparison/recovery/cost/rollback contracts, synthetic fixtures and local verification only; no production observation, DB, infrastructure, deployment, cleanup, traffic or production effect |

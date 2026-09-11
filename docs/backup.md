@@ -15,6 +15,13 @@ Firestore PITR/managed backup은 실제 비용·RPO 검토를 거친 별도 Work
 
 ## V2 parallel backup contract
 
+V2 Parquet manifest v3 records the exact checksum-verified migration prefix observed at capture time. A backup is
+complete only when its managed table set exactly matches the schema produced by that prefix. Restore applies that
+same prefix to a fresh database, restores every table and compiles every view that existed at that version. This
+allows a production database deliberately held at an older supported additive migration to be recovered without
+omitting live tables or pretending that later tables already existed. Legacy full-surface manifest v2 remains
+readable; new exports always use v3.
+
 V2 registry의 backup policy는 `V2_DATA_OBJECTS`와 `v2_backup_table_names()`에 machine-readable하게 있다.
 운영 migration 전까지 현재 V1 `backup_motherduck.py`의 export 목록에는 자동 편입하지 않는다. V2가 live로
 적용되면 qualified schema를 보존하는 새 backup manifest version으로 다음을 export한다.

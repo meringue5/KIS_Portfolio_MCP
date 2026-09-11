@@ -18,7 +18,10 @@ def main() -> None:
         Path(args.backup_dir),
         args.database if args.database == ":memory:" else Path(args.database),
     )
-    print(f"V2 restore verified: tables={result['tables']} target={args.database}")
+    print(
+        f"V2 restore verified: tables={result['tables']} "
+        f"through_migration={result['through_migration']} target={args.database}"
+    )
     if not result["object_bytes_included"]:
         print("warning: restricted/raw object bytes require a separate private object restore")
 
