@@ -35,11 +35,27 @@ from kis_portfolio.services.remote_read_surface import (
     TradeLedgerRequest,
     TradeThreadRequest,
 )
+from kis_portfolio.services.remote_commands import (
+    CommandActor,
+    CommandResponse,
+    ManagedPipelineRequest,
+    RemoteCommandApplication,
+    ReviseTradeThreadRequest,
+    ThreadChange,
+    UpsertTradeJournalRequest,
+    V2_COMMAND_TOOL_NAMES,
+)
 
 
 MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024
 READ_ONLY_TOOL = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
+NON_DESTRUCTIVE_WRITE_TOOL = ToolAnnotations(
+    read_only_hint=False,
+    destructive_hint=False,
+    open_world_hint=False,
+)
 ActorProvider = Callable[[], ReadActor]
+CommandActorProvider = Callable[[], CommandActor]
 AccountAlias = Annotated[str, Field(min_length=1, max_length=64)]
 InstrumentId = Annotated[str, Field(min_length=1, max_length=64)]
 OpaqueId = Annotated[str, Field(min_length=1, max_length=160)]
@@ -87,6 +103,50 @@ TOOL_CONTRACTS = (
 _CONTRACT_BY_NAME = {item.name: item for item in TOOL_CONTRACTS}
 
 
+@dataclass(frozen=True)
+class CommandToolContract:
+    name: str
+    scope: str
+    input_schema_ref: str
+    output_schema_ref: str
+    description: str
+
+    @property
+    def meta(self) -> dict[str, str]:
+        return {
+            "kis/scope": self.scope,
+            "kis/inputSchemaRef": self.input_schema_ref,
+            "kis/outputSchemaRef": self.output_schema_ref,
+            "kis/syncPolicy": "async-run-id" if self.scope == "mcp:collect" else "append-only-revision",
+        }
+
+
+COMMAND_TOOL_CONTRACTS = (
+    CommandToolContract(
+        "run-managed-pipeline",
+        "mcp:collect",
+        "managed-pipeline-command.v1",
+        "managed-command-result.v1",
+        "Request the fixed portfolio-refresh pipeline and immediately return its run ID.",
+    ),
+    CommandToolContract(
+        "upsert-trade-journal",
+        "mcp:journal.write",
+        "trade-journal-command.v1",
+        "managed-command-result.v1",
+        "Append an owner journal revision with optimistic concurrency and idempotency.",
+    ),
+    CommandToolContract(
+        "revise-trade-thread",
+        "mcp:journal.write",
+        "trade-thread-command.v1",
+        "managed-command-result.v1",
+        "Append an explicit thread, lot link or sell-allocation revision.",
+    ),
+)
+_COMMAND_CONTRACT_BY_NAME = {item.name: item for item in COMMAND_TOOL_CONTRACTS}
+
+
 def actor_from_auth_context() -> ReadActor:
     """Project a validated MCP token without retaining its bearer value."""
     token = get_access_token()
@@ -94,6 +154,20 @@ def actor_from_auth_context() -> ReadActor:
         return ReadActor("", "", frozenset(), None, uuid.uuid4().hex)
     return ReadActor(
         actor_id=token.subject or f"client:{token.client_id}",
+        client_id=token.client_id,
+        scopes=frozenset(token.scopes),
+        resource=token.resource.rstrip("/") if token.resource else None,
+        request_id=uuid.uuid4().hex,
+    )
+
+
+def command_actor_from_auth_context() -> CommandActor:
+    """Project the same validated token into the command boundary."""
+    token = get_access_token()
+    if token is None:
+        return CommandActor("", "", frozenset(), None, uuid.uuid4().hex)
+    return CommandActor(
+        actor_id=token.subject or "",
         client_id=token.client_id,
         scopes=frozenset(token.scopes),
         resource=token.resource.rstrip("/") if token.resource else None,
@@ -194,6 +268,108 @@ def build_v2_read_server(
 ) -> MCPServer:
     server = MCPServer("KIS Portfolio Service V2 Read", dependencies=[])
     register_v2_read_tools(server, application, actor_provider=actor_provider)
+    return server
+
+
+def register_v2_command_tools(
+    server: MCPServer,
+    application: RemoteCommandApplication,
+    *,
+    actor_provider: CommandActorProvider = command_actor_from_auth_context,
+) -> None:
+    async def invoke(name: str, request: object) -> CommandResponse:
+        result = await application.execute(name, request, actor_provider())
+        return CommandResponse.model_validate(result)
+
+    def add(name: str, function: Callable) -> None:
+        contract = _COMMAND_CONTRACT_BY_NAME[name]
+        server.add_tool(
+            function,
+            name=name,
+            description=contract.description,
+            annotations=NON_DESTRUCTIVE_WRITE_TOOL,
+            meta=contract.meta,
+            structured_output=True,
+        )
+
+    async def run_managed_pipeline(
+        logical_date: date,
+        slot: Literal["kr-1000", "kr-1430", "kr-1600"],
+        idempotency_key: Annotated[str, Field(min_length=8, max_length=128)],
+        pipeline: Literal["portfolio-refresh"] = "portfolio-refresh",
+    ) -> CommandResponse:
+        return await invoke(
+            "run-managed-pipeline",
+            ManagedPipelineRequest(
+                pipeline=pipeline,
+                logical_date=logical_date,
+                slot=slot,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
+    async def upsert_trade_journal(
+        journal_id: OpaqueId,
+        body: Annotated[str, Field(min_length=1, max_length=20_000)],
+        authored_at: datetime,
+        expected_revision: Annotated[int, Field(ge=0)],
+        idempotency_key: Annotated[str, Field(min_length=8, max_length=128)],
+        thread_id: OpaqueId | None = None,
+        trade_event_id: OpaqueId | None = None,
+    ) -> CommandResponse:
+        return await invoke(
+            "upsert-trade-journal",
+            UpsertTradeJournalRequest(
+                journal_id=journal_id,
+                thread_id=thread_id,
+                trade_event_id=trade_event_id,
+                body=body,
+                authored_at=authored_at,
+                expected_revision=expected_revision,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
+    async def revise_trade_thread(
+        thread_id: OpaqueId,
+        change: ThreadChange,
+        authored_at: datetime,
+        expected_revision: Annotated[int, Field(ge=0)],
+        idempotency_key: Annotated[str, Field(min_length=8, max_length=128)],
+    ) -> CommandResponse:
+        return await invoke(
+            "revise-trade-thread",
+            ReviseTradeThreadRequest(
+                thread_id=thread_id,
+                change=change,
+                authored_at=authored_at,
+                expected_revision=expected_revision,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
+    for name, function in (
+        ("run-managed-pipeline", run_managed_pipeline),
+        ("upsert-trade-journal", upsert_trade_journal),
+        ("revise-trade-thread", revise_trade_thread),
+    ):
+        add(name, function)
+
+
+def build_v2_server(
+    read_application: RemoteReadApplication,
+    command_application: RemoteCommandApplication,
+    *,
+    read_actor_provider: ActorProvider = actor_from_auth_context,
+    command_actor_provider: CommandActorProvider = command_actor_from_auth_context,
+) -> MCPServer:
+    """Build the exact inactive 18-tool V2 catalog without runtime wiring."""
+    server = MCPServer("KIS Portfolio Service V2", dependencies=[])
+    register_v2_read_tools(server, read_application, actor_provider=read_actor_provider)
+    register_v2_command_tools(server, command_application, actor_provider=command_actor_provider)
+    names = tuple(tool.name for tool in server._tool_manager.list_tools())
+    if names != tuple(contract.name for contract in TOOL_CONTRACTS) + V2_COMMAND_TOOL_NAMES:
+        raise RuntimeError("invalid V2 public tool catalog")
     return server
 
 
