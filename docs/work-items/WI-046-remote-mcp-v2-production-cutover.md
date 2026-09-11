@@ -80,11 +80,29 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   collection; PR #79/master `52de475` isolated the test runtime and 646 full tests passed. Retry `34616445622` built
   immutable image `sha256:546fa373...6a371`, then stopped at `iam.serviceAccounts.create` because the deliberately
   non-admin GitHub deployer cannot bootstrap identities. No migration, state copy, service revision, traffic or
-  Scheduler mutation occurred. Owner bootstrap of the two exact minimum identities is the next gate.
+  Scheduler mutation occurred.
+- On 2026-09-12 the owner explicitly approved and applied the two exact minimum identities. Project-level inspection
+  found only `roles/datastore.user` on each identity; all 26 secret policies found exactly the six approved auth
+  secrets and the two approved Remote secrets; all 14 Cloud Run Job policies found Remote `roles/run.invoker` only on
+  the 10:00, 14:30 and 16:00 owned-core jobs. Each new identity grants the GitHub deployer only service-account user;
+  the deployer remains non-admin.
+- Protected run `34621191176` built master `d534c3f` as immutable image `sha256:ce9ff2a0...02a1a`, applied migrations
+  `0014` through `0018`, and copied active operational state to Firestore with exact source/verified counts:
+  auth users 1, identities 1, clients 6, grants 5, codes 0, OAuth tokens 1 and KIS token-cache records 5. It then
+  created auth `00022` and Remote `00032` at zero traffic, but failed closed while resolving tagged URLs because the
+  gcloud projection did not match the returned traffic JSON. V1 stayed at 100% and no Scheduler changed.
+- PR #81/master `d805739` replaced the projection with exact traffic-JSON parsing. PR #82/master `9f1f9aa` added a
+  protected candidate-only resume path that emits no migration or state-copy Job command; full verification passed
+  with 649 tests.
+- Owner-approved protected run `34623252239` used that candidate-only path. It built immutable image
+  `sha256:e0b655a8...7397`, deployed auth `00023` and final Remote `00034` under their dedicated identities, added the
+  exact tagged Remote host to the transport allowlist, and passed health, OAuth protected-resource discovery and
+  unauthenticated `/mcp` rejection smoke. Auth/Remote V1 revisions `00021`/`00031` still receive 100% traffic and both
+  candidates receive 0%. All six existing Scheduler jobs remain enabled at their unchanged schedules.
 
 ## Closeout
 
 - Result: in progress.
 - Remaining risk: live OAuth/client discovery and representative read/command evidence are still required before
-  traffic promotion. Exact owner IAM bootstrap requires explicit execution approval. V1 retirement remains MS-004.
+  traffic promotion. The zero-traffic stage and least-privilege IAM gate are complete; V1 retirement remains MS-004.
 - Follow-up Work Item: WI-047.
