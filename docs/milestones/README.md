@@ -215,7 +215,7 @@ flowchart TB
     class W29,W30,W54,W55 closed;
     class W35,W40 verified;
     class W37,W38,W39,W41,W42,W43,W44 verified;
-    class W45 verified;
+    class W45 active;
     class W46,W47,W48,W49,W50,W51,W32 proposed;
     class M2DONE,M3OPEN gate;
 ```
@@ -227,7 +227,7 @@ flowchart TB
 | 계속 자동 진행 | `WI-029-S05/S06`: 2026-09-14까지 corrected DB-only shadow 증적 축적 |
 | 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
-| 현재 격리 구현 | 활성 Work Item 없음; `WI-045`까지 isolated verification 완료. 다음 WI-046은 production cutover라 MS-002 closure 전 활성화 금지 |
+| 현재 production readiness | `WI-045` in progress; MS-002 closed 뒤 실제 reconciliation, cost, restore와 immutable rollback evidence 확인 중 |
 | MS-003 격리 구현 | registry의 reviewed continuous-overlap 목록을 dependency 순서대로 한 번에 하나씩 진행; isolated scope와 production effects none 필수 |
 | MS-002 종료 전 불가 | MS-003 production DB migration·source activation·Cloud Run/Scheduler·public MCP·cutover |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
