@@ -23,7 +23,7 @@ machine-readable SSOT는 `governance/project/milestones.toml`, 상태·작업·�
 flowchart LR
     MSGOV["MS-GOV<br/>Project OS<br/>closed"]
     MS1["MS-001<br/>Canonical portfolio + managed collection<br/>closed"]
-    MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>stabilizing"]
+    MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>closed"]
     MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>in progress / continuous isolated overlap"]
     MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>proposed"]
 
@@ -36,8 +36,7 @@ flowchart LR
     classDef verified fill:#e5f4ff,stroke:#0870a8,color:#123b72;
     classDef active fill:#fff1bf,stroke:#9a6b00,color:#4b3500;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
-    class MS1,MSGOV closed;
-    class MS2 active;
+    class MS1,MS2,MSGOV closed;
     class MS3 active;
     class MS4 proposed;
 ```
@@ -144,10 +143,10 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph M2["MS-002 — stabilization 경로"]
-        W29["WI-029 / S05-S06<br/>shadow 증적<br/>stabilizing"]
-        W30["WI-030 / S04<br/>calendar evidence<br/>stabilizing"]
+        W29["WI-029 / S05-S06<br/>shadow 증적<br/>closed"]
+        W30["WI-030 / S04<br/>calendar evidence<br/>closed"]
         W54["WI-054<br/>production readiness audit<br/>closed"]
-        W55["WI-055<br/>scheduled asset digest<br/>stabilizing"]
+        W55["WI-055<br/>scheduled asset digest<br/>closed"]
         M2DONE{"MS-002<br/>acceptance complete"}
         W29 --> W30 --> M2DONE
         W30 --> W55 --> M2DONE
@@ -213,9 +212,7 @@ flowchart TB
     classDef blocked fill:#fde2e2,stroke:#b42318,color:#5b1712;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     classDef gate fill:#e8f1ff,stroke:#175cd3,color:#123b72;
-    class W29,W30 active;
-    class W54 closed;
-    class W55 active;
+    class W29,W30,W54,W55 closed;
     class W35,W40 verified;
     class W37,W38,W39,W41,W42,W43,W44 verified;
     class W45 verified;

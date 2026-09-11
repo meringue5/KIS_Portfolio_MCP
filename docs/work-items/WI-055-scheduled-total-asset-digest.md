@@ -1,7 +1,7 @@
 ---
 id: WI-055
 title: Deliver a scheduled privacy-safe total-asset Telegram digest
-status: stabilizing
+status: closed
 type: change
 owner: owner
 decision_refs: DEC-055, DEC-054, DEC-048, DEC-053
@@ -153,12 +153,16 @@ impacts. Silence must not make an unavailable comparison indistinguishable from 
 - 2026-09-10 interim review: both 10:00 and 16:00 v2.1 builds passed reconciliation with five impacts and recorded
   provider `sent`; the owner confirmed only the 10:00 client receipt so far. Full evidence and claim boundaries are in
   `docs/operations/ms-002-interim-review-2026-09-10.md`.
+- S04 was merged as PR #68/master `c1481b6` and protected deploy run `34466281709` completed its exact
+  `wi055-s04-caption-layout` step. All three fixed-slot Jobs carry that SHA/run/target and the same immutable image.
+- The first scheduled S04 10:00 execution on 2026-09-11 completed successfully; the owner report recorded
+  `quality_status=pass`, `outcome=sent` and no error code. At 14:39 KST the owner accepted the total MS-002
+  observation set and explicitly requested transition rather than further report observation.
 
 ## Closeout
 
-- Result: S03 release is stabilizing and its 2026-09-10 10:00 content/chart is owner-accepted; S04 caption refinement is
-  repository-verified with no production effects.
-- Remaining risk: S04 is not deployed or client-rendered; the 16:00 owner receipt and terminal ledger remain part of
-  the parent stabilization exit.
-- Follow-up Work Item: none. Release S04 only through the protected target after approval, never manually replay a
-  production-value slot, and observe the next scheduled report.
+- Result: closed; exact-value/chart content, S04 structured caption release and the deliberately shortened owner
+  observation period are accepted.
+- Remaining risk: no separate owner claim is made for a 2026-09-11 S04 16:00 rendering; continued report behavior is
+  monitored during MS-003 stabilization and may trigger append-only rollback/correction.
+- Follow-up Work Item: WI-046 production cutover.
