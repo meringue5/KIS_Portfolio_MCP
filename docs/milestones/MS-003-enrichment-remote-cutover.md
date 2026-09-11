@@ -53,6 +53,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-11.39 | 2026-09-11 | Completed the WI-046 production runtime and protected zero-traffic stage implementation | exact 18-tool runtime, additive 0018 and active-state copy, dedicated least-privilege identities, no-traffic tagged candidates and pre-client smoke; serving V1 traffic and all schedules remain unchanged until protected execution and live-client gate |
 | 2026-09-11.38 | 2026-09-11 | Activated WI-046 after WI-045 readiness closure and explicit owner cutover instruction | protected master release only; additive migrations and bounded connector/schedule switch allowed, V1 deletion/retirement and cleanup prohibited; minimum seven-day rollback window |
 | 2026-09-11.37 | 2026-09-11 | Closed WI-045 with ten-date production observation, 30/30 required slots, version-aware 0013 backup/restore, immutable rollback baseline and current cost pass | 20 V1 global-total/legacy-signal gaps remain explicit partials; migrations 0014–0017, connector/public smoke and traffic switch remain WI-046; no cleanup or retirement |
 | 2026-09-11.36 | 2026-09-11 | Activated WI-045 production readiness after MS-002 owner-accepted close opened the production gate | inventory/reconciliation/cost and bounded restore evidence only; connector, schedule, public traffic, V1 pause/retirement and cleanup remain WI-046 or later |

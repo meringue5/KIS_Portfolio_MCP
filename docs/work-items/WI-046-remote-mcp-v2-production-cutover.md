@@ -39,7 +39,7 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 
 ## Acceptance criteria
 
-- [ ] owner approves immutable manifest and rollback window.
+- [x] owner approves immutable manifest and rollback window.
 - [ ] Remote MCP/iPhone and scheduled runs pass production smoke.
 - [ ] rollback to V1 revision and schedules is rehearsed.
 
@@ -49,7 +49,8 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 
 ## Plan
 
-1. Approve manifest. 2. Switch connector and schedules. 3. Smoke, observe and close rollback window.
+1. Stage additive schema/state copy and no-traffic candidates. 2. Run live-client smoke. 3. Promote auth then Remote
+traffic with rollback holds. 4. Observe and close the rollback window.
 
 ## Sub-items
 
@@ -63,9 +64,22 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 - Execution order remains fail closed: merge the protected release implementation, apply additive migrations,
   deploy/smoke inactive V2 targets, refresh production connectors, switch schedules, then observe. Any failed gate
   restores the recorded V1 revision/schedules while preserving V2 data.
+- Production inspection found auth `00021` and remote `00031` serving V1 at 100% traffic with MotherDuck OAuth state
+  and the default Compute identity. The staged target therefore recopies active state to Firestore, uses dedicated
+  auth/remote identities and leaves serving traffic untouched.
+- The production V2 owned-core schedules at 10:00, 14:30 and 16:00 are already enabled and healthy. Domestic and
+  overseas order-history plus token warm-up schedules remain required feeders, not duplicate V1 schedules, so the
+  no-traffic stage does not pause or recreate any Scheduler resource.
+- Repository production adapters now cover the exact 15 governed reads, three managed commands and append-only
+  owner revisions through migration `0018`. Unsupported cursor/grain/account projections fail closed; account-filtered
+  totals are calculated within the selected alias rather than returning a global total.
+- Protected `wi046-stage` builds one immutable image, applies `0018`, recopies active state, grants only required
+  Firestore/secret/fixed-Job permissions, deploys `wi046-auth`/`wi046-v2` no-traffic tags and checks
+  health/discovery/unauthenticated rejection. Local dry-run and 98 focused tests passed.
 
 ## Closeout
 
 - Result: in progress.
-- Remaining risk: V1 retirement remains MS-004.
+- Remaining risk: live OAuth/client discovery and representative read/command evidence are still required before
+  traffic promotion. V1 retirement remains MS-004.
 - Follow-up Work Item: WI-047.
