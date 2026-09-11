@@ -1,5 +1,6 @@
 import argparse
 import importlib.util
+import json
 from pathlib import Path
 
 
@@ -586,6 +587,39 @@ def test_existing_runtime_identity_is_not_rebound_by_protected_stage(monkeypatch
     )
 
     assert result == "kis-portfolio-remote@project-1.iam.gserviceaccount.com"
+
+
+def test_tagged_service_url_parses_cloud_run_traffic_json(monkeypatch):
+    captured = []
+
+    def capture(command, **_kwargs):
+        captured.append(command)
+        return argparse.Namespace(
+            returncode=0,
+            stdout=json.dumps({
+                "status": {
+                    "traffic": [
+                        {"revisionName": "service-00001", "percent": 100},
+                        {
+                            "revisionName": "service-00002",
+                            "tag": "wi046-v2",
+                            "url": "https://wi046-v2.example.test",
+                        },
+                    ]
+                }
+            }),
+        )
+
+    monkeypatch.setattr(deploy_cloud_run, "_run_capture", capture)
+
+    assert deploy_cloud_run._tagged_service_url(
+        project="project-1",
+        region="asia-northeast3",
+        service="service",
+        tag="wi046-v2",
+        dry_run=False,
+    ) == "https://wi046-v2.example.test"
+    assert "--format=json(status.traffic)" in captured[0]
 
 
 def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
