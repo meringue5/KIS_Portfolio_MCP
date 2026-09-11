@@ -145,6 +145,10 @@ jobs:
           fi
 
       - name: Run test suite
+        env:
+          # Deployment vars are production inputs, not test-runtime activation.
+          KIS_STATE_BACKEND: motherduck
+          KIS_REMOTE_SURFACE_VERSION: v1
         run: uv run pytest
 
       - name: Authenticate to Google Cloud
