@@ -44,6 +44,11 @@ serving V1 auth/remote revision은 계속 100% traffic을 받는다. 현재 owne
 candidate 실패 시 traffic 변경 없이 종료하고, Firestore/MotherDuck 및 V1 revision을 삭제하거나 역복사하지
 않는다.
 
+schema/state 단계가 이미 성공한 뒤 candidate URL 또는 smoke 단계만 실패한 경우에는 전체 stage를 반복하지
+않는다. 원인을 master에 수정하고 별도 승인을 받은 뒤 `wi046-candidate-resume` target을 사용한다. 이 target은
+새 immutable image와 전용 identity 기반 no-traffic auth/Remote 후보 및 smoke만 수행하며 migration Job과 상태
+복사를 실행하지 않는다. serving traffic과 Scheduler는 계속 변경하지 않는다.
+
 GitHub deployer는 service-account 생성이나 IAM policy 변경 권한을 갖지 않는다. owner bootstrap은 auth에
 `roles/datastore.user`, auth 전용 여섯 secret accessor와 deployer의 service-account user만 부여한다. Remote는
 `roles/datastore.user`, MotherDuck/OAuth-pepper secret accessor, 고정 owned-core Job 세 개의 invoker와 deployer의

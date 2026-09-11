@@ -53,6 +53,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-12.41 | 2026-09-12 | Completed WI-046 least-privilege IAM, additive 0018/state copy and zero-traffic candidate stage | exact auth/Remote identities and allowlists verified; run 34623252239 passed candidate health/discovery/401 smoke on one immutable digest; V1 remains 100%, candidates 0%, all six schedules unchanged; live OAuth/client gate remains |
 | 2026-09-12.40 | 2026-09-12 | Preserved the IAM trust boundary after the first protected WI-046 stage attempts | first run stopped before auth; second built one immutable image then failed before migration at service-account creation; GitHub deployer remains non-admin, owner bootstrap approval pending, V1 traffic and schedules unchanged |
 | 2026-09-11.39 | 2026-09-11 | Completed the WI-046 production runtime and protected zero-traffic stage implementation | exact 18-tool runtime, additive 0018 and active-state copy, dedicated least-privilege identities, no-traffic tagged candidates and pre-client smoke; serving V1 traffic and all schedules remain unchanged until protected execution and live-client gate |
 | 2026-09-11.38 | 2026-09-11 | Activated WI-046 after WI-045 readiness closure and explicit owner cutover instruction | protected master release only; additive migrations and bounded connector/schedule switch allowed, V1 deletion/retirement and cleanup prohibited; minimum seven-day rollback window |
