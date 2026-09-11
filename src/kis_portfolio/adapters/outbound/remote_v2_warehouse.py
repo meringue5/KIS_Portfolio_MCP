@@ -265,8 +265,16 @@ class WarehouseReadQueryPort:
             [request.thread_id, request.thread_id, request.instrument_id, request.instrument_id,
              request.account_alias, request.account_alias, request.as_of, request.as_of, request.limit],
         )
+        revisions = self._rows(
+            """SELECT thread_id, revision, change_kind, change_document, authored_at,
+                      expected_prior_revision, recorded_at
+               FROM silver.trade_thread_command_revisions
+               WHERE (? IS NULL OR thread_id=?)
+               ORDER BY authored_at DESC LIMIT ?""",
+            [request.thread_id, request.thread_id, request.limit],
+        )
         return self._envelope(
-            data={"threads": rows, "next_cursor": None}, items=rows,
+            data={"threads": rows, "revisions": revisions, "next_cursor": None}, items=rows + revisions,
             dataset_id="dataset.trade-thread", as_of=_latest_datetime(rows, "opened_at"),
             lineage_ref="silver.trade_threads",
         )
