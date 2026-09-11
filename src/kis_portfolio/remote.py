@@ -185,9 +185,14 @@ def _transport_security(resource_server_url: str | None) -> TransportSecuritySet
         return TransportSecuritySettings(enable_dns_rebinding_protection=False)
 
     parts = urlsplit(resource_server_url)
+    additional_hosts = [
+        item.strip()
+        for item in os.environ.get("KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS", "").split(",")
+        if item.strip()
+    ]
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
-        allowed_hosts=[parts.netloc],
+        allowed_hosts=list(dict.fromkeys([parts.netloc, *additional_hosts])),
         allowed_origins=[
             _origin_from_url(resource_server_url),
             "https://claude.ai",

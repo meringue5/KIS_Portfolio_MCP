@@ -116,17 +116,24 @@ class WarehouseReadQueryPort:
         if not request.include_holdings:
             rows = [row for row in rows if row.get("aggregate_level") != "instrument"]
         as_of = _latest_datetime(rows, "as_of")
-        totals = self._rows(
-            """
-            SELECT evaluation_date, evaluation_slot, total_value_krw, quality_status, as_of
-            FROM gold.portfolio_daily_summary
-            WHERE (? IS NULL OR as_of<=?)
-            ORDER BY as_of DESC LIMIT 1
-            """,
-            [request.as_of, request.as_of],
-        )
+        total_rows = [
+            row for row in rows if row.get("aggregate_level") in {"position", "cash"}
+        ]
+        summary = None
+        if total_rows:
+            summary = {
+                "evaluation_date": total_rows[0]["evaluation_date"],
+                "evaluation_slot": total_rows[0]["evaluation_slot"],
+                "total_value_krw": sum(row["value_krw"] for row in total_rows),
+                "quality_status": (
+                    "degraded"
+                    if any(row.get("quality_status") != "passed" for row in total_rows)
+                    else "passed"
+                ),
+                "as_of": as_of,
+            }
         return self._envelope(
-            data={"summary": totals[0] if totals else None, "positions": rows},
+            data={"summary": summary, "positions": rows},
             items=rows,
             dataset_id="dataset.portfolio-daily-state",
             as_of=as_of,
@@ -161,14 +168,25 @@ class WarehouseReadQueryPort:
         )
 
     def _get_performance_history(self, request: PerformanceHistoryRequest) -> dict[str, Any]:
+        if request.grain != "daily":
+            raise RemoteReadError("unsupported_performance_grain")
         rows = self._rows(
             """
-            SELECT evaluation_date, evaluation_slot, total_value_krw, quality_status, as_of
-            FROM gold.portfolio_daily_summary
-            WHERE evaluation_date BETWEEN ? AND ?
-            ORDER BY evaluation_date, evaluation_slot LIMIT ?
+            SELECT p.evaluation_date, p.evaluation_slot,
+                   sum(p.value_krw) AS total_value_krw,
+                   CASE WHEN count_if(p.quality_status <> 'passed') > 0
+                        THEN 'degraded' ELSE 'passed' END AS quality_status,
+                   max(p.as_of) AS as_of
+            FROM gold.portfolio_daily_state p
+            JOIN silver.accounts a ON a.account_id=p.account_id
+            WHERE p.aggregate_level IN ('position', 'cash')
+              AND p.evaluation_date BETWEEN ? AND ?
+              AND (? IS NULL OR a.account_label=?)
+            GROUP BY p.evaluation_date, p.evaluation_slot
+            ORDER BY p.evaluation_date, p.evaluation_slot LIMIT ?
             """,
-            [request.start_date, request.end_date, request.limit],
+            [request.start_date, request.end_date, request.account_alias,
+             request.account_alias, request.limit],
         )
         return self._envelope(
             data={"grain": request.grain, "history": rows}, items=rows,
@@ -228,6 +246,8 @@ class WarehouseReadQueryPort:
         )
 
     def _get_trade_ledger(self, request: TradeLedgerRequest) -> dict[str, Any]:
+        if request.cursor is not None:
+            raise RemoteReadError("unsupported_cursor")
         rows = self._rows(
             """
             SELECT a.account_label, t.trade_event_id, t.market, t.instrument_id,
@@ -250,6 +270,8 @@ class WarehouseReadQueryPort:
         )
 
     def _get_trade_thread(self, request: TradeThreadRequest) -> dict[str, Any]:
+        if request.cursor is not None:
+            raise RemoteReadError("unsupported_cursor")
         rows = self._rows(
             """
             SELECT a.account_label, t.thread_id, t.instrument_id, t.opened_at,
@@ -479,6 +501,10 @@ class WarehouseReadQueryPort:
         )
 
     def _get_journal_review_queue(self, request: JournalReviewQueueRequest) -> dict[str, Any]:
+        if request.cursor is not None:
+            raise RemoteReadError("unsupported_cursor")
+        if request.account_alias is not None:
+            raise RemoteReadError("unsupported_review_account_filter")
         rows = self._rows(
             """
             SELECT r.review_item_id, r.review_type, r.subject_type, r.subject_id,

@@ -8,6 +8,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from dotenv import dotenv_values
@@ -28,6 +30,9 @@ DEFAULT_WI022_S06_JOB = "kis-portfolio-wi022-s06"
 DEFAULT_WI029_S04_JOB = "kis-portfolio-wi029-s04"
 DEFAULT_WI030_S02_JOB = "kis-portfolio-wi030-s02"
 DEFAULT_WI030_S03_JOB = "kis-portfolio-wi030-s03"
+DEFAULT_WI046_MIGRATION_JOB = "kis-portfolio-wi046-migration"
+DEFAULT_WI046_AUTH_TAG = "wi046-auth"
+DEFAULT_WI046_REMOTE_TAG = "wi046-v2"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -241,6 +246,7 @@ def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_GCP_PROJECT",
         "KIS_CLOUD_RUN_REGION",
         "KIS_FIRESTORE_DATABASE",
+        "KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS",
         "KIS_REAL_API_MIN_INTERVAL_SECONDS",
         "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS",
         "KIS_TOKEN_MIN_INTERVAL_SECONDS",
@@ -816,6 +822,257 @@ def _build_release_image(args: argparse.Namespace, *, project: str) -> str | Non
     )
     digest = completed.stdout.strip() if completed.returncode == 0 else ""
     return f"{tag.split(':', 1)[0]}@{digest}" if digest.startswith("sha256:") else None
+
+
+def _ensure_runtime_identity(
+    *,
+    project: str,
+    region: str,
+    account_id: str,
+    secret_ids: set[str],
+    dry_run: bool,
+    job_names: tuple[str, ...] = (),
+) -> str | None:
+    email = f"{account_id}@{project}.iam.gserviceaccount.com"
+    if dry_run:
+        if _run([
+            "gcloud", "iam", "service-accounts", "create", account_id,
+            "--display-name", f"KIS Portfolio {account_id} Runtime", "--project", project,
+        ], dry_run=True) != 0:
+            return None
+    else:
+        exists = _run_capture([
+            "gcloud", "iam", "service-accounts", "describe", email, "--project", project,
+        ], dry_run=False)
+        if exists.returncode != 0 and _run([
+            "gcloud", "iam", "service-accounts", "create", account_id,
+            "--display-name", f"KIS Portfolio {account_id} Runtime", "--project", project,
+        ], dry_run=False) != 0:
+            return None
+    if _run([
+        "gcloud", "projects", "add-iam-policy-binding", project,
+        "--member", f"serviceAccount:{email}", "--role", "roles/datastore.user",
+        "--condition=None",
+    ], dry_run=dry_run) != 0:
+        return None
+    for secret_id in sorted(secret_ids):
+        if _run([
+            "gcloud", "secrets", "add-iam-policy-binding", secret_id,
+            "--member", f"serviceAccount:{email}",
+            "--role", "roles/secretmanager.secretAccessor", "--project", project,
+        ], dry_run=dry_run) != 0:
+            return None
+    for job_name in job_names:
+        if _run([
+            "gcloud", "run", "jobs", "add-iam-policy-binding", job_name,
+            "--member", f"serviceAccount:{email}", "--role", "roles/run.invoker",
+            "--region", region, "--project", project,
+        ], dry_run=dry_run) != 0:
+            return None
+    return email
+
+
+def _deploy_tagged_service(
+    *,
+    args: argparse.Namespace,
+    project: str,
+    service: str,
+    image: str,
+    command_name: str,
+    payload: dict[str, str],
+    secret_refs: dict[str, str],
+    service_account: str,
+    tag: str,
+    runtime_flags: list[str],
+) -> int:
+    env_path = _write_env_yaml(payload)
+    try:
+        return _run([
+            "gcloud", "run", "deploy", service,
+            "--image", image, "--region", args.region, "--allow-unauthenticated",
+            "--no-traffic", "--tag", tag, "--env-vars-file", env_path,
+            "--command", command_name, "--args", "", "--service-account", service_account,
+            *runtime_flags, *_build_secret_flags(secret_refs),
+            *_build_label_flags("wi046-stage"), "--project", project,
+        ], dry_run=args.dry_run)
+    finally:
+        try:
+            os.unlink(env_path)
+        except FileNotFoundError:
+            pass
+
+
+def _tagged_service_url(
+    *, project: str, region: str, service: str, tag: str, dry_run: bool
+) -> str | None:
+    if dry_run:
+        return f"https://{tag}---{service}.example.test"
+    completed = _run_capture([
+        "gcloud", "run", "services", "describe", service,
+        "--region", region, "--project", project,
+        f"--format=value(status.traffic[?tag={tag}].url)",
+    ], dry_run=False)
+    value = completed.stdout.strip()
+    return value if completed.returncode == 0 and value.startswith("https://") else None
+
+
+def _smoke_wi046_tagged_urls(*, auth_url: str, remote_url: str, expected_resource: str) -> bool:
+    def get(url: str) -> tuple[int, bytes]:
+        try:
+            with urllib.request.urlopen(url, timeout=30) as response:
+                return response.status, response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, error.read()
+
+    auth_status, _ = get(f"{auth_url}/health")
+    remote_status, _ = get(f"{remote_url}/health")
+    metadata_status, metadata_body = get(
+        f"{remote_url}/.well-known/oauth-protected-resource"
+    )
+    mcp_status, _ = get(f"{remote_url}/mcp")
+    if (auth_status, remote_status, metadata_status, mcp_status) != (200, 200, 200, 401):
+        return False
+    try:
+        metadata = json.loads(metadata_body)
+    except json.JSONDecodeError:
+        return False
+    return metadata.get("resource") == expected_resource.rstrip("/")
+
+
+def _deploy_wi046_stage(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Apply additive schema and deploy zero-traffic V2 auth/remote candidates."""
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-046 image digest.")
+        return 1
+    stage_env = {
+        **env,
+        "KIS_REMOTE_SURFACE_VERSION": "v2",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": project,
+        "KIS_CLOUD_RUN_REGION": args.region,
+        "KIS_FIRESTORE_DATABASE": env.get("KIS_FIRESTORE_DATABASE", "kis-portfolio-state"),
+        "KIS_AUTH_ALLOWED_SCOPES": "mcp:read mcp:collect mcp:journal.write offline_access",
+        "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+    }
+    missing = _validate_required(
+        stage_env,
+        [*_required_keys_for_auth(stage_env), *_required_keys_for_remote(stage_env)],
+        secret_mode=args.secret_mode,
+    )
+    if missing:
+        print("Missing required environment variables:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+    auth_payload, auth_secrets = _split_runtime_env(
+        env=stage_env, payload=_build_auth_env(stage_env),
+        required=_required_keys_for_auth(stage_env), secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    remote_payload, remote_secrets = _split_runtime_env(
+        env=stage_env, payload=_build_remote_env(stage_env),
+        required=_required_keys_for_remote(stage_env), secret_mode=args.secret_mode,
+        include_account_secrets=True,
+    )
+    auth_identity = _ensure_runtime_identity(
+        project=project, region=args.region, account_id="kis-portfolio-auth",
+        secret_ids=set(auth_secrets.values()), dry_run=args.dry_run,
+    )
+    remote_identity = _ensure_runtime_identity(
+        project=project, region=args.region, account_id="kis-portfolio-remote",
+        secret_ids=set(remote_secrets.values()), dry_run=args.dry_run,
+        job_names=tuple(DEFAULT_V2_CORE_JOBS.values()),
+    )
+    if not auth_identity or not remote_identity:
+        return 1
+
+    migration_payload = {
+        key: stage_env[key]
+        for key in ("KIS_DB_MODE", "MOTHERDUCK_DATABASE") if stage_env.get(key)
+    }
+    migration_env = _write_env_yaml(migration_payload)
+    try:
+        migration_secret = {
+            "MOTHERDUCK_TOKEN": _secret_id_for_env_key("MOTHERDUCK_TOKEN")
+        }
+        pipeline_identity = stage_env.get(
+            "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+            f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+        )
+        if _run([
+            "gcloud", "run", "jobs", "deploy", DEFAULT_WI046_MIGRATION_JOB,
+            "--image", image, "--region", args.region,
+            "--env-vars-file", migration_env, "--command", "kis-portfolio-migrate",
+            "--args=--motherduck,--through,0018", "--tasks", "1", "--parallelism", "1",
+            "--task-timeout", DEFAULT_BATCH_TASK_TIMEOUT, "--max-retries", "0",
+            "--service-account", pipeline_identity, *_build_secret_flags(migration_secret),
+            *_build_label_flags("wi046-stage-migration"), "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+        if _run([
+            "gcloud", "run", "jobs", "execute", DEFAULT_WI046_MIGRATION_JOB,
+            "--region", args.region, "--wait", "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(migration_env)
+        except FileNotFoundError:
+            pass
+
+    auth_service = stage_env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
+    remote_service = stage_env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    if _deploy_tagged_service(
+        args=args, project=project, service=auth_service, image=image,
+        command_name="kis-portfolio-auth", payload=auth_payload, secret_refs=auth_secrets,
+        service_account=auth_identity, tag=DEFAULT_WI046_AUTH_TAG,
+        runtime_flags=_build_auth_runtime_flags(stage_env),
+    ) != 0:
+        return 1
+    if _deploy_tagged_service(
+        args=args, project=project, service=remote_service, image=image,
+        command_name="kis-portfolio-remote", payload=remote_payload, secret_refs=remote_secrets,
+        service_account=remote_identity, tag=DEFAULT_WI046_REMOTE_TAG,
+        runtime_flags=_build_remote_runtime_flags(stage_env),
+    ) != 0:
+        return 1
+    auth_url = _tagged_service_url(
+        project=project, region=args.region, service=auth_service,
+        tag=DEFAULT_WI046_AUTH_TAG, dry_run=args.dry_run,
+    )
+    remote_url = _tagged_service_url(
+        project=project, region=args.region, service=remote_service,
+        tag=DEFAULT_WI046_REMOTE_TAG, dry_run=args.dry_run,
+    )
+    if not auth_url or not remote_url:
+        print("Failed to resolve WI-046 tagged candidate URLs.")
+        return 1
+    remote_payload["KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS"] = remote_url.split("//", 1)[1]
+    if _deploy_tagged_service(
+        args=args, project=project, service=remote_service, image=image,
+        command_name="kis-portfolio-remote", payload=remote_payload, secret_refs=remote_secrets,
+        service_account=remote_identity, tag=DEFAULT_WI046_REMOTE_TAG,
+        runtime_flags=_build_remote_runtime_flags(stage_env),
+    ) != 0:
+        return 1
+    if args.dry_run:
+        print(f"WI-046 zero-traffic candidates prepared with immutable image: {image}")
+        return 0
+    if not _smoke_wi046_tagged_urls(
+        auth_url=auth_url,
+        remote_url=remote_url,
+        expected_resource=stage_env["KIS_RESOURCE_SERVER_URL"],
+    ):
+        print("WI-046 tagged candidate smoke failed.")
+        return 1
+    print(f"WI-046 zero-traffic candidates passed health/discovery/auth-boundary smoke: {image}")
+    return 0
 
 
 def _deploy_v2_core_jobs(
@@ -1601,6 +1858,7 @@ def main() -> int:
             "wi055-s01",
             "wi055-s03",
             "wi055-s04",
+            "wi046-stage",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1822,6 +2080,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi055_s04(args, env=env, project=project)
+
+    if args.target == "wi046-stage":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi046_stage(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

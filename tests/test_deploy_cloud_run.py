@@ -29,6 +29,12 @@ def test_workflow_dispatches_wi055_s04_to_exact_deploy_target():
     assert "scripts/deploy_cloud_run.py wi055-s04" in workflow
 
 
+def test_workflow_dispatches_wi046_zero_traffic_stage_target():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi046-stage'" in workflow
+    assert "scripts/deploy_cloud_run.py wi046-stage" in workflow
+
+
 def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     env = {
         "KIS_DB_MODE": "motherduck",
@@ -434,6 +440,78 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1430,--partition-key,all-accounts",
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1600,--partition-key,all-accounts",
     }
+
+
+def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypatch):
+    commands = []
+    deployments = []
+    smokes = []
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi046-stage", dry_run=False,
+        secret_mode="secret-manager",
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_TOKEN_ENCRYPTION_KEY": "secret-ref",
+        "KIS_AUTH_BASE_URL": "https://auth.example.com",
+        "KIS_AUTH_OWNER_EMAILS": "owner@example.com",
+        "KIS_AUTH_SESSION_SECRET": "secret-ref",
+        "KIS_AUTH_TOKEN_PEPPER": "secret-ref",
+        "KIS_AUTH_CLAUDE_CLIENT_ID": "claude-client",
+        "KIS_AUTH_CLAUDE_CLIENT_SECRET": "secret-ref",
+        "KIS_OAUTH_GOOGLE_CLIENT_ID": "google-client",
+        "KIS_OAUTH_GOOGLE_CLIENT_SECRET": "secret-ref",
+        "KIS_OAUTH_GITHUB_CLIENT_ID": "github-client",
+        "KIS_OAUTH_GITHUB_CLIENT_SECRET": "secret-ref",
+        "KIS_REMOTE_AUTH_MODE": "oauth",
+        "KIS_AUTH_ISSUER_URL": "https://auth.example.com",
+        "KIS_RESOURCE_SERVER_URL": "https://remote.example.com/mcp",
+        "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+    }
+    monkeypatch.setattr(
+        deploy_cloud_run, "_build_release_image",
+        lambda *_args, **_kwargs: "image@sha256:" + "a" * 64,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_ensure_runtime_identity",
+        lambda account_id, **_kwargs: f"{account_id}@project-1.iam.gserviceaccount.com",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    def deploy(**kwargs):
+        deployments.append(kwargs)
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_tagged_service", deploy)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_tagged_service_url",
+        lambda tag, **_kwargs: f"https://{tag}.example.test",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_smoke_wi046_tagged_urls",
+        lambda **kwargs: smokes.append(kwargs) or True,
+    )
+
+    result = deploy_cloud_run._deploy_wi046_stage(
+        args, env=env, project="project-1"
+    )
+
+    assert result == 0
+    assert any("--args=--motherduck,--through,0018" in command for command in commands)
+    assert any(command[:4] == ["gcloud", "run", "jobs", "execute"] for command in commands)
+    assert [item["tag"] for item in deployments] == ["wi046-auth", "wi046-v2", "wi046-v2"]
+    assert deployments[0]["command_name"] == "kis-portfolio-auth"
+    assert deployments[1]["command_name"] == "kis-portfolio-remote"
+    assert deployments[2]["payload"]["KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS"] == "wi046-v2.example.test"
+    assert "--no-traffic" in Path(deploy_cloud_run.__file__).read_text()
+    assert smokes == [{
+        "auth_url": "https://wi046-auth.example.test",
+        "remote_url": "https://wi046-v2.example.test",
+        "expected_resource": "https://remote.example.com/mcp",
+    }]
 
 
 def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):

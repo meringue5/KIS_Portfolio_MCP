@@ -29,6 +29,7 @@ on:
           - wi055-s01
           - wi055-s03
           - wi055-s04
+          - wi046-stage
 
 permissions:
   contents: read
@@ -129,13 +130,13 @@ jobs:
           target="${{ github.event.inputs.target }}"
           test "${GITHUB_REF}" = "refs/heads/master" || { echo "Production deploys must run from master."; exit 1; }
           test -n "${GOOGLE_CLOUD_PROJECT}" || { echo "GOOGLE_CLOUD_PROJECT var is required."; exit 1; }
-          if [ "${target}" = "all" ] || [ "${target}" = "auth" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "auth" ] || [ "${target}" = "wi046-stage" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_AUTH_CLAUDE_CLIENT_ID}" || { echo "KIS_AUTH_CLAUDE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GITHUB_CLIENT_ID}" || { echo "KIS_OAUTH_GITHUB_CLIENT_ID var is required."; exit 1; }
           fi
-          if [ "${target}" = "all" ] || [ "${target}" = "remote" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ]; then
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -360,4 +361,12 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI030_S03_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Stage WI-046 additive migration and zero-traffic V2 candidates
+        if: github.event.inputs.target == 'wi046-stage'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi046-stage \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
             --secret-mode secret-manager
