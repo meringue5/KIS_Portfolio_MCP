@@ -146,6 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
     managed.add_argument("--date", default="today", help="YYYYMMDD or today in Asia/Seoul")
     managed.add_argument("--slot", required=True, choices=sorted(ALLOWED_SLOTS))
     managed.add_argument("--partition-key", default="all-accounts", choices=("all-accounts",))
+    managed.add_argument("--requested-run-id", help=argparse.SUPPRESS)
 
     price_backfill = subparsers.add_parser(
         "backfill-held-price-history-v2",
@@ -342,6 +343,7 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
 
     result = run_owned_portfolio_pipeline(
         get_connection(), logical_date=logical_date, slot=args.slot, partition_key=args.partition_key,
+        requested_run_id=args.requested_run_id,
     )
     if result["status"] in {"succeeded", "skipped"} and result.get("reason") is None:
         if args.slot == "kr-1000":

@@ -1,7 +1,7 @@
 ---
 id: WI-046
 title: Cut production connectors and schedules over to Remote MCP V2
-status: proposed
+status: in_progress
 type: architecture
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -10,6 +10,8 @@ milestone_ref: MS-003
 delivery_refs: V2-W0704, V2-W0705, V2-W0707
 parent_work_item: none
 depends_on: WI-045
+execution_scope: production
+production_effects: bounded_remote_connector_and_scheduler_cutover
 architecture_impact: changes the production MCP and Scheduler SSOT
 data_impact: V2 writers become primary while V1 remains paused for rollback
 security_impact: OAuth scopes and production identities switch to V2
@@ -25,6 +27,10 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 ## Classification and contract
 
 - `architecture` cutover requiring explicit owner approval at the execution gate.
+- The owner approved starting the transition after accepting the 2026-09-11 14:30 observation and the immutable
+  WI-045 manifest. Production mutations must run from tested `master` through the protected GitHub Actions path.
+- Preserve the pre-cutover Remote MCP revision and V1 schedule definitions for at least a seven-day rollback window.
+  Do not delete V1 services, jobs, schedules, data, secrets or revisions in this Work Item.
 
 ## Scope
 
@@ -33,7 +39,7 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 
 ## Acceptance criteria
 
-- [ ] owner approves immutable manifest and rollback window.
+- [x] owner approves immutable manifest and rollback window.
 - [ ] Remote MCP/iPhone and scheduled runs pass production smoke.
 - [ ] rollback to V1 revision and schedules is rehearsed.
 
@@ -43,7 +49,8 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 
 ## Plan
 
-1. Approve manifest. 2. Switch connector and schedules. 3. Smoke, observe and close rollback window.
+1. Stage additive schema/state copy and no-traffic candidates. 2. Run live-client smoke. 3. Promote auth then Remote
+traffic with rollback holds. 4. Observe and close the rollback window.
 
 ## Sub-items
 
@@ -51,10 +58,28 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 
 ## Evidence
 
-- Pending.
+- 2026-09-11 activation: WI-045 closed on PR #77/master `6245238` with a passing ten-date readiness assessment,
+  private exact-hash restore, current cost pass and target-specific immutable rollback digests. The owner explicitly
+  instructed the project to stop further MS-002 observation and begin transition.
+- Execution order remains fail closed: merge the protected release implementation, apply additive migrations,
+  deploy/smoke inactive V2 targets, refresh production connectors, switch schedules, then observe. Any failed gate
+  restores the recorded V1 revision/schedules while preserving V2 data.
+- Production inspection found auth `00021` and remote `00031` serving V1 at 100% traffic with MotherDuck OAuth state
+  and the default Compute identity. The staged target therefore recopies active state to Firestore, uses dedicated
+  auth/remote identities and leaves serving traffic untouched.
+- The production V2 owned-core schedules at 10:00, 14:30 and 16:00 are already enabled and healthy. Domestic and
+  overseas order-history plus token warm-up schedules remain required feeders, not duplicate V1 schedules, so the
+  no-traffic stage does not pause or recreate any Scheduler resource.
+- Repository production adapters now cover the exact 15 governed reads, three managed commands and append-only
+  owner revisions through migration `0018`. Unsupported cursor/grain/account projections fail closed; account-filtered
+  totals are calculated within the selected alias rather than returning a global total.
+- Protected `wi046-stage` builds one immutable image, applies `0018`, recopies active state, grants only required
+  Firestore/secret/fixed-Job permissions, deploys `wi046-auth`/`wi046-v2` no-traffic tags and checks
+  health/discovery/unauthenticated rejection. Local dry-run and 98 focused tests passed.
 
 ## Closeout
 
-- Result: proposed.
-- Remaining risk: V1 retirement remains MS-004.
+- Result: in progress.
+- Remaining risk: live OAuth/client discovery and representative read/command evidence are still required before
+  traffic promotion. V1 retirement remains MS-004.
 - Follow-up Work Item: WI-047.

@@ -20,12 +20,29 @@ immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP
 `stateless_http=true`·`json_response=true`를 목표로 하지만 Claude·ChatGPT·iPhone 실제 호환성 검증 뒤에만
 전환한다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
 
-이 목표는 아직 현재 배포 절차를 바꾸지 않는다. build-once workflow, secret migration, Firestore
-provisioning과 connector cutover는 각각 별도 Work Item과 rollback evidence를 필요로 한다.
+기본 `auth`/`remote` target은 여전히 V1 호환 경로다. WI-046의 `wi046-stage` target만 protected `master`에서
+build-once image, additive migration, Firestore state copy와 zero-traffic V2 후보를 준비한다. 이 target은 serving
+traffic, connector와 Scheduler를 변경하지 않으며 후속 live-client gate와 별도 traffic promotion을 요구한다.
 
 Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
 contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply
 path; cleanup activation remains a separately approved production action.
+
+### WI-046 zero-traffic stage
+
+GitHub Actions의 `Deploy Cloud Run` workflow에서 `wi046-stage`를 선택한다. 이 target은 다음 순서를 fail closed로
+실행한다.
+
+1. commit당 한 번 build하고 image digest를 고정한다.
+2. 전용 migration Job으로 MotherDuck schema를 `0018`까지 적용한다.
+3. 활성 OAuth/KIS 상태를 MotherDuck에서 `kis-portfolio-state`로 append-only 복사하고 count를 검증한다.
+4. auth와 Remote에 전용 service account와 필요한 secret/job 권한만 부여한다.
+5. `wi046-auth`, `wi046-v2` tag의 no-traffic 후보를 배포하고 health/discovery/401 경계를 검사한다.
+
+serving V1 auth/remote revision은 계속 100% traffic을 받는다. 현재 owned-core V2 수집 스케줄 세 개도 그대로
+유지하며, 국내/해외 주문이력과 token warm-up schedule은 V1 중복 스케줄이 아니므로 pause 대상이 아니다.
+candidate 실패 시 traffic 변경 없이 종료하고, Firestore/MotherDuck 및 V1 revision을 삭제하거나 역복사하지
+않는다.
 
 ## Remote MCP 인증
 

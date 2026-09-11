@@ -1,8 +1,8 @@
 # Remote MCP V2 migration guide
 
-> Status: inactive compatibility baseline for WI-044
+> Status: WI-046 zero-traffic production candidate procedure
 > Product connection: OAuth Remote MCP only
-> Production cutover: not authorized by this guide
+> Production cutover: owner-approved, protected-master execution only
 
 ## What changes
 
@@ -63,6 +63,20 @@ current V1 tool exactly once and is checked against both live builders in the te
 The V2 catalog also adds governed position/thread, dividend, fundamental outlook, exposure, catalog, review queue and
 owner journal commands. Presence in the inactive catalog does not imply that its backing source or production route is
 active; inspect `quality` and `missing_coverage` on every read.
+
+## WI-046 staged production sequence
+
+The protected `wi046-stage` deploy target is additive and keeps the serving V1 revisions at 100% traffic. It builds
+one immutable image, applies MotherDuck migrations through `0018`, recopies active OAuth/KIS operational state to
+the named Firestore database without mutating MotherDuck, and creates tagged no-traffic auth and Remote V2
+candidates. The auth candidate can access Firestore and its six auth secrets. The Remote candidate can access
+Firestore, MotherDuck, the shared OAuth pepper, and only the three fixed owned-core Jobs; it receives no KIS account
+credentials or token-encryption key.
+
+The automated pre-client smoke covers candidate health, protected-resource discovery, exact stable resource binding
+and unauthenticated `/mcp` rejection. It does not prove OAuth login, tool discovery or client-visible execution.
+After this stage passes, reconnecting a client and consenting to the required scope is a distinct owner-visible gate.
+Do not move public traffic until that live check succeeds.
 
 ## New-conversation smoke matrix
 

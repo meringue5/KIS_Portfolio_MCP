@@ -46,6 +46,12 @@ Firestore 활성화 또는 token migration을 수행하지 않았다.
 실제 secret payload를 bundle로 옮기는 작업은 별도 security/provisioning Work Item과 rollback rehearsal 뒤에
 수행한다. 그 전에는 아래 V1 inventory와 rotation runbook이 현재 운영 절차다.
 
+WI-046의 zero-traffic 후보는 bundle 전환 전에 최소권한 runtime identity를 먼저 적용한다. auth identity는
+Firestore와 auth 전용 여섯 secret만, Remote V2 identity는 Firestore, MotherDuck, OAuth pepper와 고정된 세
+owned-core Job 실행권한만 가진다. V2 Remote는 KIS 계좌 key/secret/CANO와 token-encryption key를 받지 않는다.
+기존 개별 Secret Manager resource의 `latest` 참조는 이 staged cutover에서 유지하는 명시적 과도기 경계이며,
+숫자 version/bundle 전환은 별도 검증 없이는 함께 수행하지 않는다.
+
 ### 2026-08-28 V2 state foundation inventory
 
 - project `grand-forge-279904`에는 기존 `(default)` `DATASTORE_MODE` database가
@@ -69,6 +75,8 @@ Firestore 활성화 또는 token migration을 수행하지 않았다.
 - GitHub Actions: WIF로 Google Cloud에 인증하고, 비시크릿 vars와 Secret Manager reference로 Cloud Run 배포 스크립트를 실행한다.
 - Cloud Run auth service: MCP OAuth authorization server다. owner login, consent, token issuance를 담당한다.
 - Cloud Run remote service: MCP resource server다. OAuth bearer token을 검증하고 KIS 조회 tool을 실행한다.
+- WI-046 Remote V2 candidate: governed MotherDuck read model과 고정 Cloud Run Job command만 사용한다. 직접 KIS
+  API를 호출하지 않으며 계좌 credential을 주입받지 않는다.
 - Cloud Run batch job: 예약 수집 job이다. KIS/MotherDuck runtime env를 사용하지만 MCP OAuth client token은 쓰지 않는다.
 - MotherDuck: 현재 V1 운영 데이터베이스다. portfolio data, encrypted KIS token cache, OAuth digest state를
   저장한다. 승인된 V2에서는 분석 plane만 맡는다.

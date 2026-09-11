@@ -128,14 +128,26 @@ class ManagedPipelineRunner:
                 definition_hash=excluded.definition_hash, definition=excluded.definition
         """, [definition.pipeline_id, definition.version, definition.definition_hash, json.dumps(document)])
 
-    def _claim_run(self, definition: PipelineDefinition, logical_date: date, slot: str, partition_key: str) -> tuple[str, str, bool]:
+    def _claim_run(
+        self,
+        definition: PipelineDefinition,
+        logical_date: date,
+        slot: str,
+        partition_key: str,
+        requested_run_id: str | None = None,
+    ) -> tuple[str, str, bool]:
         key = self.logical_key(definition, logical_date, slot, partition_key)
         existing = self.connection.execute(
             "SELECT run_id, status FROM control.pipeline_runs WHERE idempotency_key=?", [key]
         ).fetchone()
         if existing:
             return existing[0], existing[1], True
-        run_id = new_id()
+        run_id = requested_run_id or new_id()
+        collision = self.connection.execute(
+            "SELECT idempotency_key FROM control.pipeline_runs WHERE run_id=?", [run_id]
+        ).fetchone()
+        if collision is not None and collision[0] != key:
+            raise ValueError("requested run id is already bound to another logical run")
         self.connection.execute("""
             INSERT INTO control.pipeline_runs(
                 run_id, pipeline_id, pipeline_version, logical_date, slot, partition_key,
@@ -153,9 +165,12 @@ class ManagedPipelineRunner:
         slot: str,
         partition_key: str = "default",
         state: dict[str, Any] | None = None,
+        requested_run_id: str | None = None,
     ) -> PipelineRunOutcome:
         self.register_definition(definition)
-        run_id, status, reused = self._claim_run(definition, logical_date, slot, partition_key)
+        run_id, status, reused = self._claim_run(
+            definition, logical_date, slot, partition_key, requested_run_id
+        )
         if status == "succeeded":
             calls = self.connection.execute(
                 "SELECT source_calls FROM control.pipeline_runs WHERE run_id=?", [run_id]

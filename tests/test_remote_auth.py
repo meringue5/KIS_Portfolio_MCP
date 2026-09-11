@@ -24,6 +24,61 @@ def test_remote_app_requires_auth_token(monkeypatch):
         remote.create_app()
 
 
+def test_remote_v2_refuses_non_oauth_activation(monkeypatch):
+    monkeypatch.setenv("KIS_REMOTE_SURFACE_VERSION", "v2")
+    monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "bearer")
+    monkeypatch.setenv("KIS_REMOTE_AUTH_TOKEN", "secret")
+
+    remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+
+    with pytest.raises(RuntimeError, match="requires oauth auth mode"):
+        remote.create_app()
+
+
+def test_remote_v2_uses_explicit_runtime_factory(monkeypatch):
+    monkeypatch.setenv("KIS_REMOTE_SURFACE_VERSION", "v2")
+    monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "oauth")
+    monkeypatch.setenv("KIS_AUTH_ISSUER_URL", "https://auth.example.com")
+    monkeypatch.setenv("KIS_RESOURCE_SERVER_URL", "https://resource.example.com/mcp")
+    monkeypatch.setenv("KIS_AUTH_TOKEN_PEPPER", "pepper")
+    monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
+    called = []
+
+    remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+
+    def factory(resource):
+        called.append(resource)
+        return _dummy_remote_server()
+
+    monkeypatch.setattr(remote, "_build_v2_runtime_server", factory)
+    with TestClient(remote.create_app()) as client:
+        assert client.get("/health").status_code == 200
+
+    assert called == ["https://resource.example.com/mcp"]
+
+
+def test_remote_v2_runtime_factory_composes_exact_production_catalog(monkeypatch):
+    import duckdb
+
+    from kis_portfolio.adapters.outbound.memory_state import InMemoryStateStore
+    from kis_portfolio.db import connection as connection_module
+    from kis_portfolio.platform import state_runtime
+    from kis_portfolio.platform.migrations import MigrationRunner
+
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    monkeypatch.setattr(connection_module, "get_connection", lambda: connection)
+    monkeypatch.setattr(state_runtime, "get_state_store", lambda: InMemoryStateStore())
+    monkeypatch.setenv("KIS_GCP_PROJECT", "project-1")
+    monkeypatch.setenv("KIS_CLOUD_RUN_REGION", "asia-northeast3")
+    monkeypatch.setenv("KIS_STATE_BACKEND", "firestore")
+    remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+
+    server = remote._build_v2_runtime_server("https://resource.example.com/mcp")
+
+    assert len(server._tool_manager.list_tools()) == 18
+
+
 def test_remote_healthcheck_does_not_require_auth(monkeypatch):
     monkeypatch.setenv("KIS_REMOTE_AUTH_TOKEN", "secret")
     monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "bearer")

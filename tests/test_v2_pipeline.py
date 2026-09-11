@@ -82,3 +82,58 @@ def test_pipeline_stops_before_exceeding_source_call_budget(tmp_path: Path) -> N
     with pytest.raises(PipelineExecutionError, match="source call budget exceeded"):
         runner.run(definition, logical_date=date(2026, 8, 28), slot="manual")
     con.close()
+
+
+def test_pipeline_accepts_one_preallocated_remote_run_id(tmp_path: Path) -> None:
+    con = duckdb.connect(str(tmp_path / "requested-run.duckdb"))
+    MigrationRunner(con).apply()
+    runner = ManagedPipelineRunner(con)
+    definition = PipelineDefinition(
+        "pipeline.fixture-requested", "1.0.0",
+        (PipelineStage("publish", lambda _: StageResult()),),
+        source_call_budget=0,
+    )
+
+    outcome = runner.run(
+        definition,
+        logical_date=date(2026, 9, 11),
+        slot="kr-1000",
+        requested_run_id="remote-run-1",
+    )
+    reused = runner.run(
+        definition,
+        logical_date=date(2026, 9, 11),
+        slot="kr-1000",
+        requested_run_id="different-id-is-ignored-for-the-same-logical-run",
+    )
+
+    assert outcome.run_id == "remote-run-1"
+    assert reused.run_id == "remote-run-1"
+    assert reused.reused is True
+    con.close()
+
+
+def test_pipeline_rejects_preallocated_run_id_bound_to_another_logical_run(tmp_path: Path) -> None:
+    con = duckdb.connect(str(tmp_path / "requested-run-collision.duckdb"))
+    MigrationRunner(con).apply()
+    runner = ManagedPipelineRunner(con)
+    definition = PipelineDefinition(
+        "pipeline.fixture-requested", "1.0.0",
+        (PipelineStage("publish", lambda _: StageResult()),),
+        source_call_budget=0,
+    )
+    runner.run(
+        definition,
+        logical_date=date(2026, 9, 11),
+        slot="kr-1000",
+        requested_run_id="remote-run-1",
+    )
+
+    with pytest.raises(ValueError, match="already bound"):
+        runner.run(
+            definition,
+            logical_date=date(2026, 9, 11),
+            slot="kr-1430",
+            requested_run_id="remote-run-1",
+        )
+    con.close()

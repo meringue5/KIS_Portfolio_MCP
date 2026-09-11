@@ -49,7 +49,7 @@ def test_v2_recovery_functions_round_trip_complete_allowlist(tmp_path: Path) -> 
     backup = tmp_path / "backup"
     manifest = export_v2_backup(source, backup, database="fixture")
     assert manifest["manifest_version"] == 3
-    assert manifest["source_migrations"][-1]["version"] == "0017"
+    assert manifest["source_migrations"][-1]["version"] == "0018"
     source.close()
 
     store = MemoryStore()

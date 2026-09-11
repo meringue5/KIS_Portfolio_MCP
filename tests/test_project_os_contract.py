@@ -111,7 +111,7 @@ def _set_ms002_status(target: Path, status: str) -> None:
         encoding="utf-8",
     )
     if status == "stabilizing":
-        # Rewind post-gate WI-045 metadata as well as the milestone status so
+        # Rewind post-gate WI-045 metadata and the later WI-046 activation so
         # overlap tests model the historical isolated phase consistently.
         work_item = target / "docs/work-items/WI-045-v1-v2-dual-run-readiness.md"
         document = work_item.read_text(encoding="utf-8")
@@ -122,6 +122,18 @@ def _set_ms002_status(target: Path, status: str) -> None:
             r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
         )
         work_item.write_text(document, encoding="utf-8")
+        cutover = target / "docs/work-items/WI-046-remote-mcp-v2-production-cutover.md"
+        document = cutover.read_text(encoding="utf-8")
+        document = re.sub(
+            r"(?m)^status: .+$", "status: proposed", document, count=1
+        )
+        document = re.sub(
+            r"(?m)^execution_scope: .+$", "execution_scope: isolated", document, count=1
+        )
+        document = re.sub(
+            r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
+        )
+        cutover.write_text(document, encoding="utf-8")
 
 
 def test_initial_v2_alert_chain_preserves_but_excludes_etf_work():
