@@ -119,11 +119,17 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   requires exact rollback `00031-pbm` and tagged candidate `00036-tej`, changes only Remote traffic, verifies the
   stable health/discovery/unauthenticated boundary, and immediately restores the exact rollback revision on failure.
   Scheduler, Job, DB, Auth, secret and connector mutations are outside that promotion command.
+- PR #88/master `918800b` added that Remote-only promotion gate after 59 focused and 661 full tests. Protected run
+  `34694232734` then promoted `kis-portfolio-remote-00036-tej` to 100% stable traffic and passed its post-switch
+  verification; exact rollback remains `kis-portfolio-remote-00031-pbm`. Independent inspection confirmed auth
+  `00027-wed` still at 100%, all six Scheduler jobs enabled with unchanged schedules, stable health 200, canonical
+  protected-resource metadata and unauthenticated stable `/mcp` 401. No DB, Job, Scheduler, secret, IAM or cleanup
+  mutation occurred in this traffic step.
 
 ## Closeout
 
 - Result: in progress.
-- Remaining risk: protected Remote promotion and stable-URL representative read/command evidence remain. The
-  zero-traffic stage, least-privilege IAM gate and live Claude OAuth/MCP transport are complete; V1 retirement remains
-  MS-004.
+- Remaining risk: rebind the canonical-name Claude connector from the temporary tagged URL to the stable URL, then
+  capture stable-URL representative read/command and iPhone evidence. Protected Remote promotion, least-privilege IAM
+  and live Claude OAuth/MCP transport are complete; exact V1 rollback is retained and retirement remains MS-004.
 - Follow-up Work Item: WI-047.
