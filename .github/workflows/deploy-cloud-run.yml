@@ -33,6 +33,7 @@ on:
           - wi046-candidate-resume
           - wi046-auth-candidate
           - wi046-promote-auth
+          - wi046-promote-remote
       candidate_revision:
         description: Exact staged revision for a guarded WI-046 promotion
         required: false
@@ -128,6 +129,8 @@ jobs:
       KIS_DEPLOY_SECRET_MODE: secret-manager
       KIS_WI046_AUTH_ROLLBACK_REVISION: ${{ vars.KIS_WI046_AUTH_ROLLBACK_REVISION || 'kis-portfolio-auth-00021-jkl' }}
       KIS_WI046_AUTH_CANDIDATE_REVISION: ${{ vars.KIS_WI046_AUTH_CANDIDATE_REVISION || 'kis-portfolio-auth-00023-nor' }}
+      KIS_WI046_REMOTE_ROLLBACK_REVISION: ${{ vars.KIS_WI046_REMOTE_ROLLBACK_REVISION || 'kis-portfolio-remote-00031-pbm' }}
+      KIS_WI046_REMOTE_CANDIDATE_REVISION: ${{ vars.KIS_WI046_REMOTE_CANDIDATE_REVISION || 'kis-portfolio-remote-00036-tej' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -149,7 +152,7 @@ jobs:
             test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GITHUB_CLIENT_ID}" || { echo "KIS_OAUTH_GITHUB_CLIENT_ID var is required."; exit 1; }
           fi
-          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ]; then
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -417,4 +420,17 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --service "${KIS_AUTH_SERVICE_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Promote WI-046 Remote candidate with rollback guard
+        if: github.event.inputs.target == 'wi046-promote-remote'
+        run: |
+          candidate_revision="${{ github.event.inputs.candidate_revision }}"
+          rollback_revision="${{ github.event.inputs.rollback_revision }}"
+          uv run python scripts/deploy_cloud_run.py wi046-promote-remote \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_REMOTE_SERVICE_NAME}" \
+            --candidate-revision "${candidate_revision:-${KIS_WI046_REMOTE_CANDIDATE_REVISION}}" \
+            --rollback-revision "${rollback_revision:-${KIS_WI046_REMOTE_ROLLBACK_REVISION}}" \
             --secret-mode secret-manager
