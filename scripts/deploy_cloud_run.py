@@ -34,6 +34,8 @@ DEFAULT_WI046_MIGRATION_JOB = "kis-portfolio-wi046-migration"
 DEFAULT_WI046_STATE_MIGRATION_JOB = "kis-portfolio-wi046-state-migration"
 DEFAULT_WI046_AUTH_TAG = "wi046-auth"
 DEFAULT_WI046_REMOTE_TAG = "wi046-v2"
+DEFAULT_WI046_AUTH_ROLLBACK_REVISION = "kis-portfolio-auth-00021-jkl"
+DEFAULT_WI046_AUTH_CANDIDATE_REVISION = "kis-portfolio-auth-00023-nor"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -950,6 +952,118 @@ def _tagged_service_url(
         if isinstance(value, str) and value.startswith("https://"):
             return value
     return None
+
+
+def _service_traffic(
+    *, project: str, region: str, service: str
+) -> list[dict[str, object]] | None:
+    completed = _run_capture([
+        "gcloud", "run", "services", "describe", service,
+        "--region", region, "--project", project,
+        "--format=json(status.traffic)",
+    ], dry_run=False)
+    if completed.returncode != 0:
+        return None
+    try:
+        traffic = json.loads(completed.stdout).get("status", {}).get("traffic", [])
+    except (AttributeError, json.JSONDecodeError):
+        return None
+    return traffic if isinstance(traffic, list) else None
+
+
+def _smoke_wi046_auth(*, auth_url: str, expected_issuer: str) -> bool:
+    def get(url: str) -> tuple[int, bytes]:
+        try:
+            with urllib.request.urlopen(url, timeout=30) as response:
+                return response.status, response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, error.read()
+        except urllib.error.URLError:
+            return 0, b""
+
+    health_status, _ = get(f"{auth_url.rstrip('/')}/health")
+    metadata_status, metadata_body = get(
+        f"{auth_url.rstrip('/')}/.well-known/oauth-authorization-server"
+    )
+    if (health_status, metadata_status) != (200, 200):
+        return False
+    try:
+        metadata = json.loads(metadata_body)
+    except json.JSONDecodeError:
+        return False
+    scopes = set(metadata.get("scopes_supported", []))
+    return (
+        metadata.get("issuer") == expected_issuer.rstrip("/")
+        and {"mcp:read", "mcp:collect", "mcp:journal.write", "offline_access"}
+        <= scopes
+    )
+
+
+def _promote_wi046_auth(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Promote only the staged WI-046 auth tag, with immediate rollback on failure."""
+    service = args.service or env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
+    candidate = args.candidate_revision
+    rollback = args.rollback_revision
+    auth_url = env.get("KIS_AUTH_BASE_URL", "").rstrip("/")
+    issuer = env.get("KIS_AUTH_ISSUER_URL", "").rstrip("/") or auth_url
+    if not auth_url:
+        print("Missing required environment variables:\n- KIS_AUTH_BASE_URL")
+        return 1
+
+    promote_command = [
+        "gcloud", "run", "services", "update-traffic", service,
+        "--to-tags", f"{DEFAULT_WI046_AUTH_TAG}=100",
+        "--region", args.region, "--project", project,
+    ]
+    rollback_command = [
+        "gcloud", "run", "services", "update-traffic", service,
+        "--to-revisions", f"{rollback}=100",
+        "--region", args.region, "--project", project,
+    ]
+    if args.dry_run:
+        return _run(promote_command, dry_run=True)
+
+    before = _service_traffic(project=project, region=args.region, service=service)
+    if before is None:
+        print("Failed to inspect WI-046 auth traffic before promotion.")
+        return 1
+    rollback_is_live = any(
+        item.get("revisionName") == rollback and item.get("percent") == 100
+        for item in before
+    )
+    candidate_is_tagged = any(
+        item.get("revisionName") == candidate
+        and item.get("tag") == DEFAULT_WI046_AUTH_TAG
+        for item in before
+    )
+    if not rollback_is_live or not candidate_is_tagged:
+        print("WI-046 auth traffic precondition failed; no traffic was changed.")
+        return 1
+
+    if _run(promote_command, dry_run=False) != 0:
+        return 1
+
+    after = _service_traffic(project=project, region=args.region, service=service)
+    candidate_is_live = after is not None and any(
+        item.get("revisionName") == candidate
+        and item.get("tag") == DEFAULT_WI046_AUTH_TAG
+        and item.get("percent") == 100
+        for item in after
+    )
+    if candidate_is_live and _smoke_wi046_auth(
+        auth_url=auth_url, expected_issuer=issuer
+    ):
+        print(f"WI-046 auth promotion verified: {candidate}")
+        return 0
+
+    print("WI-046 auth verification failed; restoring the rollback revision.")
+    _run(rollback_command, dry_run=False)
+    return 1
 
 
 def _smoke_wi046_tagged_urls(*, auth_url: str, remote_url: str, expected_resource: str) -> bool:
@@ -1927,6 +2041,7 @@ def main() -> int:
             "wi055-s03",
             "wi055-s04",
             "wi046-stage",
+            "wi046-promote-auth",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -1946,6 +2061,12 @@ def main() -> int:
     parser.add_argument("--reason")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--wi046-candidates-only", action="store_true")
+    parser.add_argument(
+        "--candidate-revision", default=DEFAULT_WI046_AUTH_CANDIDATE_REVISION
+    )
+    parser.add_argument(
+        "--rollback-revision", default=DEFAULT_WI046_AUTH_ROLLBACK_REVISION
+    )
     args = parser.parse_args()
 
     env = _load_env()
@@ -2157,6 +2278,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi046_stage(args, env=env, project=project)
+
+    if args.target == "wi046-promote-auth":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _promote_wi046_auth(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")
