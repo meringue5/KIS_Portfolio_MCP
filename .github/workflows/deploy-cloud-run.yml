@@ -37,6 +37,10 @@ on:
         description: Exact staged revision for a guarded WI-046 promotion
         required: false
         type: string
+      rollback_revision:
+        description: Exact currently serving revision for a guarded WI-046 rollback
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -397,12 +401,13 @@ jobs:
         if: github.event.inputs.target == 'wi046-promote-auth'
         run: |
           candidate_revision="${{ github.event.inputs.candidate_revision }}"
+          rollback_revision="${{ github.event.inputs.rollback_revision }}"
           uv run python scripts/deploy_cloud_run.py wi046-promote-auth \
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --service "${KIS_AUTH_SERVICE_NAME}" \
             --candidate-revision "${candidate_revision:-${KIS_WI046_AUTH_CANDIDATE_REVISION}}" \
-            --rollback-revision "${KIS_WI046_AUTH_ROLLBACK_REVISION}" \
+            --rollback-revision "${rollback_revision:-${KIS_WI046_AUTH_ROLLBACK_REVISION}}" \
             --secret-mode secret-manager
 
       - name: Deploy WI-046 zero-traffic auth-only candidate
