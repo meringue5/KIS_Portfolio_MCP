@@ -107,12 +107,23 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   dispatch. The correction binds omitted/`None` resource indicators to the canonical Remote URL, rejects other
   explicit targets at authorization, and rejects unbound access tokens at Remote verification. Existing digest
   records are preserved and naturally replaced on connector reauthorization. Focused auth/Remote/deploy regression
-  passed 83 tests and the full gate passed 658 tests; `WI-046-S01` is repository-verified pending a protected
-  zero-traffic candidate and live Claude reauthorization.
+  passed 83 tests and the full gate passed 658 tests. The later protected candidate and live Claude reauthorization
+  satisfied the transport portion of this verified sub-item; stable traffic remains a parent WI-046 gate.
+- PR #87/master `3352e14` deployed corrected auth `00027-wed` and Remote `00036-tej` from immutable image
+  `sha256:b3b620...85ad43`; protected auth promotion retained `00025-juq` as the exact rollback revision. The owner
+  re-created the Claude connector under the canonical display name `KIS Portfolio`. The resulting production flow
+  recorded DCR 201, authorize/consent 302, token 200 and two authenticated tagged Remote `/mcp` 200 responses. The
+  later consent 400 was a duplicate submission after the one-time request had already completed, not the primary
+  authorization outcome. Literal-None resource interoperability and actual Claude bearer use are therefore verified.
+- The remaining Remote traffic switch is implemented as a separate protected `wi046-promote-remote` target. It
+  requires exact rollback `00031-pbm` and tagged candidate `00036-tej`, changes only Remote traffic, verifies the
+  stable health/discovery/unauthenticated boundary, and immediately restores the exact rollback revision on failure.
+  Scheduler, Job, DB, Auth, secret and connector mutations are outside that promotion command.
 
 ## Closeout
 
 - Result: in progress.
-- Remaining risk: live OAuth/client discovery and representative read/command evidence are still required before
-  traffic promotion. The zero-traffic stage and least-privilege IAM gate are complete; V1 retirement remains MS-004.
+- Remaining risk: protected Remote promotion and stable-URL representative read/command evidence remain. The
+  zero-traffic stage, least-privilege IAM gate and live Claude OAuth/MCP transport are complete; V1 retirement remains
+  MS-004.
 - Follow-up Work Item: WI-047.

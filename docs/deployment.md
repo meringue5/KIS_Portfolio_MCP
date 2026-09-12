@@ -49,6 +49,13 @@ schema/state 단계가 이미 성공한 뒤 candidate URL 또는 smoke 단계만
 새 immutable image와 전용 identity 기반 no-traffic auth/Remote 후보 및 smoke만 수행하며 migration Job과 상태
 복사를 실행하지 않는다. serving traffic과 Scheduler는 계속 변경하지 않는다.
 
+실클라이언트가 tagged Remote 후보에서 OAuth token 교환과 인증된 MCP 요청을 통과한 뒤에는 별도
+`wi046-promote-remote` target으로만 stable Remote traffic을 전환한다. 이 target은 실행 직전 정확한
+serving rollback revision과 `wi046-v2` tagged candidate revision을 검증하고, candidate tag에 100%를
+배정한 뒤 stable URL의 health, protected-resource metadata와 unauthenticated 401 경계를 재검사한다.
+traffic 또는 smoke가 기대와 다르면 기록된 rollback revision에 즉시 100%를 복원한다. 이 단계는 Auth,
+Scheduler, Job, DB, connector 또는 secret을 변경하지 않는다.
+
 GitHub deployer는 service-account 생성이나 IAM policy 변경 권한을 갖지 않는다. owner bootstrap은 auth에
 `roles/datastore.user`, auth 전용 여섯 secret accessor와 deployer의 service-account user만 부여한다. Remote는
 `roles/datastore.user`, MotherDuck/OAuth-pepper secret accessor, 고정 owned-core Job 세 개의 invoker와 deployer의

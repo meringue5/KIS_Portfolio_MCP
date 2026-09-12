@@ -53,6 +53,16 @@ def test_workflow_dispatches_wi046_auth_promotion_with_exact_revisions():
     assert '--rollback-revision "${rollback_revision:-${KIS_WI046_AUTH_ROLLBACK_REVISION}}"' in workflow
 
 
+def test_workflow_dispatches_wi046_remote_promotion_with_exact_revisions():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi046-promote-remote'" in workflow
+    assert "scripts/deploy_cloud_run.py wi046-promote-remote" in workflow
+    assert "kis-portfolio-remote-00031-pbm" in workflow
+    assert "kis-portfolio-remote-00036-tej" in workflow
+    assert '--candidate-revision "${candidate_revision:-${KIS_WI046_REMOTE_CANDIDATE_REVISION}}"' in workflow
+    assert '--rollback-revision "${rollback_revision:-${KIS_WI046_REMOTE_ROLLBACK_REVISION}}"' in workflow
+
+
 def test_workflow_dispatches_wi046_auth_only_candidate():
     workflow = WORKFLOW_PATH.read_text()
     assert "github.event.inputs.target == 'wi046-auth-candidate'" in workflow
@@ -726,6 +736,87 @@ def test_wi046_auth_promotion_rolls_back_exact_revision_when_smoke_fails(monkeyp
     assert commands[-1] == [
         "gcloud", "run", "services", "update-traffic", "kis-portfolio-auth",
         "--to-revisions", "kis-portfolio-auth-00021-jkl=100",
+        "--region", "asia-northeast3", "--project", "project-1",
+    ]
+
+
+def test_wi046_remote_promotion_is_remote_only_and_verifies_stable_url(monkeypatch):
+    commands = []
+    snapshots = iter([
+        [
+            {"revisionName": "kis-portfolio-remote-00031-pbm", "percent": 100},
+            {"revisionName": "kis-portfolio-remote-00036-tej", "tag": "wi046-v2"},
+        ],
+        [{"revisionName": "kis-portfolio-remote-00036-tej", "tag": "wi046-v2", "percent": 100}],
+    ])
+    args = argparse.Namespace(
+        region="asia-northeast3", service="kis-portfolio-remote", dry_run=False,
+        candidate_revision="kis-portfolio-remote-00036-tej",
+        rollback_revision="kis-portfolio-remote-00031-pbm",
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_service_traffic", lambda **_kwargs: next(snapshots))
+    monkeypatch.setattr(deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0)
+    smokes = []
+    monkeypatch.setattr(
+        deploy_cloud_run, "_smoke_wi046_remote",
+        lambda **kwargs: smokes.append(kwargs) or True,
+    )
+
+    result = deploy_cloud_run._promote_wi046_remote(
+        args,
+        env={
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://remote.example.test/mcp",
+        },
+        project="project-1",
+    )
+
+    assert result == 0
+    assert commands == [[
+        "gcloud", "run", "services", "update-traffic", "kis-portfolio-remote",
+        "--to-tags", "wi046-v2=100", "--region", "asia-northeast3",
+        "--project", "project-1",
+    ]]
+    assert smokes == [{
+        "auth_url": "https://auth.example.test",
+        "remote_url": "https://remote.example.test",
+        "expected_resource": "https://remote.example.test/mcp",
+    }]
+    assert all("scheduler" not in " ".join(command) for command in commands)
+    assert all("kis-portfolio-auth" not in command for command in commands)
+
+
+def test_wi046_remote_promotion_rolls_back_exact_revision_when_smoke_fails(monkeypatch):
+    commands = []
+    snapshots = iter([
+        [
+            {"revisionName": "kis-portfolio-remote-00031-pbm", "percent": 100},
+            {"revisionName": "kis-portfolio-remote-00036-tej", "tag": "wi046-v2"},
+        ],
+        [{"revisionName": "kis-portfolio-remote-00036-tej", "tag": "wi046-v2", "percent": 100}],
+    ])
+    args = argparse.Namespace(
+        region="asia-northeast3", service="kis-portfolio-remote", dry_run=False,
+        candidate_revision="kis-portfolio-remote-00036-tej",
+        rollback_revision="kis-portfolio-remote-00031-pbm",
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_service_traffic", lambda **_kwargs: next(snapshots))
+    monkeypatch.setattr(deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0)
+    monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_remote", lambda **_kwargs: False)
+
+    result = deploy_cloud_run._promote_wi046_remote(
+        args,
+        env={
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://remote.example.test/mcp",
+        },
+        project="project-1",
+    )
+
+    assert result == 1
+    assert commands[-1] == [
+        "gcloud", "run", "services", "update-traffic", "kis-portfolio-remote",
+        "--to-revisions", "kis-portfolio-remote-00031-pbm=100",
         "--region", "asia-northeast3", "--project", "project-1",
     ]
 

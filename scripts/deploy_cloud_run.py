@@ -36,6 +36,8 @@ DEFAULT_WI046_AUTH_TAG = "wi046-auth"
 DEFAULT_WI046_REMOTE_TAG = "wi046-v2"
 DEFAULT_WI046_AUTH_ROLLBACK_REVISION = "kis-portfolio-auth-00021-jkl"
 DEFAULT_WI046_AUTH_CANDIDATE_REVISION = "kis-portfolio-auth-00023-nor"
+DEFAULT_WI046_REMOTE_ROLLBACK_REVISION = "kis-portfolio-remote-00031-pbm"
+DEFAULT_WI046_REMOTE_CANDIDATE_REVISION = "kis-portfolio-remote-00036-tej"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -1009,8 +1011,8 @@ def _promote_wi046_auth(
 ) -> int:
     """Promote only the staged WI-046 auth tag, with immediate rollback on failure."""
     service = args.service or env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
-    candidate = args.candidate_revision
-    rollback = args.rollback_revision
+    candidate = args.candidate_revision or DEFAULT_WI046_AUTH_CANDIDATE_REVISION
+    rollback = args.rollback_revision or DEFAULT_WI046_AUTH_ROLLBACK_REVISION
     auth_url = env.get("KIS_AUTH_BASE_URL", "").rstrip("/")
     issuer = env.get("KIS_AUTH_ISSUER_URL", "").rstrip("/") or auth_url
     if not auth_url:
@@ -1064,6 +1066,93 @@ def _promote_wi046_auth(
         return 0
 
     print("WI-046 auth verification failed; restoring the rollback revision.")
+    _run(rollback_command, dry_run=False)
+    return 1
+
+
+def _smoke_wi046_remote(
+    *, auth_url: str, remote_url: str, expected_resource: str
+) -> bool:
+    """Check the stable Remote boundary without requiring an owner token."""
+    return _smoke_wi046_tagged_urls(
+        auth_url=auth_url.rstrip("/"),
+        remote_url=remote_url.rstrip("/"),
+        expected_resource=expected_resource,
+    )
+
+
+def _promote_wi046_remote(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Promote only the staged WI-046 Remote tag, with immediate rollback."""
+    service = args.service or env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    candidate = args.candidate_revision or DEFAULT_WI046_REMOTE_CANDIDATE_REVISION
+    rollback = args.rollback_revision or DEFAULT_WI046_REMOTE_ROLLBACK_REVISION
+    resource = env.get("KIS_RESOURCE_SERVER_URL", "").rstrip("/")
+    auth_url = env.get("KIS_AUTH_BASE_URL", "").rstrip("/")
+    if not resource or not auth_url:
+        missing = [
+            name
+            for name, value in (
+                ("KIS_RESOURCE_SERVER_URL", resource),
+                ("KIS_AUTH_BASE_URL", auth_url),
+            )
+            if not value
+        ]
+        print("Missing required environment variables:\n- " + "\n- ".join(missing))
+        return 1
+    remote_url = resource[:-4] if resource.endswith("/mcp") else resource
+
+    promote_command = [
+        "gcloud", "run", "services", "update-traffic", service,
+        "--to-tags", f"{DEFAULT_WI046_REMOTE_TAG}=100",
+        "--region", args.region, "--project", project,
+    ]
+    rollback_command = [
+        "gcloud", "run", "services", "update-traffic", service,
+        "--to-revisions", f"{rollback}=100",
+        "--region", args.region, "--project", project,
+    ]
+    if args.dry_run:
+        return _run(promote_command, dry_run=True)
+
+    before = _service_traffic(project=project, region=args.region, service=service)
+    if before is None:
+        print("Failed to inspect WI-046 Remote traffic before promotion.")
+        return 1
+    rollback_is_live = any(
+        item.get("revisionName") == rollback and item.get("percent") == 100
+        for item in before
+    )
+    candidate_is_tagged = any(
+        item.get("revisionName") == candidate
+        and item.get("tag") == DEFAULT_WI046_REMOTE_TAG
+        for item in before
+    )
+    if not rollback_is_live or not candidate_is_tagged:
+        print("WI-046 Remote traffic precondition failed; no traffic was changed.")
+        return 1
+
+    if _run(promote_command, dry_run=False) != 0:
+        return 1
+
+    after = _service_traffic(project=project, region=args.region, service=service)
+    candidate_is_live = after is not None and any(
+        item.get("revisionName") == candidate
+        and item.get("tag") == DEFAULT_WI046_REMOTE_TAG
+        and item.get("percent") == 100
+        for item in after
+    )
+    if candidate_is_live and _smoke_wi046_remote(
+        auth_url=auth_url, remote_url=remote_url, expected_resource=resource
+    ):
+        print(f"WI-046 Remote promotion verified: {candidate}")
+        return 0
+
+    print("WI-046 Remote verification failed; restoring the rollback revision.")
     _run(rollback_command, dry_run=False)
     return 1
 
@@ -2118,6 +2207,7 @@ def main() -> int:
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
+            "wi046-promote-remote",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -2137,12 +2227,8 @@ def main() -> int:
     parser.add_argument("--reason")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--wi046-candidates-only", action="store_true")
-    parser.add_argument(
-        "--candidate-revision", default=DEFAULT_WI046_AUTH_CANDIDATE_REVISION
-    )
-    parser.add_argument(
-        "--rollback-revision", default=DEFAULT_WI046_AUTH_ROLLBACK_REVISION
-    )
+    parser.add_argument("--candidate-revision")
+    parser.add_argument("--rollback-revision")
     args = parser.parse_args()
 
     env = _load_env()
@@ -2360,6 +2446,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _promote_wi046_auth(args, env=env, project=project)
+
+    if args.target == "wi046-promote-remote":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _promote_wi046_remote(args, env=env, project=project)
 
     if args.target == "wi046-auth-candidate":
         if not project:
