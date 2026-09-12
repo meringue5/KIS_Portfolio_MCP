@@ -118,6 +118,7 @@ def _collect_prefixed(env: dict[str, str], prefixes: tuple[str, ...]) -> dict[st
 def _required_keys_for_auth(env: dict[str, str]) -> list[str]:
     keys = [
         "KIS_AUTH_BASE_URL",
+        "KIS_RESOURCE_SERVER_URL",
         "KIS_AUTH_OWNER_EMAILS",
         "KIS_AUTH_SESSION_SECRET",
         "KIS_AUTH_TOKEN_PEPPER",
@@ -215,6 +216,7 @@ def _build_auth_env(env: dict[str, str]) -> dict[str, str]:
         "MOTHERDUCK_DATABASE",
         "MOTHERDUCK_TOKEN",
         "KIS_AUTH_BASE_URL",
+        "KIS_RESOURCE_SERVER_URL",
         "KIS_AUTH_OWNER_EMAILS",
         "KIS_AUTH_SESSION_SECRET",
         "KIS_AUTH_TOKEN_PEPPER",

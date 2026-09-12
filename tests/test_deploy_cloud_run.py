@@ -261,11 +261,13 @@ def test_auth_firestore_deploy_excludes_motherduck_state_access():
         "KIS_STATE_BACKEND": "firestore",
         "KIS_GCP_PROJECT": "project-1",
         "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
+        "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
     }
 
     payload = deploy_cloud_run._build_auth_env(env)
 
     assert payload["KIS_STATE_BACKEND"] == "firestore"
+    assert payload["KIS_RESOURCE_SERVER_URL"] == "https://resource.example.com/mcp"
     assert "KIS_DB_MODE" not in payload
     assert "MOTHERDUCK_DATABASE" not in payload
     assert "MOTHERDUCK_TOKEN" not in payload
@@ -736,6 +738,7 @@ def test_wi046_auth_candidate_is_zero_traffic_and_auth_only(monkeypatch):
     )
     env = {
         "KIS_AUTH_BASE_URL": "https://auth.example.test",
+        "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
         "KIS_AUTH_OWNER_EMAILS": "owner@example.test",
         "KIS_AUTH_SESSION_SECRET": "secret-ref",
         "KIS_AUTH_TOKEN_PEPPER": "secret-ref",

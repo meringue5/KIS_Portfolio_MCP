@@ -166,7 +166,10 @@ def _provider_callback_url(settings: AuthServiceSettings, provider: str) -> str:
 def _normalize_resource(resource: str | None) -> str | None:
     if not resource:
         return None
-    return resource.rstrip("/")
+    normalized = resource.strip().rstrip("/")
+    if normalized.lower() in {"none", "null"}:
+        return None
+    return normalized or None
 
 
 def _validate_client_scope(client_record: dict[str, Any], requested_scope: str) -> None:
@@ -374,6 +377,25 @@ def _load_authorize_params(request: Request, raw_params: dict[str, str]) -> dict
     }
 
 
+def _resolve_resource(resource: str | None, expected_resource: str | None) -> str | None:
+    """Bind clients that omit RFC 8707 resource to the configured MCP resource.
+
+    Claude currently serializes an absent resource as the literal ``None``.
+    Treat that interoperability sentinel as omission, while rejecting any real
+    resource that is not the configured canonical MCP endpoint.
+    """
+    normalized = _normalize_resource(resource)
+    expected = _normalize_resource(expected_resource)
+    if normalized is None:
+        return expected
+    if expected and normalized != expected:
+        raise AuthorizeError(
+            error="invalid_target",
+            error_description="Requested resource is not the configured MCP resource.",
+        )
+    return normalized
+
+
 async def _parse_client_credentials(request: Request) -> tuple[str, str | None]:
     auth_header = request.headers.get("authorization", "")
     if auth_header.lower().startswith("basic "):
@@ -446,7 +468,7 @@ async def authorize(request: Request) -> Response:
 
     client_id = str(params.get("client_id", "")).strip()
     redirect_uri_hint = str(params.get("redirect_uri", "")).strip() or None
-    resource = _normalize_resource(str(params.get("resource", "")).strip() or None)
+    raw_resource = str(params.get("resource", "")).strip() or None
     state = str(params.get("state", "")).strip() or None
 
     try:
@@ -479,6 +501,7 @@ async def authorize(request: Request) -> Response:
             )
         scope = _parse_requested_scope(params.get("scope"), settings.allowed_scopes)
         _validate_client_scope(client_record, scope)
+        resource = _resolve_resource(raw_resource, settings.resource_server_url)
     except AuthorizeError as error:
         return _authorization_error_response(error, redirect_uri=redirect_uri_hint, state=state)
 
@@ -789,6 +812,7 @@ def create_app(
     settings = settings or AuthServiceSettings.from_env()
     provider = provider or KisOAuthProvider(
         token_pepper=settings.token_pepper,
+        resource_server_url=settings.resource_server_url,
         ttl=None,
         static_client=settings.claude_client,
     )

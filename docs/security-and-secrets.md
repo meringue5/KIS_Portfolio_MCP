@@ -161,6 +161,9 @@ MCP OAuth state:
 - Client secrets: hash only
 - Required env shared by auth and remote: `KIS_AUTH_TOKEN_PEPPER`
 - Required OAuth scope for MCP: `mcp:read`
+- Access and refresh tokens are bound to the canonical `KIS_RESOURCE_SERVER_URL`. If a supported client omits the
+  RFC 8707 resource indicator or serializes the missing value as `None`, the authorization server binds it to that
+  canonical resource; a different explicit resource fails closed before token issuance.
 - `offline_access` should be advertised so clients can keep refresh-token based sessions
 
 ## Backups

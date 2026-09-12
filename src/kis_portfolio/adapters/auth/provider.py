@@ -423,7 +423,7 @@ class KisOAuthProvider:
         if expires_at is not None and expires_at <= _utcnow():
             return None
         record_resource = _normalize_resource(record.get("resource"))
-        if self.resource_server_url and record_resource and record_resource != self.resource_server_url:
+        if self.resource_server_url and record_resource != self.resource_server_url:
             return None
 
         return StoredAccessToken(

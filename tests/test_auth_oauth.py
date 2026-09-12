@@ -37,6 +37,7 @@ def _settings() -> AuthServiceSettings:
         google_client_secret="google-secret",
         github_client_id="github-client",
         github_client_secret="github-secret",
+        resource_server_url="https://resource.example.com/mcp",
         secure_cookies=False,
     )
 
@@ -234,3 +235,29 @@ def test_dynamic_client_resource_binding_is_preserved():
     assert access.resource == "https://resource.example.com/mcp"
     assert refresh is not None
     assert refresh.resource == "https://resource.example.com/mcp"
+
+
+def test_resource_bound_provider_rejects_unbound_access_token():
+    issuer = _provider()
+    user = auth_repository.upsert_auth_user("owner@example.com", "Owner")
+    grant = auth_repository.upsert_oauth_grant(user["id"], "claude-client", "mcp:read")
+    client = asyncio.run(issuer.get_client("claude-client"))
+    assert client is not None
+    code = asyncio.run(issuer.issue_authorization_code(
+        user_id=user["id"],
+        client_id="claude-client",
+        grant_id=grant["id"],
+        scope="mcp:read",
+        redirect_uri="https://claude.ai/api/mcp/auth_callback",
+        redirect_uri_provided_explicitly=True,
+        code_challenge="challenge",
+        resource=None,
+    ))
+    stored = asyncio.run(issuer.load_authorization_code(client, code))
+    token = asyncio.run(issuer.exchange_authorization_code(client, stored))
+    verifier = KisOAuthProvider(
+        token_pepper="pepper",
+        resource_server_url="https://resource.example.com/mcp",
+    )
+
+    assert asyncio.run(verifier.load_access_token(token.access_token)) is None

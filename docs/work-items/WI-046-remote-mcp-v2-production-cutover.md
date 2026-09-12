@@ -54,7 +54,8 @@ traffic with rollback holds. 4. Observe and close the rollback window.
 
 ## Sub-items
 
-- `none`.
+- `WI-046-S01` — correct the Claude `resource=None` OAuth interoperability failure while retaining strict
+  canonical resource binding.
 
 ## Evidence
 
@@ -99,6 +100,13 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   exact tagged Remote host to the transport allowlist, and passed health, OAuth protected-resource discovery and
   unauthenticated `/mcp` rejection smoke. Auth/Remote V1 revisions `00021`/`00031` still receive 100% traffic and both
   candidates receive 0%. All six existing Scheduler jobs remain enabled at their unchanged schedules.
+- `WI-046-S01` diagnosis on 2026-09-12: Claude completed DCR, owner login, consent and token exchange, but every
+  candidate `/mcp` call returned 401. Redacted Firestore inspection found 136 of 138 token digest documents bound
+  to the literal `None` sentinel shown on the consent screen; Auth and Remote otherwise used the same database,
+  sole pepper secret version and canonical URL. The resource server therefore rejected those digests before MCP
+  dispatch. The correction binds omitted/`None` resource indicators to the canonical Remote URL, rejects other
+  explicit targets at authorization, and rejects unbound access tokens at Remote verification. Existing digest
+  records are preserved and naturally replaced on connector reauthorization.
 
 ## Closeout
 
