@@ -48,6 +48,13 @@ def test_workflow_dispatches_wi046_auth_promotion_with_exact_revisions():
     assert "scripts/deploy_cloud_run.py wi046-promote-auth" in workflow
     assert "kis-portfolio-auth-00021-jkl" in workflow
     assert "kis-portfolio-auth-00023-nor" in workflow
+    assert "github.event.inputs.candidate_revision" in workflow
+
+
+def test_workflow_dispatches_wi046_auth_only_candidate():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi046-auth-candidate'" in workflow
+    assert "scripts/deploy_cloud_run.py wi046-auth-candidate" in workflow
 
 
 def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
@@ -717,6 +724,53 @@ def test_wi046_auth_promotion_rolls_back_exact_revision_when_smoke_fails(monkeyp
         "--to-revisions", "kis-portfolio-auth-00021-jkl=100",
         "--region", "asia-northeast3", "--project", "project-1",
     ]
+
+
+def test_wi046_auth_candidate_is_zero_traffic_and_auth_only(monkeypatch):
+    deployments = []
+    args = argparse.Namespace(
+        region="asia-northeast3", service="kis-portfolio-auth", dry_run=False,
+        secret_mode="secret-manager",
+    )
+    env = {
+        "KIS_AUTH_BASE_URL": "https://auth.example.test",
+        "KIS_AUTH_OWNER_EMAILS": "owner@example.test",
+        "KIS_AUTH_SESSION_SECRET": "secret-ref",
+        "KIS_AUTH_TOKEN_PEPPER": "secret-ref",
+        "KIS_AUTH_CLAUDE_CLIENT_ID": "claude-client",
+        "KIS_AUTH_CLAUDE_CLIENT_SECRET": "secret-ref",
+        "KIS_OAUTH_GOOGLE_CLIENT_ID": "google-client",
+        "KIS_OAUTH_GOOGLE_CLIENT_SECRET": "secret-ref",
+        "KIS_OAUTH_GITHUB_CLIENT_ID": "github-client",
+        "KIS_OAUTH_GITHUB_CLIENT_SECRET": "secret-ref",
+    }
+    monkeypatch.setattr(
+        deploy_cloud_run, "_build_release_image",
+        lambda *_args, **_kwargs: "image@sha256:" + "a" * 64,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_ensure_runtime_identity",
+        lambda **_kwargs: "kis-portfolio-auth@project-1.iam.gserviceaccount.com",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_deploy_tagged_service",
+        lambda **kwargs: deployments.append(kwargs) or 0,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_tagged_service_url",
+        lambda **_kwargs: "https://wi046-auth.example.test",
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_auth", lambda **_kwargs: True)
+
+    result = deploy_cloud_run._deploy_wi046_auth_candidate(
+        args, env=env, project="project-1"
+    )
+
+    assert result == 0
+    assert len(deployments) == 1
+    assert deployments[0]["service"] == "kis-portfolio-auth"
+    assert deployments[0]["tag"] == "wi046-auth"
+    assert deployments[0]["command_name"] == "kis-portfolio-auth"
 
 
 def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):

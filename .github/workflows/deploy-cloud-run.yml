@@ -31,7 +31,12 @@ on:
           - wi055-s04
           - wi046-stage
           - wi046-candidate-resume
+          - wi046-auth-candidate
           - wi046-promote-auth
+      candidate_revision:
+        description: Exact staged revision for a guarded WI-046 promotion
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -134,7 +139,7 @@ jobs:
           target="${{ github.event.inputs.target }}"
           test "${GITHUB_REF}" = "refs/heads/master" || { echo "Production deploys must run from master."; exit 1; }
           test -n "${GOOGLE_CLOUD_PROJECT}" || { echo "GOOGLE_CLOUD_PROJECT var is required."; exit 1; }
-          if [ "${target}" = "all" ] || [ "${target}" = "auth" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-auth" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "auth" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-auth-candidate" ] || [ "${target}" = "wi046-promote-auth" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_AUTH_CLAUDE_CLIENT_ID}" || { echo "KIS_AUTH_CLAUDE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
@@ -391,10 +396,20 @@ jobs:
       - name: Promote WI-046 auth candidate with rollback guard
         if: github.event.inputs.target == 'wi046-promote-auth'
         run: |
+          candidate_revision="${{ github.event.inputs.candidate_revision }}"
           uv run python scripts/deploy_cloud_run.py wi046-promote-auth \
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --service "${KIS_AUTH_SERVICE_NAME}" \
-            --candidate-revision "${KIS_WI046_AUTH_CANDIDATE_REVISION}" \
+            --candidate-revision "${candidate_revision:-${KIS_WI046_AUTH_CANDIDATE_REVISION}}" \
             --rollback-revision "${KIS_WI046_AUTH_ROLLBACK_REVISION}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-046 zero-traffic auth-only candidate
+        if: github.event.inputs.target == 'wi046-auth-candidate'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi046-auth-candidate \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_AUTH_SERVICE_NAME}" \
             --secret-mode secret-manager

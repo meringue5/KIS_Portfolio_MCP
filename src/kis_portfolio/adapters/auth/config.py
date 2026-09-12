@@ -14,6 +14,8 @@ DEFAULT_CLAUDE_REDIRECT_URIS = (
 DEFAULT_DYNAMIC_CLIENT_REDIRECT_PREFIXES = (
     "https://chatgpt.com/connector/oauth/",
     "https://chatgpt.com/connector_platform_oauth_redirect",
+    "https://claude.ai/api/mcp/auth_callback",
+    "https://claude.com/api/mcp/auth_callback",
 )
 
 

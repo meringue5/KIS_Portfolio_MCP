@@ -1066,6 +1066,79 @@ def _promote_wi046_auth(
     return 1
 
 
+def _deploy_wi046_auth_candidate(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Deploy and smoke a zero-traffic auth-only candidate for WI-046."""
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-046 auth image digest.")
+        return 1
+    stage_env = {
+        **env,
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": project,
+        "KIS_CLOUD_RUN_REGION": args.region,
+        "KIS_FIRESTORE_DATABASE": env.get("KIS_FIRESTORE_DATABASE", "kis-portfolio-state"),
+        "KIS_AUTH_ALLOWED_SCOPES": "mcp:read mcp:collect mcp:journal.write offline_access",
+    }
+    required = _required_keys_for_auth(stage_env)
+    missing = _validate_required(stage_env, required, secret_mode=args.secret_mode)
+    if missing:
+        print("Missing required environment variables:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+    payload, secret_refs = _split_runtime_env(
+        env=stage_env,
+        payload=_build_auth_env(stage_env),
+        required=required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    identity = _ensure_runtime_identity(
+        project=project,
+        region=args.region,
+        account_id="kis-portfolio-auth",
+        secret_ids=set(secret_refs.values()),
+        dry_run=args.dry_run,
+    )
+    if not identity:
+        return 1
+    service = args.service or stage_env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
+    if _deploy_tagged_service(
+        args=args,
+        project=project,
+        service=service,
+        image=image,
+        command_name="kis-portfolio-auth",
+        payload=payload,
+        secret_refs=secret_refs,
+        service_account=identity,
+        tag=DEFAULT_WI046_AUTH_TAG,
+        runtime_flags=_build_auth_runtime_flags(stage_env),
+    ) != 0:
+        return 1
+    auth_url = _tagged_service_url(
+        project=project,
+        region=args.region,
+        service=service,
+        tag=DEFAULT_WI046_AUTH_TAG,
+        dry_run=args.dry_run,
+    )
+    if not auth_url or not _smoke_wi046_auth(
+        auth_url=auth_url,
+        expected_issuer=stage_env["KIS_AUTH_BASE_URL"],
+    ):
+        print("WI-046 auth candidate smoke failed; serving traffic was not changed.")
+        return 1
+    print(f"WI-046 zero-traffic auth candidate verified: {auth_url}")
+    return 0
+
+
 def _smoke_wi046_tagged_urls(*, auth_url: str, remote_url: str, expected_resource: str) -> bool:
     def get(url: str) -> tuple[int, bytes]:
         try:
@@ -2041,6 +2114,7 @@ def main() -> int:
             "wi055-s03",
             "wi055-s04",
             "wi046-stage",
+            "wi046-auth-candidate",
             "wi046-promote-auth",
         ),
     )
@@ -2284,6 +2358,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _promote_wi046_auth(args, env=env, project=project)
+
+    if args.target == "wi046-auth-candidate":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi046_auth_candidate(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")
