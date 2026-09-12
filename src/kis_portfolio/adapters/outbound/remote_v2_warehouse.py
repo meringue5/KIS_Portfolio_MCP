@@ -127,8 +127,8 @@ class WarehouseReadQueryPort:
                 "total_value_krw": sum(row["value_krw"] for row in total_rows),
                 "quality_status": (
                     "degraded"
-                    if any(row.get("quality_status") != "passed" for row in total_rows)
-                    else "passed"
+                    if any(row.get("quality_status") != "pass" for row in total_rows)
+                    else "pass"
                 ),
                 "as_of": as_of,
             }
@@ -483,15 +483,19 @@ class WarehouseReadQueryPort:
     def _get_pipeline_run(self, request: PipelineRunRequest) -> dict[str, Any]:
         rows = self._rows(
             """
-            SELECT run_id, pipeline_id, pipeline_version, logical_date, slot, partition_key,
-                   status, source_calls, stage_count, succeeded_stage_count, started_at, finished_at
-            FROM control.pipeline_run_summary
-            WHERE (? IS NULL OR run_id=?) AND (? IS NULL OR pipeline_id=?)
-              AND started_at<=coalesce(?, current_timestamp)
-              AND started_at>=coalesce(?, current_timestamp)-(? * INTERVAL '1 day')
-            ORDER BY started_at DESC LIMIT ?
+            SELECT s.run_id, s.pipeline_id, s.pipeline_version, s.logical_date, s.slot,
+                   s.partition_key, s.status, s.source_calls, s.stage_count,
+                   s.succeeded_stage_count, s.started_at, s.finished_at
+            FROM control.pipeline_run_summary s
+            JOIN control.pipeline_runs r ON r.run_id=s.run_id
+            WHERE (? IS NULL OR s.run_id=? OR r.idempotency_key=?)
+              AND (? IS NULL OR s.pipeline_id=?)
+              AND s.started_at<=coalesce(?, current_timestamp)
+              AND s.started_at>=coalesce(?, current_timestamp)-(? * INTERVAL '1 day')
+            ORDER BY s.started_at DESC LIMIT ?
             """,
-            [request.run_id, request.run_id, request.pipeline_id, request.pipeline_id,
+            [request.run_id, request.run_id, request.run_id,
+             request.pipeline_id, request.pipeline_id,
              request.as_of, request.as_of, request.lookback_days, request.limit],
         )
         return self._envelope(

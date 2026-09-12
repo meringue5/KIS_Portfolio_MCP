@@ -19,6 +19,7 @@ from kis_portfolio.adapters.outbound.memory_state import InMemoryStateStore
 from kis_portfolio.services.remote_commands import (
     CommandActor,
     ManagedPipelineRequest,
+    managed_pipeline_logical_run_id,
     RemoteCommandApplication,
     RemoteCommandError,
     ReviseTradeThreadRequest,
@@ -189,6 +190,9 @@ def test_managed_pipeline_accepts_only_fixed_alias_and_slots_and_returns_run_id(
     assert first["status"] == "accepted"
     assert second["status"] == "reused"
     assert first["run_id"] == second["run_id"]
+    assert first["run_id"] == managed_pipeline_logical_run_id(
+        date(2026, 9, 11), "kr-1430"
+    )
     assert second["request_id"] == "request-command-2"
     assert len(managed.commands) == 1
     command = managed.commands[0]

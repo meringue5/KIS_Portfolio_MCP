@@ -942,3 +942,9 @@ id = "WI-046-S01"
 parent_id = "WI-046"
 title = "Correct Claude None resource OAuth binding and Remote 401"
 status = "verified"
+
+[[subitems]]
+id = "WI-046-S02"
+parent_id = "WI-046"
+title = "Correct Claude read quality semantics and managed-run polling"
+status = "verified"
