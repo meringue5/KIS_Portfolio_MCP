@@ -106,7 +106,9 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   sole pepper secret version and canonical URL. The resource server therefore rejected those digests before MCP
   dispatch. The correction binds omitted/`None` resource indicators to the canonical Remote URL, rejects other
   explicit targets at authorization, and rejects unbound access tokens at Remote verification. Existing digest
-  records are preserved and naturally replaced on connector reauthorization.
+  records are preserved and naturally replaced on connector reauthorization. Focused auth/Remote/deploy regression
+  passed 83 tests and the full gate passed 658 tests; `WI-046-S01` is repository-verified pending a protected
+  zero-traffic candidate and live Claude reauthorization.
 
 ## Closeout
 
