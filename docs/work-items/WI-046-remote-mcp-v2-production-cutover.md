@@ -60,6 +60,9 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   command's returned logical run handle resolve both new and previously scheduled idempotent runs.
 - `WI-046-S03` — restore the verified server-side owner identity as the standard access-token subject so Remote
   commands retain the owner-authority boundary used by the approved contract.
+- `WI-046-S04` — restore the approved fixed-Job command boundary: reuse an existing logical run without dispatch,
+  invoke only the current KST date through the slot-specific immutable Job definition, and never request container
+  overrides from Remote.
 
 ## Evidence
 
@@ -150,6 +153,19 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   refresh tokens and access tokens are loaded. Focused OAuth/Remote command regression passed 34 tests and full
   passed 662 tests with the existing Authlib warning. The failed Claude call created no command claim, run request
   or Job execution, so its original idempotency key remains safe for one post-deployment retry.
+- The second Claude retry reached corrected Remote `00042-pon` at 2026-09-13 01:16 KST and passed owner/scope
+  authorization, but the Cloud Run Admin API rejected Job enqueue with `managed_job_enqueue_failed:403`. The Remote
+  identity had the intended resource-scoped `roles/run.invoker`; the adapter nevertheless sent container argument
+  overrides, which require `run.jobs.runWithOverrides` and contradicted the approved fixed-args/no-override trust
+  boundary. The request released its transient command claim, persisted no command response, and started no Job.
+  `WI-046-S04` corrects the adapter rather than widening IAM.
+- `WI-046-S04` reads the warehouse logical idempotency key before dispatch: an existing `running` or `succeeded`
+  run returns `reused` without a Cloud Run API call. A missing historical date fails closed because historical
+  backfill requires the separately governed queue; only the current KST date may invoke its slot-specific Job, with
+  an empty request body so the deployed fixed command/args remain authoritative. Production read-only evidence found
+  the 2026-09-11 `kr-1600` logical run in `succeeded` state, backed by execution `...-9dbp6` completed at 16:04:49 KST.
+  Focused owner/auth/command/adapter regression passed 30 tests; quick and full passed with 667 tests and the existing
+  Authlib warning. No IAM, Job definition, Scheduler, DB row, secret, connector or traffic changed.
 
 ## Closeout
 

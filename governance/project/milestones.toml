@@ -954,3 +954,9 @@ id = "WI-046-S03"
 parent_id = "WI-046"
 title = "Restore authenticated owner subject for Remote commands"
 status = "verified"
+
+[[subitems]]
+id = "WI-046-S04"
+parent_id = "WI-046"
+title = "Restore fixed-Job managed command invocation without runtime overrides"
+status = "verified"
