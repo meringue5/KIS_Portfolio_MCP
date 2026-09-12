@@ -58,6 +58,8 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   canonical resource binding.
 - `WI-046-S02` — correct the production-read `pass`/`passed` status mismatch and make the managed collection
   command's returned logical run handle resolve both new and previously scheduled idempotent runs.
+- `WI-046-S03` — restore the verified server-side owner identity as the standard access-token subject so Remote
+  commands retain the owner-authority boundary used by the approved contract.
 
 ## Evidence
 
@@ -138,6 +140,16 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   Remote command/read/pipeline regression passed 40 tests, quick passed and full passed 662 tests with the existing
   single Authlib deprecation warning. No production command, DB write, Job, Scheduler, IAM, secret or traffic change
   occurred in this repository-only correction.
+- First Claude managed-command smoke at 2026-09-12 23:17 KST reached Remote `00039-vub`, but failed before command
+  state claim or Job enqueue with `invalid_actor`. The opaque access-token record retained the authenticated owner
+  `user_id`, while its MCP `AccessToken.subject` projection was left empty. Reads had masked this through their
+  client fallback; commands correctly refused to weaken owner authority. `WI-046-S03` restores that server-verified
+  identity during authorization-code, refresh-token and access-token loading without trusting a client-supplied
+  subject or changing scopes.
+- `WI-046-S03` restores `subject` from the immutable server-side `user_id` whenever stored authorization codes,
+  refresh tokens and access tokens are loaded. Focused OAuth/Remote command regression passed 34 tests and full
+  passed 662 tests with the existing Authlib warning. The failed Claude call created no command claim, run request
+  or Job execution, so its original idempotency key remains safe for one post-deployment retry.
 
 ## Closeout
 

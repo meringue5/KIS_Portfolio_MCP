@@ -82,6 +82,7 @@ def test_authorization_code_one_time_use():
 
     loaded = asyncio.run(provider.load_authorization_code(client, code))
     assert loaded is not None
+    assert loaded.subject == user["id"]
 
     token = asyncio.run(provider.exchange_authorization_code(client, loaded))
     assert token.refresh_token
@@ -232,8 +233,10 @@ def test_dynamic_client_resource_binding_is_preserved():
     access = asyncio.run(provider.load_access_token(token.access_token))
     refresh = asyncio.run(provider.load_refresh_token(client, token.refresh_token or ""))
     assert access is not None
+    assert access.subject == user["id"]
     assert access.resource == "https://resource.example.com/mcp"
     assert refresh is not None
+    assert refresh.subject == user["id"]
     assert refresh.resource == "https://resource.example.com/mcp"
 
 

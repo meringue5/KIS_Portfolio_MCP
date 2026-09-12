@@ -319,6 +319,7 @@ class KisOAuthProvider:
         return StoredAuthorizationCode(
             id=record["id"],
             user_id=record["user_id"],
+            subject=record["user_id"],
             grant_id=record.get("grant_id"),
             state=record.get("state"),
             provider=record.get("provider"),
@@ -373,6 +374,7 @@ class KisOAuthProvider:
         return StoredRefreshToken(
             id=record["id"],
             user_id=record["user_id"],
+            subject=record["user_id"],
             grant_id=record.get("grant_id"),
             token=refresh_token,
             client_id=record["client_id"],
@@ -429,6 +431,7 @@ class KisOAuthProvider:
         return StoredAccessToken(
             id=record["id"],
             user_id=record["user_id"],
+            subject=record["user_id"],
             grant_id=record.get("grant_id"),
             token=token,
             client_id=record["client_id"],
