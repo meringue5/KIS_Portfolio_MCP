@@ -192,7 +192,7 @@ def _validate_dynamic_client_metadata(
         ):
             raise RegistrationError(
                 error="invalid_redirect_uri",
-                error_description="Dynamic clients may only register ChatGPT callback URLs.",
+                error_description="Dynamic client redirect URI is not allowlisted.",
             )
 
     if metadata.scope:

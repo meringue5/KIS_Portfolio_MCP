@@ -138,6 +138,32 @@ def test_google_login_uses_configured_https_callback(monkeypatch, tmp_path):
 
 def test_dynamic_client_registration_issues_chatgpt_client(monkeypatch, tmp_path):
     close_connection()
+
+
+def test_dynamic_client_registration_accepts_exact_claude_callback(monkeypatch, tmp_path):
+    close_connection()
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
+    app = create_app(settings=_settings(), provider=_provider())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/register",
+            json={
+                "client_name": "Claude",
+                "redirect_uris": ["https://claude.ai/api/mcp/auth_callback"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "response_types": ["code"],
+                "token_endpoint_auth_method": "client_secret_post",
+                "scope": "mcp:read",
+            },
+        )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["client_secret"]
+    assert payload["redirect_uris"] == ["https://claude.ai/api/mcp/auth_callback"]
+    close_connection()
     monkeypatch.setenv("KIS_DB_MODE", "local")
     monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
 
