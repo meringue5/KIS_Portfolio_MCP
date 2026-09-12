@@ -49,6 +49,8 @@ def test_workflow_dispatches_wi046_auth_promotion_with_exact_revisions():
     assert "kis-portfolio-auth-00021-jkl" in workflow
     assert "kis-portfolio-auth-00023-nor" in workflow
     assert "github.event.inputs.candidate_revision" in workflow
+    assert "github.event.inputs.rollback_revision" in workflow
+    assert '--rollback-revision "${rollback_revision:-${KIS_WI046_AUTH_ROLLBACK_REVISION}}"' in workflow
 
 
 def test_workflow_dispatches_wi046_auth_only_candidate():
