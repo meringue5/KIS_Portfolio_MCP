@@ -56,6 +56,8 @@ traffic with rollback holds. 4. Observe and close the rollback window.
 
 - `WI-046-S01` — correct the Claude `resource=None` OAuth interoperability failure while retaining strict
   canonical resource binding.
+- `WI-046-S02` — correct the production-read `pass`/`passed` status mismatch and make the managed collection
+  command's returned logical run handle resolve both new and previously scheduled idempotent runs.
 
 ## Evidence
 
@@ -125,6 +127,17 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   `00027-wed` still at 100%, all six Scheduler jobs enabled with unchanged schedules, stable health 200, canonical
   protected-resource metadata and unauthenticated stable `/mcp` 401. No DB, Job, Scheduler, secret, IAM or cleanup
   mutation occurred in this traffic step.
+- Claude's first representative read session against Remote `00036-tej` returned real portfolio, performance,
+  ledger, catalog and quality data, while matching tagged `/mcp` requests returned HTTP 200. It also exposed two
+  command-smoke blockers now tracked by `WI-046-S02`: the overview compared stored `pass` rows with the nonexistent
+  `passed` success token, and a command-generated run ID could not find an older scheduler run reused by the
+  pipeline's logical idempotency key. Collection remains untested until these bounded corrections are deployed.
+- `WI-046-S02` now uses the canonical stored `pass` value in the overview summary and exposes the pipeline logical
+  idempotency key as the command's pollable run handle. `get-pipeline-run` resolves that handle against either a new
+  run ID or an older scheduler run's idempotency key, preserving reuse without an unqueryable response. Focused
+  Remote command/read/pipeline regression passed 40 tests, quick passed and full passed 662 tests with the existing
+  single Authlib deprecation warning. No production command, DB write, Job, Scheduler, IAM, secret or traffic change
+  occurred in this repository-only correction.
 
 ## Closeout
 

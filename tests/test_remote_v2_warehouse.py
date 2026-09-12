@@ -109,7 +109,7 @@ async def test_portfolio_overview_summary_respects_account_alias():
             evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
             quantity, value_krw, cost_krw, unrealized_pnl_krw, contribution_pct,
             allocation_pct, as_of, input_watermarks, quality_status, lineage_hash
-        ) VALUES ('2026-09-11','kr-1000',?,?,?,NULL,?,NULL,NULL,NULL,NULL,?,'{}','passed',?)
+        ) VALUES ('2026-09-11','kr-1000',?,?,?,NULL,?,NULL,NULL,NULL,NULL,?,'{}','pass',?)
         """,
         [
             ("acct-a", "KR:AAA", "position", "100", NOW, "lineage-a-position"),
@@ -126,7 +126,37 @@ async def test_portfolio_overview_summary_respects_account_alias():
     )
 
     assert result["data"]["summary"]["total_value_krw"] == "125.00"
+    assert result["data"]["summary"]["quality_status"] == "pass"
     assert {row["account_label"] for row in result["data"]["positions"]} == {"alpha"}
+
+
+@pytest.mark.anyio
+async def test_pipeline_run_accepts_logical_run_handle_for_reused_run():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    logical_key = (
+        "970077c2e85a0ca3e9cf7af0fe7c1be7876443c6e37926d47ce4865d11dc18d5"
+    )
+    connection.execute(
+        """
+        INSERT INTO control.pipeline_runs(
+            run_id, pipeline_id, pipeline_version, logical_date, slot, partition_key,
+            idempotency_key, status, source_calls, started_at, finished_at
+        ) VALUES ('scheduler-run-1', 'pipeline.owned-portfolio-core-v2', '1.0.0',
+                  '2026-09-11', 'kr-1600', 'all-accounts', ?, 'succeeded', 0, ?, ?)
+        """,
+        [logical_key, NOW, NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    result = await application.execute(
+        "get-pipeline-run", PipelineRunRequest(run_id=logical_key, as_of=NOW), ACTOR
+    )
+
+    assert result["data"]["runs"][0]["run_id"] == "scheduler-run-1"
+    assert result["data"]["runs"][0]["status"] == "succeeded"
 
 
 @pytest.mark.anyio

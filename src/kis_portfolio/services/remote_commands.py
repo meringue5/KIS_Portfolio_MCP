@@ -38,6 +38,15 @@ MANAGED_JOB_BY_SLOT = {
 IDEMPOTENCY_TTL = timedelta(days=7)
 
 
+def managed_pipeline_logical_run_id(logical_date: date, slot: str) -> str:
+    """Return the warehouse logical key exposed as the pollable run handle."""
+    raw = (
+        f"{MANAGED_PIPELINE_ID}|{MANAGED_PIPELINE_VERSION}|"
+        f"{logical_date.isoformat()}|{slot}|all-accounts"
+    )
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
 class RemoteCommandError(ValueError):
     """Stable fail-closed error safe to expose at the adapter boundary."""
 
@@ -283,7 +292,7 @@ class RemoteCommandApplication:
         return CommandResponse.model_validate(response).model_dump(mode="json")
 
     async def _run_pipeline(self, request, actor, fingerprint) -> CommandResponse:
-        run_id = _digest("managed-run-v1", actor.actor_id, request.idempotency_key, fingerprint)
+        run_id = managed_pipeline_logical_run_id(request.logical_date, request.slot)
         command = ManagedRunCommand(
             run_id=run_id,
             pipeline_id=MANAGED_PIPELINE_ID,
