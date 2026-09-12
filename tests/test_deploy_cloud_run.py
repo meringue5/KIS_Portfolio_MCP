@@ -42,6 +42,14 @@ def test_workflow_dispatches_wi046_candidate_resume_without_migrations():
     assert "--wi046-candidates-only" in workflow
 
 
+def test_workflow_dispatches_wi046_auth_promotion_with_exact_revisions():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi046-promote-auth'" in workflow
+    assert "scripts/deploy_cloud_run.py wi046-promote-auth" in workflow
+    assert "kis-portfolio-auth-00021-jkl" in workflow
+    assert "kis-portfolio-auth-00023-nor" in workflow
+
+
 def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     test_step = workflow.split("- name: Run test suite", 1)[1].split(
@@ -640,6 +648,75 @@ def test_tagged_service_url_parses_cloud_run_traffic_json(monkeypatch):
         dry_run=False,
     ) == "https://wi046-v2.example.test"
     assert "--format=json(status.traffic)" in captured[0]
+
+
+def test_wi046_auth_promotion_is_auth_only_and_verifies_stable_url(monkeypatch):
+    commands = []
+    snapshots = iter([
+        [
+            {"revisionName": "kis-portfolio-auth-00021-jkl", "percent": 100},
+            {"revisionName": "kis-portfolio-auth-00023-nor", "tag": "wi046-auth"},
+        ],
+        [{"revisionName": "kis-portfolio-auth-00023-nor", "tag": "wi046-auth", "percent": 100}],
+    ])
+    args = argparse.Namespace(
+        region="asia-northeast3", service="kis-portfolio-auth", dry_run=False,
+        candidate_revision="kis-portfolio-auth-00023-nor",
+        rollback_revision="kis-portfolio-auth-00021-jkl",
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_service_traffic", lambda **_kwargs: next(snapshots))
+    monkeypatch.setattr(deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0)
+    smokes = []
+    monkeypatch.setattr(
+        deploy_cloud_run, "_smoke_wi046_auth",
+        lambda **kwargs: smokes.append(kwargs) or True,
+    )
+
+    result = deploy_cloud_run._promote_wi046_auth(
+        args,
+        env={"KIS_AUTH_BASE_URL": "https://auth.example.test", "KIS_AUTH_ISSUER_URL": "https://auth.example.test"},
+        project="project-1",
+    )
+
+    assert result == 0
+    assert commands == [[
+        "gcloud", "run", "services", "update-traffic", "kis-portfolio-auth",
+        "--to-tags", "wi046-auth=100", "--region", "asia-northeast3",
+        "--project", "project-1",
+    ]]
+    assert smokes == [{"auth_url": "https://auth.example.test", "expected_issuer": "https://auth.example.test"}]
+    assert all("scheduler" not in " ".join(command) for command in commands)
+    assert all("kis-portfolio-remote" not in command for command in commands)
+
+
+def test_wi046_auth_promotion_rolls_back_exact_revision_when_smoke_fails(monkeypatch):
+    commands = []
+    snapshots = iter([
+        [
+            {"revisionName": "kis-portfolio-auth-00021-jkl", "percent": 100},
+            {"revisionName": "kis-portfolio-auth-00023-nor", "tag": "wi046-auth"},
+        ],
+        [{"revisionName": "kis-portfolio-auth-00023-nor", "tag": "wi046-auth", "percent": 100}],
+    ])
+    args = argparse.Namespace(
+        region="asia-northeast3", service="kis-portfolio-auth", dry_run=False,
+        candidate_revision="kis-portfolio-auth-00023-nor",
+        rollback_revision="kis-portfolio-auth-00021-jkl",
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_service_traffic", lambda **_kwargs: next(snapshots))
+    monkeypatch.setattr(deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0)
+    monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_auth", lambda **_kwargs: False)
+
+    result = deploy_cloud_run._promote_wi046_auth(
+        args, env={"KIS_AUTH_BASE_URL": "https://auth.example.test"}, project="project-1"
+    )
+
+    assert result == 1
+    assert commands[-1] == [
+        "gcloud", "run", "services", "update-traffic", "kis-portfolio-auth",
+        "--to-revisions", "kis-portfolio-auth-00021-jkl=100",
+        "--region", "asia-northeast3", "--project", "project-1",
+    ]
 
 
 def test_wi021_s06_job_is_single_task_fixed_hash_and_immutable(monkeypatch):
