@@ -229,7 +229,10 @@ def _create_mcp_handler(resource_server_url: str | None = None) -> tuple[ASGIApp
 
 def _build_v2_runtime_server(resource_server_url: str):
     from kis_portfolio.adapters.mcp.v2 import build_v2_server
-    from kis_portfolio.adapters.outbound.remote_v2_pipeline import CloudRunManagedPipelineCommands
+    from kis_portfolio.adapters.outbound.remote_v2_pipeline import (
+        CloudRunManagedPipelineCommands,
+        WarehouseManagedRunLookup,
+    )
     from kis_portfolio.adapters.outbound.remote_v2_revisions import WarehouseJournalRevisionCommands
     from kis_portfolio.adapters.outbound.remote_v2_warehouse import WarehouseReadQueryPort
     from kis_portfolio.db.connection import get_connection
@@ -256,7 +259,11 @@ def _build_v2_runtime_server(resource_server_url: str):
     )
     command_application = RemoteCommandApplication(
         state=get_state_store(),
-        managed_pipeline=CloudRunManagedPipelineCommands(project=project, region=region),
+        managed_pipeline=CloudRunManagedPipelineCommands(
+            project=project,
+            region=region,
+            run_lookup=WarehouseManagedRunLookup(connection),
+        ),
         revisions=WarehouseJournalRevisionCommands(connection),
         expected_resource=resource,
     )

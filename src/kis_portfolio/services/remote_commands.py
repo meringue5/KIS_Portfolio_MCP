@@ -200,7 +200,9 @@ class RevisionWrite:
 
 
 class ManagedPipelineCommandPort(Protocol):
-    def enqueue(self, command: ManagedRunCommand) -> None | Awaitable[None]: ...
+    def enqueue(
+        self, command: ManagedRunCommand
+    ) -> Literal["accepted", "reused"] | None | Awaitable[Literal["accepted", "reused"] | None]: ...
 
 
 class JournalRevisionCommandPort(Protocol):
@@ -305,11 +307,11 @@ class RemoteCommandApplication:
             request_id=actor.request_id,
             idempotency_key=request.idempotency_key,
         )
-        await _maybe_await(self.managed_pipeline.enqueue(command))
+        enqueue_status = await _maybe_await(self.managed_pipeline.enqueue(command))
         return CommandResponse(
             request_id=actor.request_id,
             command_id=_digest("command-v1", "collect", fingerprint),
-            status="accepted",
+            status="reused" if enqueue_status == "reused" else "accepted",
             run_id=run_id,
         )
 

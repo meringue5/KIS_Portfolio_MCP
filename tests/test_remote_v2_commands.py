@@ -219,6 +219,37 @@ def test_managed_pipeline_accepts_only_fixed_alias_and_slots_and_returns_run_id(
         })
 
 
+def test_managed_pipeline_propagates_existing_logical_run_reuse_without_second_dispatch():
+    class ExistingRun:
+        def __init__(self):
+            self.commands = []
+
+        def enqueue(self, command):
+            self.commands.append(command)
+            return "reused"
+
+    managed = ExistingRun()
+    application = RemoteCommandApplication(
+        state=InMemoryStateStore(),
+        managed_pipeline=managed,
+        revisions=InMemoryJournalRevisionCommands(),
+        expected_resource=RESOURCE,
+    )
+    request = ManagedPipelineRequest(
+        logical_date=date(2026, 9, 11),
+        slot="kr-1600",
+        idempotency_key="collect-existing-0001",
+    )
+
+    result = asyncio.run(application.execute("run-managed-pipeline", request, COMMAND_ACTOR))
+
+    assert result["status"] == "reused"
+    assert result["run_id"] == managed_pipeline_logical_run_id(
+        date(2026, 9, 11), "kr-1600"
+    )
+    assert len(managed.commands) == 1
+
+
 def test_same_idempotency_key_with_changed_request_fails_without_second_job():
     application, managed, _revisions = _command_application()
     base = {
