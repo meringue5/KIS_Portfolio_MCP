@@ -67,6 +67,9 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 - `KIS_REMOTE_AUTH_MODE=oauth`
 - `GET /health`는 공개
 - `/mcp`는 OAuth bearer token 필수
+- auth와 Remote에는 같은 canonical `KIS_RESOURCE_SERVER_URL`을 주입한다. Auth는 누락된 RFC 8707 resource
+  indicator를 이 값으로 바인딩하고 다른 explicit resource를 거부하며, Remote는 동일 resource가 없는 token도
+  거부한다.
 - required scope: `mcp:read`
 - resource server는 MCP OAuth discovery를 위해 다음 공개 endpoint를 제공한다.
   - `/.well-known/oauth-protected-resource`
@@ -222,6 +225,7 @@ OAuth auth server 실행 예시:
 docker run --rm -p 8001:8001 \
   --env-file .env \
   -e KIS_AUTH_BASE_URL=http://localhost:8001 \
+  -e KIS_RESOURCE_SERVER_URL=http://localhost:8000/mcp \
   -e KIS_AUTH_OWNER_EMAILS=owner@example.com \
   -e KIS_AUTH_SESSION_SECRET=... \
   -e KIS_AUTH_TOKEN_PEPPER=... \

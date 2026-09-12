@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from urllib.parse import parse_qs, urlparse
 
 from starlette.responses import PlainTextResponse
@@ -24,6 +25,7 @@ def _settings(base_url: str = "http://testserver") -> AuthServiceSettings:
         google_client_secret="google-secret",
         github_client_id="github-client",
         github_client_secret="github-secret",
+        resource_server_url="https://resource.example.com/mcp",
         secure_cookies=False,
     )
 
@@ -32,6 +34,7 @@ def _provider() -> KisOAuthProvider:
     settings = _settings()
     return KisOAuthProvider(
         token_pepper=settings.token_pepper,
+        resource_server_url=settings.resource_server_url,
         static_client=StaticOAuthClientConfig(
             client_id=settings.claude_client_id,
             client_secret=settings.claude_client_secret,
@@ -92,6 +95,81 @@ def test_authorize_resumes_pending_request_after_login(monkeypatch, tmp_path):
         assert query["state"] == ["state-1"]
         assert "code" in query and query["code"][0]
 
+    close_connection()
+
+
+def test_authorize_binds_claude_none_resource_to_canonical_mcp(monkeypatch, tmp_path):
+    close_connection()
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
+
+    settings = _settings()
+    provider = _provider()
+    user = auth_repository.upsert_auth_user("owner@example.com", "Owner")
+    app = create_app(settings=settings, provider=provider)
+
+    async def force_login(request):
+        request.session["kis.oauth.user_id"] = user["id"]
+        request.session["kis.oauth.provider"] = "google"
+        return PlainTextResponse("ok")
+
+    app.router.routes.append(Route("/_test/login", force_login))
+    with TestClient(app) as client:
+        initial = client.get(
+            "/authorize",
+            params={
+                "response_type": "code",
+                "client_id": "claude-client",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "scope": "mcp:read",
+                "resource": "None",
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "code_challenge_method": "S256",
+            },
+        )
+        assert initial.status_code == 200
+        client.get("/_test/login")
+        client.get("/authorize", follow_redirects=False)
+        consent = client.get("/consent")
+        assert "https://resource.example.com/mcp" in consent.text
+        approve = client.post("/consent", data={"decision": "approve"}, follow_redirects=False)
+
+    code = parse_qs(urlparse(approve.headers["location"]).query)["code"][0]
+    oauth_client = asyncio.run(provider.get_client("claude-client"))
+    assert oauth_client is not None
+    loaded = asyncio.run(provider.load_authorization_code(oauth_client, code))
+    assert loaded is not None
+    assert loaded.resource == "https://resource.example.com/mcp"
+    token = asyncio.run(provider.exchange_authorization_code(oauth_client, loaded))
+    assert asyncio.run(provider.load_access_token(token.access_token)) is not None
+    close_connection()
+
+
+def test_authorize_rejects_noncanonical_resource(monkeypatch, tmp_path):
+    close_connection()
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
+    app = create_app(settings=_settings(), provider=_provider())
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/authorize",
+            params={
+                "response_type": "code",
+                "client_id": "claude-client",
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "scope": "mcp:read",
+                "resource": "https://other.example.com/mcp",
+                "state": "state-1",
+                "code_challenge": "challenge-1",
+                "code_challenge_method": "S256",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert parse_qs(urlparse(response.headers["location"]).query)["error"] == ["invalid_target"]
     close_connection()
 
 

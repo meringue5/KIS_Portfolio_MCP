@@ -47,6 +47,7 @@ class AuthServiceSettings:
     google_client_secret: str
     github_client_id: str
     github_client_secret: str
+    resource_server_url: str | None = None
     allowed_scopes: tuple[str, ...] = DEFAULT_ALLOWED_SCOPES
     dynamic_client_redirect_prefixes: tuple[str, ...] = DEFAULT_DYNAMIC_CLIENT_REDIRECT_PREFIXES
     access_token_ttl_seconds: int = 15 * 60
@@ -72,6 +73,7 @@ class AuthServiceSettings:
             google_client_secret=_require_env("KIS_OAUTH_GOOGLE_CLIENT_SECRET"),
             github_client_id=_require_env("KIS_OAUTH_GITHUB_CLIENT_ID"),
             github_client_secret=_require_env("KIS_OAUTH_GITHUB_CLIENT_SECRET"),
+            resource_server_url=_require_env("KIS_RESOURCE_SERVER_URL").rstrip("/"),
             allowed_scopes=(
                 _parse_scopes(os.environ["KIS_AUTH_ALLOWED_SCOPES"])
                 if os.environ.get("KIS_AUTH_ALLOWED_SCOPES", "").strip()
