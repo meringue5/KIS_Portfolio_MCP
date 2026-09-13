@@ -108,3 +108,24 @@ Actions target `wi049-s02`.
 
 The S02 exact-delete implementation passed 92 focused tests and the full 690-test gate with one existing Authlib
 deprecation warning.
+
+## S02 production result
+
+PR #101 merged the exact-delete guardrail as `f8920a1`. Master workflow run `34781573015` completed successfully at
+2026-09-14 05:45 KST. Its preflight matched every approved Job's frozen image/configuration identity and found no
+Scheduler reference. The apply step deleted all 11 approved names and no others.
+
+Post-delete inventory showed exactly the six protected scheduled Cloud Run Jobs ready, the six corresponding
+Schedulers enabled and the two canonical services ready. Auth and Remote `/health` returned 200 and unauthenticated
+Remote `/mcp` returned 401. The services were not redeployed, so the owner-observed authenticated canonical read on the
+same revisions remains applicable; the post-delete aggregate-only MotherDuck check independently confirmed the stored
+read data remained intact.
+
+All 15 protected history row counts were unchanged from the S01 baseline; no protected object decreased. This includes
+the total-asset overview and daily state, holdings/positions, domestic and overseas order/transaction history,
+realized trades, cash/trade revision histories, lots, journals and trade threads. The private WI-048 backup index with
+SHA-256 `bc91f37b...68da0` also remained present (25,138 bytes).
+
+The exact production record is
+`governance/project/evidence/wi049/runtime-cleanup-result-2026-09-14.json`. S02 is closed. S03 remains proposed and
+review-only: neither this execution nor the owner's S02 approval authorizes deleting any Artifact Registry digest.

@@ -10,12 +10,12 @@ milestone_ref: MS-004
 delivery_refs: V2-W0804
 parent_work_item: none
 depends_on: WI-047
-execution_scope: production
-production_effects: delete exactly 11 owner-approved unscheduled one-time Cloud Run Job definitions
+execution_scope: isolated
+production_effects: none; S02 exact Job cleanup completed and S03 remains review-only until separately approved
 architecture_impact: removes superseded deployment resources
 data_impact: no data deletion
 security_impact: obsolete identities/secrets require scoped review
-cost_impact: removes residual image Job and Scheduler cost
+cost_impact: S02 removed obsolete control-plane definitions; S03 may reduce Artifact Registry storage after separate approval
 ---
 
 # WI-049 — Approve and execute bounded V1 runtime resource cleanup
@@ -39,8 +39,9 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 ## Acceptance criteria
 
 - [x] owner approves exact targets and recovery artifacts.
-- [ ] active/rollback/V2 resources cannot match cleanup.
-- [ ] post-cleanup smoke and cost evidence pass.
+- [x] active/rollback/V2 resources cannot match cleanup.
+- [x] post-cleanup smoke and S02 cost evidence pass.
+- [ ] Artifact Registry versions receive an independent exact-digest retain/delete decision.
 
 ## Change impact
 
@@ -55,7 +56,7 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 ## Sub-items
 
 - `WI-049-S01` — verified: freeze runtime inventory, history protections and recovery evidence.
-- `WI-049-S02` — in progress: execute owner-approved one-time Cloud Run Job cleanup.
+- `WI-049-S02` — closed: executed and verified owner-approved one-time Cloud Run Job cleanup.
 - `WI-049-S03` — proposed: review and execute separately approved Artifact Registry image cleanup.
 
 ## Evidence
@@ -90,10 +91,22 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
   six scheduled Jobs and six Schedulers, then smoke Auth/Remote health and the unauthenticated MCP 401 boundary.
 - S02 implementation verification passed 92 focused tests and the full 690-test gate with one existing Authlib
   deprecation warning.
+- PR #101 merged as `f8920a1`; master workflow run `34781573015` then deleted the exact 11 approved Job definitions.
+  The workflow did not deploy or mutate any service, scheduled Job, Scheduler, identity, Secret, database, backup or
+  image, and its Auth/Remote health plus unauthenticated MCP 401 smoke passed.
+- Post-cleanup inventory found the six protected Cloud Run Jobs ready, all six protected Schedulers enabled and both
+  canonical services ready. The private WI-048 backup index remained present at the frozen content address.
+- A direct aggregate-only MotherDuck check compared all 15 protected history objects with the S01 baseline. Every
+  count was unchanged and none decreased, including total assets, holdings, domestic/overseas transactions, realized
+  trades, trade/cash revisions, positions and trade threads. The machine-readable result is
+  `governance/project/evidence/wi049/runtime-cleanup-result-2026-09-14.json`.
+- S02 is cost-neutral for compute because the deleted one-time definitions were idle. Possible Artifact Registry
+  storage savings remain S03 and are not authorized by this closeout.
 
 ## Closeout
 
-- Result: in progress; S02 implementation and production execution are underway after exact-target approval.
-- Remaining risk: deleting a Job definition also removes its Cloud Run execution view, so the frozen manifest and
-  GitHub evidence are the durable replacement. S03 requires a later, independent exact-digest review and approval.
+- Result: WI-049-S02 closed; exact-target production cleanup and preservation checks passed. WI-049 remains in
+  progress only for the independently gated S03 Artifact Registry decision.
+- Remaining risk: the deleted Job execution views now rely on the frozen manifest and GitHub evidence. No image digest
+  is approved for deletion; S03 requires a fresh exact-digest review and owner approval or an explicit retain decision.
 - Follow-up Work Item: WI-051.

@@ -1,0 +1,76 @@
+{
+  "schema_version": "kis-portfolio.runtime-cleanup-result/v1",
+  "executed_at": "2026-09-14T05:44:58+09:00",
+  "project_id": "grand-forge-279904",
+  "region": "asia-northeast3",
+  "source_git_sha": "f8920a1c0bf855c49d0a7162f9ba6b4efdd38dda",
+  "workflow_run": "34781573015",
+  "workflow_url": "https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/34781573015",
+  "status": "pass",
+  "approved_targets": [
+    "kis-portfolio-wi021-s06",
+    "kis-portfolio-wi021-s06-migration",
+    "kis-portfolio-wi022-s06",
+    "kis-portfolio-wi022-s06-migration",
+    "kis-portfolio-wi029-s04-migration",
+    "kis-portfolio-wi029-s04-verify",
+    "kis-portfolio-wi030-s02",
+    "kis-portfolio-wi030-s03",
+    "kis-portfolio-wi046-migration",
+    "kis-portfolio-wi046-state-migration",
+    "kis-portfolio-wi048-s02"
+  ],
+  "deleted_targets": [
+    "kis-portfolio-wi021-s06",
+    "kis-portfolio-wi021-s06-migration",
+    "kis-portfolio-wi022-s06",
+    "kis-portfolio-wi022-s06-migration",
+    "kis-portfolio-wi029-s04-migration",
+    "kis-portfolio-wi029-s04-verify",
+    "kis-portfolio-wi030-s02",
+    "kis-portfolio-wi030-s03",
+    "kis-portfolio-wi046-migration",
+    "kis-portfolio-wi046-state-migration",
+    "kis-portfolio-wi048-s02"
+  ],
+  "protected_runtime": {
+    "cloud_run_jobs": {"expected": 6, "actual": 6, "ready": 6},
+    "scheduler_jobs": {"expected": 6, "actual": 6, "enabled": 6},
+    "cloud_run_services": {"expected": 2, "actual": 2, "ready": 2},
+    "auth_health_http_status": 200,
+    "remote_health_http_status": 200,
+    "unauthenticated_mcp_http_status": 401
+  },
+  "protected_data": [
+    {"dataset": "gold.portfolio_daily_state", "baseline_rows": 1865, "post_cleanup_rows": 1865, "status": "pass"},
+    {"dataset": "main.asset_holding_snapshots", "baseline_rows": 1895, "post_cleanup_rows": 1895, "status": "pass"},
+    {"dataset": "main.asset_overview_snapshots", "baseline_rows": 57, "post_cleanup_rows": 57, "status": "pass"},
+    {"dataset": "main.order_history", "baseline_rows": 111, "post_cleanup_rows": 111, "status": "pass"},
+    {"dataset": "main.overseas_order_history", "baseline_rows": 0, "post_cleanup_rows": 0, "status": "pass"},
+    {"dataset": "main.overseas_transaction_history", "baseline_rows": 69, "post_cleanup_rows": 69, "status": "pass"},
+    {"dataset": "main.trade_profit_history", "baseline_rows": 15, "post_cleanup_rows": 15, "status": "pass"},
+    {"dataset": "silver.cash_flow_event_revisions", "baseline_rows": 49, "post_cleanup_rows": 49, "status": "pass"},
+    {"dataset": "silver.cash_flow_events", "baseline_rows": 49, "post_cleanup_rows": 49, "status": "pass"},
+    {"dataset": "silver.position_snapshots", "baseline_rows": 2127, "post_cleanup_rows": 2127, "status": "pass"},
+    {"dataset": "silver.purchase_lot_revisions", "baseline_rows": 0, "post_cleanup_rows": 0, "status": "pass"},
+    {"dataset": "silver.trade_event_revisions", "baseline_rows": 282, "post_cleanup_rows": 282, "status": "pass"},
+    {"dataset": "silver.trade_events", "baseline_rows": 282, "post_cleanup_rows": 282, "status": "pass"},
+    {"dataset": "silver.trade_journal_revisions", "baseline_rows": 0, "post_cleanup_rows": 0, "status": "pass"},
+    {"dataset": "silver.trade_threads", "baseline_rows": 19, "post_cleanup_rows": 19, "status": "pass"}
+  ],
+  "recovery_evidence": {
+    "backup_index_sha256": "bc91f37b77f5bc2ef98d218a416337de71e2112ccecba2bf879b8afd15968da0",
+    "backup_index_present": true,
+    "backup_index_size_bytes": 25138
+  },
+  "destructive_controls": {
+    "data_mutated": false,
+    "backup_mutated": false,
+    "artifact_image_mutated": false,
+    "iam_mutated": false,
+    "scheduler_mutated": false,
+    "secret_mutated": false,
+    "service_mutated": false
+  },
+  "cost_finding": "S02 removed idle control-plane definitions and introduced no recurring compute; Artifact Registry storage review remains separately gated as WI-049-S03."
+}
