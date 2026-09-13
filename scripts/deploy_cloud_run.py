@@ -38,6 +38,8 @@ DEFAULT_WI046_AUTH_ROLLBACK_REVISION = "kis-portfolio-auth-00021-jkl"
 DEFAULT_WI046_AUTH_CANDIDATE_REVISION = "kis-portfolio-auth-00023-nor"
 DEFAULT_WI046_REMOTE_ROLLBACK_REVISION = "kis-portfolio-remote-00031-pbm"
 DEFAULT_WI046_REMOTE_CANDIDATE_REVISION = "kis-portfolio-remote-00036-tej"
+DEFAULT_WI048_S02_JOB = "kis-portfolio-wi048-s02"
+DEFAULT_WI048_S02_TASK_TIMEOUT = "3600s"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -1480,6 +1482,153 @@ def _deploy_v2_core_jobs(
     return 0
 
 
+def _deploy_wi048_s02(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Transition retained V1 references, then update only the canonical V2 runtimes."""
+    transition_required = ["KIS_DB_MODE", "MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN", "KIS_GCS_BUCKET"]
+    required = list(dict.fromkeys([
+        *transition_required,
+        *_required_keys_for_batch(env),
+        *_required_keys_for_remote(env),
+        "KIS_AUTH_BASE_URL",
+        "KIS_RESOURCE_SERVER_URL",
+    ]))
+    missing = _validate_required(env, required, secret_mode=args.secret_mode)
+    if env.get("KIS_DB_MODE", "").strip().lower() != "motherduck":
+        missing.append("KIS_DB_MODE=motherduck")
+    if missing:
+        print("Missing or invalid WI-048-S02 deployment inputs:")
+        for key in dict.fromkeys(missing):
+            print(f"- {key}")
+        return 1
+
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-048-S02 image digest.")
+        return 1
+    image_digest = image.rsplit("@", 1)[1]
+    git_sha = os.environ.get("GITHUB_SHA", "").strip() or (_git_stdout(["rev-parse", "HEAD"]) or "")
+    if len(git_sha) < 7:
+        print("Failed to resolve WI-048-S02 Git SHA provenance.")
+        return 1
+
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    transition_job = args.job or env.get("KIS_WI048_S02_JOB_NAME") or DEFAULT_WI048_S02_JOB
+    transition_payload = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": env["MOTHERDUCK_DATABASE"],
+        "KIS_GCP_PROJECT": project,
+        "KIS_GCS_BUCKET": env["KIS_GCS_BUCKET"],
+        "KIS_RELEASE_IMAGE_DIGEST": image_digest,
+        "KIS_RELEASE_GIT_SHA": git_sha,
+    }
+    transition_plain, transition_secrets = _split_runtime_env(
+        env=env,
+        payload=transition_payload,
+        required=transition_required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    transition_env_path = _write_env_yaml(transition_plain)
+    try:
+        deploy_transition = [
+            "gcloud", "run", "jobs", "deploy", transition_job,
+            "--image", image, "--region", args.region,
+            "--env-vars-file", transition_env_path,
+            "--command", "kis-portfolio-batch",
+            "--args", f"run-wi048-s02,--project,{project},--bucket,{env['KIS_GCS_BUCKET']}",
+            "--tasks", "1", "--parallelism", "1",
+            "--task-timeout", DEFAULT_WI048_S02_TASK_TIMEOUT,
+            "--max-retries", "0", "--service-account", service_account,
+            *_build_secret_flags(transition_secrets),
+            *_build_label_flags("wi048-s02-transition"),
+            "--project", project,
+        ]
+        if _run(deploy_transition, dry_run=args.dry_run) != 0:
+            return 1
+        if _run([
+            "gcloud", "run", "jobs", "execute", transition_job,
+            "--region", args.region, "--wait", "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(transition_env_path)
+        except FileNotFoundError:
+            pass
+
+    production_env = dict(env)
+    production_env.update({
+        "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+        "KIS_TELEGRAM_CANARY_ENABLED": "false",
+        "KIS_TELEGRAM_REAL_USE_ENABLED": "true",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "false",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED": "true",
+        "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED": "true",
+        "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+    })
+    if _deploy_v2_core_jobs(
+        args,
+        env=production_env,
+        project=project,
+        image=image,
+        deploy_label="wi048-s02-v2-core",
+    ) != 0:
+        return 1
+
+    remote_required = _required_keys_for_remote(production_env)
+    remote_payload, remote_secrets = _split_runtime_env(
+        env=production_env,
+        payload=_build_remote_env(production_env),
+        required=remote_required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    remote_env_path = _write_env_yaml(remote_payload)
+    remote_service = args.service or env.get("KIS_REMOTE_SERVICE_NAME") or DEFAULT_REMOTE_SERVICE
+    remote_identity = f"kis-portfolio-remote@{project}.iam.gserviceaccount.com"
+    try:
+        deploy_remote = [
+            "gcloud", "run", "deploy", remote_service,
+            "--image", image, "--region", args.region,
+            "--allow-unauthenticated", "--env-vars-file", remote_env_path,
+            "--command", "kis-portfolio-remote", "--args", "",
+            "--service-account", remote_identity,
+            *_build_remote_runtime_flags(production_env),
+            *_build_secret_flags(remote_secrets),
+            *_build_label_flags("wi048-s02-remote"),
+            "--project", project,
+        ]
+        if _run(deploy_remote, dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(remote_env_path)
+        except FileNotFoundError:
+            pass
+
+    if args.dry_run:
+        return 0
+    resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
+    remote_url = resource[:-4] if resource.endswith("/mcp") else resource
+    if not _smoke_wi046_remote(
+        auth_url=env["KIS_AUTH_BASE_URL"],
+        remote_url=remote_url,
+        expected_resource=resource,
+    ):
+        print("WI-048-S02 stable Remote smoke failed.")
+        return 1
+    print(f"WI-048-S02 transitioned references and deployed canonical V2 runtimes: {image}")
+    return 0
+
+
 def _deploy_wi030_s02(
     args: argparse.Namespace,
     *,
@@ -2208,6 +2357,7 @@ def main() -> int:
             "wi046-auth-candidate",
             "wi046-promote-auth",
             "wi046-promote-remote",
+            "wi048-s02",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -2458,6 +2608,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi046_auth_candidate(args, env=env, project=project)
+
+    if args.target == "wi048-s02":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi048_s02(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

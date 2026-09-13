@@ -34,6 +34,7 @@ on:
           - wi046-auth-candidate
           - wi046-promote-auth
           - wi046-promote-remote
+          - wi048-s02
       candidate_revision:
         description: Exact staged revision for a guarded WI-046 promotion
         required: false
@@ -120,6 +121,7 @@ jobs:
       KIS_WI029_S04_JOB_NAME: ${{ vars.KIS_WI029_S04_JOB_NAME || 'kis-portfolio-wi029-s04' }}
       KIS_WI030_S02_JOB_NAME: ${{ vars.KIS_WI030_S02_JOB_NAME || 'kis-portfolio-wi030-s02' }}
       KIS_WI030_S03_JOB_NAME: ${{ vars.KIS_WI030_S03_JOB_NAME || 'kis-portfolio-wi030-s03' }}
+      KIS_WI048_S02_JOB_NAME: ${{ vars.KIS_WI048_S02_JOB_NAME || 'kis-portfolio-wi048-s02' }}
       KIS_TELEGRAM_BOT_TOKEN_VERSION: ${{ vars.KIS_TELEGRAM_BOT_TOKEN_VERSION }}
       KIS_TELEGRAM_CHAT_ID_VERSION: ${{ vars.KIS_TELEGRAM_CHAT_ID_VERSION }}
       KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED: ${{ vars.KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED || 'false' }}
@@ -152,9 +154,13 @@ jobs:
             test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GITHUB_CLIENT_ID}" || { echo "KIS_OAUTH_GITHUB_CLIENT_ID var is required."; exit 1; }
           fi
-          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ] || [ "${target}" = "wi048-s02" ]; then
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
+          fi
+          if [ "${target}" = "wi048-s02" ]; then
+            test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
+            test -n "${KIS_GCS_BUCKET}" || { echo "KIS_GCS_BUCKET var is required."; exit 1; }
           fi
           if [ "${target}" = "wi029-s04" ]; then
             test -n "${SEC_EDGAR_USER_AGENT}" || { echo "SEC_EDGAR_USER_AGENT var is required."; exit 1; }
@@ -433,4 +439,14 @@ jobs:
             --service "${KIS_REMOTE_SERVICE_NAME}" \
             --candidate-revision "${candidate_revision:-${KIS_WI046_REMOTE_CANDIDATE_REVISION}}" \
             --rollback-revision "${rollback_revision:-${KIS_WI046_REMOTE_ROLLBACK_REVISION}}" \
+            --secret-mode secret-manager
+
+      - name: Transition WI-048 references and deploy canonical V2 runtime
+        if: github.event.inputs.target == 'wi048-s02'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi048-s02 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_REMOTE_SERVICE_NAME}" \
+            --job "${KIS_WI048_S02_JOB_NAME}" \
             --secret-mode secret-manager

@@ -972,3 +972,9 @@ id = "WI-048-S01"
 parent_id = "WI-048"
 title = "Implement the isolated V2 main-consumer transition contract"
 status = "verified"
+
+[[subitems]]
+id = "WI-048-S02"
+parent_id = "WI-048"
+title = "Execute the protected production reference transition and V2-only revision update"
+status = "in_progress"

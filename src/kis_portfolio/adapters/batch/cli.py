@@ -64,6 +64,7 @@ from kis_portfolio.services.v2_collection import ALLOWED_SLOTS, run_owned_portfo
 from kis_portfolio.services.wi021_s06 import WI021S06Config, run_wi021_s06
 from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError, run_wi022_s06
 from kis_portfolio.services.wi029_s04 import verify_wi029_s04
+from kis_portfolio.services.wi048_s02 import WI048S02Config, run_wi048_s02
 from kis_portfolio.services.wi029_s05 import refresh_wi029_s05_evidence
 from kis_portfolio.services.wi030_s02 import activate_wi030_canary
 from kis_portfolio.services.wi030_s03 import activate_wi030_real_use
@@ -266,6 +267,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wi029_s04.add_argument("--project", required=True)
     wi029_s04.add_argument("--bucket", required=True)
+    wi048_s02 = subparsers.add_parser(
+        "run-wi048-s02",
+        help="Run the protected V1-reference to V2-control production transition.",
+    )
+    wi048_s02.add_argument("--project", required=True)
+    wi048_s02.add_argument("--bucket", required=True)
     subparsers.add_parser(
         "review-wi029-s05",
         help="Recompute DB-only shadow slot coverage; never sends an external alert.",
@@ -588,6 +595,20 @@ def _run_wi029_s04_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi048_s02(args: argparse.Namespace) -> int:
+    try:
+        result = run_wi048_s02(WI048S02Config(project=args.project, bucket=args.bucket))
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate recovery evidence before deliberate resume",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _run_wi029_s05_review(_args: argparse.Namespace) -> int:
     try:
         result = refresh_wi029_s05_evidence(get_connection())
@@ -674,6 +695,8 @@ def main() -> None:
         raise SystemExit(_run_wi022_s06(args))
     if args.command == "run-wi029-s04-verify":
         raise SystemExit(_run_wi029_s04_verify(args))
+    if args.command == "run-wi048-s02":
+        raise SystemExit(_run_wi048_s02(args))
     if args.command == "review-wi029-s05":
         raise SystemExit(_run_wi029_s05_review(args))
     if args.command == "activate-wi030-canary":

@@ -85,7 +85,7 @@ def test_manifest_keeps_drift_archive_only_and_v2_runtime_off_main() -> None:
     manifest = tomllib.loads(
         (ROOT / "governance/project/v1-main-transition.toml").read_text(encoding="utf-8")
     )
-    assert manifest["production_apply_approved"] is False
+    assert manifest["production_apply_approved"] is True
     assert manifest["deletion_approved"] is False
     assert {row["object"] for row in manifest["archive_dispositions"]} == {
         "main.cash_flow", "main.trade_journal", "main.asset_return_daily",
