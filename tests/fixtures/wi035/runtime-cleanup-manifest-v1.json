@@ -1,0 +1,45 @@
+{
+  "schema_version": "kis-portfolio.runtime-cleanup-manifest/v1",
+  "generated_at": "2026-09-13T14:00:00Z",
+  "project_id": "example-project",
+  "region": "asia-northeast3",
+  "mode": "dry_run",
+  "apply_allowed": false,
+  "owner_approved": false,
+  "destructive_controls": {
+    "data_deletion_allowed": false,
+    "backup_deletion_allowed": false,
+    "iam_changes_allowed": false,
+    "secret_changes_allowed": false,
+    "scheduler_changes_allowed": false
+  },
+  "protected_data": [
+    {"dataset": "main.asset_overview_snapshots", "row_count": 57, "reason": "canonical total-asset history"}
+  ],
+  "protected_resources": [
+    {"kind": "cloud_run_job", "name": "kis-portfolio-owned-core-v2-1600", "reason": "scheduled V2 runtime"}
+  ],
+  "candidates": [
+    {
+      "kind": "cloud_run_job",
+      "name": "kis-portfolio-wi021-s06",
+      "region": "asia-northeast3",
+      "image_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "last_execution": "kis-portfolio-wi021-s06-example",
+      "last_completed_at": "2026-08-28T06:03:49Z",
+      "last_execution_status": "SUCCEEDED",
+      "scheduler_refs": [],
+      "deployment_ref": "github-run:example",
+      "recovery_ref": "git:example"
+    }
+  ],
+  "recovery_evidence": {
+    "backup_index_uri": "gs://private/recovery/index",
+    "backup_index_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "backup_verified_at": "2026-09-13T13:14:20Z",
+    "backup_result": "pass",
+    "source_git_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workflow_reference": "github-run:example"
+  }
+}

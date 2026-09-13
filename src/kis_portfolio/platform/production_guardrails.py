@@ -16,6 +16,7 @@ INVENTORY_SCHEMA = "kis-portfolio.resource-inventory/v1"
 COST_SNAPSHOT_SCHEMA = "kis-portfolio.cost-snapshot/v1"
 RELEASE_MANIFEST_SCHEMA = "kis-portfolio.release-manifest/v1"
 CLEANUP_PLAN_SCHEMA = "kis-portfolio.cleanup-plan/v1"
+RUNTIME_CLEANUP_MANIFEST_SCHEMA = "kis-portfolio.runtime-cleanup-manifest/v1"
 
 EARLY_WARNING_KRW = 7_500
 GUARD_KRW = 35_000
@@ -39,6 +40,7 @@ _RESOURCE_KINDS = {
     "artifact_repository",
 }
 _SEMANTIC_KEEP_TAGS = {"prod-current", "prod-previous"}
+_RUNTIME_CLEANUP_KINDS = {"cloud_run_job"}
 
 
 class GuardrailValidationError(ValueError):
@@ -310,6 +312,238 @@ def validate_release_manifest(payload: Mapping[str, Any]) -> dict[str, Any]:
         "created_at": created_at.isoformat().replace("+00:00", "Z"),
         "active_targets": sorted(normalized_targets["active_targets"], key=lambda item: item["target"]),
         "rollback_targets": sorted(normalized_targets["rollback_targets"], key=lambda item: item["target"]),
+    }
+
+
+def validate_runtime_cleanup_manifest(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate a review-only, exact-target runtime cleanup manifest.
+
+    This v1 contract deliberately cannot authorize or apply a destructive action.  It
+    exists to freeze candidates, protected data/resources and recovery evidence before
+    the owner is asked for target-by-target approval.
+    """
+
+    errors: list[str] = []
+    _require_exact_keys(
+        payload,
+        {
+            "schema_version",
+            "generated_at",
+            "project_id",
+            "region",
+            "mode",
+            "apply_allowed",
+            "owner_approved",
+            "destructive_controls",
+            "protected_data",
+            "protected_resources",
+            "candidates",
+            "recovery_evidence",
+        },
+        "runtime_cleanup_manifest",
+        errors,
+    )
+    if payload.get("schema_version") != RUNTIME_CLEANUP_MANIFEST_SCHEMA:
+        errors.append(f"schema_version must be {RUNTIME_CLEANUP_MANIFEST_SCHEMA}")
+    generated_at = _parse_timestamp(payload.get("generated_at"), "generated_at", errors)
+    for field in ("project_id", "region"):
+        value = payload.get(field)
+        if not isinstance(value, str) or not value:
+            errors.append(f"{field} must be a non-empty string")
+    if payload.get("mode") != "dry_run":
+        errors.append("mode must be dry_run")
+    if payload.get("apply_allowed") is not False:
+        errors.append("apply_allowed must be false for the v1 review manifest")
+    if payload.get("owner_approved") is not False:
+        errors.append("owner_approved must be false until separate exact-target approval")
+
+    controls = payload.get("destructive_controls")
+    required_controls = {
+        "data_deletion_allowed",
+        "backup_deletion_allowed",
+        "iam_changes_allowed",
+        "secret_changes_allowed",
+        "scheduler_changes_allowed",
+    }
+    if not isinstance(controls, Mapping):
+        errors.append("destructive_controls must be an object")
+        controls = {}
+    else:
+        _require_exact_keys(controls, required_controls, "destructive_controls", errors)
+    for field in sorted(required_controls):
+        if controls.get(field) is not False:
+            errors.append(f"destructive_controls.{field} must be false")
+
+    protected_data = payload.get("protected_data")
+    normalized_data: list[dict[str, Any]] = []
+    data_names: set[str] = set()
+    if not isinstance(protected_data, list) or not protected_data:
+        errors.append("protected_data must be a non-empty list")
+        protected_data = []
+    for index, item in enumerate(protected_data):
+        field = f"protected_data[{index}]"
+        if not isinstance(item, Mapping):
+            errors.append(f"{field} must be an object")
+            continue
+        _require_exact_keys(item, {"dataset", "row_count", "reason"}, field, errors)
+        dataset = item.get("dataset")
+        if not isinstance(dataset, str) or not dataset:
+            errors.append(f"{field}.dataset must be non-empty")
+        elif dataset in data_names:
+            errors.append(f"duplicate protected dataset {dataset}")
+        else:
+            data_names.add(dataset)
+        row_count = item.get("row_count")
+        if not isinstance(row_count, int) or isinstance(row_count, bool) or row_count < 0:
+            errors.append(f"{field}.row_count must be a non-negative integer")
+        if not isinstance(item.get("reason"), str) or not item.get("reason"):
+            errors.append(f"{field}.reason must be non-empty")
+        normalized_data.append(dict(item))
+
+    protected_resources = payload.get("protected_resources")
+    normalized_resources: list[dict[str, Any]] = []
+    protected_keys: set[tuple[str, str]] = set()
+    if not isinstance(protected_resources, list) or not protected_resources:
+        errors.append("protected_resources must be a non-empty list")
+        protected_resources = []
+    for index, item in enumerate(protected_resources):
+        field = f"protected_resources[{index}]"
+        if not isinstance(item, Mapping):
+            errors.append(f"{field} must be an object")
+            continue
+        _require_exact_keys(item, {"kind", "name", "reason"}, field, errors)
+        kind = item.get("kind")
+        name = item.get("name")
+        if kind not in _RESOURCE_KINDS:
+            errors.append(f"{field}.kind is unsupported")
+        if not isinstance(name, str) or not name:
+            errors.append(f"{field}.name must be non-empty")
+        elif isinstance(kind, str):
+            key = (kind, name)
+            if key in protected_keys:
+                errors.append(f"duplicate protected resource {kind}/{name}")
+            protected_keys.add(key)
+        if not isinstance(item.get("reason"), str) or not item.get("reason"):
+            errors.append(f"{field}.reason must be non-empty")
+        normalized_resources.append(dict(item))
+
+    candidates = payload.get("candidates")
+    normalized_candidates: list[dict[str, Any]] = []
+    candidate_keys: set[tuple[str, str]] = set()
+    if not isinstance(candidates, list) or not candidates:
+        errors.append("candidates must be a non-empty list")
+        candidates = []
+    for index, item in enumerate(candidates):
+        field = f"candidates[{index}]"
+        if not isinstance(item, Mapping):
+            errors.append(f"{field} must be an object")
+            continue
+        _require_exact_keys(
+            item,
+            {
+                "kind",
+                "name",
+                "region",
+                "image_digest",
+                "configuration_sha256",
+                "last_execution",
+                "last_completed_at",
+                "last_execution_status",
+                "scheduler_refs",
+                "deployment_ref",
+                "recovery_ref",
+            },
+            field,
+            errors,
+        )
+        kind = item.get("kind")
+        name = item.get("name")
+        if kind not in _RUNTIME_CLEANUP_KINDS:
+            errors.append(f"{field}.kind is unsupported for bounded runtime cleanup")
+        if not isinstance(name, str) or not name:
+            errors.append(f"{field}.name must be non-empty")
+        elif isinstance(kind, str):
+            key = (kind, name)
+            if key in candidate_keys:
+                errors.append(f"duplicate cleanup candidate {kind}/{name}")
+            candidate_keys.add(key)
+            if key in protected_keys:
+                errors.append(f"cleanup candidate is protected: {kind}/{name}")
+        if item.get("region") != payload.get("region"):
+            errors.append(f"{field}.region must match manifest region")
+        if not isinstance(item.get("image_digest"), str) or not _DIGEST_RE.fullmatch(
+            item.get("image_digest", "")
+        ):
+            errors.append(f"{field}.image_digest is invalid")
+        if not isinstance(item.get("configuration_sha256"), str) or not _HASH_RE.fullmatch(
+            item.get("configuration_sha256", "")
+        ):
+            errors.append(f"{field}.configuration_sha256 is invalid")
+        if not isinstance(item.get("last_execution"), str) or not item.get("last_execution"):
+            errors.append(f"{field}.last_execution must be non-empty")
+        _parse_timestamp(item.get("last_completed_at"), f"{field}.last_completed_at", errors)
+        if item.get("last_execution_status") != "SUCCEEDED":
+            errors.append(f"{field}.last_execution_status must be SUCCEEDED")
+        scheduler_refs = item.get("scheduler_refs")
+        if scheduler_refs != []:
+            errors.append(f"{field}.scheduler_refs must be empty")
+        for ref_field in ("deployment_ref", "recovery_ref"):
+            if not isinstance(item.get(ref_field), str) or not item.get(ref_field):
+                errors.append(f"{field}.{ref_field} must be non-empty")
+        normalized_candidates.append(dict(item))
+
+    evidence = payload.get("recovery_evidence")
+    if not isinstance(evidence, Mapping):
+        errors.append("recovery_evidence must be an object")
+        evidence = {}
+    else:
+        _require_exact_keys(
+            evidence,
+            {
+                "backup_index_uri",
+                "backup_index_sha256",
+                "backup_verified_at",
+                "backup_result",
+                "source_git_sha",
+                "workflow_reference",
+            },
+            "recovery_evidence",
+            errors,
+        )
+    if not isinstance(evidence.get("backup_index_uri"), str) or not evidence.get(
+        "backup_index_uri"
+    ):
+        errors.append("recovery_evidence.backup_index_uri must be non-empty")
+    if not isinstance(evidence.get("backup_index_sha256"), str) or not _HASH_RE.fullmatch(
+        evidence.get("backup_index_sha256", "")
+    ):
+        errors.append("recovery_evidence.backup_index_sha256 is invalid")
+    _parse_timestamp(
+        evidence.get("backup_verified_at"), "recovery_evidence.backup_verified_at", errors
+    )
+    if evidence.get("backup_result") != "pass":
+        errors.append("recovery_evidence.backup_result must be pass")
+    if not isinstance(evidence.get("source_git_sha"), str) or not _GIT_SHA_RE.fullmatch(
+        evidence.get("source_git_sha", "")
+    ):
+        errors.append("recovery_evidence.source_git_sha is invalid")
+    if not isinstance(evidence.get("workflow_reference"), str) or not evidence.get(
+        "workflow_reference"
+    ):
+        errors.append("recovery_evidence.workflow_reference must be non-empty")
+
+    if errors:
+        raise GuardrailValidationError(errors)
+    return {
+        **dict(payload),
+        "generated_at": generated_at.isoformat().replace("+00:00", "Z"),
+        "protected_data": sorted(normalized_data, key=lambda item: item["dataset"]),
+        "protected_resources": sorted(
+            normalized_resources, key=lambda item: (item["kind"], item["name"])
+        ),
+        "candidates": sorted(
+            normalized_candidates, key=lambda item: (item["kind"], item["name"])
+        ),
     }
 
 

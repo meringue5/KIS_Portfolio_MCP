@@ -16,6 +16,7 @@ from kis_portfolio.platform.production_guardrails import (
     plan_artifact_cleanup,
     validate_inventory,
     validate_release_manifest,
+    validate_runtime_cleanup_manifest,
 )
 
 
@@ -53,6 +54,9 @@ def _parser() -> argparse.ArgumentParser:
     cleanup.add_argument("inventory", type=Path)
     cleanup.add_argument("manifest", type=Path)
     cleanup.add_argument("--as-of")
+
+    runtime_cleanup = subparsers.add_parser("validate-runtime-cleanup")
+    runtime_cleanup.add_argument("manifest", type=Path)
     return parser
 
 
@@ -67,12 +71,14 @@ def main(argv: list[str] | None = None) -> int:
             output = evaluate_cost_snapshot(
                 _load(args.snapshot), as_of=_timestamp(args.as_of)
             ).as_dict()
-        else:
+        elif args.command == "plan-cleanup":
             output = plan_artifact_cleanup(
                 _load(args.inventory),
                 _load(args.manifest),
                 as_of=_timestamp(args.as_of),
             )
+        else:
+            output = validate_runtime_cleanup_manifest(_load(args.manifest))
     except (GuardrailValidationError, json.JSONDecodeError, OSError, ValueError) as exc:
         print(json.dumps({"status": "blocked", "errors": getattr(exc, "errors", [str(exc)])}))
         return 2
