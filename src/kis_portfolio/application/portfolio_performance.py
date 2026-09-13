@@ -131,13 +131,13 @@ def inspect_portfolio_performance_readiness(
     """).fetchone()[0]
     calendar_exists = connection.execute("""
         SELECT count(*) FROM information_schema.tables
-        WHERE table_schema='main' AND table_name='market_calendar'
+        WHERE table_schema='control' AND table_name='market_calendar'
     """).fetchone()[0]
     calendar = (0, None, None)
     if calendar_exists:
         calendar = connection.execute("""
             SELECT count(*), min(trade_date), max(trade_date)
-            FROM main.market_calendar WHERE lower(market)='krx'
+            FROM control.market_calendar WHERE lower(market)='krx'
         """).fetchone()
     open_reconstruction_exceptions = connection.execute(
         "SELECT count(*) FROM control.reconstruction_exceptions_current WHERE exception_status='open'"
@@ -265,7 +265,7 @@ class PortfolioPerformanceEvaluator:
         exists = self.connection.execute(
             """
             SELECT count(*) FROM information_schema.tables
-            WHERE table_schema='main' AND table_name='market_calendar'
+            WHERE table_schema='control' AND table_name='market_calendar'
             """
         ).fetchone()[0]
         if not exists:
@@ -275,7 +275,7 @@ class PortfolioPerformanceEvaluator:
             return "invalid_state_order"
         rows = self.connection.execute(
             """
-            SELECT trade_date, is_open FROM main.market_calendar
+            SELECT trade_date, is_open FROM control.market_calendar
             WHERE lower(market)='krx' AND trade_date>? AND trade_date<=?
             ORDER BY trade_date
             """,

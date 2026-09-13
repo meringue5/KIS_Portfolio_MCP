@@ -49,16 +49,31 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 
 ## Sub-items
 
-- `none`.
+- `WI-048-S01` — isolated V2 reference-control transition, archive disposition and restore contract (`verified`).
 
 ## Evidence
 
 - Activated 2026-09-13 after WI-047 closed the local/setup/public V1 surface. Initial execution is read-only inventory,
   repository compatibility/archive design, fixtures and local restore verification; live table/view mutation or deletion
   is excluded.
+- Read-only live inventory found no missing managed V2 objects, three retained zero-row `main` drift objects
+  (`cash_flow`, `trade_journal`, `asset_return_daily`) and the previously recorded quality-column drift on the V1 daily
+  view. WI-048 neither adopted nor changed these objects.
+- `WI-048-S01` added migration `0019` for V2-owned `control.market_calendar`, `control.instrument_master` and
+  `control.instrument_classification_overrides`. Production V2 runtime now reads these qualified objects and no longer
+  re-ingests V1 `main.price_history` or `main.exchange_rate_history`; existing `silver.price_bars_daily` and
+  `silver.fx_rates_daily` remain the canonical history.
+- `governance/project/v1-main-transition.toml` is the deletion-denied transition/rollback manifest. The transition
+  helper defaults to a read-only aggregate plan and requires an explicit local `--apply`; fixture application preserved
+  every source row, reconciled all copied rows and was idempotent. The three new tables are complete V2 Parquet backup
+  members and fresh restore is covered by the version-aware recovery gate.
+- Isolated verification: transition/recovery suite `6 passed`; transition and affected runtime suite `38 passed`;
+  quick Project OS, data governance, architecture, warehouse and 18-tool MCP surface gates passed; full gate
+  `674 passed` with one existing Authlib deprecation warning.
 
 ## Closeout
 
 - Result: in progress.
-- Remaining risk: deletion remains separately approved.
+- Remaining risk: production migration `0019`, private pre-backup, exact copy/reconciliation, external-consumer
+  observation and post-backup/fresh restore remain unexecuted. Deletion is denied here and remains separately approved.
 - Follow-up Work Item: WI-050.

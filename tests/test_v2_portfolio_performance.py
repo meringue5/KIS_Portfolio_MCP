@@ -37,14 +37,6 @@ INSTRUMENT = "instrument-a"
 def _connection() -> duckdb.DuckDBPyConnection:
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
-    connection.execute("""
-        CREATE TABLE main.market_calendar(
-            market VARCHAR NOT NULL,
-            trade_date DATE NOT NULL,
-            is_open BOOLEAN NOT NULL,
-            PRIMARY KEY(market, trade_date)
-        )
-    """)
     return connection
 
 
@@ -57,7 +49,7 @@ def _account(connection: duckdb.DuckDBPyConnection, valid_from: datetime) -> Non
 
 def _calendar(connection: duckdb.DuckDBPyConnection, dates: list[date]) -> None:
     connection.executemany(
-        "INSERT INTO main.market_calendar VALUES ('krx', ?, true)",
+        "INSERT INTO control.market_calendar(market,trade_date,is_open) VALUES ('krx', ?, true)",
         [(item,) for item in dates],
     )
 
@@ -319,7 +311,7 @@ def test_missing_cash_coverage_and_non_krw_owner_flow_are_nullable_quality_outco
 
 def test_calendar_and_required_account_coverage_fail_closed() -> None:
     calendar_gap, start_at, end_at = _one_period_fixture()
-    calendar_gap.execute("DELETE FROM main.market_calendar")
+    calendar_gap.execute("DELETE FROM control.market_calendar")
     outcome = PortfolioPerformanceEvaluator(calendar_gap).evaluate_period_and_store(
         prior_date=start_at.date(), current_date=end_at.date(), evaluation_slot=SLOT,
         cash_coverage_run_id="coverage-run", evaluation_run_id="calendar-gap-run",

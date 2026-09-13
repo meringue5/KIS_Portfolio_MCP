@@ -1,0 +1,65 @@
+schema_version = 1
+work_item_id = "WI-048"
+canonical_runtime = "v2"
+source_namespace = "main"
+production_apply_approved = false
+deletion_approved = false
+
+[[reference_transitions]]
+source = "main.market_calendar"
+target = "control.market_calendar"
+mode = "idempotent_copy_then_v2_only"
+rollback = "retain main source and restore control table from pre-apply Parquet backup"
+
+[[reference_transitions]]
+source = "main.instrument_master"
+target = "control.instrument_master"
+mode = "idempotent_copy_then_v2_only"
+rollback = "retain main source and restore control table from pre-apply Parquet backup"
+
+[[reference_transitions]]
+source = "main.instrument_classification_overrides"
+target = "control.instrument_classification_overrides"
+mode = "idempotent_copy_then_v2_only"
+rollback = "retain main source and restore control table from pre-apply Parquet backup"
+
+[[archive_dispositions]]
+object = "main.cash_flow"
+observed_rows = 0
+disposition = "archive_only"
+canonical_replacement = "silver.cash_flow_events and silver.cash_flow_event_revisions"
+delete_in_wi_048 = false
+
+[[archive_dispositions]]
+object = "main.trade_journal"
+observed_rows = 0
+disposition = "archive_only"
+canonical_replacement = "silver.trade_journal_revisions"
+delete_in_wi_048 = false
+
+[[archive_dispositions]]
+object = "main.asset_return_daily"
+observed_rows = 0
+disposition = "broken_view_do_not_query"
+canonical_replacement = "gold.metric_values and gold.portfolio_daily_state"
+delete_in_wi_048 = false
+
+[[retained_consumers]]
+path = "src/kis_portfolio/application/valuation_change.py"
+classification = "v1_archive_read_model"
+production_v2_runtime = false
+
+[[retained_consumers]]
+path = "scripts/migrate_v1_v2_history.py"
+classification = "explicit_migration_utility"
+production_v2_runtime = false
+
+[[retained_consumers]]
+path = "scripts/migrate_v1_v2_portfolio.py"
+classification = "explicit_migration_utility"
+production_v2_runtime = false
+
+[[retained_consumers]]
+path = "scripts/sync_v2_instrument_classification.py"
+classification = "explicit_migration_utility"
+production_v2_runtime = false

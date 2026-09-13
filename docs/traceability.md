@@ -94,7 +94,7 @@
 | DEC-033..041 V1/V2 readiness | V2-W0701/0702/0703/0706 | WI-045 / WI-045-S01 | WI-035, WI-044 | closed; ten production dates, exact 220 holding and 170 price rows, 30/30 slots, zero unexplained differences, 20 explained V1 mirror partials, private 0013 exact-hash restore and KRW 434 conservative cost evaluation; WI-046 gate open |
 | DEC-002/033..041/056 Remote production cutover | ADR-028 / V2-W0704/0705/0707 | WI-046 / WI-046-S01..S05 | WI-045 | closed; live OAuth, representative reads, iPhone stable-URL command and schedules pass; owner accepted V2 as sole production baseline and superseded unreliable V1 rollback/window with immutable V2 forward recovery; historical V1 artifacts preserved, no destructive cleanup |
 | DEC-002/034/047/056 local and V1 public retirement | ADR-028 / V2-W0801/0802 | WI-047 | WI-046 | closed; local/setup/public V1 activation retired with explicit migration guidance; data/runtime resources preserved for WI-048/049 |
-| DEC-034/045/056 V1 main consumer transition | ADR-028 / V2-W0803 | WI-048 | WI-046 | in progress; isolated inventory/compatibility/archive work, production effects none |
+| DEC-034/045/056 V1 main consumer transition | ADR-028 / V2-W0803 | WI-048 / WI-048-S01 | WI-046 | in progress; S01 verified migration 0019, V2-qualified reference/runtime transition, deletion-denied archive manifest and local reconciliation/recovery; live migration/external-consumer evidence pending |
 | DEC-034/040 V1 resource cleanup | V2-W0804 | WI-049 | WI-047 | proposed; destructive gate |
 | DEC-033..041 steady-state runbooks | V2-W0805 | WI-050 | WI-047, WI-048 | proposed; MS-004 |
 | DEC-034/045 final V2 audit | V2-W0806 | WI-051 | WI-047~050 | proposed; MS-004 |

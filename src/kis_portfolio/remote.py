@@ -248,7 +248,7 @@ def _build_v2_runtime_server(resource_server_url: str):
     if os.environ.get("KIS_STATE_BACKEND", "").strip().lower() != "firestore":
         raise RuntimeError("Remote MCP V2 requires KIS_STATE_BACKEND=firestore")
     connection = get_connection()
-    MigrationRunner(connection).require("0018")
+    MigrationRunner(connection).require("0019")
     resource = resource_server_url.rstrip("/")
     read_application = RemoteReadApplication(
         WarehouseReadQueryPort(connection), expected_resource=resource

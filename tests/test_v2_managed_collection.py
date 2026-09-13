@@ -33,11 +33,7 @@ class FakeObjectStore:
 def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatch):
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
-    con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
-    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adjusted BOOLEAN, created_at TIMESTAMP)")
-    con.execute("CREATE TABLE main.exchange_rate_history(currency VARCHAR, date DATE, rate DOUBLE)")
-    con.execute("INSERT INTO main.market_calendar VALUES ('krx', '2026-08-28', true, NULL)")
-    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',70000,73000,69000,72000,100,false,'2026-08-28 07:00:00')")
+    con.execute("INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('krx', '2026-08-28', true, NULL)")
     observed = datetime(2026, 8, 28, 7, tzinfo=UTC)
 
     async def fake_collect(slot):
@@ -55,6 +51,15 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
             }],
             "overseas": {}, "overseas_deposit": {}, "source_calls": 2,
             "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "price_observations": [{
+                "market": "KRX", "symbol": "005930", "adjusted": False,
+                "fetched_at": observed,
+                "raw": {"output2": [{
+                    "stck_bsop_date": "20260828", "stck_oprc": "70000",
+                    "stck_hgpr": "73000", "stck_lwpr": "69000",
+                    "stck_clpr": "72000", "acml_vol": "100",
+                }]},
+            }],
         }
 
     monkeypatch.setattr(v2_collection, "_collect_sources", fake_collect)
@@ -78,8 +83,7 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
 def test_managed_collection_skips_declared_closed_day():
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
-    con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
-    con.execute("INSERT INTO main.market_calendar VALUES ('krx', '2026-08-29', false, 'weekend')")
+    con.execute("INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('krx', '2026-08-29', false, 'weekend')")
     result = v2_collection.run_owned_portfolio_pipeline(
         con, logical_date=date(2026, 8, 29), slot="kr-1000", object_store=FakeObjectStore(),
     )
@@ -92,11 +96,7 @@ def test_managed_collection_skips_declared_closed_day():
 def test_managed_collection_resumes_from_landed_bundle_without_source_recall(monkeypatch):
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
-    con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
-    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adjusted BOOLEAN, created_at TIMESTAMP)")
-    con.execute("CREATE TABLE main.exchange_rate_history(currency VARCHAR, date DATE, rate DOUBLE)")
-    con.execute("INSERT INTO main.market_calendar VALUES ('krx','2026-08-28',true,NULL)")
-    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',1,1,1,1,1,false,'2026-08-28 07:00:00')")
+    con.execute("INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('krx','2026-08-28',true,NULL)")
     calls = {"count": 0}
 
     async def fake_collect(slot):
@@ -130,11 +130,7 @@ def test_managed_collection_resumes_from_landed_bundle_without_source_recall(mon
 def test_operational_price_payload_is_landed_as_strict_and_beats_legacy_reconstruction(monkeypatch):
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
-    con.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
-    con.execute("CREATE TABLE main.price_history(exchange VARCHAR, symbol VARCHAR, date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adjusted BOOLEAN, created_at TIMESTAMP)")
-    con.execute("CREATE TABLE main.exchange_rate_history(currency VARCHAR, date DATE, rate DOUBLE)")
-    con.execute("INSERT INTO main.market_calendar VALUES ('krx','2026-08-28',true,NULL)")
-    con.execute("INSERT INTO main.price_history VALUES ('KRX','005930','2026-08-28',1,1,1,1,1,true,'2026-08-28 07:00:00')")
+    con.execute("INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('krx','2026-08-28',true,NULL)")
     observed = datetime(2026, 8, 28, 7, tzinfo=UTC)
 
     async def fake_collect(slot):
