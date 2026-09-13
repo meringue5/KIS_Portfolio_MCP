@@ -1,0 +1,21 @@
+{
+  "schema_version": "kis-portfolio.artifact-cleanup-approval/v1",
+  "approved_at": "2026-09-14",
+  "approved_by": "owner",
+  "spec_reference": "governance/project/evidence/wi049/artifact-cleanup-spec-2026-09-14.json",
+  "spec_canonical_sha256": "bea06488b2cbac374921efe168b6cb81b1ae50b598e301d15fb97d8fc083ee9a",
+  "approved_scope": "all_removal_targets",
+  "approved_target_count": 59,
+  "excluded_mutations": [
+    "cloud_run_jobs",
+    "cloud_run_services",
+    "schedulers",
+    "data",
+    "backups",
+    "buckets",
+    "firestore",
+    "iam",
+    "secrets",
+    "tags"
+  ]
+}

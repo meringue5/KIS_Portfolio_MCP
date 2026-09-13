@@ -230,7 +230,7 @@ flowchart TB
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
 | 현재 production baseline | `WI-046`과 MS-003 closed; DEC-056/ADR-028에 따라 Remote MCP V2와 forward recovery가 유일한 운영 경로 |
 | 현재 단일 WIP | MS-004 `WI-049` / `WI-049-S03` in progress; exact-digest image manifest is read-only |
-| 파괴적 변경 gate | S03 image digest는 아직 미승인; Secret·data·backup·active V2 삭제는 계속 금지 |
+| 파괴적 변경 gate | S03 exact 59 untagged digest만 승인; Secret·data·backup·tag·active V2 삭제는 계속 금지 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 
 `WI-038`은 `WI-037`, `WI-041`도 `WI-037`을 기다린다. 사용자-facing Remote MCP 경로인 `WI-042`는

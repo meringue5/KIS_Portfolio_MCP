@@ -5,7 +5,7 @@
 2026-09-14 06:05 KST의 읽기 전용 재조사에서 Artifact Registry 2개 repository, 6개 package, 108개
 digest를 확인했다. 현행 WI-035 보수 정책을 그대로 적용한 결과는 **유지 49개, 제거 후보 59개**다.
 
-이 문서는 삭제 승인이 아니다. 기계 판독 정본은
+이 문서 자체는 삭제 승인이 아니다. 기계 판독 정본은
 `governance/project/evidence/wi049/artifact-cleanup-spec-2026-09-14.json`이며 `mode=dry_run`,
 `apply_allowed=false`, `owner_approved=false`다.
 
@@ -82,3 +82,13 @@ digest를 확인했다. 현행 WI-035 보수 정책을 그대로 적용한 결�
    명세를 만든다.
 
 현재 단계에서는 Artifact Registry를 포함한 어떤 운영 리소스도 변경하지 않았다.
+
+## Owner approval
+
+2026-09-14 owner가 machine-readable 정본의 59개 `removal_targets` 전체 정리를 승인했다. 별도 승인 artifact
+`governance/project/evidence/wi049/artifact-cleanup-approval-2026-09-14.json`은 명세 canonical SHA-256
+`bea06488...3ee9a`, exact count 59와 제외 변경군을 고정한다. 이 승인은 inventory drift나 tag/reference 변경을
+허용하지 않는다.
+
+구현 후 live dry-run은 59개 승인 대상을 다시 확인하고 `deleted_targets=[]`, `status=dry_run_pass`를
+반환했다. master GitHub Actions 외부에서는 `--apply`가 실패하며 실제 삭제는 아직 수행되지 않았다.

@@ -44,6 +44,7 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-14.12 | 2026-09-14 | Activated WI-049-S03 production phase after owner approved all 59 exact untagged digests | Apply is limited to the merged specification; tag, data, backup, IAM, Scheduler, Secret, service and active V2 changes remain forbidden |
 | 2026-09-14.11 | 2026-09-14 | Activated WI-049-S03 exact-digest specification in isolated read-only scope | Artifact Registry mutation remains disabled until a separate owner approval names exact digests |
 | 2026-09-14.10 | 2026-09-14 | Closed WI-049-S02 after exact production deletion and post-cleanup protection checks | Exactly 11 approved Job definitions removed; 15 history objects, active runtime, backup and images preserved; S03 remains separately gated |
 | 2026-09-14.9 | 2026-09-14 | Activated WI-049-S02 production phase after owner approved all 11 exact Job names | Only those unscheduled one-time Job definitions may be deleted; data, backup, image, IAM, Scheduler, Secret and service exclusions unchanged |
