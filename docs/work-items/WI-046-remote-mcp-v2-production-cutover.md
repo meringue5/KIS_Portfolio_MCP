@@ -1,11 +1,11 @@
 ---
 id: WI-046
 title: Cut production connectors and schedules over to Remote MCP V2
-status: in_progress
+status: closed
 type: architecture
 owner: owner
-decision_refs: ADR-020, ADR-021
-requirement_refs: DEC-030, DEC-034, DEC-045
+decision_refs: ADR-020, ADR-021, ADR-028
+requirement_refs: DEC-030, DEC-034, DEC-045, DEC-056
 milestone_ref: MS-003
 delivery_refs: V2-W0704, V2-W0705, V2-W0707
 parent_work_item: none
@@ -29,8 +29,10 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 - `architecture` cutover requiring explicit owner approval at the execution gate.
 - The owner approved starting the transition after accepting the 2026-09-11 14:30 observation and the immutable
   WI-045 manifest. Production mutations must run from tested `master` through the protected GitHub Actions path.
-- Preserve the pre-cutover Remote MCP revision and V1 schedule definitions for at least a seven-day rollback window.
-  Do not delete V1 services, jobs, schedules, data, secrets or revisions in this Work Item.
+- The original seven-day V1 rollback condition is superseded by the owner's DEC-056 acceptance: V1 was already an
+  unreliable recovery point when V2 development began. Preserve old resources as history, but use V2 forward
+  recovery rather than traffic rollback. Do not delete V1 services, jobs, schedules, data, secrets or revisions in
+  this Work Item.
 
 ## Scope
 
@@ -41,7 +43,7 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 
 - [x] owner approves immutable manifest and rollback window.
 - [x] Remote MCP/iPhone and scheduled runs pass production smoke.
-- [ ] rollback to V1 revision and schedules is rehearsed.
+- [x] owner accepts V2-only forward recovery and removes V1 rollback from the completion contract.
 
 ## Change impact
 
@@ -63,6 +65,7 @@ traffic with rollback holds. 4. Observe and close the rollback window.
 - `WI-046-S04` — restore the approved fixed-Job command boundary: reuse an existing logical run without dispatch,
   invoke only the current KST date through the slot-specific immutable Job definition, and never request container
   overrides from Remote.
+- `WI-046-S05` — adopt DEC-056/ADR-028, close the obsolete V1 rollback gate and move V2-only operations into MS-004.
 
 ## Evidence
 
@@ -174,12 +177,14 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   stable-traffic and warehouse lookup boundaries without dispatching a new Job, widening IAM or writing pipeline
   data. The earlier three failed attempts remain preserved as distinct client-unavailable, auth-projection and
   forbidden-override evidence rather than being overwritten by this success.
+- On 2026-09-13 the owner explicitly rejected further graceful-cutover and V1 rollback work because V1 had already
+  been malfunctioning when V2 development began. DEC-056 and ADR-028 make the passing V2 stable release the sole
+  operating baseline and replace V1 traffic rollback with immutable V2 forward recovery. This acceptance closes the
+  obsolete seven-day rollback/rehearsal gate without deleting V1 resources or erasing its historical evidence.
 
 ## Closeout
 
-- Result: in progress.
-- Remaining risk: rehearse the exact V1 traffic/Scheduler rollback and complete the retained rollback-window
-  observation. Stable-URL representative reads, the no-dispatch managed-command reuse path and iPhone evidence now
-  pass; protected Remote promotion, least-privilege IAM and live Claude OAuth/MCP transport are complete. Exact V1
-  rollback is retained and retirement remains MS-004.
+- Result: closed; V2 is the accepted production baseline.
+- Remaining risk: V2 incidents require forward recovery, and V1 artifacts remain until MS-004 classifies or removes
+  them. Destructive cleanup remains separately gated in WI-049.
 - Follow-up Work Item: WI-047.

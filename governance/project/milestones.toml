@@ -99,7 +99,7 @@ work_item_ids = [
 [[milestones]]
 id = "MS-003"
 title = "Enrichment, stateless Remote MCP V2 and production cutover"
-status = "in_progress"
+status = "closed"
 depends_on = ["MS-002"]
 implementation_gate = [{ milestone_id = "MS-002", minimum_status = "stabilizing" }]
 production_gate = [{ milestone_id = "MS-002", minimum_status = "closed" }]
@@ -116,7 +116,7 @@ work_item_ids = [
 [[milestones]]
 id = "MS-004"
 title = "V2 canonicalization and V1 retirement"
-status = "proposed"
+status = "in_progress"
 depends_on = ["MS-003"]
 implementation_gate = [{ milestone_id = "MS-003", minimum_status = "stabilizing" }]
 production_gate = [{ milestone_id = "MS-003", minimum_status = "closed" }]
@@ -960,3 +960,9 @@ id = "WI-046-S04"
 parent_id = "WI-046"
 title = "Restore fixed-Job managed command invocation without runtime overrides"
 status = "verified"
+
+[[subitems]]
+id = "WI-046-S05"
+parent_id = "WI-046"
+title = "Supersede V1 rollback with V2 forward recovery and enter canonical operations"
+status = "closed"

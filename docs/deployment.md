@@ -4,21 +4,29 @@
 
 ## 현재 상태
 
-현재 기본 엔트리포인트는 local stdio MCP 서버다.
+현재 사용자-facing production 엔트리포인트는 OAuth 기반 Remote MCP V2다.
 
 ```bash
-uv run kis-portfolio-mcp
+uv run kis-portfolio-remote
 ```
 
-Dockerfile은 이 local MCP 서버를 컨테이너에서 실행할 수 있게 하는 최소 베이스라인이다.
-원격 클라이언트용 entrypoint는 `kis-portfolio-remote`이며, `/mcp` endpoint를 Streamable HTTP로 노출한다.
+`kis-portfolio-remote`는 `/mcp` endpoint를 stateless Streamable HTTP로 노출한다. local stdio entrypoint는
+MS-004에서 제거할 compatibility/development harness이며 사용자-facing 제품 경로가 아니다.
 
-### 승인된 V2 배포 목표
+### V2 canonical recovery
+
+DEC-056과 ADR-028에 따라 V1 revision은 production rollback target이 아니다. 장애 시 현재 V2 trust boundary와
+state/data stores를 유지한 채 마지막 검증 V2 immutable image/config를 재배포하거나 새 V2 correction으로
+roll forward한다. Firestore operational state와 MotherDuck canonical data를 V1 store로 역복사하지 않는다.
+보존된 V1 revision과 기존 WI-046 rollback 기록은 forensic/migration history이며 traffic destination으로
+사용하지 않는다. V1 resource의 삭제는 WI-049의 별도 파괴적 gate 전까지 금지한다.
+
+### 승인된 V2 배포 기준선
 
 2026-08-28 승인된 V2 기준선은 auth와 Remote MCP를 별도 service로 유지하되, commit당 한 번 만든 동일한
 immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP는
-`stateless_http=true`·`json_response=true`를 목표로 하지만 Claude·ChatGPT·iPhone 실제 호환성 검증 뒤에만
-전환한다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
+`stateless_http=true`·`json_response=true`로 운영되며 Claude/iPhone OAuth, read와 managed-command smoke가
+통과했다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
 
 기본 `auth`/`remote` target은 여전히 V1 호환 경로다. WI-046의 `wi046-stage` target만 protected `master`에서
 build-once image, additive migration, Firestore state copy와 zero-traffic V2 후보를 준비한다. 이 target은 serving

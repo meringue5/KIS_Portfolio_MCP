@@ -1,6 +1,6 @@
 # MS-003 — Enrichment, stateless Remote MCP V2 and production cutover
 
-> 상태: in_progress; continuous isolated overlap
+> 상태: closed; V2-only production accepted
 > 선행 milestone: MS-002
 > machine registry: `governance/project/milestones.toml`
 
@@ -23,7 +23,7 @@
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | verified; exact inactive 18-tool catalog, fixed-job async run ID, split command scopes, owner-subject/idempotency/concurrency and append-only journal/thread revision fixtures; production effects none |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | verified for isolated phase; three fresh-transport client profiles, exact 35-to-18 manifest, explicit order unsupported and Remote-only guide; actual connector/public smoke remains WI-046 production gate |
 | 10 | WI-045 V1/V2 dual-run readiness | V2-W0701/0702/0703/0706 | WI-035, WI-044 | closed; ten production dates, 30/30 slots, exact quantity/price comparisons, explained partials, private 0013 restore and normal cost evidence |
-| 11 | WI-046 Remote MCP V2 production cutover | V2-W0704/0705/0707 | WI-045 | in progress; stable Remote OAuth/read/iPhone command smoke pass, existing logical run reused with no new Job; preserved V1 rollback rehearsal/window remain |
+| 11 | WI-046 Remote MCP V2 production cutover | V2-W0704/0705/0707 | WI-045 | closed; stable Remote OAuth/read/iPhone command and schedules pass; DEC-056 supersedes unreliable V1 rollback with V2 forward recovery |
 
 V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며 이 milestone의 잔여 범위가 아니다.
 
@@ -33,7 +33,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 - 초기 V2에 포함된 provider의 rights·비용·coverage와 point-in-time 조건이 승인돼 있다. ETF provider와
   look-through는 DEC-049에 따라 이 gate에서 제외되며 unsupported coverage로 남는다.
 - Remote MCP tool budget, OAuth scope, stateless replica와 iPhone client compatibility가 검증된다.
-- V1/V2 dual-write/read reconciliation과 rollback evidence가 있고 V2 schedule SLO가 충족된다.
+- V1/V2 transition evidence와 V2 forward-recovery 계약이 있고 V2 schedule SLO가 충족된다.
 - production cutover와 외부 resource 변경은 당시 승인 gate를 따른다.
 
 ## Implementation and production gates
@@ -53,6 +53,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-13.43 | 2026-09-13 | Closed WI-046 and MS-003 on owner acceptance of V2-only production | DEC-056/ADR-028 supersede the seven-day V1 rollback rehearsal with immutable V2 forward recovery; V1 artifacts remain historical and destructive cleanup stays in WI-049; MS-004 may start |
 | 2026-09-13.42 | 2026-09-13 | Verified the canonical stable Claude/iPhone managed-command path | Remote `00045` returned `reused` for the completed 2026-09-11 `kr-1600` logical run; contemporaneous MCP requests were HTTP 200 and direct execution inventory proved no new 16:00 Job, IAM or data write; WI-046 remains open for rollback rehearsal/window |
 | 2026-09-12.41 | 2026-09-12 | Completed WI-046 least-privilege IAM, additive 0018/state copy and zero-traffic candidate stage | exact auth/Remote identities and allowlists verified; run 34623252239 passed candidate health/discovery/401 smoke on one immutable digest; V1 remains 100%, candidates 0%, all six schedules unchanged; live OAuth/client gate remains |
 | 2026-09-12.40 | 2026-09-12 | Preserved the IAM trust boundary after the first protected WI-046 stage attempts | first run stopped before auth; second built one immutable image then failed before migration at service-account creation; GitHub deployer remains non-admin, owner bootstrap approval pending, V1 traffic and schedules unchanged |
