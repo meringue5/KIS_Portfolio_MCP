@@ -29,7 +29,6 @@ run_shell_and_json() {
   while IFS= read -r script_path; do
     bash -n "$script_path"
   done < <(find scripts .githooks -type f \( -name '*.sh' -o -path '.githooks/pre-*' \) -print | sort)
-  python3 -m json.tool docs/examples/claude_desktop_config.example.json >/dev/null
 }
 
 case "$MODE" in

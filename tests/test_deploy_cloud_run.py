@@ -76,7 +76,7 @@ def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
     )[0]
 
     assert "KIS_STATE_BACKEND: motherduck" in test_step
-    assert "KIS_REMOTE_SURFACE_VERSION: v1" in test_step
+    assert "KIS_REMOTE_SURFACE_VERSION: v2" in test_step
 
 
 def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
@@ -89,6 +89,11 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
         "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
         "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
         "KIS_AUTH_TOKEN_PEPPER": "pepper",
+        "KIS_REMOTE_SURFACE_VERSION": "v2",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": "project-1",
+        "KIS_CLOUD_RUN_REGION": "asia-northeast3",
+        "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
         "KIS_REAL_API_MIN_INTERVAL_SECONDS": "0.15",
         "KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS": "1.0",
         "KIS_TOKEN_MIN_INTERVAL_SECONDS": "1.0",
@@ -103,12 +108,10 @@ def test_remote_deploy_defaults_to_chatgpt_friendly_oauth():
     assert deploy_cloud_run._effective_remote_auth_mode(env) == "oauth"
     assert "KIS_REMOTE_AUTH_TOKEN" not in required
     assert payload["KIS_REMOTE_AUTH_MODE"] == "oauth"
-    assert payload["KIS_REAL_API_MIN_INTERVAL_SECONDS"] == "0.15"
-    assert payload["KIS_VIRTUAL_API_MIN_INTERVAL_SECONDS"] == "1.0"
-    assert payload["KIS_TOKEN_MIN_INTERVAL_SECONDS"] == "1.0"
-    assert payload["KIS_RATE_LIMIT_RETRY_DELAY_SECONDS"] == "1.0"
-    assert payload["KIS_REAL_API_MAX_IN_FLIGHT"] == "3"
-    assert payload["KIS_CIRCUIT_FAILURE_THRESHOLD"] == "5"
+    assert payload["KIS_REMOTE_SURFACE_VERSION"] == "v2"
+    assert payload["KIS_STATE_BACKEND"] == "firestore"
+    assert "KIS_REAL_API_MIN_INTERVAL_SECONDS" not in payload
+    assert "KIS_TOKEN_ENCRYPTION_KEY" not in payload
 
 
 def test_secret_manager_uses_deterministic_secret_ids():
@@ -130,6 +133,11 @@ def test_secret_manager_validation_allows_secret_values_to_live_in_gcp():
         "KIS_AUTH_ISSUER_URL": "https://auth.example.com",
         "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
         "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+        "KIS_REMOTE_SURFACE_VERSION": "v2",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": "project-1",
+        "KIS_CLOUD_RUN_REGION": "asia-northeast3",
+        "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
     }
 
     required = deploy_cloud_run._required_keys_for_remote(env)
@@ -152,6 +160,11 @@ def test_secret_manager_split_removes_secret_values_and_adds_account_refs():
         "KIS_RESOURCE_SERVER_URL": "https://resource.example.com/mcp",
         "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
         "KIS_AUTH_TOKEN_PEPPER": "pepper",
+        "KIS_REMOTE_SURFACE_VERSION": "v2",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": "project-1",
+        "KIS_CLOUD_RUN_REGION": "asia-northeast3",
+        "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
         "KIS_APP_KEY_RIA": "app-key",
         "KIS_APP_SECRET_RIA": "app-secret",
         "KIS_CANO_RIA": "12345678",
@@ -163,17 +176,16 @@ def test_secret_manager_split_removes_secret_values_and_adds_account_refs():
         payload=deploy_cloud_run._build_remote_env(env),
         required=required,
         secret_mode="secret-manager",
-        include_account_secrets=True,
+        include_account_secrets=False,
     )
 
     assert "MOTHERDUCK_TOKEN" not in plain_env
     assert "KIS_TOKEN_ENCRYPTION_KEY" not in plain_env
     assert "KIS_APP_SECRET_RIA" not in plain_env
-    assert plain_env["KIS_ACNT_PRDT_CD_IRP"] == "29"
+    assert "KIS_ACNT_PRDT_CD_IRP" not in plain_env
     assert secret_refs["MOTHERDUCK_TOKEN"] == "kis-portfolio-motherduck-token"
-    assert secret_refs["KIS_TOKEN_ENCRYPTION_KEY"] == "kis-portfolio-kis-token-encryption-key"
-    assert secret_refs["KIS_APP_KEY_RIA"] == "kis-portfolio-kis-app-key-ria"
-    assert secret_refs["KIS_APP_SECRET_PENSION"] == "kis-portfolio-kis-app-secret-pension"
+    assert "KIS_TOKEN_ENCRYPTION_KEY" not in secret_refs
+    assert "KIS_APP_KEY_RIA" not in secret_refs
 
 
 def test_secret_flags_do_not_include_secret_values():

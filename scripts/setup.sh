@@ -1,154 +1,66 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────
-# KIS Portfolio Service — 신규 환경 셋업 스크립트
-#
-# 사용법:
-#   1. .env 파일 준비 (Google Drive 등에서 복사)
-#      cp /path/to/your/.env .env
-#   2. 이 스크립트 실행
-#      bash scripts/setup.sh
-#
-# 수행 내용:
-#   - .env 유효성 검사
-#   - uv + Python 의존성 설치
-#   - claude_desktop_config.json 자동 생성
-#   - Claude Desktop 설정 경로에 config 복사
-# ─────────────────────────────────────────────────────────────────
-set -e
+# KIS Portfolio repository setup after the V2 Remote MCP cutover.
+# This script never registers or starts the retired local V1 MCP server.
+set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$REPO_DIR/.env"
-CLAUDE_CONFIG_DIR="$HOME/Library/Application Support/Claude"
-CLAUDE_CONFIG="$CLAUDE_CONFIG_DIR/claude_desktop_config.json"
+CLAUDE_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
 
 echo "──────────────────────────────────────────"
-echo " KIS Portfolio Service 셋업"
-echo " 리포: $REPO_DIR"
+echo " KIS Portfolio V2 repository setup"
+echo " Repository: $REPO_DIR"
 echo "──────────────────────────────────────────"
 
-# ── 1. .env 확인 ──────────────────────────────
 if [ ! -f "$ENV_FILE" ]; then
   echo ""
-  echo "❌ .env 파일이 없습니다."
-  echo "   Google Drive 등에서 .env를 복사해주세요:"
-  echo "   cp /path/to/backup/.env $ENV_FILE"
+  echo "❌ .env 파일이 없습니다. .env.example을 복사하고 운영 값을 복원해주세요."
   exit 1
 fi
 
-echo "✅ .env 파일 확인"
-
-# .env 로드
 set -a
 source "$ENV_FILE"
 set +a
 
-# 필수 변수 확인
-REQUIRED=(
-  KIS_APP_KEY_RIA KIS_APP_SECRET_RIA KIS_CANO_RIA KIS_ACNT_PRDT_CD_RIA
-  KIS_APP_KEY_ISA KIS_APP_SECRET_ISA KIS_CANO_ISA KIS_ACNT_PRDT_CD_ISA
-  KIS_APP_KEY_IRP KIS_APP_SECRET_IRP KIS_CANO_IRP KIS_ACNT_PRDT_CD_IRP
-  KIS_APP_KEY_PENSION KIS_APP_SECRET_PENSION KIS_CANO_PENSION KIS_ACNT_PRDT_CD_PENSION
-  KIS_APP_KEY_BROKERAGE KIS_APP_SECRET_BROKERAGE KIS_CANO_BROKERAGE KIS_ACNT_PRDT_CD_BROKERAGE
-  MOTHERDUCK_TOKEN
-)
-MISSING=()
-for var in "${REQUIRED[@]}"; do
-  if [ -z "${!var}" ]; then
-    MISSING+=("$var")
-  fi
-done
-if [ ${#MISSING[@]} -gt 0 ]; then
+if [ -z "${KIS_RESOURCE_SERVER_URL:-}" ]; then
   echo ""
-  echo "❌ .env에 다음 변수가 비어있습니다:"
-  for m in "${MISSING[@]}"; do echo "   - $m"; done
+  echo "❌ KIS_RESOURCE_SERVER_URL이 비어 있습니다."
+  echo "   V2 OAuth Remote MCP의 canonical HTTPS /mcp URL을 설정해주세요."
   exit 1
 fi
-echo "✅ 필수 환경변수 확인 완료"
 
-# ── 2. uv + 의존성 설치 ───────────────────────
+python3 - "$KIS_RESOURCE_SERVER_URL" <<'PY'
+import sys
+from urllib.parse import urlsplit
+
+url = sys.argv[1].strip()
+parts = urlsplit(url)
+if parts.scheme != "https" or not parts.netloc or parts.path.rstrip("/") != "/mcp":
+    raise SystemExit("KIS_RESOURCE_SERVER_URL must be a public HTTPS URL ending in /mcp")
+PY
+echo "✅ V2 Remote MCP URL 확인"
+
 echo ""
 echo "📦 의존성 설치 중..."
 cd "$REPO_DIR"
 uv sync 2>&1 | tail -3
 mkdir -p "$REPO_DIR/var/tokens" "$REPO_DIR/var/local" "$REPO_DIR/var/backup"
-echo "✅ 의존성 설치 완료"
+echo "✅ 저장소 의존성 설치 완료"
 
-# ── 3. claude_desktop_config.json 생성 ────────
-echo ""
-echo "⚙️  claude_desktop_config.json 생성 중..."
-
-# 기존 config 백업
+# Remove only the exact retired local registration. Preserve every other
+# Claude Desktop preference/server and retain a timestamped recovery copy.
 if [ -f "$CLAUDE_CONFIG" ]; then
-  BACKUP="$CLAUDE_CONFIG.bak.$(date +%Y%m%d_%H%M%S)"
-  cp "$CLAUDE_CONFIG" "$BACKUP"
-  echo "   기존 config 백업: $BACKUP"
+  python3 "$REPO_DIR/scripts/retire_local_claude_config.py" "$CLAUDE_CONFIG"
 fi
 
-mkdir -p "$CLAUDE_CONFIG_DIR"
-
-# preferences 보존: 기존 config에서 preferences 추출, 없으면 빈 객체
-if [ -f "$BACKUP" ]; then
-  PREFS=$(python3 -c "
-import json, sys
-try:
-  d = json.load(open('$BACKUP'))
-  print(json.dumps(d.get('preferences', {}), ensure_ascii=False))
-except:
-  print('{}')
-")
-else
-  PREFS="{}"
-fi
-
-python3 - <<PYEOF
-import json, os
-
-env = {k: os.environ[k] for k in os.environ}
-repo_dir = "$REPO_DIR"
-uv_bin   = os.path.expanduser("~/.local/bin/uv")
-prefs    = json.loads(r'''$PREFS''')
-
-def orchestrator_srv():
-    e = {
-        "KIS_ACCOUNT_TYPE": "REAL",
-        "KIS_ENABLE_ORDER_TOOLS": env.get("KIS_ENABLE_ORDER_TOOLS", "false"),
-        "KIS_DB_MODE": env.get("KIS_DB_MODE", "motherduck"),
-        "MOTHERDUCK_DATABASE": env.get("MOTHERDUCK_DATABASE", "kis_portfolio"),
-        "KIS_DATA_DIR": env.get("KIS_DATA_DIR", "var"),
-        "MOTHERDUCK_TOKEN": env["MOTHERDUCK_TOKEN"],
-    }
-    for suffix in ("RIA", "ISA", "BROKERAGE", "IRP", "PENSION"):
-        e[f"KIS_APP_KEY_{suffix}"] = env[f"KIS_APP_KEY_{suffix}"]
-        e[f"KIS_APP_SECRET_{suffix}"] = env[f"KIS_APP_SECRET_{suffix}"]
-        e[f"KIS_CANO_{suffix}"] = env[f"KIS_CANO_{suffix}"]
-        e[f"KIS_ACNT_PRDT_CD_{suffix}"] = env[f"KIS_ACNT_PRDT_CD_{suffix}"]
-    return {
-        "command": uv_bin,
-        "args": ["run", "--directory", repo_dir, "kis-portfolio-mcp"],
-        "env": e,
-    }
-
-config = {
-    "mcpServers": {
-        "kis-portfolio": orchestrator_srv(),
-    },
-    "preferences": prefs,
-}
-
-out = "$CLAUDE_CONFIG"
-with open(out, "w") as f:
-    json.dump(config, f, ensure_ascii=False, indent=2)
-print(f"   저장 완료: {out}")
-PYEOF
-
-echo "✅ claude_desktop_config.json 생성 완료"
-
-# ── 4. 완료 ───────────────────────────────────
 echo ""
 echo "──────────────────────────────────────────"
-echo " ✅ 셋업 완료!"
+echo " ✅ 로컬 V1 표면 정리 완료"
 echo ""
-echo " 다음 단계:"
-echo "   1. Claude Desktop 재시작"
-echo "   2. 채팅창에서 '전체 계좌 잔고 보여줘' 테스트"
+echo " Claude의 설정 > 커넥터에서 다음 OAuth Remote MCP를 등록하세요:"
+echo "   이름: KIS Portfolio"
+echo "   URL:  $KIS_RESOURCE_SERVER_URL"
+echo ""
+echo " 등록/권한 변경 후 새 대화를 열고 get-portfolio-overview를 호출하세요."
+echo " 상세 절차: docs/remote-mcp-v2-migration.md"
 echo "──────────────────────────────────────────"

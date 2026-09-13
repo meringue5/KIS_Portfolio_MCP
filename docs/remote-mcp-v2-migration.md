@@ -1,14 +1,14 @@
 # Remote MCP V2 migration guide
 
-> Status: WI-046 zero-traffic production candidate procedure
+> Status: V2 canonical production connection; WI-047 V1 public-surface retirement
 > Product connection: OAuth Remote MCP only
-> Production cutover: owner-approved, protected-master execution only
+> Recovery: forward recovery from a verified V2 image and configuration
 
 ## What changes
 
-KIS Portfolio V2 replaces the endpoint-shaped V1 catalog of 35 tools with 18 outcome-shaped tools. Existing V1
-connectors remain the rollback target until WI-046 explicitly activates V2. Do not remove or reconnect a working V1
-connector merely because this guide exists.
+KIS Portfolio exposes one canonical product connection named **KIS Portfolio**: the OAuth Remote MCP V2 endpoint.
+The endpoint-shaped V1 catalog of 35 tools, local stdio registration and disabled order stubs are retired public
+surfaces. Existing local V1 connector entries must be removed; they are not a production fallback.
 
 V2 uses three separately consented scopes:
 
@@ -64,19 +64,12 @@ The V2 catalog also adds governed position/thread, dividend, fundamental outlook
 owner journal commands. Presence in the inactive catalog does not imply that its backing source or production route is
 active; inspect `quality` and `missing_coverage` on every read.
 
-## WI-046 staged production sequence
+## Current production and recovery contract
 
-The protected `wi046-stage` deploy target is additive and keeps the serving V1 revisions at 100% traffic. It builds
-one immutable image, applies MotherDuck migrations through `0018`, recopies active OAuth/KIS operational state to
-the named Firestore database without mutating MotherDuck, and creates tagged no-traffic auth and Remote V2
-candidates. The auth candidate can access Firestore and its six auth secrets. The Remote candidate can access
-Firestore, MotherDuck, the shared OAuth pepper, and only the three fixed owned-core Jobs; it receives no KIS account
-credentials or token-encryption key.
-
-The automated pre-client smoke covers candidate health, protected-resource discovery, exact stable resource binding
-and unauthenticated `/mcp` rejection. It does not prove OAuth login, tool discovery or client-visible execution.
-After this stage passes, reconnecting a client and consenting to the required scope is a distinct owner-visible gate.
-Do not move public traffic until that live check succeeds.
+V2 is the only supported production surface. A fault is recovered by deploying or routing to a verified immutable V2
+image/configuration and applying an additive correction. Firestore OAuth state and MotherDuck data remain preserved.
+Do not route traffic to a V1 revision. Deleting retained V1 Cloud Run revisions, jobs, images or data is a separate
+destructive WI-049 action and is not part of connector retirement.
 
 ## New-conversation smoke matrix
 
@@ -92,11 +85,11 @@ paste account numbers, credentials or bearer tokens into prompts or evidence.
 Negative checks are mandatory: a read-only token cannot collect or write; a collect token cannot journal; a token for
 another resource is rejected; stale expected revisions and reused idempotency keys with different inputs fail closed.
 
-## Rollback and evidence
+## Forward recovery and evidence
 
-Before WI-046, rollback means leaving V1 untouched and reverting only the inactive V2 compatibility artifacts. During
-an approved cutover, retain the V1 revision and OAuth issuer, record client-visible receipt separately from HTTP 200,
-and return traffic to V1 if discovery, authorization, tool listing or representative calls fail.
+Record client-visible receipt separately from HTTP 200. If discovery, authorization, tool listing or representative
+calls fail, retain data/state evidence and roll forward to the last verified V2 image/configuration or an additive V2
+fix. V1 is migration history, not an operational recovery target.
 
 The WI-044 repository suite is profile-replay evidence, not proof that a live connector or iPhone UI worked. Actual
 client screenshots/logs, connector refresh and user-visible calls remain explicit production-gated evidence.

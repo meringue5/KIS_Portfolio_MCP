@@ -74,7 +74,7 @@ def get_firestore_database() -> str:
 
 
 def get_remote_auth_mode() -> str:
-    return os.environ.get("KIS_REMOTE_AUTH_MODE", "bearer").strip().lower()
+    return os.environ.get("KIS_REMOTE_AUTH_MODE", "oauth").strip().lower()
 
 
 def get_auth_issuer_url() -> str:

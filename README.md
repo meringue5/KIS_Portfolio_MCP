@@ -17,7 +17,7 @@
 - 국내 자산 + 해외 주식 + 해외 예수금까지 합친 canonical 총자산 계산
 - 국내 상장 해외 ETF/REIT를 `해외우회투자`로 분리 표시
 - MotherDuck/DuckDB에 스냅샷을 저장하고 총자산 이력/일간 변화/추세 분석
-- Claude Desktop에서 바로 사용할 수 있는 로컬 MCP 셋업 스크립트 제공
+- Claude web/Desktop/mobile에서 함께 쓰는 OAuth Remote MCP V2 단일 연결
 - 원격 MCP 배포를 위한 HTTP 엔트리포인트와 컨테이너 베이스라인 포함
 
 ## 이런 분에게 맞습니다
@@ -74,13 +74,8 @@
 
 ## 중요한 현재 상태
 
-이 프로젝트는 현재 **조회/분석 중심**입니다.
-
-- `submit-stock-order`
-- `submit-overseas-stock-order`
-
-두 주문 tool은 **disabled stub**이며, 실제 주문 API를 호출하지 않습니다.
-즉, 지금 단계에서는 실수로 주문이 나가는 구조가 아닙니다.
+이 프로젝트는 현재 **조회/분석 및 제한된 수집·일지 명령 중심**입니다. V2 공개 catalog에는 주문 권한과
+주문 tool이 없습니다. 과거 V1의 disabled 주문 stub도 공개 표면에서 제거되었습니다.
 
 ## 예시 질문
 
@@ -96,11 +91,9 @@ Claude Desktop 같은 MCP 클라이언트에서 아래처럼 물어볼 수 있�
 
 ### 준비물
 
-- Python 3.13+
-- [uv](https://astral.sh/uv)
-- 한국투자증권 Open API 앱 키 / 시크릿
-- 계좌번호 및 계좌상품코드
-- MotherDuck 토큰 권장
+- Claude custom connector를 사용할 수 있는 계정
+- 운영 OAuth Remote MCP의 canonical HTTPS `/mcp` URL
+- 저장소 개발·운영 작업에는 Python 3.13+와 [uv](https://astral.sh/uv)
 
 ## 빠른 시작
 
@@ -110,7 +103,7 @@ cd KIS_Portfolio_MCP
 cp .env.example .env
 ```
 
-`.env`에 실제 값을 채운 뒤:
+`.env`에 운영 값을 복원하고 `KIS_RESOURCE_SERVER_URL`을 canonical HTTPS `/mcp` URL로 설정한 뒤:
 
 ```bash
 uv sync
@@ -119,13 +112,14 @@ bash scripts/setup.sh
 
 이 스크립트가 하는 일:
 
-- `.env` 필수값 검사
+- V2 Remote MCP URL 검사
 - 의존성 설치
 - `var/` 런타임 디렉터리 생성
-- Claude Desktop용 `claude_desktop_config.json` 생성
-- `kis-portfolio` MCP 서버 등록
+- 기존 Claude Desktop 설정의 로컬 `kis-portfolio` V1 항목만 백업 후 제거
+- `KIS Portfolio` OAuth Remote custom connector 등록 절차 안내
 
-마지막으로 Claude Desktop을 재시작하면 됩니다.
+Claude의 설정 > 커넥터에서 표시된 URL을 `KIS Portfolio`로 등록하고, 새 대화에서 권한을 승인합니다.
+상세 절차는 [Remote MCP migration guide](./docs/remote-mcp-v2-migration.md)를 따릅니다.
 
 ## 환경변수
 
@@ -175,7 +169,7 @@ breaker·stale fallback 계약은 [docs/kis-api-resilience.md](./docs/kis-api-re
 
 ## 실행 방법
 
-### 로컬 MCP 서버
+### 폐기된 로컬 V1 진입점
 
 ```bash
 uv run kis-portfolio-mcp
@@ -186,6 +180,9 @@ uv run kis-portfolio-mcp
 ```bash
 uv run python server.py
 ```
+
+두 명령은 더 이상 MCP 서버를 시작하지 않습니다. `v1_public_surface_retired`와 OAuth Remote MCP 연결
+안내를 출력하고 실패 종료합니다. 내부 migration/data 호환 코드는 삭제하지 않습니다.
 
 ### 원격 MCP 서버
 
@@ -266,54 +263,44 @@ Scheduler는 Cloud Run Job의 `jobs:run` Google API endpoint를 OAuth로 호출�
 
 ## Claude Desktop 연결
 
-이 저장소는 Claude Desktop 기준 자동 설정을 지원합니다.
+이 저장소는 로컬 stdio MCP를 등록하지 않습니다. 아래 스크립트는 과거 로컬 V1 등록을 안전하게 백업·제거하고
+canonical Remote URL을 검사한 뒤 Claude custom connector 등록 절차를 출력합니다.
 
 ```bash
 bash scripts/setup.sh
 ```
 
-예시 설정 파일은 [docs/examples/claude_desktop_config.example.json](./docs/examples/claude_desktop_config.example.json)에 있습니다.
+OAuth Remote MCP 연결 및 smoke 절차는 [Remote MCP migration guide](./docs/remote-mcp-v2-migration.md)에 있습니다.
 
 ## 대표 MCP Tool
 
-### 포트폴리오 / 계좌
+### 포트폴리오 / 분석
 
-- `get-configured-accounts`
-- `get-all-token-statuses`
-- `get-account-balance`
-- `refresh-all-account-snapshots`
-- `get-total-asset-overview`
+- `get-portfolio-overview`
+- `get-position-analysis`
+- `get-performance-history`
+- `get-exposure-analysis`
 
 ### 시세 / 이력
 
-- `get-stock-price`
-- `get-stock-ask`
-- `get-stock-info`
-- `get-stock-history`
-- `get-overseas-stock-price`
-- `get-overseas-stock-history`
-- `get-exchange-rate-history`
-- `get-overseas-transaction-history`
-- `get-overseas-order-history`
-- `get-overseas-settlement-balance`
+- `get-market-snapshot`
+- `get-market-history`
+- `get-trade-ledger`
+- `get-trade-thread`
+- `get-dividend-summary`
 
-### 손익 / 분석
+### 거버넌스 / 명령
 
-- `get-period-trade-profit`
-- `get-overseas-period-profit`
-- `get-total-asset-history`
-- `get-total-asset-daily-change`
-- `get-total-asset-trend`
-- `get-total-asset-allocation-history`
-- `get-portfolio-history`
-- `get-portfolio-daily-change`
-- `get-portfolio-trend`
-- `get-portfolio-anomalies`
-- `get-bollinger-bands`
+- `get-fundamental-outlook`
+- `get-signal-status`
+- `get-data-catalog`, `get-data-quality`, `get-pipeline-run`
+- `get-journal-review-queue`
+- `run-managed-pipeline`
+- `upsert-trade-journal`, `revise-trade-thread`
 
 ## 총자산 계산 방식
 
-이 프로젝트의 canonical 총자산은 `get-total-asset-overview`를 기준으로 계산합니다.
+이 프로젝트의 canonical 총자산은 V2 `get-portfolio-overview`를 기준으로 조회합니다.
 
 - 국내/연금 계좌 스냅샷 합계
 - 해외 주식 평가액
@@ -377,7 +364,7 @@ clients / services
     ↓
 DuckDB / MotherDuck / analytics
     ↓
-adapters: local MCP, remote MCP, batch jobs, future web API
+adapters: OAuth Remote MCP, batch jobs, compatibility diagnostics, future web API
 ```
 
 즉, MCP는 핵심 로직 위에 올라가는 인터페이스 중 하나입니다.
@@ -432,4 +419,3 @@ KIS_DB_MODE=local
 MIT License
 
 이 프로젝트는 `migusdn/KIS_MCP_Server` 포크에서 출발했으며, 원본 역시 MIT License를 사용합니다.
-

@@ -87,14 +87,26 @@ def test_motherduck_mode_requires_token(monkeypatch):
         kisdb.get_connection()
 
 
-def test_root_server_shim_exposes_mcp():
+def test_root_server_shim_reports_v1_retirement(monkeypatch):
+    monkeypatch.setenv("KIS_RESOURCE_SERVER_URL", "https://resource.example.com/mcp")
     root = Path(__file__).resolve().parents[1]
     spec = importlib.util.spec_from_file_location("root_server_shim", root / "server.py")
     server = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(server)
 
-    assert server.mcp.name == "KIS Portfolio Service"
+    assert server.retirement_notice() == {
+        "status": "retired",
+        "reason_code": "v1_public_surface_retired",
+        "message": (
+            "The local KIS Portfolio V1 MCP server has been retired. "
+            "Connect the OAuth Remote MCP named 'KIS Portfolio' instead."
+        ),
+        "remote_mcp_url": "https://resource.example.com/mcp",
+        "required_transport": "streamable-http",
+        "required_auth": "oauth",
+        "migration_guide": "docs/remote-mcp-v2-migration.md",
+    }
 
 
 def test_backup_script_requires_motherduck_token(monkeypatch):

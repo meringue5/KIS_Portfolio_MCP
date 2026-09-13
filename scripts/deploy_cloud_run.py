@@ -142,7 +142,7 @@ def _required_keys_for_auth(env: dict[str, str]) -> list[str]:
 
 
 def _required_keys_for_remote(env: dict[str, str]) -> list[str]:
-    is_v2 = env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2"
+    is_v2 = env.get("KIS_REMOTE_SURFACE_VERSION", "v2").strip().lower() == "v2"
     keys = ["KIS_DB_MODE"]
     if not is_v2:
         keys.append("KIS_TOKEN_ENCRYPTION_KEY")
@@ -243,7 +243,7 @@ def _build_auth_env(env: dict[str, str]) -> dict[str, str]:
 
 
 def _build_remote_env(env: dict[str, str]) -> dict[str, str]:
-    is_v2 = env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2"
+    is_v2 = env.get("KIS_REMOTE_SURFACE_VERSION", "v2").strip().lower() == "v2"
     keys = {
         "KIS_DB_MODE",
         "MOTHERDUCK_DATABASE",
@@ -2279,7 +2279,7 @@ def main() -> int:
             required=required,
             secret_mode=args.secret_mode,
             include_account_secrets=(
-                env.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() != "v2"
+                env.get("KIS_REMOTE_SURFACE_VERSION", "v2").strip().lower() != "v2"
             ),
         )
         return _deploy_service_or_job(
