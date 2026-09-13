@@ -1,7 +1,7 @@
 ---
 id: WI-047
 title: Retire local setup and the V1 public MCP surface
-status: in_progress
+status: closed
 type: maintenance
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-028
@@ -35,8 +35,8 @@ After V2 cutover, local product setup and the V1 tool catalog would remain a con
 
 ## Acceptance criteria
 
-- [ ] fresh setup registers Remote V2 only and V1 calls receive explicit migration guidance.
-- [ ] public tool/security/full gates pass.
+- [x] fresh setup exposes only the OAuth Remote V2 registration path and V1 calls receive explicit migration guidance.
+- [x] public tool/security/full gates pass.
 
 ## Change impact
 
@@ -54,9 +54,17 @@ After V2 cutover, local product setup and the V1 tool catalog would remain a con
 
 - Activated 2026-09-13 after DEC-056 owner acceptance closed WI-046/MS-003 and established V2 as the only production
   baseline. This phase is repository/setup/fixture work only; live resource deletion remains outside WI-047.
+- `scripts/setup.sh` now validates the canonical HTTPS `/mcp` URL, removes only the exact local `kis-portfolio`
+  registration after a timestamped backup, and guides the owner to the `KIS Portfolio` OAuth Remote connector.
+- `kis-portfolio-mcp` and root `server.py` now fail closed with `v1_public_surface_retired` migration guidance.
+- Remote runtime and deploy workflow default to V2 and reject V1 activation; the public-surface audit verifies the exact
+  18-tool catalog and absence of order stubs. Internal V1 migration/data code remains preserved.
+- Verification: focused retirement/auth/deploy suites passed; `bash scripts/check.sh quick` passed with 18 public tools;
+  `bash scripts/check.sh full` passed with 671 tests and one existing Authlib deprecation warning.
 
 ## Closeout
 
-- Result: in progress.
-- Remaining risk: hidden local users must be checked.
-- Follow-up Work Item: WI-049.
+- Result: closed; V1 local/setup/public MCP activation paths are retired without deleting V1 data or runtime resources.
+- Remaining risk: hidden local config entries are removed only when `setup.sh` is explicitly run; destructive runtime
+  cleanup remains separately gated.
+- Follow-up Work Item: WI-048, then WI-049/WI-050 by dependency.

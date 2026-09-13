@@ -21,7 +21,6 @@ from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from kis_portfolio.adapters.auth.provider import KisOAuthProvider
-from kis_portfolio.adapters.mcp import build_mcp_server
 from kis_portfolio.config import (
     get_auth_allowed_scopes,
     get_auth_issuer_url,
@@ -202,24 +201,21 @@ def _transport_security(resource_server_url: str | None) -> TransportSecuritySet
 
 
 def _create_mcp_handler(resource_server_url: str | None = None) -> tuple[ASGIApp, object]:
-    surface = os.environ.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower()
-    if surface == "v1":
-        server = build_mcp_server()
-        server.streamable_http_app(
-            transport_security=_transport_security(resource_server_url),
+    surface = os.environ.get("KIS_REMOTE_SURFACE_VERSION", "v2").strip().lower()
+    if surface != "v2":
+        raise RuntimeError(
+            "The V1 Remote MCP public surface is retired; "
+            "KIS_REMOTE_SURFACE_VERSION must be 'v2'"
         )
-    elif surface == "v2":
-        if not resource_server_url:
-            raise RuntimeError("KIS_RESOURCE_SERVER_URL is required for Remote MCP V2")
-        server = _build_v2_runtime_server(resource_server_url)
-        server.streamable_http_app(
-            json_response=True,
-            stateless_http=True,
-            max_request_body_size=4 * 1024 * 1024,
-            transport_security=_transport_security(resource_server_url),
-        )
-    else:
-        raise RuntimeError("KIS_REMOTE_SURFACE_VERSION must be 'v1' or 'v2'")
+    if not resource_server_url:
+        raise RuntimeError("KIS_RESOURCE_SERVER_URL is required for Remote MCP V2")
+    server = _build_v2_runtime_server(resource_server_url)
+    server.streamable_http_app(
+        json_response=True,
+        stateless_http=True,
+        max_request_body_size=4 * 1024 * 1024,
+        transport_security=_transport_security(resource_server_url),
+    )
 
     async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
         await server.session_manager.handle_request(scope, receive, send)
@@ -417,39 +413,17 @@ def _build_oauth_app() -> ASGIApp:
 
 
 def create_app() -> ASGIApp:
-    """Create the remote MCP ASGI app.
-
-    Remote deployments require KIS_REMOTE_AUTH_TOKEN by default. Use
-    KIS_REMOTE_AUTH_DISABLED=true only for local tunnel experiments.
-    """
+    """Create the canonical OAuth Remote MCP V2 ASGI app."""
     if os.environ.get("KIS_REMOTE_AUTH_DISABLED", "").lower() == "true":
         auth_mode = "disabled"
     else:
         auth_mode = get_remote_auth_mode()
 
-    if os.environ.get("KIS_REMOTE_SURFACE_VERSION", "v1").strip().lower() == "v2" and auth_mode != "oauth":
+    if os.environ.get("KIS_REMOTE_SURFACE_VERSION", "v2").strip().lower() != "v2":
+        raise RuntimeError("The V1 Remote MCP public surface is retired")
+    if auth_mode != "oauth":
         raise RuntimeError("Remote MCP V2 requires oauth auth mode")
-
-    if auth_mode == "disabled":
-        mcp_handler, server = _create_mcp_handler()
-        exact_mcp_handler = ExactPathMCPApp(mcp_handler)
-        return Starlette(
-            routes=[
-                Route("/health", _health),
-                Route("/healthz", _health),
-                Route("/mcp", endpoint=exact_mcp_handler),
-                Mount("/mcp", app=mcp_handler),
-            ],
-            lifespan=lambda app: server.session_manager.run(),
-        )
-
-    if auth_mode == "oauth":
-        return _build_oauth_app()
-
-    auth_token = os.environ.get("KIS_REMOTE_AUTH_TOKEN", "")
-    if not auth_token:
-        raise RuntimeError("KIS_REMOTE_AUTH_TOKEN is required for bearer remote auth mode")
-    return _build_bearer_app(auth_token)
+    return _build_oauth_app()
 
 
 def main() -> None:

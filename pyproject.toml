@@ -33,7 +33,7 @@ build-backend = "hatchling.build"
 kis-portfolio-auth = "kis_portfolio.adapters.auth:main"
 kis-portfolio-batch = "kis_portfolio.adapters.batch:main"
 kis-portfolio-remote = "kis_portfolio.remote:main"
-kis-portfolio-mcp = "kis_portfolio.adapters.mcp:main"
+kis-portfolio-mcp = "kis_portfolio.legacy_entrypoint:main"
 kis-portfolio-migrate = "kis_portfolio.platform.migration_cli:main"
 
 [tool.hatch.build.targets.wheel]

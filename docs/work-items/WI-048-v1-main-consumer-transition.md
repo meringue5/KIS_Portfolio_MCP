@@ -1,15 +1,17 @@
 ---
 id: WI-048
 title: Transition remaining V1 main consumers to archive or compatibility views
-status: proposed
+status: in_progress
 type: architecture
 owner: owner
-decision_refs: ADR-018, ADR-021, ADR-023
-requirement_refs: DEC-036, DEC-045, DEC-047
+decision_refs: ADR-018, ADR-021, ADR-023, ADR-028
+requirement_refs: DEC-036, DEC-045, DEC-047, DEC-056
 milestone_ref: MS-004
 delivery_refs: V2-W0803
 parent_work_item: none
 depends_on: WI-046
+execution_scope: isolated
+production_effects: none
 architecture_impact: retires the V1 warehouse consumer boundary
 data_impact: compatibility/archive transition; no automatic deletion
 security_impact: confidential history remains protected
@@ -51,10 +53,12 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 
 ## Evidence
 
-- Pending.
+- Activated 2026-09-13 after WI-047 closed the local/setup/public V1 surface. Initial execution is read-only inventory,
+  repository compatibility/archive design, fixtures and local restore verification; live table/view mutation or deletion
+  is excluded.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress.
 - Remaining risk: deletion remains separately approved.
 - Follow-up Work Item: WI-050.

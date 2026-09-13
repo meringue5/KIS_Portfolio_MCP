@@ -34,26 +34,16 @@ KIS_Portfolio_MCP/
 
 ## 서버 실행 방법
 
-Codex Desktop에서 MCP로 자동 실행됨. 수동 테스트 시:
-
-```bash
-cd /path/to/KIS_Portfolio_MCP
-uv run python server.py
-```
-
-Claude Desktop이 띄운 KIS MCP 프로세스를 내릴 때:
-
-```bash
-bash scripts/stop_mcp.sh
-```
+정본 제품 연결은 `KIS Portfolio` OAuth Remote MCP다. `kis-portfolio-mcp`와 루트 `server.py`는 폐기된
+로컬 V1 연결에 명시적 migration guidance를 반환하고 종료하며 MCP 서버를 시작하지 않는다.
 
 ---
 
-## MCP 구성 (claude_desktop_config.json)
+## MCP 구성
 
-기본 Claude Desktop 설정에는 단일 MCP 서버 `kis-portfolio`만 등록한다.
-5개 계좌 설정은 `KIS_APP_KEY_{ACCOUNT}`, `KIS_APP_SECRET_{ACCOUNT}`, `KIS_CANO_{ACCOUNT}`,
-`KIS_ACNT_PRDT_CD_{ACCOUNT}` 형태의 suffixed env로 `kis-portfolio`에 주입한다.
+Claude web/Desktop/mobile에는 같은 public HTTPS `/mcp` URL을 custom connector `KIS Portfolio`로 등록한다.
+계좌 credential은 클라이언트에 주입하지 않으며 운영 batch/secret boundary에만 둔다. 연결 절차와 V1 tool
+migration은 `docs/remote-mcp-v2-migration.md`가 소유한다.
 
 | 계좌 라벨 | ACNT_PRDT_CD | 계좌 종류 |
 |----------|--------------|----------|
@@ -150,17 +140,15 @@ is_pension = acnt_prdt_cd == "29"  # IRP만 pension API, 22(연금저축)는 표
 ```
 
 ### 환경변수 주입 방식
-API 키와 계좌정보는 `claude_desktop_config.json`의 `env` 블록에서 주입.
-`server.py`는 새 `kis_portfolio.adapters.mcp` shim이며, `.env` + `python-dotenv`로도 대체 가능하다.
-
-`kis-portfolio`는 `KIS_APP_KEY_{ACCOUNT}`, `KIS_APP_SECRET_{ACCOUNT}`, `KIS_CANO_{ACCOUNT}`,
-`KIS_ACNT_PRDT_CD_{ACCOUNT}` 형태의 계좌별 suffixed env 전체를 받는다.
+API 키와 계좌정보는 Claude client config에 주입하지 않는다. 운영 batch/worker가 Secret Manager와 배포
+환경을 통해 `KIS_APP_KEY_{ACCOUNT}`, `KIS_APP_SECRET_{ACCOUNT}`, `KIS_CANO_{ACCOUNT}`,
+`KIS_ACNT_PRDT_CD_{ACCOUNT}` 형태의 계좌별 suffixed env를 받는다.
 오케스트레이터는 내부적으로 짧은 scoped env context를 사용해 인증/토큰/잔고 로직을 재사용하며,
 전체 계좌 refresh는 순차 실행한다.
 
 ### 주문 tool stub
-`submit-stock-order`, `submit-overseas-stock-order`는 disabled stub이다.
-실제 KIS 주문 API를 호출하지 않는다. 주문 기능은 audit/confirmation 설계 전까지 구현하지 않는다.
+과거 V1 내부 adapter에는 disabled 주문 stub 구현이 보존되지만 public catalog에는 등록하지 않는다.
+V2에는 주문 scope와 주문 tool이 없다. 주문 기능은 audit/confirmation 설계 전까지 구현하지 않는다.
 
 ### KIS REST resilience
 OAuth token 발급을 제외한 KIS 업무 REST 호출은 `kis_portfolio.clients.kis.request_kis`를 통과한다.
@@ -276,7 +264,7 @@ KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
 
 ## KIS Portfolio MCP
 
-실행 명령은 `kis-portfolio-mcp`.
+제품 실행 명령은 Cloud Run의 `kis-portfolio-remote`다. `kis-portfolio-mcp`는 retired-entrypoint diagnostic이다.
 
 ## KIS Portfolio Batch
 
@@ -292,30 +280,19 @@ Cloud Run 배포 target:
 - `overseas-batch` / `overseas-scheduler`: 해외 일별거래내역 Job + 평일 07:35 KST 스케줄
 
 노출 tool:
-- `get-configured-accounts`
-- `get-all-token-statuses`
-- `get-account-balance`
-- `refresh-all-account-snapshots`
-- `get-stock-price`, `get-stock-ask`, `get-stock-info`, `get-stock-history`
-- `get-overseas-stock-price`, `get-overseas-stock-history`
-- `get-overseas-balance`, `get-overseas-deposit`
-- `get-period-trade-profit`, `get-overseas-period-profit`
-- `get-overseas-transaction-history`, `get-overseas-order-history`, `get-overseas-settlement-balance`
-- `get-order-list`, `get-order-detail`
-- `submit-stock-order`, `submit-overseas-stock-order` (disabled stub)
-- `get-latest-portfolio-summary`
-- `get-total-asset-overview`
-- `get-total-asset-history`, `get-total-asset-daily-change`
-- `get-total-asset-trend`, `get-total-asset-allocation-history`
-- `get-portfolio-daily-change`
-- `get-portfolio-anomalies`, `get-portfolio-trend`, `get-bollinger-bands`
+- `get-portfolio-overview`, `get-position-analysis`, `get-performance-history`
+- `get-market-snapshot`, `get-market-history`
+- `get-trade-ledger`, `get-trade-thread`, `get-dividend-summary`
+- `get-fundamental-outlook`, `get-exposure-analysis`, `get-signal-status`
+- `get-data-catalog`, `get-data-quality`, `get-pipeline-run`, `get-journal-review-queue`
+- `run-managed-pipeline`, `upsert-trade-journal`, `revise-trade-thread`
 
-기존 fork의 `inquery-*` tool alias는 기본 MCP 표면에 등록하지 않는다.
+V1 endpoint-shaped tool과 `inquery-*`/order alias는 public MCP 표면에 등록하지 않는다.
 토큰 원문과 secret은 응답에 포함하지 않는다. 계좌번호는 계좌 메타데이터에서는 항상 마스킹한다.
 
 ## 신규 환경 온보딩
 
-새 맥이나 새 클론 후 Codex Desktop MCP를 복원하는 절차.
+새 맥이나 새 클론에서 저장소 의존성과 OAuth Remote 연결을 복원하는 절차.
 
 ### 전제조건
 - `.env` 파일: 구글드라이브 등에 안전하게 보관한 사본 복사
@@ -337,13 +314,14 @@ bash scripts/setup.sh
 ```
 
 `setup.sh`가 자동으로 처리하는 것:
-- `.env` 유효성 검사 (빠진 변수 즉시 오류)
+- canonical `KIS_RESOURCE_SERVER_URL` 검사
 - `uv sync` (Python 의존성 설치)
-- `~/Library/Application Support/Claude/claude_desktop_config.json` 생성
-- 기존 설정 백업 (`claude_desktop_config.json.bak`)
+- 기존 Claude Desktop config의 정확한 로컬 `kis-portfolio` 항목만 백업 후 제거
+- OAuth Remote custom connector 등록값 안내
 
 ### 이후
-Claude Desktop 재시작 → `kis-portfolio` 단일 MCP 서버 스폰 확인
+Claude 설정 > 커넥터에서 `KIS Portfolio`와 canonical `/mcp` URL 등록 → 새 대화에서 OAuth 승인 및
+`get-portfolio-overview` 확인.
 
 ### 환경변수 레퍼런스
 `.env.example` 참고. 계좌별 변수명 패턴:

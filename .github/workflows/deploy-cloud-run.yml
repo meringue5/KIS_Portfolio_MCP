@@ -75,7 +75,7 @@ jobs:
       KIS_ENABLE_ORDER_TOOLS: ${{ vars.KIS_ENABLE_ORDER_TOOLS || 'false' }}
       KIS_DATA_DIR: ${{ vars.KIS_DATA_DIR || 'var' }}
       KIS_REMOTE_AUTH_MODE: ${{ vars.KIS_REMOTE_AUTH_MODE || 'oauth' }}
-      KIS_REMOTE_SURFACE_VERSION: ${{ vars.KIS_REMOTE_SURFACE_VERSION || 'v1' }}
+      KIS_REMOTE_SURFACE_VERSION: ${{ vars.KIS_REMOTE_SURFACE_VERSION || 'v2' }}
       KIS_STATE_BACKEND: ${{ vars.KIS_STATE_BACKEND || 'firestore' }}
       KIS_GCP_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
       KIS_CLOUD_RUN_REGION: ${{ vars.KIS_DEPLOY_REGION || 'asia-northeast3' }}
@@ -164,7 +164,7 @@ jobs:
         env:
           # Deployment vars are production inputs, not test-runtime activation.
           KIS_STATE_BACKEND: motherduck
-          KIS_REMOTE_SURFACE_VERSION: v1
+          KIS_REMOTE_SURFACE_VERSION: v2
         run: uv run pytest
 
       - name: Authenticate to Google Cloud

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import ast
-import json
 import logging
 import re
 import sys
@@ -42,7 +41,8 @@ def main() -> int:
     if pyproject["project"]["name"] != "kis-portfolio":
         fail("pyproject project.name must be kis-portfolio", failures)
 
-    scripts = set(pyproject["project"].get("scripts", {}))
+    script_entries = pyproject["project"].get("scripts", {})
+    scripts = set(script_entries)
     expected_scripts = {
         "kis-portfolio-auth",
         "kis-portfolio-batch",
@@ -52,6 +52,8 @@ def main() -> int:
     }
     if scripts != expected_scripts:
         fail(f"console scripts must be {sorted(expected_scripts)}, got {sorted(scripts)}", failures)
+    if script_entries.get("kis-portfolio-mcp") != "kis_portfolio.legacy_entrypoint:main":
+        fail("kis-portfolio-mcp must be the retired V1 diagnostic entrypoint", failures)
 
     packages = pyproject["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
     if packages != ["src/kis_portfolio"]:
@@ -71,20 +73,22 @@ def main() -> int:
         if not (ROOT / required).exists():
             fail(f"missing required path: {required}", failures)
 
-    if "kis_portfolio.adapters.mcp" not in file_text("server.py"):
-        fail("root server.py must import kis_portfolio.adapters.mcp", failures)
+    if "kis_portfolio.legacy_entrypoint" not in file_text("server.py"):
+        fail("root server.py must import the retired V1 diagnostic", failures)
 
     setup_text = file_text("scripts/setup.sh")
-    if '"kis-portfolio": orchestrator_srv()' not in setup_text:
-        fail("scripts/setup.sh must create kis-portfolio MCP server", failures)
+    if "retire_local_claude_config.py" not in setup_text:
+        fail("scripts/setup.sh must remove the exact retired local MCP registration", failures)
+    if "KIS_RESOURCE_SERVER_URL" not in setup_text or "OAuth Remote MCP" not in setup_text:
+        fail("scripts/setup.sh must guide the canonical OAuth Remote MCP connection", failures)
+    if "orchestrator_srv" in setup_text:
+        fail("scripts/setup.sh must not create a local MCP server", failures)
     for legacy_server in ["kis-ria", "kis-isa", "kis-irp", "kis-pension", "kis-brokerage", "kis-api-search"]:
         if f'"{legacy_server}"' in setup_text:
             fail(f"scripts/setup.sh must not create {legacy_server}", failures)
 
-    example = json.loads(file_text("docs/examples/claude_desktop_config.example.json"))
-    servers = set(example.get("mcpServers", {}))
-    if servers != {"kis-portfolio"}:
-        fail(f"example Claude config must only contain kis-portfolio, got {sorted(servers)}", failures)
+    if (ROOT / "docs/examples/claude_desktop_config.example.json").exists():
+        fail("retired local Claude Desktop config example must not exist", failures)
 
     runtime_files = [
         p for p in ROOT.rglob("*")
@@ -103,15 +107,15 @@ def main() -> int:
             fail(f"legacy runtime identity found in {rel}", failures)
 
     try:
-        from kis_portfolio.adapters.mcp import mcp
+        from kis_portfolio.adapters.mcp.v2 import COMMAND_TOOL_CONTRACTS, TOOL_CONTRACTS
     except Exception as exc:
-        fail(f"could not import MCP adapter: {exc}", failures)
+        fail(f"could not import V2 MCP adapter: {exc}", failures)
     else:
-        if mcp.name != "KIS Portfolio Service":
-            fail(f"MCP name mismatch: {mcp.name}", failures)
-        tool_names = set(mcp._tool_manager._tools)
-        if any(name.startswith("inquery-") or name.startswith("order-") for name in tool_names):
-            fail("MCP must not expose legacy inquery-* or order-* tool aliases", failures)
+        tool_names = {item.name for item in TOOL_CONTRACTS + COMMAND_TOOL_CONTRACTS}
+        if len(tool_names) != 18:
+            fail(f"V2 public MCP catalog must contain 18 tools, got {len(tool_names)}", failures)
+        if {"submit-stock-order", "submit-overseas-stock-order"} & tool_names:
+            fail("V2 public MCP catalog must not expose order stubs", failures)
 
     adapter_ast = ast.parse(file_text("src/kis_portfolio/adapters/mcp/server.py"))
     live_order_markers = {"get_hashkey", "ORDER_PATH", "OVERSEAS_ORDER_PATH"}

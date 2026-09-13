@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import sys
 from pathlib import Path
@@ -25,74 +24,46 @@ logging.disable(logging.CRITICAL)
 
 
 EXPECTED_TOOLS = {
-    "get-configured-accounts",
-    "get-all-token-statuses",
-    "get-account-balance",
-    "refresh-all-account-snapshots",
-    "get-total-asset-overview",
-    "get-stock-price",
-    "get-stock-ask",
-    "get-stock-info",
-    "get-stock-history",
-    "get-overseas-stock-price",
-    "get-overseas-balance",
-    "get-overseas-deposit",
-    "get-exchange-rate-history",
-    "get-overseas-stock-history",
-    "get-period-trade-profit",
-    "get-overseas-period-profit",
-    "get-overseas-transaction-history",
-    "get-overseas-order-history",
-    "get-overseas-settlement-balance",
-    "get-order-list",
-    "get-order-detail",
-    "submit-stock-order",
-    "submit-overseas-stock-order",
-    "get-portfolio-history",
-    "get-price-from-db",
-    "get-exchange-rate-from-db",
-    "get-bollinger-bands",
-    "get-latest-portfolio-summary",
-    "get-portfolio-daily-change",
-    "get-portfolio-anomalies",
-    "get-portfolio-trend",
-    "get-total-asset-history",
-    "get-total-asset-daily-change",
-    "get-total-asset-trend",
-    "get-total-asset-allocation-history",
+    "get-portfolio-overview",
+    "get-position-analysis",
+    "get-performance-history",
+    "get-market-snapshot",
+    "get-market-history",
+    "get-trade-ledger",
+    "get-trade-thread",
+    "get-dividend-summary",
+    "get-fundamental-outlook",
+    "get-exposure-analysis",
+    "get-signal-status",
+    "get-data-catalog",
+    "get-data-quality",
+    "get-pipeline-run",
+    "get-journal-review-queue",
+    "run-managed-pipeline",
+    "upsert-trade-journal",
+    "revise-trade-thread",
 }
-
-
-async def check_order_stubs(server, failures: list[str]) -> None:
-    domestic = await server.submit_stock_order("005930", 1, 0, "buy")
-    overseas = await server.submit_overseas_stock_order("AAPL", 1, 100.0, "buy", "NASD")
-    for name, result in {
-        "submit-stock-order": domestic,
-        "submit-overseas-stock-order": overseas,
-    }.items():
-        if result.get("status") != "disabled":
-            failures.append(f"{name} must return status=disabled")
-        if result.get("source") != "order_stub":
-            failures.append(f"{name} must return source=order_stub")
 
 
 def main() -> int:
     failures: list[str] = []
 
-    from kis_portfolio.adapters.mcp import server
+    from kis_portfolio.adapters.mcp.v2 import COMMAND_TOOL_CONTRACTS, TOOL_CONTRACTS
 
-    tool_names = set(server.mcp._tool_manager._tools)
+    contracts = TOOL_CONTRACTS + COMMAND_TOOL_CONTRACTS
+    tool_names = {item.name for item in contracts}
     missing = EXPECTED_TOOLS - tool_names
     extra = tool_names - EXPECTED_TOOLS
     if missing:
         failures.append(f"missing tools: {sorted(missing)}")
     if extra:
         failures.append(f"unexpected tools: {sorted(extra)}")
-    legacy = sorted(name for name in tool_names if name.startswith("inquery-") or name.startswith("order-"))
+    legacy = sorted(
+        name for name in tool_names
+        if name.startswith("inquery-") or name.startswith("order-") or name.startswith("submit-")
+    )
     if legacy:
         failures.append(f"legacy tool aliases exposed: {legacy}")
-
-    asyncio.run(check_order_stubs(server, failures))
 
     if failures:
         print("MCP surface check failed:")

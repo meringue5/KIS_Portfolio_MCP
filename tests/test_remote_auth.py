@@ -13,14 +13,14 @@ from kis_portfolio.adapters.auth.config import StaticOAuthClientConfig
 from kis_portfolio.adapters.auth.provider import KisOAuthProvider
 
 
-def test_remote_app_requires_auth_token(monkeypatch):
+def test_remote_v2_rejects_retired_bearer_mode(monkeypatch):
     monkeypatch.delenv("KIS_REMOTE_AUTH_TOKEN", raising=False)
     monkeypatch.delenv("KIS_REMOTE_AUTH_DISABLED", raising=False)
     monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "bearer")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
 
-    with pytest.raises(RuntimeError, match="KIS_REMOTE_AUTH_TOKEN"):
+    with pytest.raises(RuntimeError, match="requires oauth auth mode"):
         remote.create_app()
 
 
@@ -80,10 +80,14 @@ def test_remote_v2_runtime_factory_composes_exact_production_catalog(monkeypatch
 
 
 def test_remote_healthcheck_does_not_require_auth(monkeypatch):
-    monkeypatch.setenv("KIS_REMOTE_AUTH_TOKEN", "secret")
-    monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "bearer")
+    monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "oauth")
+    monkeypatch.setenv("KIS_AUTH_ISSUER_URL", "https://auth.example.com")
+    monkeypatch.setenv("KIS_RESOURCE_SERVER_URL", "https://resource.example.com/mcp")
+    monkeypatch.setenv("KIS_AUTH_TOKEN_PEPPER", "pepper")
+    monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+    monkeypatch.setattr(remote, "_build_v2_runtime_server", lambda _resource: _dummy_remote_server())
 
     with TestClient(remote.create_app()) as client:
         response = client.get("/health")
@@ -92,18 +96,15 @@ def test_remote_healthcheck_does_not_require_auth(monkeypatch):
     assert response.json() == {"status": "ok"}
 
 
-def test_remote_bearer_mode_accepts_exact_mcp_path_without_redirect(monkeypatch):
+def test_remote_v1_surface_is_explicitly_retired(monkeypatch):
+    monkeypatch.setenv("KIS_REMOTE_SURFACE_VERSION", "v1")
     monkeypatch.setenv("KIS_REMOTE_AUTH_TOKEN", "secret")
     monkeypatch.setenv("KIS_REMOTE_AUTH_MODE", "bearer")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
-    monkeypatch.setattr(remote, "build_mcp_server", _dummy_remote_server)
 
-    with TestClient(remote.create_app()) as client:
-        response = client.get("/mcp", follow_redirects=False)
-
-    assert response.status_code == 401
-    assert "location" not in response.headers
+    with pytest.raises(RuntimeError, match="V1 Remote MCP public surface is retired"):
+        remote.create_app()
 
 
 def test_remote_mcp_requires_bearer_token(monkeypatch):
@@ -169,6 +170,12 @@ def _dummy_remote_server():
     return DummyServer()
 
 
+def _protocol_remote_server():
+    from mcp.server import MCPServer
+
+    return MCPServer("KIS Portfolio V2 Test", dependencies=[])
+
+
 def test_remote_oauth_mode_enforces_token_and_scope(monkeypatch):
     provider = _oauth_provider()
     user = auth_repository.upsert_auth_user("owner@example.com", "Owner")
@@ -222,7 +229,7 @@ def test_remote_oauth_mode_enforces_token_and_scope(monkeypatch):
     monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
-    monkeypatch.setattr(remote, "build_mcp_server", _dummy_remote_server)
+    monkeypatch.setattr(remote, "_build_v2_runtime_server", lambda _resource: _dummy_remote_server())
 
     with TestClient(remote.create_app()) as client_http:
         assert client_http.get("/health").status_code == 200
@@ -260,7 +267,7 @@ def test_remote_oauth_mode_exposes_discovery_and_authorize_redirect(monkeypatch)
     monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
-    monkeypatch.setattr(remote, "build_mcp_server", _dummy_remote_server)
+    monkeypatch.setattr(remote, "_build_v2_runtime_server", lambda _resource: _dummy_remote_server())
 
     with TestClient(remote.create_app()) as client_http:
         protected = client_http.get("/.well-known/oauth-protected-resource")
@@ -308,7 +315,7 @@ def test_remote_oauth_mode_challenges_with_resource_metadata(monkeypatch):
     monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
-    monkeypatch.setattr(remote, "build_mcp_server", _dummy_remote_server)
+    monkeypatch.setattr(remote, "_build_v2_runtime_server", lambda _resource: _dummy_remote_server())
 
     with TestClient(remote.create_app()) as client_http:
         response = client_http.get("/mcp")
@@ -362,7 +369,7 @@ def test_remote_oauth_mode_rejects_token_for_other_resource(monkeypatch):
     monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
-    monkeypatch.setattr(remote, "build_mcp_server", _dummy_remote_server)
+    monkeypatch.setattr(remote, "_build_v2_runtime_server", lambda _resource: _dummy_remote_server())
 
     with TestClient(
         remote.create_app(),
@@ -409,6 +416,11 @@ def test_remote_oauth_mode_supports_2026_discovery(monkeypatch):
     monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+    monkeypatch.setattr(
+        remote,
+        "_build_v2_runtime_server",
+        lambda _resource: _protocol_remote_server(),
+    )
 
     request = {
         "jsonrpc": "2.0",
