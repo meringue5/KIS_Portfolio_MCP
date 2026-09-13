@@ -1,7 +1,7 @@
 ---
 id: WI-048
 title: Transition remaining V1 main consumers to archive or compatibility views
-status: in_progress
+status: stabilizing
 type: architecture
 owner: owner
 decision_refs: ADR-018, ADR-021, ADR-023, ADR-028
@@ -10,12 +10,15 @@ milestone_ref: MS-004
 delivery_refs: V2-W0803
 parent_work_item: none
 depends_on: WI-046
-execution_scope: production
-production_effects: additive_reference_migration_and_v2_revision_update
+execution_scope: isolated
+production_effects: none
 architecture_impact: retires the V1 warehouse consumer boundary
 data_impact: compatibility/archive transition; no automatic deletion
 security_impact: confidential history remains protected
 cost_impact: bounded storage and query review
+stabilization_window: production transition run plus first owner-observed canonical Remote read after revision 00045
+stabilization_exit_refs: GitHub run 34759029400, transition execution kis-portfolio-wi048-s02-ct5p9, owner Remote observation
+rollback_plan: forward-recover the additive reference copy or redeploy the last safe V2 digest; never reactivate V1
 ---
 
 # WI-048 — Transition remaining V1 main consumers to archive or compatibility views
@@ -50,7 +53,7 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 ## Sub-items
 
 - `WI-048-S01` — isolated V2 reference-control transition, archive disposition and restore contract (`verified`).
-- `WI-048-S02` — execute the protected production reference transition and V2-only revision update (`in_progress`).
+- `WI-048-S02` — execute the protected production reference transition and V2-only revision update (`closed`).
 
 ## Evidence
 
@@ -80,10 +83,32 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
   post-backup/fresh restore, then the existing V2 core jobs and stable Remote update. The deploy target reuses existing
   identities and does not contain Scheduler or IAM mutation commands. Focused transition/deploy/Project OS verification
   passed `83` tests; the full gate passed `677` tests with one existing Authlib deprecation warning.
+- Production workflow run `34759029400` completed successfully from master `fdd5935` in 5m51s. Transition execution
+  `kis-portfolio-wi048-s02-ct5p9` completed one task in 1m58s: private pre/post backups contained 76/79 objects,
+  migration advanced `0018` to `0019`, `control.market_calendar`/`instrument_master`/classification override rows
+  reconciled at 365/4,440/0, fresh restore fingerprints matched, and idempotent replay passed. Reported source calls,
+  source mutations and deletions were all zero.
+- The existing core jobs for `kr-1000`, `kr-1430` and `kr-1600` plus stable Remote now use the same immutable
+  `sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab`. Their labels identify git SHA
+  `fdd59355a6a8c3440bd654e67adebe8f5d0447c5` and GitHub run `34759029400`; Remote revision
+  `kis-portfolio-remote-00045-kag` serves 100% traffic. Auth/Remote health returned 200, unauthenticated `/mcp`
+  returned 401 and protected-resource metadata named the canonical resource.
+- Post-transition live inventory has no missing managed objects and confirms all three new `control` references are
+  managed. The retained zero-row `main.cash_flow`, `main.trade_journal`, `main.asset_return_daily` objects and known
+  V1 daily-view column drift remain explicitly unadopted and undeleted pending the separate WI-049 destructive gate.
+
+## Stabilization plan
+
+- Observe one owner-initiated read through the canonical `KIS Portfolio` Remote after revision
+  `kis-portfolio-remote-00045-kag`; no V1 comparison or fallback is required.
+- Keep the immutable transition run, private pre/post restore evidence, health/auth boundary and live inventory as the
+  exit evidence. A client-visible read failure opens a linked corrective sub-item instead of reactivating V1.
+- If the additive reference copy or runtime revision regresses, forward-reconcile the copied references or redeploy the
+  last safe V2 digest. WI-049 remains the only place permitted to delete retained V1 objects.
 
 ## Closeout
 
-- Result: in progress.
-- Remaining risk: production migration `0019`, private pre-backup, exact copy/reconciliation, external-consumer
-  observation and post-backup/fresh restore remain unexecuted. Deletion is denied here and remains separately approved.
+- Result: stabilizing; S02 production transition is closed and the V2 runtime is canonical.
+- Remaining risk: observe external consumers against the canonical Remote and retain the known V1 drift until WI-049
+  receives its separate destructive approval. No V1 rollback requirement remains.
 - Follow-up Work Item: WI-050.
