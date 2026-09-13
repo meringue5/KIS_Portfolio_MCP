@@ -127,5 +127,9 @@ realized trades, cash/trade revision histories, lots, journals and trade threads
 SHA-256 `bc91f37b...68da0` also remained present (25,138 bytes).
 
 The exact production record is
-`governance/project/evidence/wi049/runtime-cleanup-result-2026-09-14.json`. S02 is closed. S03 remains proposed and
-review-only: neither this execution nor the owner's S02 approval authorizes deleting any Artifact Registry digest.
+`governance/project/evidence/wi049/runtime-cleanup-result-2026-09-14.json`. At S02 closeout, S03 remained proposed and
+review-only: neither that execution nor the owner's S02 approval authorized deleting any Artifact Registry digest.
+
+S03 was subsequently activated in read-only scope. The fresh exact-digest specification is
+`docs/operations/wi-049-s03-artifact-cleanup-spec-2026-09.md`; its machine-readable artifact classifies 49 retained
+and 59 removal-candidate digests without authorizing or applying deletion.

@@ -1,0 +1,181 @@
+{
+  "schema_version": "kis-portfolio.artifact-cleanup-spec/v1",
+  "generated_at": "2026-09-14T06:05:00+09:00",
+  "project_id": "grand-forge-279904",
+  "region": "asia-northeast3",
+  "mode": "dry_run",
+  "apply_allowed": false,
+  "owner_approved": false,
+  "inventory": {
+    "repositories": 2,
+    "packages": 6,
+    "versions": 108,
+    "retain_versions": 49,
+    "removal_candidate_versions": 59,
+    "retain_logical_bytes": 5337218370,
+    "removal_candidate_logical_bytes": 5996113502,
+    "size_note": "Logical image-size sum only; shared layers mean this is not a billing-savings claim."
+  },
+  "policy": {
+    "minimum_recent_versions_per_package": 3,
+    "untagged_min_age_days": 30,
+    "retain_all_tagged_versions": true,
+    "retain_active_traffic_template_job_and_forward_recovery_digests": true,
+    "remove_only_if_all_retain_reasons_are_absent": true
+  },
+  "protected_references": [
+    {"target": "kis-portfolio-auth traffic", "repository": "kis-portfolio", "package": "kis-portfolio", "digest": "sha256:b3b620ebc5dbaf9d5e2e2e1d2b8186e55714de2929604858b52ed30dd085ad43"},
+    {"target": "kis-portfolio-auth tagged candidate and kis-portfolio-remote traffic", "repository": "kis-portfolio", "package": "kis-portfolio", "digest": "sha256:c8abbb57dc28995ee2c4c3e6e0587776aff4031956c9e8753fafe076e1dfcf6b"},
+    {"target": "kis-portfolio-remote template and three canonical core jobs", "repository": "kis-portfolio", "package": "kis-portfolio", "digest": "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab"},
+    {"target": "kis-portfolio-domestic-order-history", "repository": "cloud-run-source-deploy", "package": "kis-portfolio-domestic-order-history", "digest": "sha256:c3b15efd194887e1fad58901be6804926c61c0422ba95611bb50373e51719b49"},
+    {"target": "kis-portfolio-overseas-transaction-history", "repository": "cloud-run-source-deploy", "package": "kis-portfolio-overseas-transaction-history", "digest": "sha256:7a0846acc27718653159c22648990cd725f02e9ea255dae5c007556c52b7346f"},
+    {"target": "kis-portfolio-token-warmup-dry-run", "repository": "cloud-run-source-deploy", "package": "kis-portfolio-token-warmup-dry-run", "digest": "sha256:394ddf8ceb4b4504c33ed0e5a68f5ab41a6cfebd202deb867e1b92b968cba3b2"}
+  ],
+  "retain_targets": {
+    "cloud-run-source-deploy/kis-portfolio-auth": [
+      "sha256:6d90a4a2a76548ee7f65718d2b1c434500f622ef716ba6b43a8232793e2ff3f9",
+      "sha256:e326674886c12ef5f9d2c7612aa2b3783026b7dc4c80c06fcf566c922e3b38a3",
+      "sha256:a0fbee1c5c6431875232fd1af59a518eb0c6797172fafadd7cb2f8c8a39d9027"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-domestic-order-history": [
+      "sha256:afcd44c97e06f08d46c95d1e3b4966cc1a6b97985781d3fb6c4b2a42b81e2243",
+      "sha256:9fe3519638d7ebacac593f2a83b00eaf16fc6b1761ea62cfea848ae07bbbe2af",
+      "sha256:c3b15efd194887e1fad58901be6804926c61c0422ba95611bb50373e51719b49"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-overseas-transaction-history": [
+      "sha256:6e7ad5f5dd2ec4f400b5c35a15a58f4891d945d8b18fdc023ec17167c91117f7",
+      "sha256:abc22ea849c6866bcf872fc7b62dd4a36d07d3da539922d15e1fe8f940fe22b4",
+      "sha256:7a0846acc27718653159c22648990cd725f02e9ea255dae5c007556c52b7346f"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-remote": [
+      "sha256:ae8e8ffe9d809bb321bff122447fa5346c21ae697e094207d320079409f5b80b",
+      "sha256:009a5e33930a78ba48ca573dfad20a28b2341cb0a0ee5223a5dabb485ec693e4",
+      "sha256:45b20a338e73ee52bef77f87730e302c5b3d7b1c772cd36d6b2f3b0950e2dc58",
+      "sha256:a8f12c3fa070b4ddb85646c4f018ae1aae0a020329e31d370d30a2b91f6d06bb"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-token-warmup-dry-run": [
+      "sha256:d910f45af1cd4491488bb4783998ee63e618ea89390e2caddcab1d4862660dcb",
+      "sha256:85ba4b0cb0ef0cb49844ca356ced8c22966d5596fe9d1d28632014c266f65828",
+      "sha256:394ddf8ceb4b4504c33ed0e5a68f5ab41a6cfebd202deb867e1b92b968cba3b2"
+    ],
+    "kis-portfolio/kis-portfolio": [
+      "sha256:d1128dc7f2638a1dc2755ca1c23d3a66dddf973a21f1386f57ea2c685df2f166",
+      "sha256:d11919e985b900f653d58f4d45de223929e0bbd1df81b288d0f1df7554b9088a",
+      "sha256:e27540ae026b2e5565d197927b1f1444f43f92ee5f3b8f7330e7ae5421ddbb72",
+      "sha256:ef626a5d6955839a8e83ec5332acb33b7558ef124372be673bb452eb3e63afd8",
+      "sha256:53089407205e325cae8008cdc616b7b3edc74a76ca9fd11943a020fe50ecb071",
+      "sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863",
+      "sha256:ba4a91c723f8e5f65b0f97de783f85a7145552e638d62bbda39c9ceaf1152e84",
+      "sha256:2bf2decc4d0a6adf81ba9cb78e560ff5500f1f34ceee9625f0feb3f75f19d94d",
+      "sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327",
+      "sha256:a766382c886614d628271ed9a9f995652d8658df0618f14d2e6f35c93ee23aba",
+      "sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43",
+      "sha256:77b3694ce009ba157914c021c3f55243176a182a5b8ed291f15deb12739ba940",
+      "sha256:fe638f9cb578008c437e2819f4c74b9d390f0751d4823fb6896115c5fad7110f",
+      "sha256:b890023a54438f7a873923a75712238830c2ac30c18bb8a3d4a7c757f3cd6f5a",
+      "sha256:791da9af703524f4e4579219f9aeddeac2c271aa9b17b63d09512f6d03faf9eb",
+      "sha256:b86bc87ca8bca9dce0f52f983b9aa8f05b1b951efb86338b44cc8d032f1dc03e",
+      "sha256:1a427f354b70c19fc43739691612f01b3d668b242ab52a81d04bc1b5bfedb7ed",
+      "sha256:dc009b95eaa2bdfd8ff0b37ba155a2a936ec8a1eaf3ac2ee3c0436b5162e8d1b",
+      "sha256:8cf0b598d7d7c60835a57442f63f0045fad6b7f81f5e3da36d23548265ac0595",
+      "sha256:ddab74f6b33f25ec7f1e3ef19b20f45ec29e02e3867fc20bf2bbdc5e0ed3b239",
+      "sha256:98bb6dc92385242ea84a8e80ec90221bbf662f93047a960429adebfb3ef747e4",
+      "sha256:b54a98199b0df5bedec825a02ab9caef6c8cd0e1c22451df9dfc8405ba299ffd",
+      "sha256:b7c82ed0370c6321b4a6eaff45479ee7886da60c2ef0d4f34f91e5e50a841c9a",
+      "sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9",
+      "sha256:546fa37314f79638606bb52dc510d861a32e24f2ea7bd72f905f7d5b77c6a371",
+      "sha256:ce9ff2a01c2f1bf28d09c5f2336bd2eeeb406bc602a153860f6bf5707d802a1a",
+      "sha256:e0b655a87eab5edf14c5445149313df70bc5d97a2c015878786bc1944a907397",
+      "sha256:7e37647f4f24734d2687ad3fff7b315cd590f99f862ea9393fcbabfdd03d4505",
+      "sha256:b3b620ebc5dbaf9d5e2e2e1d2b8186e55714de2929604858b52ed30dd085ad43",
+      "sha256:8a718d309911637e26152f965c5cbcf5f3264659b83dcee719d00dab98148ef4",
+      "sha256:658ee149c06f189cd3eaf9786bf617259e0bdaee2a93ad44d51ad8d808ef19da",
+      "sha256:c8abbb57dc28995ee2c4c3e6e0587776aff4031956c9e8753fafe076e1dfcf6b",
+      "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab"
+    ]
+  },
+  "removal_targets": {
+    "cloud-run-source-deploy/kis-portfolio-auth": [
+      "sha256:2639126d9abe612c4692cc997f86cf6c816e7d82f601969e3c37e497afe93cb0",
+      "sha256:cb2beca94dd6bd03d271f65084cad3abb32137b1c258e504564492fd462ea3f0",
+      "sha256:94b3ebc2684fe347b0951b8f53da720ecd8af386ef39eaf2ce9b7c2a601dc602",
+      "sha256:c44481ab910dfb3063a0477cbca81644e673e06f11c08c921a61673c116ccce7",
+      "sha256:76a2a8b201e9c7ec7c86b9ca77a2e0b05036406ee9757ac07926c1b5d2e378a0",
+      "sha256:b8b5d956acc1ede829b897bae8ce19fdc97b9f9bbc8784368e13d1df859584f1",
+      "sha256:63e63cdcbc0804e05ca2dc58e249ef8ac9da6ad8aa95d7cedbe65656af00914f",
+      "sha256:a5faed8d44fdca98c327a66097bf1e27824da75b02dd8e1fa50adc121adba930",
+      "sha256:8bef740686301026134fe64b2579ec41e32a3fa311b2fda0e8da5ddac5e2fa82",
+      "sha256:78b1c07de6914d6354f439f91144816ed11a8c0e4ea232eefa460f9decda741a",
+      "sha256:a13940f2ce658819037cdd032e9142ee3f4fc0daf84f71de6a348964640a749c",
+      "sha256:4c3b179c6102f0465b4eef5b97baa03c8e7e8bf14c10221894236b0b04375f96",
+      "sha256:04a6eeaa078c6a5215fe4c7a5a08525fec71a78e4e424e4729337f5d3f9755a4",
+      "sha256:7c8d6d41a77970722aa7cf3e29b918710994a9feb950d352baa991bf20fec036",
+      "sha256:944eb899cc7e07ba6dee0d48638ee1e01f015d12450a45b7cbc3b16c1553521a",
+      "sha256:9890f570bd8b9949e388583ab2b05a83cd88a6be1d34ff2fedd7147d7ebd6277",
+      "sha256:144f828937d770649e9ccdb23f4ca56f3b7d2377bb52148f97927578413f1b21"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-domestic-order-history": [
+      "sha256:95359e0e01e13ed92e8b996704840de68caef051bbbe08e1d17e39301ad0e836",
+      "sha256:08baf2b6d4e2bcb3720966cf799c236d8ec39d81c5b3c4cd4a546de0c41ce185",
+      "sha256:1e50517f6f16331bf93935763ecda3ac11fc0774b17211bf5f7a513f641e4eef",
+      "sha256:f0c294297f64a4efb2114d7592537042cce44922661b6eeb7ca521ba0ae8e8cb",
+      "sha256:71314a404aa5524b885f2d3a5e993992329314de97147c4a23f741431c82ac42",
+      "sha256:81874099480ab75a226dc60a92d5b63a880ce651ee67070a033d5d7ab29b1c9c",
+      "sha256:4416e251ddcce563e5cb6fb0fb98b7f716f3bc5707f1583c2a6e819e45e94707",
+      "sha256:045d2353df9a848f9be786aa461ef4bf9b07e9239c3c66729fe9dd787794b74e",
+      "sha256:cbb88f4826946ceeaba6a3299e1cbe9032a15dbbdd3d0e66264c8dc37bd4cb4a",
+      "sha256:4ded9e42b30869fdf2ed1bc2c4bb5d7345a16d12349a9afeb9ba1ce9f10aae18"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-overseas-transaction-history": [
+      "sha256:d6e88ea7754fd8e2642b30f7df68fae66ee163e0fbd2c958ca97b29cb2bad687",
+      "sha256:c008e9e5049a9749f68c574e64df082d7c5a2ffb8296e18ff8896126fad93c69",
+      "sha256:be1464a437abf97f640a2bf8c33e7831e217afd5c59f51f948cfad103d613bc0",
+      "sha256:4259594a62242f9f8bc0e21039360fb2205bb06d00b80c53accbed7aa359b6f1"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-remote": [
+      "sha256:2af48aea62dd87b3e5055088ec267904b1afef18e399104bf80366b80a4b7004",
+      "sha256:cc31aac319d702dbda310916913ee8862ecdd1f7887c9fa0cf38ee7e63c0b6d1",
+      "sha256:b748cfa9b52cdac6abed97a4a95bf67761daacb84dbb4b2246bb709083393c52",
+      "sha256:ccf7298a9123dd398ad0157f641429c13d77971f71da812566d16e8620ec23d8",
+      "sha256:ab9526853d41a9ba2726284a61288c50a6906978a5cc87ca5a98991e1ce4617c",
+      "sha256:0eaa406dbd7f978b853e6d2ed78ae4fb46a489e707148dd13f5bc5bb6bce839a",
+      "sha256:bdbcd2faa8dff6c2a52f9d40f4c4db243902679bde8243c9dc7c3c1f51696c45",
+      "sha256:af73e9b4d33fd1f7de2b2548f3751279dd3ecdde86c0090af1af59454837bef6",
+      "sha256:29d7aa079565995c0335614d7b9dade829a8f93bc7d71f5a0be11db496cf0a58",
+      "sha256:ad1013ec65a0b0aa24512045ece3587eb5c90aa36847c5e176670020b718a714",
+      "sha256:39f054dd4773710a55f1ec42adedeb257bbbb5ba24d40710734e78007c97589b",
+      "sha256:3e4157853fb642d1594aa9480505457066620ac46a2b53c868cbacf43d03b5eb",
+      "sha256:2ab48a24e5a904cd13a58c37a8d8f6b209787a436096978fc458f0f3b632823c",
+      "sha256:d1081044b0108bfe50b58928e1374de90e359f176774ffedd70a1539fe1f1ae9",
+      "sha256:c2fccce7251ad3ae188441954f09cca3caa1aaf7042471e4da96a65e04e7fecf",
+      "sha256:e65b972fe4ec95def59563c08aa9e2eeb67dd5b536d9c64d53b78e68d2fad3b2",
+      "sha256:048ddd19dcfef6ef09de50432cb9f4749566b2c5a3ece435c7502961c1268030",
+      "sha256:81f51ca36b78149bf03985691f2bca8f67fcf9af805347f4385e5dd9d2a534d8",
+      "sha256:3be49dd70ed94da3a5861ccf7ce5ac9d724e173baded32e2ee70f5d328612a3f",
+      "sha256:18e409943bd26dad8cbc522a89143481d307588e5f43d9c926c0f32026fec684",
+      "sha256:460922893bbe8ce2ebcacbe433df2d6a9d31d68bfc80d22c284e47a3d9396549",
+      "sha256:abfeefc482187dfb68abe5fdb6780babd310ff09aa15a0359f91b00ae694fbfa",
+      "sha256:32cac9cc1717d4dd52a0d5946aca437d33c553e1d03ab338366d3334bec9e978",
+      "sha256:64f95cd40a4ff714caf75c31819459709efb854126c728531e9195add2868444",
+      "sha256:3de16d3b8f8a99a2a8e62316c3f063f49de4514a5135638d09cda10d9205dc47"
+    ],
+    "cloud-run-source-deploy/kis-portfolio-token-warmup-dry-run": [
+      "sha256:2a6c0f62115e94afe464f29683dd5f6f58df7444b759458382e852127fadd41a",
+      "sha256:bff471efcf9855c2367754f187c0be5c539de3b4958573cbbedcb23cc3b04bbe",
+      "sha256:6e99b485d8f18ec9b5eff9b0485e667df9cf89101fc3cc8e27c9275eb6b28903"
+    ]
+  },
+  "excluded_mutations": [
+    "cloud_run_jobs",
+    "cloud_run_services",
+    "schedulers",
+    "data",
+    "backups",
+    "buckets",
+    "firestore",
+    "iam",
+    "secrets",
+    "tags"
+  ],
+  "approval_boundary": "A later approval must reference this exact artifact and all 59 removal digests. Any inventory drift requires a new specification."
+}

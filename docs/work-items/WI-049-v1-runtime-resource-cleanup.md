@@ -57,7 +57,8 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 
 - `WI-049-S01` — verified: freeze runtime inventory, history protections and recovery evidence.
 - `WI-049-S02` — closed: executed and verified owner-approved one-time Cloud Run Job cleanup.
-- `WI-049-S03` — proposed: review and execute separately approved Artifact Registry image cleanup.
+- `WI-049-S03` — in progress: prepare an exact-digest retain/delete specification in read-only scope; deletion remains
+  disabled until separate owner approval.
 
 ## Evidence
 
@@ -102,6 +103,16 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
   `governance/project/evidence/wi049/runtime-cleanup-result-2026-09-14.json`.
 - S02 is cost-neutral for compute because the deleted one-time definitions were idle. Possible Artifact Registry
   storage savings remain S03 and are not authorized by this closeout.
+- WI-049-S03 entered its isolated read-only specification phase on 2026-09-14. Repository work may classify exact
+  digests and freeze recovery references, but cannot delete an image or mutate Artifact Registry.
+- The fresh S03 inventory corrected the earlier approximate age-eligible count: 108 versions exist across two
+  repositories and six packages. The approved WI-035 policy classifies 49 for retention and 59 exact untagged,
+  age-eligible versions as removal candidates, representing 5,996,113,502 logical image bytes before shared-layer
+  adjustment. All 33 `kis-portfolio` repository versions remain retained. The specification is
+  `governance/project/evidence/wi049/artifact-cleanup-spec-2026-09-14.json`; apply and owner approval are false.
+- A second live read-only comparison proved the exact retain/removal union equals all 108 current versions with no
+  inventory drift, no overlap and no tagged removal candidate. Three focused specification tests and Project OS quick
+  passed. No Artifact Registry mutation occurred.
 
 ## Closeout
 

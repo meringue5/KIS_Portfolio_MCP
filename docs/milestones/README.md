@@ -229,7 +229,7 @@ flowchart TB
 | 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
 | 현재 production baseline | `WI-046`과 MS-003 closed; DEC-056/ADR-028에 따라 Remote MCP V2와 forward recovery가 유일한 운영 경로 |
-| 현재 단일 WIP | MS-004 `WI-049` in progress; S02 exact 11-Job cleanup closed, S03 image decision proposed |
+| 현재 단일 WIP | MS-004 `WI-049` / `WI-049-S03` in progress; exact-digest image manifest is read-only |
 | 파괴적 변경 gate | S03 image digest는 아직 미승인; Secret·data·backup·active V2 삭제는 계속 금지 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 
