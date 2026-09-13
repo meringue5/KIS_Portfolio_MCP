@@ -10,8 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0804
 parent_work_item: none
 depends_on: WI-047
-execution_scope: isolated
-production_effects: none; S02 exact Job cleanup completed and S03 remains review-only until separately approved
+execution_scope: production
+production_effects: delete exactly the 59 owner-approved untagged Artifact Registry digests in the S03 specification
 architecture_impact: removes superseded deployment resources
 data_impact: no data deletion
 security_impact: obsolete identities/secrets require scoped review
@@ -113,6 +113,12 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 - A second live read-only comparison proved the exact retain/removal union equals all 108 current versions with no
   inventory drift, no overlap and no tagged removal candidate. Three focused specification tests and Project OS quick
   passed. No Artifact Registry mutation occurred.
+- On 2026-09-14 the owner approved cleanup of all 59 removal targets in the merged S03 specification. The approval is
+  bound to canonical specification SHA-256 `bea06488...3ee9a`, exact count 59 and all non-image/tag exclusions.
+  Inventory drift, a new tag or any live reference blocks apply.
+- The implemented S03 live dry-run passed with `approved_target_count=59`, `deleted_targets=[]`: all 108 inventory
+  identities still matched, every removal target remained untagged and every live service traffic/template and Job
+  digest remained in the 49-item retain set. Focused workflow/guardrail verification passed 71 tests.
 
 ## Closeout
 

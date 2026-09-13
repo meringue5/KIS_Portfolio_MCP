@@ -86,6 +86,17 @@ def test_workflow_dispatches_wi049_s02_exact_cleanup_from_production():
     assert "--apply" in workflow
 
 
+def test_workflow_dispatches_wi049_s03_exact_artifact_cleanup_from_production():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi049-s03" in workflow
+    assert "github.event.inputs.target == 'wi049-s03'" in workflow
+    assert "scripts/cleanup_artifact_images.py" in workflow
+    assert "artifact-cleanup-spec-2026-09-14.json" in workflow
+    assert "artifact-cleanup-approval-2026-09-14.json" in workflow
+    assert "--apply" in workflow
+    assert "--delete-tags" not in workflow
+
+
 def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     test_step = workflow.split("- name: Run test suite", 1)[1].split(

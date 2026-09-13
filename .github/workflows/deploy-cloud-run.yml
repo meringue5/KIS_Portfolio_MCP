@@ -36,6 +36,7 @@ on:
           - wi046-promote-remote
           - wi048-s02
           - wi049-s02
+          - wi049-s03
       candidate_revision:
         description: Exact staged revision for a guarded WI-046 promotion
         required: false
@@ -163,7 +164,7 @@ jobs:
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_GCS_BUCKET}" || { echo "KIS_GCS_BUCKET var is required."; exit 1; }
           fi
-          if [ "${target}" = "wi049-s02" ]; then
+          if [ "${target}" = "wi049-s02" ] || [ "${target}" = "wi049-s03" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -466,6 +467,22 @@ jobs:
 
       - name: Smoke canonical services after WI-049 cleanup
         if: github.event.inputs.target == 'wi049-s02'
+        run: |
+          remote_base="${KIS_RESOURCE_SERVER_URL%/mcp}"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${KIS_AUTH_BASE_URL%/}/health")" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${remote_base}/health")" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${KIS_RESOURCE_SERVER_URL}")" = "401"
+
+      - name: Delete exact owner-approved WI-049 artifact digests
+        if: github.event.inputs.target == 'wi049-s03'
+        run: |
+          uv run python scripts/cleanup_artifact_images.py \
+            governance/project/evidence/wi049/artifact-cleanup-spec-2026-09-14.json \
+            governance/project/evidence/wi049/artifact-cleanup-approval-2026-09-14.json \
+            --apply
+
+      - name: Smoke canonical services after WI-049 artifact cleanup
+        if: github.event.inputs.target == 'wi049-s03'
         run: |
           remote_base="${KIS_RESOURCE_SERVER_URL%/mcp}"
           test "$(curl -sS -o /dev/null -w '%{http_code}' "${KIS_AUTH_BASE_URL%/}/health")" = "200"
