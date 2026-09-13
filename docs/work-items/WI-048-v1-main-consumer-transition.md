@@ -1,7 +1,7 @@
 ---
 id: WI-048
 title: Transition remaining V1 main consumers to archive or compatibility views
-status: stabilizing
+status: closed
 type: architecture
 owner: owner
 decision_refs: ADR-018, ADR-021, ADR-023, ADR-028
@@ -38,9 +38,9 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 
 ## Acceptance criteria
 
-- [ ] no V2 writer targets main and external consumers are zero or migrated.
-- [ ] archive/compatibility data reconciles and restores.
-- [ ] warehouse/full gates pass with zero unmanaged drift.
+- [x] no V2 writer targets main and external consumers are zero or migrated.
+- [x] archive/compatibility data reconciles and restores.
+- [x] warehouse/full gates pass with zero unmanaged drift.
 
 ## Change impact
 
@@ -96,6 +96,11 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 - Post-transition live inventory has no missing managed objects and confirms all three new `control` references are
   managed. The retained zero-row `main.cash_flow`, `main.trade_journal`, `main.asset_return_daily` objects and known
   V1 daily-view column drift remain explicitly unadopted and undeleted pending the separate WI-049 destructive gate.
+- The owner opened a new Claude session after Remote revision `kis-portfolio-remote-00045-kag` and invoked only
+  `get-portfolio-overview` once through the canonical `KIS Portfolio` connector. The read succeeded with stored-data
+  freshness `available`, snapshot as-of `2026-09-11T07:03:28.099252Z`, and matching top-level and summary quality
+  status `pass`. No collection, managed pipeline or write tool was invoked. Portfolio amounts, holdings and account
+  identifiers are intentionally excluded from repository evidence.
 
 ## Stabilization plan
 
@@ -108,7 +113,8 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 
 ## Closeout
 
-- Result: stabilizing; S02 production transition is closed and the V2 runtime is canonical.
-- Remaining risk: observe external consumers against the canonical Remote and retain the known V1 drift until WI-049
-  receives its separate destructive approval. No V1 rollback requirement remains.
-- Follow-up Work Item: WI-050.
+- Result: closed by successful owner-observed canonical Remote read after the protected S02 production transition;
+  the V2 runtime is the sole canonical operating path.
+- Remaining risk: retained V1 objects and classified drift remain preserved until WI-049 receives its separate
+  destructive approval. No V1 fallback or rollback requirement remains.
+- Follow-up Work Items: WI-049 and WI-050.
