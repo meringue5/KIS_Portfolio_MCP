@@ -1,0 +1,28 @@
+{
+  "schema_version": "kis-portfolio.runtime-cleanup-approval/v1",
+  "approved_at": "2026-09-14",
+  "approved_by": "owner",
+  "manifest_reference": "governance/project/evidence/wi049/runtime-cleanup-readiness-2026-09-13.json",
+  "approved_targets": [
+    "kis-portfolio-wi021-s06",
+    "kis-portfolio-wi021-s06-migration",
+    "kis-portfolio-wi022-s06",
+    "kis-portfolio-wi022-s06-migration",
+    "kis-portfolio-wi029-s04-migration",
+    "kis-portfolio-wi029-s04-verify",
+    "kis-portfolio-wi030-s02",
+    "kis-portfolio-wi030-s03",
+    "kis-portfolio-wi046-migration",
+    "kis-portfolio-wi046-state-migration",
+    "kis-portfolio-wi048-s02"
+  ],
+  "excluded_resource_families": [
+    "artifact_images",
+    "backups",
+    "data",
+    "iam",
+    "schedulers",
+    "secrets",
+    "services"
+  ]
+}

@@ -35,6 +35,7 @@ on:
           - wi046-promote-auth
           - wi046-promote-remote
           - wi048-s02
+          - wi049-s02
       candidate_revision:
         description: Exact staged revision for a guarded WI-046 promotion
         required: false
@@ -161,6 +162,10 @@ jobs:
           if [ "${target}" = "wi048-s02" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_GCS_BUCKET}" || { echo "KIS_GCS_BUCKET var is required."; exit 1; }
+          fi
+          if [ "${target}" = "wi049-s02" ]; then
+            test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
+            test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
           if [ "${target}" = "wi029-s04" ]; then
             test -n "${SEC_EDGAR_USER_AGENT}" || { echo "SEC_EDGAR_USER_AGENT var is required."; exit 1; }
@@ -450,3 +455,19 @@ jobs:
             --service "${KIS_REMOTE_SERVICE_NAME}" \
             --job "${KIS_WI048_S02_JOB_NAME}" \
             --secret-mode secret-manager
+
+      - name: Delete exact owner-approved WI-049 one-time jobs
+        if: github.event.inputs.target == 'wi049-s02'
+        run: |
+          uv run python scripts/cleanup_cloud_run_jobs.py \
+            governance/project/evidence/wi049/runtime-cleanup-readiness-2026-09-13.json \
+            governance/project/evidence/wi049/runtime-cleanup-approval-2026-09-14.json \
+            --apply
+
+      - name: Smoke canonical services after WI-049 cleanup
+        if: github.event.inputs.target == 'wi049-s02'
+        run: |
+          remote_base="${KIS_RESOURCE_SERVER_URL%/mcp}"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${KIS_AUTH_BASE_URL%/}/health")" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${remote_base}/health")" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${KIS_RESOURCE_SERVER_URL}")" = "401"

@@ -2,13 +2,15 @@
 
 ## Decision
 
-The first WI-049 boundary is ready for review, not execution. Eleven historical one-time Cloud Run Job definitions are
-exact candidates. No service, scheduled Job, Scheduler, identity, Secret, database, backup, bucket, Firestore database
-or image version is approved for deletion.
+The first WI-049 boundary was reviewed and the owner approved all eleven historical one-time Cloud Run Job definitions
+on 2026-09-14. No service, scheduled Job, Scheduler, identity, Secret, database, backup, bucket, Firestore database or
+image version is approved for deletion.
 
 The machine-readable source is
 `governance/project/evidence/wi049/runtime-cleanup-readiness-2026-09-13.json`. Its v1 validator is deliberately
-review-only: `mode=dry_run`, `apply_allowed=false` and `owner_approved=false` are mandatory.
+review-only: `mode=dry_run`, `apply_allowed=false` and `owner_approved=false` are mandatory. The separate owner approval
+is `governance/project/evidence/wi049/runtime-cleanup-approval-2026-09-14.json`; it must exactly equal the frozen set
+and cannot widen the excluded resource families.
 
 ## Protected history baseline
 
@@ -98,3 +100,11 @@ Before an apply path exists, all of the following are required:
 
 Repository verification passed the focused 23-test guardrail suite, the 33-test guardrail/readiness suite, Project OS
 quick, and the full 682-test gate. The full gate reported one existing Authlib deprecation warning.
+
+On 2026-09-14 the owner approved all 11 exact names. The execution implementation's live dry-run passed with every
+image digest and non-secret configuration hash unchanged, no candidate referenced by a Scheduler, and the private
+backup index present. It returned `deleted_names=[]`; production deletion remains delegated to the master-only GitHub
+Actions target `wi049-s02`.
+
+The S02 exact-delete implementation passed 92 focused tests and the full 690-test gate with one existing Authlib
+deprecation warning.
