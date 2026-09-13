@@ -23,7 +23,7 @@
 | 8 | WI-043 Remote MCP managed commands | V2-W0604/0605 | WI-024, WI-042 | verified; exact inactive 18-tool catalog, fixed-job async run ID, split command scopes, owner-subject/idempotency/concurrency and append-only journal/thread revision fixtures; production effects none |
 | 9 | WI-044 Remote MCP client compatibility | V2-W0606/0607 | WI-042, WI-043 | verified for isolated phase; three fresh-transport client profiles, exact 35-to-18 manifest, explicit order unsupported and Remote-only guide; actual connector/public smoke remains WI-046 production gate |
 | 10 | WI-045 V1/V2 dual-run readiness | V2-W0701/0702/0703/0706 | WI-035, WI-044 | closed; ten production dates, 30/30 slots, exact quantity/price comparisons, explained partials, private 0013 restore and normal cost evidence |
-| 11 | WI-046 Remote MCP V2 production cutover | V2-W0704/0705/0707 | WI-045 | in progress; owner-approved bounded production cutover with preserved V1 rollback |
+| 11 | WI-046 Remote MCP V2 production cutover | V2-W0704/0705/0707 | WI-045 | in progress; stable Remote OAuth/read/iPhone command smoke pass, existing logical run reused with no new Job; preserved V1 rollback rehearsal/window remain |
 
 V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며 이 milestone의 잔여 범위가 아니다.
 
@@ -53,6 +53,7 @@ V2-W0409의 build-once production release는 WI-012에서 이미 완료됐으며
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-13.42 | 2026-09-13 | Verified the canonical stable Claude/iPhone managed-command path | Remote `00045` returned `reused` for the completed 2026-09-11 `kr-1600` logical run; contemporaneous MCP requests were HTTP 200 and direct execution inventory proved no new 16:00 Job, IAM or data write; WI-046 remains open for rollback rehearsal/window |
 | 2026-09-12.41 | 2026-09-12 | Completed WI-046 least-privilege IAM, additive 0018/state copy and zero-traffic candidate stage | exact auth/Remote identities and allowlists verified; run 34623252239 passed candidate health/discovery/401 smoke on one immutable digest; V1 remains 100%, candidates 0%, all six schedules unchanged; live OAuth/client gate remains |
 | 2026-09-12.40 | 2026-09-12 | Preserved the IAM trust boundary after the first protected WI-046 stage attempts | first run stopped before auth; second built one immutable image then failed before migration at service-account creation; GitHub deployer remains non-admin, owner bootstrap approval pending, V1 traffic and schedules unchanged |
 | 2026-09-11.39 | 2026-09-11 | Completed the WI-046 production runtime and protected zero-traffic stage implementation | exact 18-tool runtime, additive 0018 and active-state copy, dedicated least-privilege identities, no-traffic tagged candidates and pre-client smoke; serving V1 traffic and all schedules remain unchanged until protected execution and live-client gate |
