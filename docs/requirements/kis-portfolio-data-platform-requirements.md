@@ -3,7 +3,7 @@
 > 상태: 승인된 요구사항 기준선
 > 제품명: KIS Portfolio (`kis-portfolio`)
 > 문서 범위: 승인된 요구사항과 구현 권한 경계
-> 구현 상태: DEC-044 범위의 repository-local 구현·fixture·test·migration dry-run 승인. 외부·운영 변경은 미승인.
+> 구현 상태: V2 production 운영 승인. MS-004의 V1 제품표면 퇴역·V2 정본화는 단일 Work Item과 파괴적 변경 gate 아래 진행.
 
 ## 최근 승인
 
@@ -58,7 +58,7 @@ schema, 과거 거래 backfill, 매도 lot 배분 규칙 또는 MCP 인터페이
 | C | DEC-020~DEC-025 | OpenDART·SEC actual, point-in-time consensus, 배당 3상태, 표준 macro profile, licensed report gate |
 | D | DEC-026~DEC-032 | replay 기반 경보, Bollinger 보조지표, 2% risk cap, Telegram, consensus 위험 신호, journal review |
 | E | DEC-033~DEC-041 | Remote MCP SSOT, scale-to-zero·batch-first, 월 5만원 상한, versioned schema, off-site recovery |
-| F | DEC-042~DEC-048, DEC-054 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현, GCP provisioning, final V2 정본화와 평가액 변화 기여도·정기 총자산 리포트 |
+| F | DEC-042~DEC-048, DEC-054~DEC-056 | owner PDF 수동 반입, consensus 진입조건, 턴키 구현, GCP provisioning, final V2 정본화와 평가액 변화 기여도·정기 총자산 리포트, V2-only 운영 복구 |
 
 이 승인은 논리 요구사항과 아키텍처 제약을 확정한 것이다. DEC-044에 따라 승인 계약 안의 저장소 로컬
 구현과 검증은 진행할 수 있지만, 실제 적재·배포·provisioning과 외부 알림은 별도 gate를 유지한다.
@@ -597,6 +597,23 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - presentation v2는 v1과 다른 idempotency identity를 사용한다. provider 요청 뒤 결과가 불명확하면
   `unknown`으로 봉인하고 자동 재전송하지 않는다. repository 검증만으로 운영 활성화하지 않으며,
   독립 rollback은 v2 flag 비활성화 또는 마지막 안전 image 복원이다.
+
+### DEC-056: V2를 유일한 운영 정본으로 확정하고 V1 rollback을 forward recovery로 대체한다
+
+- 2026-09-13 owner는 stable Remote V2의 OAuth, 대표 read, iPhone managed-command reuse와 여섯 Scheduler의
+  운영 증거를 인수하고 V2를 KIS Portfolio의 유일한 production baseline으로 확정했다.
+- V1은 V2 개발 착수 전부터 정상 복구점으로 신뢰할 수 없는 오동작 상태였으므로, V1 트래픽 복귀와
+  7일 rollback rehearsal/window를 WI-046 또는 MS-003의 완료조건으로 사용하지 않는다. 기존 cutover 실패와
+  rollback 준비 기록은 당시의 역사 증거로 보존하되 현재 운영 지시로 해석하지 않는다.
+- 장애복구는 마지막 검증된 V2 immutable image/config로의 재배포, 동일 V2 schema의 additive correction,
+  Firestore operational state와 MotherDuck canonical data의 보존을 사용하는 forward recovery로 수행한다.
+  오류가 있는 V2 revision은 새 검증 revision으로 supersede하며 V1 runtime으로 traffic을 되돌리지 않는다.
+- 보존된 V1 revision, legacy 문서와 migration mapping은 forensic·비교·감사 자료다. 사용자-facing connector,
+  지원 제품표면 또는 운영 fallback이 아니며 MS-004에서 역사 자료와 삭제 후보로 명시적으로 분류한다.
+- 이 결정은 V1 resource, secret, 데이터 또는 revision의 즉시 파괴를 승인하지 않는다. 비가역 cleanup은
+  WI-049의 fresh inventory, forward-recovery 증거와 별도 파괴적 변경 승인을 계속 요구한다.
+- owner acceptance로 WI-046과 MS-003을 닫고 MS-004/WI-047을 시작한다. 이후 안정화는 V1 병행관찰이 아니라
+  V2 health, OAuth, managed run, Scheduler, 데이터 품질과 사용자-visible 결과를 직접 관찰한다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
@@ -1160,6 +1177,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-13 | V2-only production 전환 승인 | DEC-056으로 오동작하던 V1을 운영 fallback과 WI-046 완료조건에서 제외하고, 검증된 V2 immutable release와 보존된 Firestore/MotherDuck를 이용한 forward recovery를 정본으로 확정함; WI-046/MS-003 close와 MS-004/WI-047 시작을 승인하되 파괴적 cleanup은 WI-049에 유지함 |
 | 2026-09-10 | 총자산 리포트 caption 정돈 승인 | 첫 v2.1 실사용의 정보 내용과 chart는 owner가 인수하고, 동일 계산·privacy 경계 안에서 텍스트를 구획·고정폭 표 형태로 정돈하도록 WI-055-S04를 승인함 |
 | 2026-09-09 | 총자산 변동 Top 5 infographic 보강 | DEC-055의 주요 변화 기여를 보유종목 절대 원화 영향 Top 5, signed 금액·총자산 `%p`, 양방향 chart로 명확화; 계산·저장·식별자 비노출 경계는 유지함 |
 | 2026-09-09 | 총자산 리포트 표시·privacy 경계 보정 승인 | DEC-055로 개인 Telegram destination에 정확한 총액·증감액, alias별 구성과 결정적 chart를 허용하고 원계좌번호·내부 ID·secret·본문 로그를 금지함; DEC-054 계산·품질·schedule 이력은 보존함 |

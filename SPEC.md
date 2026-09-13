@@ -792,6 +792,28 @@ attribution을 보존한다. direct Cboe download는 dormant reference이며 초
 
 ---
 
+### ADR-028: V2-only production은 V1 rollback 대신 forward recovery를 사용한다
+
+**결정**: Remote MCP V2, Firestore operational state, MotherDuck canonical data와 V2 managed Jobs를 KIS
+Portfolio의 유일한 production architecture로 확정한다. V1 revision과 local public MCP는 운영 fallback이
+아니며 장애 시 traffic을 V1으로 되돌리지 않는다. 마지막 검증 V2 immutable release를 재배포하거나 새
+검증 V2 correction으로 roll forward한다.
+
+**상태**: 2026-09-13 사용자 승인, 즉시 적용. 요구 정본은 DEC-056, 전환 증거는 WI-046, 제품표면 퇴역과
+최종 문서 정본화는 MS-004가 소유한다.
+
+**계약**:
+
+- forward recovery는 현재 V2 trust boundary, 최소 IAM, Firestore state와 MotherDuck data를 유지한다.
+- 잘못된 revision은 새 immutable V2 image/config로 supersede하고 additive migration을 사용한다.
+- V1 image, 문서와 mapping은 forensic·migration history로만 보존하며 health fallback이나 client target으로
+  광고하지 않는다.
+- V1 resource와 data의 파괴적 삭제는 recovery 전략 변경에 묶지 않고 WI-049의 별도 승인 gate로 제한한다.
+- V2 운영 안정성은 V1 비교가 아니라 stable OAuth/MCP, managed Jobs, Scheduler, quality/lineage와 실제 사용자
+  결과로 판정한다.
+
+---
+
 ## API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유

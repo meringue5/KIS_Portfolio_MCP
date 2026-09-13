@@ -65,7 +65,7 @@ def test_current_repository_satisfies_project_os_contract():
     assert checker.check(REPO_ROOT) == []
 
 
-def test_current_milestone_baseline_has_opened_ms003_production_gate():
+def test_current_milestone_baseline_has_entered_v2_canonicalization():
     registry = tomllib.loads(
         (REPO_ROOT / "governance/project/milestones.toml").read_text(encoding="utf-8")
     )
@@ -74,7 +74,7 @@ def test_current_milestone_baseline_has_opened_ms003_production_gate():
     assert registry["schema_version"] == 2
     assert milestones["MS-002"]["status"] == "closed"
     assert milestones["MS-002"]["rollback_policy"] == "append_only_feedback"
-    assert milestones["MS-003"]["status"] == "in_progress"
+    assert milestones["MS-003"]["status"] == "closed"
     assert milestones["MS-003"]["implementation_gate"] == [
         {"milestone_id": "MS-002", "minimum_status": "stabilizing"}
     ]
@@ -89,6 +89,7 @@ def test_current_milestone_baseline_has_opened_ms003_production_gate():
     assert milestones["MS-004"]["implementation_gate"] == [
         {"milestone_id": "MS-003", "minimum_status": "stabilizing"}
     ]
+    assert milestones["MS-004"]["status"] == "in_progress"
     for filename in (
         "WI-029-signal-replay-shadow-calibration.md",
         "WI-030-outbound-telegram-delivery.md",
@@ -134,6 +135,25 @@ def _set_ms002_status(target: Path, status: str) -> None:
             r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
         )
         cutover.write_text(document, encoding="utf-8")
+
+
+def _set_milestone_status(target: Path, milestone_id: str, status: str) -> None:
+    path = target / "governance/project/milestones.toml"
+    path.write_text(
+        re.sub(
+            rf'(id = "{milestone_id}"\ntitle = "[^"]+"\n)status = "[^"]+"',
+            rf'\1status = "{status}"',
+            path.read_text(encoding="utf-8"),
+            count=1,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _set_ms003_overlap_state(target: Path) -> None:
+    """Recreate the historical MS-003 overlap phase from the current baseline."""
+    _set_milestone_status(target, "MS-003", "in_progress")
+    _set_milestone_status(target, "MS-004", "proposed")
 
 
 def test_initial_v2_alert_chain_preserves_but_excludes_etf_work():
@@ -286,9 +306,9 @@ def test_project_os_rejects_dangling_milestone_dependency(tmp_path: Path):
     path.write_text(
         path.read_text(encoding="utf-8").replace(
             'id = "MS-004"\ntitle = "V2 canonicalization and V1 retirement"\n'
-            'status = "proposed"\ndepends_on = ["MS-003"]',
+            'status = "in_progress"\ndepends_on = ["MS-003"]',
             'id = "MS-004"\ntitle = "V2 canonicalization and V1 retirement"\n'
-            'status = "proposed"\ndepends_on = ["MS-999"]',
+            'status = "in_progress"\ndepends_on = ["MS-999"]',
             1,
         ),
         encoding="utf-8",
@@ -342,6 +362,8 @@ def test_project_os_rejects_ready_milestone_before_implementation_gate(tmp_path:
         ),
         encoding="utf-8",
     )
+    _set_milestone_status(target, "MS-003", "in_progress")
+    _set_milestone_status(target, "MS-004", "proposed")
 
     errors = checker.check(target)
 
@@ -401,6 +423,7 @@ def test_project_os_allows_allowlisted_isolated_overlap(tmp_path: Path):
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     _set_ms002_status(target, "stabilizing")
+    _set_ms003_overlap_state(target)
     _activate_overlap_fixture(
         target, "WI-035", "WI-035-production-operations-cost-release-guardrails.md"
     )
@@ -413,6 +436,7 @@ def test_project_os_rejects_production_effect_during_overlap(tmp_path: Path):
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     _set_ms002_status(target, "stabilizing")
+    _set_ms003_overlap_state(target)
     filename = "WI-035-production-operations-cost-release-guardrails.md"
     _activate_overlap_fixture(target, "WI-035", filename)
     path = target / f"docs/work-items/{filename}"
@@ -445,6 +469,7 @@ def test_project_os_allows_next_dependency_ready_overlap_work_item(tmp_path: Pat
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     _set_ms002_status(target, "stabilizing")
+    _set_ms003_overlap_state(target)
     filename = "WI-037-filing-actual-fundamental-pipeline.md"
     _activate_overlap_fixture(target, "WI-037", filename)
     _set_isolated_phase_metadata(target / f"docs/work-items/{filename}")
@@ -459,6 +484,7 @@ def test_project_os_rejects_overlap_before_work_item_dependencies_are_verified(
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     _set_ms002_status(target, "stabilizing")
+    _set_ms003_overlap_state(target)
     filename = "WI-038-dividend-event-ledger.md"
     _activate_overlap_fixture(target, "WI-038", filename)
     _set_isolated_phase_metadata(target / f"docs/work-items/{filename}")
@@ -483,6 +509,7 @@ def test_project_os_rejects_non_allowlisted_cutover_during_overlap(tmp_path: Pat
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     _set_ms002_status(target, "stabilizing")
+    _set_ms003_overlap_state(target)
     filename = "WI-046-remote-mcp-v2-production-cutover.md"
     _activate_overlap_fixture(target, "WI-046", filename)
     _set_isolated_phase_metadata(target / f"docs/work-items/{filename}")
@@ -502,6 +529,7 @@ def test_project_os_rejects_declared_production_effect_before_gate_at_any_status
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     _set_ms002_status(target, "stabilizing")
+    _set_ms003_overlap_state(target)
     path = target / "docs/work-items/WI-037-filing-actual-fundamental-pipeline.md"
     document = re.sub(
         r"(?m)^status: .+$",

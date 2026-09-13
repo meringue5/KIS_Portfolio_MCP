@@ -2,11 +2,10 @@
 
 이 문서는 프로젝트의 코드 배치와 장기 구조 원칙을 정리한다.
 
-이 문서의 package tree와 DB 설명은 **현재 V1 구조**의 canonical 설명이다. 승인된 요구를 구현할
-차세대 목표 구조와 전환 순서는 각각 `docs/design/kis-portfolio-v2-system-design.md`,
-`docs/design/kis-portfolio-v2-delivery-plan.md`에 승인된 기준선으로 기록되어 있다. V2 architecture 승인은
-개별 구현·provisioning·cutover 승인이 아니다. 관련 Work Item과 rehearsal이 완료되기 전에는 이 문서의
-V1 runtime·schema·보안 계약을 대체하지 않는다.
+2026-09-13부터 Remote MCP V2가 유일한 production architecture다. 이 문서에 남은 V1 package·schema 설명은
+MS-004/WI-032가 전수 정본화할 때까지 보존하는 migration history이며 현재 운영 계약이 아니다. 승인된 V2
+구조와 전환 근거는 `docs/design/kis-portfolio-v2-system-design.md`,
+`docs/design/kis-portfolio-v2-delivery-plan.md`, ADR-021과 ADR-028이 소유한다.
 
 제품 architecture의 변경·검증·배포·운영 feedback은 상위 **Project Operating System**의 통제를 받는다.
 Project OS는 runtime component가 아니며 제품 code에 포함되지 않는다. canonical 운영 정책은
@@ -26,9 +25,9 @@ runtime component나 별도 warehouse가 아니며, data architecture가 승인�
 `scripts/`, 런타임 산출물은 장기적으로 `var/` 또는 운영 환경의 안전한 데이터
 디렉터리로 분리한다.
 
-현재 기본 MCP Desktop 설정은 `kis-portfolio-mcp` console script를 실행한다.
-루트 `server.py`는 수동 실행 호환용 thin shim으로 유지하며, 실제 구현은 `src/kis_portfolio/`
-아래에 둔다.
+사용자-facing 기본 연결은 OAuth 기반 `kis-portfolio-remote`다. `kis-portfolio-mcp`와 루트 `server.py`는
+MS-004에서 퇴역시키는 local compatibility/development harness일 뿐 제품 SSOT가 아니다. 실제 구현은
+`src/kis_portfolio/` 아래에 둔다.
 
 ```text
 KIS_Portfolio_MCP/

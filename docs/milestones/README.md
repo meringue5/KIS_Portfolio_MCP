@@ -24,8 +24,8 @@ flowchart LR
     MSGOV["MS-GOV<br/>Project OS<br/>closed"]
     MS1["MS-001<br/>Canonical portfolio + managed collection<br/>closed"]
     MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>closed"]
-    MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>in progress / continuous isolated overlap"]
-    MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>proposed"]
+    MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>closed"]
+    MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>in progress"]
 
     MS1 --> MS2 --> MS3 --> MS4
     MSGOV -. governs .-> MS2
@@ -36,9 +36,8 @@ flowchart LR
     classDef verified fill:#e5f4ff,stroke:#0870a8,color:#123b72;
     classDef active fill:#fff1bf,stroke:#9a6b00,color:#4b3500;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
-    class MS1,MS2,MSGOV closed;
-    class MS3 active;
-    class MS4 proposed;
+    class MS1,MS2,MS3,MSGOV closed;
+    class MS4 active;
 ```
 
 실선 화살표는 구조적 dependency DAG다. 실행 gate는 두 단계다. MS-002가 `stabilizing`이면 MS-003을
@@ -228,9 +227,9 @@ flowchart TB
 | 계속 자동 진행 | `WI-029-S05/S06`: 2026-09-14까지 corrected DB-only shadow 증적 축적 |
 | 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
-| 현재 production cutover | `WI-046` in progress; protected master release, additive migration, connector/schedule smoke와 reversible switch만 허용; V1 삭제·retirement·cleanup 금지 |
-| MS-003 격리 구현 | registry의 reviewed continuous-overlap 목록을 dependency 순서대로 한 번에 하나씩 진행; isolated scope와 production effects none 필수 |
-| MS-002 종료 전 불가 | MS-003 production DB migration·source activation·Cloud Run/Scheduler·public MCP·cutover |
+| 현재 production baseline | `WI-046`과 MS-003 closed; DEC-056/ADR-028에 따라 Remote MCP V2와 forward recovery가 유일한 운영 경로 |
+| 현재 단일 WIP | MS-004 `WI-047` in progress; V1 local/setup/public surface의 isolated retirement, production effects none |
+| 파괴적 변경 gate | V1 runtime resource·secret·data 삭제는 WI-049의 fresh inventory와 별도 승인 전까지 금지 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 
 `WI-038`은 `WI-037`, `WI-041`도 `WI-037`을 기다린다. 사용자-facing Remote MCP 경로인 `WI-042`는

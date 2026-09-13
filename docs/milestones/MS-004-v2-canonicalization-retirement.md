@@ -1,6 +1,6 @@
 # MS-004 — V2 canonicalization and V1 retirement
 
-> 상태: proposed; project delivery의 final milestone
+> 상태: in_progress; project delivery의 final milestone
 > 선행 milestone: MS-003
 > machine registry: `governance/project/milestones.toml`
 
@@ -13,7 +13,7 @@ V2 cutover 뒤 V1 runtime·data consumer·문서 잔존물을 검증 가능한 �
 
 | Sequence | Work Item | Design refs | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- | --- |
-| 1 | WI-047 V1 public-surface retirement | V2-W0801/0802 | WI-046 | proposed |
+| 1 | WI-047 V1 public-surface retirement | V2-W0801/0802 | WI-046 | in progress; isolated repository/setup/public-surface retirement, production effects none |
 | 2 | WI-048 V1 main consumer transition | V2-W0803 | WI-046 | proposed |
 | 3 | WI-049 V1 runtime resource cleanup | V2-W0804 | WI-047 | proposed; destructive approval gate |
 | 4 | WI-050 steady-state operations runbooks | V2-W0805 | WI-047, WI-048 | proposed |
@@ -44,6 +44,7 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-13.4 | 2026-09-13 | Opened MS-004 and activated WI-047 after owner accepted V2-only production | MS-003 and WI-046 closed under DEC-056/ADR-028; one isolated Work Item active, destructive cleanup remains WI-049 |
 | 2026-09-10.3 | 2026-09-10 | Added continuous isolated implementation overlap at MS-003 stabilizing while preserving MS-003 closed for retirement and cleanup effects | Work Item identities and dependencies unchanged |
 | 2026-08-28.2 | 2026-08-28 | V2-W0801~0806을 WI-047~051로 배정하고 WI-032를 최종 문서 gate로 연결 | 신규 WI append; WI-032 identity 불변 |
 | 2026-08-28.1 | 2026-08-28 | final MS-004와 WI-032 문서 정본화 작업을 최초 기준선화 | 기존 WI 변경 없음; WI-032 신규 발급 |
