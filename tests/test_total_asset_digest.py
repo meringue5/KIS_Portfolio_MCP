@@ -72,9 +72,8 @@ def _telegram_config() -> TelegramDeliveryConfig:
 def _connection() -> duckdb.DuckDBPyConnection:
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
-    connection.execute("CREATE TABLE main.market_calendar(market VARCHAR, trade_date DATE, is_open BOOLEAN, note VARCHAR)")
     connection.executemany(
-        "INSERT INTO main.market_calendar VALUES ('KRX', ?, true, '')",
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('KRX', ?, true, '')",
         [[date(2026, 9, 7)], [date(2026, 9, 8)]],
     )
     connection.execute(

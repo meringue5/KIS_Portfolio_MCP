@@ -61,19 +61,19 @@ def _instrument_id(market: str, symbol: str) -> str:
 def _reference_row(connection: duckdb.DuckDBPyConnection, table: str, symbol: str) -> dict[str, Any] | None:
     exists = connection.execute("""
         SELECT count(*) FROM information_schema.tables
-        WHERE table_schema='main' AND table_name=?
+        WHERE table_schema='control' AND table_name=?
     """, [table]).fetchone()[0]
     if not exists:
         return None
     if table == "instrument_master":
         row = connection.execute("""
             SELECT group_code, standard_code, name, updated_at
-            FROM main.instrument_master WHERE market='KRX' AND symbol=?
+            FROM control.instrument_master WHERE market='KRX' AND symbol=?
         """, [symbol]).fetchone()
         return dict(zip(("group_code", "standard_code", "name", "updated_at"), row)) if row else None
     row = connection.execute("""
         SELECT exposure_type, exposure_region, asset_subtype, reason, updated_at
-        FROM main.instrument_classification_overrides WHERE market='KRX' AND symbol=?
+        FROM control.instrument_classification_overrides WHERE market='KRX' AND symbol=?
     """, [symbol]).fetchone()
     return dict(zip(("exposure_type", "exposure_region", "asset_subtype", "reason", "updated_at"), row)) if row else None
 
@@ -116,7 +116,7 @@ def _envelope(source_record_id: str, payload: dict[str, Any], observed_at: datet
 
 def calendar_gate(connection: duckdb.DuckDBPyConnection, logical_date: date) -> tuple[bool, str]:
     row = connection.execute(
-        "SELECT is_open, note FROM main.market_calendar WHERE lower(market)='krx' AND trade_date=?",
+        "SELECT is_open, note FROM control.market_calendar WHERE lower(market)='krx' AND trade_date=?",
         [logical_date],
     ).fetchone()
     if row is None:
@@ -470,51 +470,9 @@ def build_owned_portfolio_pipeline(
                 repository.upsert_price_bar(payload, obs)
                 normalized += 1
 
-        lower_date = context.logical_date - timedelta(days=7)
-        price_rows = connection.execute("""
-            SELECT exchange, symbol, date, open, high, low, close, volume, adjusted, created_at
-            FROM main.price_history WHERE date BETWEEN ? AND ?
-        """, [lower_date, context.logical_date]).fetchall()
-        for market, symbol, session_date, open_, high, low, close, volume, adjusted, created_at in price_rows:
-            normalized_market = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}.get(market, market)
-            basis = "adjusted" if adjusted else "raw"
-            if (normalized_market, symbol, session_date, basis) in operational_keys:
-                continue
-            instrument_id = _instrument_id(normalized_market, symbol)
-            payload = {
-                "instrument_id": instrument_id, "session_date": session_date,
-                "price_basis": basis,
-                "open": open_, "high": high, "low": low, "close": close, "volume": volume,
-                "effective_at": session_date,
-                "knowledge_at": created_at,
-                "endpoint": "legacy-main.price_history",
-                "request_option": "stored-adjusted-flag",
-                "volume_basis": "provider-reported",
-                "reconstruction_mode": "retrospective_reconstructed",
-                "quality_status": "pass",
-            }
-            obs = repository.record_observation(
-                "dataset.price-bar-daily",
-                _envelope(f"{context.run_id}:price:{normalized_market}:{symbol}:{session_date}", payload, datetime.now(UTC)),
-                context.run_id,
-            )
-            repository.upsert_price_bar(payload, obs)
-            normalized += 1
-        fx_rows = connection.execute("""
-            SELECT currency, date, rate FROM main.exchange_rate_history
-            WHERE date BETWEEN ? AND ?
-        """, [lower_date, context.logical_date]).fetchall()
-        for currency, rate_date, rate in fx_rows:
-            payload = {
-                "base_currency": currency, "quote_currency": "KRW", "rate_date": rate_date,
-                "rate_type": "close", "rate": rate, "quality_status": "pass",
-            }
-            obs = repository.record_observation(
-                "dataset.fx-rate-daily",
-                _envelope(f"{context.run_id}:fx:{currency}:{rate_date}", payload, datetime.now(UTC)), context.run_id,
-            )
-            repository.upsert_fx_rate(payload, obs)
-            normalized += 1
+        # Historical price and FX rows are already governed in silver.price_bars_daily
+        # and silver.fx_rates_daily.  Re-reading V1 main here would turn an archive into a
+        # production dependency and create fresh lineage for unchanged historical facts.
         context.state["normalized_count"] = normalized
         return StageResult(
             input_count=len(collected["domestic"]), output_count=normalized,

@@ -19,18 +19,6 @@ from kis_portfolio.services.wi029_s05 import (
 def _connection() -> duckdb.DuckDBPyConnection:
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
-    connection.execute("""
-        CREATE TABLE main.market_calendar(
-            market VARCHAR NOT NULL,
-            trade_date DATE NOT NULL,
-            is_open BOOLEAN NOT NULL,
-            open_time_local VARCHAR,
-            close_time_local VARCHAR,
-            timezone VARCHAR NOT NULL,
-            source VARCHAR NOT NULL,
-            PRIMARY KEY(market, trade_date)
-        )
-    """)
     for day, is_open in (
         (date(2026, 8, 28), True),
         (date(2026, 8, 29), False),
@@ -39,7 +27,7 @@ def _connection() -> duckdb.DuckDBPyConnection:
     ):
         connection.execute(
             """
-            INSERT INTO main.market_calendar(
+            INSERT INTO control.market_calendar(
                 market,trade_date,is_open,open_time_local,close_time_local,timezone,source
             ) VALUES ('krx',?,?,?,?,?,?)
             """,

@@ -126,7 +126,7 @@ def _v2_definition() -> PipelineDefinition:
 def _previous_open_date(connection: Any, logical_date: date) -> date | None:
     try:
         row = connection.execute("""
-            SELECT max(trade_date) FROM main.market_calendar
+            SELECT max(trade_date) FROM control.market_calendar
             WHERE lower(market)='krx' AND is_open AND trade_date < ?
         """, [logical_date]).fetchone()
     except duckdb.Error:

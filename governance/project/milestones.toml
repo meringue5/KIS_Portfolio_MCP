@@ -966,3 +966,9 @@ id = "WI-046-S05"
 parent_id = "WI-046"
 title = "Supersede V1 rollback with V2 forward recovery and enter canonical operations"
 status = "closed"
+
+[[subitems]]
+id = "WI-048-S01"
+parent_id = "WI-048"
+title = "Implement the isolated V2 main-consumer transition contract"
+status = "verified"

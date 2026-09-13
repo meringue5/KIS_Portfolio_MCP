@@ -119,6 +119,8 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `gold.dividend_monthly_native`, `gold.dividend_monthly_krw` | linked received cash의 month/account/instrument/currency 합계와 별도 labeled governed-FX projection; component/receipt gap은 partial 유지 | rebuild views / confidential |
 | `gold.macro_profile_snapshots` | profile/version/evaluation cutoff/metric-set의 PIT metric, coverage, rights, attribution과 revision lineage | Parquet rebuildable materialization / internal |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
+| `control.market_calendar` | V2가 소유하는 시장/거래일 개장 기준정보; WI-048의 명시적 copy/reconcile 뒤 V2-only 유지 | Parquet / internal |
+| `control.instrument_master`, `control.instrument_classification_overrides` | V2 국내 종목 공식 기준정보와 owner-approved 분류 보정; WI-048 전환은 source를 보존한 idempotent copy | Parquet / internal 또는 confidential |
 | `control.pipeline_definitions` | pipeline/version definition hash | Parquet / internal |
 | `control.metric_definitions` | metric/version approved contract definition hash | Parquet / internal |
 | `control.alert_rule_versions` | immutable rule/version hash, validity, exact numeric watch floor and off/shadow/external mode | Parquet / confidential |
@@ -136,7 +138,7 @@ V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가
 | `control.macro_series_definitions` | exact macro series contract/version/hash, native metadata, rights, attribution과 inactive activation state | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 103개 V2 object는 76 tables + 27 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 106개 V2 object는 79 tables + 27 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.
@@ -258,12 +260,15 @@ inventory 결과에는 object/column metadata만 포함하고, 기본 검사는 
 - `bronze`, `silver`, `gold`, `control`, `security` schema를 만든다.
 - 객체별 copy/move 후 row count, PK uniqueness, null contract, 합계 reconciliation을 검증한다.
 - repository와 analytics SQL을 schema-qualified name으로 전환한다.
-- 필요한 기간 동안 `main`에는 read-only compatibility view만 두며, write target으로 사용하지 않는다.
+- WI-048부터 V2 운영 runtime은 `control.market_calendar`, `control.instrument_master`,
+  `control.instrument_classification_overrides`와 기존 V2 Silver/Gold만 읽는다. `main` 원본은 명시적
+  copy/reconcile 입력 또는 archive read model로만 보존하며 V2 write target이나 runtime fallback으로 사용하지 않는다.
 
 ### Phase 3: Retire `main`
 
 - 모든 배포 target과 backup/inspection tool이 qualified schema를 사용하는지 확인한다.
-- compatibility view 사용 로그와 외부 consumer를 확인한 뒤 별도 승인 migration으로 제거한다.
+- retained archive/migration consumer와 외부 consumer를 확인한 뒤 WI-049의 별도 승인으로 runtime resource만
+  제거한다. 데이터·backup 삭제는 그 승인에도 포함되지 않는다.
 - `main` 신규 객체 생성은 contract check에서 실패하게 한다.
 
 물리 이동의 완료 조건은 테스트 통과만이 아니다. MotherDuck 백업 생성, 복원 rehearsal, live object
@@ -278,15 +283,14 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 
 | Object | Intended contract in `9dea94c` | Live state | Current governance status |
 | --- | --- | --- | --- |
-| `cash_flow` | Silver; 외부입출금·환전·배당·세금 event grain, PK `idempotency_key`, signed `amount_krw`, upsert, Parquet/confidential | base table, 0 rows | branch-defined pending integration |
-| `trade_journal` | Silver; 투자결정/거래 journal entry grain, PK `id`, unique `idempotency_key`, upsert, Parquet/confidential | base table, 0 rows | branch-defined pending integration |
+| `cash_flow` | Silver; 외부입출금·환전·배당·세금 event grain, PK `idempotency_key`, signed `amount_krw`, upsert, Parquet/confidential | base table, 0 rows | WI-048 `archive_only`; canonical replacement는 `silver.cash_flow_events` 계열, 삭제 금지 |
+| `trade_journal` | Silver; 투자결정/거래 journal entry grain, PK `id`, unique `idempotency_key`, upsert, Parquet/confidential | base table, 0 rows | WI-048 `archive_only`; canonical replacement는 `silver.trade_journal_revisions`, 삭제 금지 |
 | `asset_overview_snapshots` quality extension | Silver canonical snapshot에 `quality_status`, `quality_flags`, `is_complete` 추가 | 세 컬럼 존재 | WI-033에서 DDL/writer/view/test와 함께 managed로 통합; legacy row는 fail-closed |
-| `asset_return_daily` | Gold; 일별 총자산 변화에서 외부 현금흐름을 제외한 근사 수익률 view | view는 존재하지만 현재 `asset_overview_daily_snapshots`가 품질 컬럼을 투영하지 않아 조회 실패 | broken branch-defined view |
+| `asset_return_daily` | Gold; 일별 총자산 변화에서 외부 현금흐름을 제외한 근사 수익률 view | view는 존재하지만 현재 `asset_overview_daily_snapshots`가 품질 컬럼을 투영하지 않아 조회 실패 | WI-048 `broken_view_do_not_query`; V2 metric/state로 대체, 삭제 금지 |
 
-이 객체들은 정체불명의 수동 DDL은 아니지만, 현재 branch의 registry/DDL/repository/test에는 없다. 따라서
-자동으로 삭제하거나 현재 서비스의 공식 consumer로 채택하지 않는다. reliability branch를 현재 mainline과
-통합할 때 schema, repository, analytics, backup, tests와 catalog registry를 한 변경으로 편입하고 broken
-view를 재생성한다.
+이 객체들은 정체불명의 수동 DDL은 아니지만 V2 정본으로 채택하지 않는다. WI-048 disposition은
+`governance/project/v1-main-transition.toml`이 기록하며, 어떤 객체도 자동 삭제·수정·조회하지 않는다.
+향후 보존기간 또는 파괴적 정리가 필요하면 별도 승인과 backup/restore 증거를 가진 새 범위로 다룬다.
 
 ### Managed V2 production register
 

@@ -49,14 +49,14 @@ def expected_shadow_slot_keys(
     table_exists = connection.execute(
         """
         SELECT count(*) FROM information_schema.tables
-        WHERE table_schema='main' AND table_name='market_calendar'
+        WHERE table_schema='control' AND table_name='market_calendar'
         """
     ).fetchone()[0]
     if not table_exists:
         raise RuntimeError("WI-029 shadow coverage requires complete KRX calendar rows")
     rows = connection.execute(
         """
-        SELECT trade_date,is_open FROM main.market_calendar
+        SELECT trade_date,is_open FROM control.market_calendar
         WHERE lower(market)='krx' AND trade_date BETWEEN ? AND ?
         ORDER BY trade_date
         """,

@@ -60,6 +60,8 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
   `silver.alpha_vantage_consensus_forward_snapshots`,
   `gold.portfolio_daily_state`, `gold.metric_values`, `gold.alert_candidates`,
   `gold.macro_profile_snapshots`,
+  `control.market_calendar`, `control.instrument_master`,
+  `control.instrument_classification_overrides`,
   `control.pipeline_definitions`, `control.metric_definitions`, `control.alert_rule_versions`,
   `control.alert_state_revisions`, `control.alert_candidate_outcomes`,
   `control.alert_dispatch_claims`, `control.alert_delivery_attempts`,

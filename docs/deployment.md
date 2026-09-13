@@ -42,7 +42,8 @@ GitHub Actions의 `Deploy Cloud Run` workflow에서 `wi046-stage`를 선택한�
 실행한다.
 
 1. commit당 한 번 build하고 image digest를 고정한다.
-2. 전용 migration Job으로 MotherDuck schema를 `0018`까지 적용한다.
+2. 전용 migration Job으로 MotherDuck schema를 `0019`까지 적용한다. WI-048 production gate 전에는
+   `0019`와 `main` reference copy를 실행하지 않으며, serving revision은 `0019` 미만에서 fail closed한다.
 3. 활성 OAuth/KIS 상태를 MotherDuck에서 `kis-portfolio-state`로 append-only 복사하고 count를 검증한다.
 4. owner가 미리 bootstrap한 전용 service account가 존재하는지 확인한다. 권한은 아래 최소 경계로 제한한다.
 5. `wi046-auth`, `wi046-v2` tag의 no-traffic 후보를 배포하고 health/discovery/401 경계를 검사한다.
