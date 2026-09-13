@@ -40,7 +40,7 @@ Passing dual-run evidence must be converted into one bounded, reversible product
 ## Acceptance criteria
 
 - [x] owner approves immutable manifest and rollback window.
-- [ ] Remote MCP/iPhone and scheduled runs pass production smoke.
+- [x] Remote MCP/iPhone and scheduled runs pass production smoke.
 - [ ] rollback to V1 revision and schedules is rehearsed.
 
 ## Change impact
@@ -166,11 +166,20 @@ traffic with rollback holds. 4. Observe and close the rollback window.
   the 2026-09-11 `kr-1600` logical run in `succeeded` state, backed by execution `...-9dbp6` completed at 16:04:49 KST.
   Focused owner/auth/command/adapter regression passed 30 tests; quick and full passed with 667 tests and the existing
   Authlib warning. No IAM, Job definition, Scheduler, DB row, secret, connector or traffic changed.
+- Final live-client command smoke at 2026-09-13 13:11 KST used the canonical stable `KIS Portfolio` connector on
+  iPhone and returned `status=reused` with the pollable logical run handle for the already-completed 2026-09-11
+  `kr-1600` run. Remote revision `00045-kag` handled both contemporaneous `/mcp` POSTs with HTTP 200. A direct
+  execution inventory immediately afterward still showed `...-9dbp6`, created on 2026-09-11 and completed
+  successfully, as the newest 16:00 Job execution. The command therefore crossed the live Claude OAuth, owner/scope,
+  stable-traffic and warehouse lookup boundaries without dispatching a new Job, widening IAM or writing pipeline
+  data. The earlier three failed attempts remain preserved as distinct client-unavailable, auth-projection and
+  forbidden-override evidence rather than being overwritten by this success.
 
 ## Closeout
 
 - Result: in progress.
-- Remaining risk: rebind the canonical-name Claude connector from the temporary tagged URL to the stable URL, then
-  capture stable-URL representative read/command and iPhone evidence. Protected Remote promotion, least-privilege IAM
-  and live Claude OAuth/MCP transport are complete; exact V1 rollback is retained and retirement remains MS-004.
+- Remaining risk: rehearse the exact V1 traffic/Scheduler rollback and complete the retained rollback-window
+  observation. Stable-URL representative reads, the no-dispatch managed-command reuse path and iPhone evidence now
+  pass; protected Remote promotion, least-privilege IAM and live Claude OAuth/MCP transport are complete. Exact V1
+  rollback is retained and retirement remains MS-004.
 - Follow-up Work Item: WI-047.
