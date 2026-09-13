@@ -10,8 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0803
 parent_work_item: none
 depends_on: WI-046
-execution_scope: isolated
-production_effects: none
+execution_scope: production
+production_effects: additive_reference_migration_and_v2_revision_update
 architecture_impact: retires the V1 warehouse consumer boundary
 data_impact: compatibility/archive transition; no automatic deletion
 security_impact: confidential history remains protected
@@ -50,6 +50,7 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 ## Sub-items
 
 - `WI-048-S01` — isolated V2 reference-control transition, archive disposition and restore contract (`verified`).
+- `WI-048-S02` — execute the protected production reference transition and V2-only revision update (`in_progress`).
 
 ## Evidence
 
@@ -70,6 +71,15 @@ V1 `main` cannot be retired until writer and consumer evidence is zero and histo
 - Isolated verification: transition/recovery suite `6 passed`; transition and affected runtime suite `38 passed`;
   quick Project OS, data governance, architecture, warehouse and 18-tool MCP surface gates passed; full gate
   `674 passed` with one existing Authlib deprecation warning.
+- 2026-09-13 owner authorization opened the MS-004 production phase for WI-048. S02 may create private pre/post
+  backups, apply additive migration `0019`, copy/reconcile the three retained reference tables and update only the
+  existing Remote plus three V2 core Job revisions. It may not delete or mutate V1 source/history, change IAM/Secret,
+  alter Scheduler definitions, call KIS sources, send Telegram messages, or activate a new public surface.
+- `run-wi048-s02` and the protected `wi048-s02` deploy target now enforce that sequence: one immutable image,
+  private pre-backup/fresh restore, additive `0019`, exact reference reconciliation plus idempotent replay, private
+  post-backup/fresh restore, then the existing V2 core jobs and stable Remote update. The deploy target reuses existing
+  identities and does not contain Scheduler or IAM mutation commands. Focused transition/deploy/Project OS verification
+  passed `83` tests; the full gate passed `677` tests with one existing Authlib deprecation warning.
 
 ## Closeout
 

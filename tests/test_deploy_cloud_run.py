@@ -69,6 +69,13 @@ def test_workflow_dispatches_wi046_auth_only_candidate():
     assert "scripts/deploy_cloud_run.py wi046-auth-candidate" in workflow
 
 
+def test_workflow_dispatches_wi048_s02_to_protected_transition_target():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi048-s02'" in workflow
+    assert "scripts/deploy_cloud_run.py wi048-s02" in workflow
+    assert 'KIS_WI048_S02_JOB_NAME' in workflow
+
+
 def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     test_step = workflow.split("- name: Run test suite", 1)[1].split(
@@ -520,6 +527,70 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1430,--partition-key,all-accounts",
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1600,--partition-key,all-accounts",
     }
+
+
+def test_wi048_s02_transitions_before_one_digest_v2_runtime_update(monkeypatch):
+    commands = []
+    core_deployments = []
+    smokes = []
+    image = "asia-northeast3-docker.pkg.dev/project-1/kis-portfolio/kis-portfolio@sha256:" + "a" * 64
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi048-s02", dry_run=False,
+        secret_mode="secret-manager", job=None, service=None,
+    )
+    env = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": "kis_portfolio",
+        "KIS_GCS_BUCKET": "project-1-kis-portfolio-private",
+        "KIS_REMOTE_SURFACE_VERSION": "v2",
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_GCP_PROJECT": "project-1",
+        "KIS_CLOUD_RUN_REGION": "asia-northeast3",
+        "KIS_FIRESTORE_DATABASE": "kis-portfolio-state",
+        "KIS_REMOTE_AUTH_MODE": "oauth",
+        "KIS_AUTH_ISSUER_URL": "https://auth.example.com",
+        "KIS_AUTH_BASE_URL": "https://auth.example.com",
+        "KIS_RESOURCE_SERVER_URL": "https://remote.example.com/mcp",
+        "KIS_AUTH_REQUIRED_SCOPES": "mcp:read",
+    }
+    monkeypatch.setenv("GITHUB_SHA", "b" * 40)
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    def deploy_core(_args, *, env, project, image, deploy_label):
+        core_deployments.append({
+            "env": env, "project": project, "image": image, "deploy_label": deploy_label,
+        })
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", deploy_core)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_smoke_wi046_remote",
+        lambda **kwargs: smokes.append(kwargs) or True,
+    )
+
+    result = deploy_cloud_run._deploy_wi048_s02(args, env=env, project="project-1")
+
+    assert result == 0
+    assert commands[0][:5] == ["gcloud", "run", "jobs", "deploy", "kis-portfolio-wi048-s02"]
+    assert commands[1][:5] == ["gcloud", "run", "jobs", "execute", "kis-portfolio-wi048-s02"]
+    assert "--wait" in commands[1]
+    assert commands[2][:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
+    assert {command[command.index("--image") + 1] for command in (commands[0], commands[2])} == {image}
+    assert not any(command[:2] == ["gcloud", "scheduler"] for command in commands)
+    assert not any("iam-policy-binding" in command for command in commands)
+    assert core_deployments[0]["image"] == image
+    assert core_deployments[0]["deploy_label"] == "wi048-s02-v2-core"
+    assert core_deployments[0]["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED"] == "false"
+    assert core_deployments[0]["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
+    assert core_deployments[0]["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
+    assert smokes == [{
+        "auth_url": "https://auth.example.com",
+        "remote_url": "https://remote.example.com",
+        "expected_resource": "https://remote.example.com/mcp",
+    }]
 
 
 def test_wi046_stage_applies_0018_then_deploys_zero_traffic_candidates(monkeypatch):

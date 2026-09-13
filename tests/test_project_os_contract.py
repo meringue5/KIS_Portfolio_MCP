@@ -387,15 +387,18 @@ def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None
     for candidate in (target / "docs/work-items").glob("WI-*.md"):
         if candidate.name == filename:
             continue
-        candidate.write_text(
-            re.sub(
-                r"(?m)^status: in_progress$",
-                "status: proposed",
-                candidate.read_text(encoding="utf-8"),
-                count=1,
-            ),
-            encoding="utf-8",
-        )
+        document = candidate.read_text(encoding="utf-8")
+        if re.search(r"(?m)^status: in_progress$", document):
+            document = re.sub(
+                r"(?m)^status: in_progress$", "status: proposed", document, count=1
+            )
+            document = re.sub(
+                r"(?m)^execution_scope: .+$", "execution_scope: isolated", document, count=1
+            )
+            document = re.sub(
+                r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
+            )
+            candidate.write_text(document, encoding="utf-8")
     registry = target / "governance/project/milestones.toml"
     registry.write_text(
         registry.read_text(encoding="utf-8").replace(

@@ -28,9 +28,8 @@ immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP
 `stateless_http=true`·`json_response=true`로 운영되며 Claude/iPhone OAuth, read와 managed-command smoke가
 통과했다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
 
-기본 `auth`/`remote` target은 여전히 V1 호환 경로다. WI-046의 `wi046-stage` target만 protected `master`에서
-build-once image, additive migration, Firestore state copy와 zero-traffic V2 후보를 준비한다. 이 target은 serving
-traffic, connector와 Scheduler를 변경하지 않으며 후속 live-client gate와 별도 traffic promotion을 요구한다.
+기본 `auth`/`remote` target은 과거 호환용 개별 배포 경로다. canonical production 전환은 protected `master`의
+`wi048-s02` target으로 수행하며, WI-046 stage/promotion target은 당시 전환 이력과 제한적 복구 도구로만 남긴다.
 
 Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
 contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply
@@ -69,6 +68,22 @@ GitHub deployer는 service-account 생성이나 IAM policy 변경 권한을 갖�
 `roles/datastore.user`, auth 전용 여섯 secret accessor와 deployer의 service-account user만 부여한다. Remote는
 `roles/datastore.user`, MotherDuck/OAuth-pepper secret accessor, 고정 owned-core Job 세 개의 invoker와 deployer의
 service-account user만 부여한다. 이후 protected stage는 identity를 재바인딩하지 않는다.
+
+### WI-048 canonical V2 production transition
+
+GitHub Actions의 `Deploy Cloud Run` workflow에서 `wi048-s02`를 선택한다. 이 target은 한 immutable image
+digest로 다음 순서를 fail closed로 실행한다.
+
+1. 기존 pipeline identity로 private GCS pre-backup을 만들고 새 파일로 복원 가능함을 검증한다.
+2. MotherDuck migration `0019`를 additive 적용하고 retained `main` reference 3개를 `control`로 복사·대사한다.
+3. 동일 작업을 다시 적용해 멱등성을 확인한 뒤 post-backup을 만들고 fresh restore fingerprint를 검증한다.
+4. 성공한 동일 digest만 기존 owned-core V2 Job 3개와 stable `kis-portfolio-remote` service에 배포한다.
+5. stable auth/Remote health, protected-resource metadata와 unauthenticated `/mcp` 401 경계를 검사한다.
+
+이 target은 transition Job 하나만 실행한다. Scheduler/IAM/Secret resource를 변경하지 않고, KIS source를
+호출하지 않으며, Telegram 전송도 만들지 않는다. 기존 V1 table/view/revision 삭제는 수행하지 않는다.
+전환 Job 실패 시 core/Remote revision 갱신 전에 종료한다. core 또는 Remote 배포 실패 시 데이터는 pre/post
+private backup으로 복구 가능하며, serving V2는 마지막 검증 V2 image/config로 roll forward한다.
 
 ## Remote MCP 인증
 
@@ -412,6 +427,9 @@ Deploy workflow:
 - `wi055`도 `all`에 포함되지 않는 수동 target이다. 새 서비스·Scheduler·secret 없이 같은 image를 기존
   세 core Job에 배포하고 독립 총자산 리포트 flag만 활성화한다. 리포트는 10시·16시에서만 실제 호출하며
   rollback은 이 flag를 false로 바꾸는 것으로 종목별 WI-030 경보와 분리한다.
+- `wi048-s02`도 `all`에 포함되지 않는 수동 production transition target이다. private pre/post backup과
+  fresh restore, additive `0019`, reference reconciliation이 성공한 뒤에만 동일 digest를 기존 V2 core Job
+  3개와 stable Remote에 배포한다. V1 삭제, Scheduler/IAM/Secret 변경, source 호출과 Telegram 발송은 없다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.
