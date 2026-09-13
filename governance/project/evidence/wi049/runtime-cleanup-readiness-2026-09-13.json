@@ -1,0 +1,152 @@
+{
+  "schema_version": "kis-portfolio.runtime-cleanup-manifest/v1",
+  "generated_at": "2026-09-13T14:00:09Z",
+  "project_id": "grand-forge-279904",
+  "region": "asia-northeast3",
+  "mode": "dry_run",
+  "apply_allowed": false,
+  "owner_approved": false,
+  "destructive_controls": {
+    "data_deletion_allowed": false,
+    "backup_deletion_allowed": false,
+    "iam_changes_allowed": false,
+    "secret_changes_allowed": false,
+    "scheduler_changes_allowed": false
+  },
+  "protected_data": [
+    {"dataset": "gold.portfolio_daily_state", "row_count": 1865, "reason": "canonical daily portfolio history"},
+    {"dataset": "main.asset_holding_snapshots", "row_count": 1895, "reason": "canonical holding history"},
+    {"dataset": "main.asset_overview_snapshots", "row_count": 57, "reason": "canonical total-asset history"},
+    {"dataset": "main.order_history", "row_count": 111, "reason": "domestic order history"},
+    {"dataset": "main.overseas_order_history", "row_count": 0, "reason": "overseas order history contract"},
+    {"dataset": "main.overseas_transaction_history", "row_count": 69, "reason": "overseas transaction history"},
+    {"dataset": "main.trade_profit_history", "row_count": 15, "reason": "realized trade history"},
+    {"dataset": "silver.cash_flow_event_revisions", "row_count": 49, "reason": "append-only cash revision history"},
+    {"dataset": "silver.cash_flow_events", "row_count": 49, "reason": "canonical cash event history"},
+    {"dataset": "silver.position_snapshots", "row_count": 2127, "reason": "canonical position history"},
+    {"dataset": "silver.purchase_lot_revisions", "row_count": 0, "reason": "append-only purchase-lot contract"},
+    {"dataset": "silver.trade_event_revisions", "row_count": 282, "reason": "append-only trade revision history"},
+    {"dataset": "silver.trade_events", "row_count": 282, "reason": "canonical trade event history"},
+    {"dataset": "silver.trade_journal_revisions", "row_count": 0, "reason": "append-only journal contract"},
+    {"dataset": "silver.trade_threads", "row_count": 19, "reason": "trade-thread history"}
+  ],
+  "protected_resources": [
+    {"kind": "artifact_repository", "name": "cloud-run-source-deploy", "reason": "active and recovery images remain mixed with old versions"},
+    {"kind": "artifact_repository", "name": "kis-portfolio", "reason": "canonical and candidate recovery images remain mixed"},
+    {"kind": "cloud_run_job", "name": "kis-portfolio-domestic-order-history", "reason": "enabled V2 scheduled collector"},
+    {"kind": "cloud_run_job", "name": "kis-portfolio-overseas-transaction-history", "reason": "enabled V2 scheduled collector"},
+    {"kind": "cloud_run_job", "name": "kis-portfolio-owned-core-v2-1000", "reason": "enabled canonical V2 schedule"},
+    {"kind": "cloud_run_job", "name": "kis-portfolio-owned-core-v2-1430", "reason": "enabled canonical V2 schedule"},
+    {"kind": "cloud_run_job", "name": "kis-portfolio-owned-core-v2-1600", "reason": "enabled canonical V2 schedule"},
+    {"kind": "cloud_run_job", "name": "kis-portfolio-token-warmup-dry-run", "reason": "enabled authentication warmup schedule"},
+    {"kind": "cloud_run_service", "name": "kis-portfolio-auth", "reason": "canonical OAuth service"},
+    {"kind": "cloud_run_service", "name": "kis-portfolio-remote", "reason": "canonical Remote MCP service"},
+    {"kind": "firestore_database", "name": "(default)", "reason": "retained operational state"},
+    {"kind": "firestore_database", "name": "kis-portfolio-state", "reason": "canonical protected operational state"},
+    {"kind": "gcs_bucket", "name": "grand-forge-279904-kis-portfolio-private", "reason": "private content-addressed recovery evidence"},
+    {"kind": "scheduler_job", "name": "kis-portfolio-domestic-order-history-1535", "reason": "enabled collector schedule"},
+    {"kind": "scheduler_job", "name": "kis-portfolio-overseas-transaction-history-0735", "reason": "enabled collector schedule"},
+    {"kind": "scheduler_job", "name": "kis-portfolio-owned-core-v2-1000-schedule", "reason": "enabled canonical V2 schedule"},
+    {"kind": "scheduler_job", "name": "kis-portfolio-owned-core-v2-1430-schedule", "reason": "enabled canonical V2 schedule"},
+    {"kind": "scheduler_job", "name": "kis-portfolio-owned-core-v2-1600-schedule", "reason": "enabled canonical V2 schedule"},
+    {"kind": "scheduler_job", "name": "kis-portfolio-token-warmup-0830", "reason": "enabled authentication warmup schedule"}
+  ],
+  "candidates": [
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi021-s06", "region": "asia-northeast3",
+      "image_digest": "sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863",
+      "configuration_sha256": "f681a18be083e774010a101b04e0bf08c5b8f36e75dea85eebdee190c35acc36",
+      "last_execution": "kis-portfolio-wi021-s06-8q7q6", "last_completed_at": "2026-08-28T06:03:49.548066Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33145645614",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi021-s06"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi021-s06-migration", "region": "asia-northeast3",
+      "image_digest": "sha256:bf02b5582c63408691e2f3ab6bc05d59af26b6900234abbd7a41fa839476d863",
+      "configuration_sha256": "f58bc9aeba9f71bd63bbbdfa9eed4ad657de032efae6f28d0da59206b2729021",
+      "last_execution": "kis-portfolio-wi021-s06-migration-gpzc6", "last_completed_at": "2026-08-28T05:46:15.812670Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33145645614",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:scripts/deploy_cloud_run.py#wi021-s06"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi022-s06", "region": "asia-northeast3",
+      "image_digest": "sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327",
+      "configuration_sha256": "00d9e76871aa4123423b4a4de082022949551b08764fa52db5271685990bb800",
+      "last_execution": "kis-portfolio-wi022-s06-9zmm2", "last_completed_at": "2026-08-28T10:31:05.519923Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33163171218",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi022-s06"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi022-s06-migration", "region": "asia-northeast3",
+      "image_digest": "sha256:ed5ea8b8a4e4b36eaab8f9c358e1ae77c8b7980ecce6d66143be2afd38b42327",
+      "configuration_sha256": "83678af4c7cefe3fc331889939cbd1811da7d67d97d1e17ae54153f76f559e77",
+      "last_execution": "kis-portfolio-wi022-s06-migration-qhs6v", "last_completed_at": "2026-08-28T10:28:03.999125Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33163171218",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:scripts/deploy_cloud_run.py#wi022-s06"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi029-s04-migration", "region": "asia-northeast3",
+      "image_digest": "sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43",
+      "configuration_sha256": "98b3aa425fcfb45a662f8f7d77f6c83618c6f51c35e6f35a49c7ae157bcf8036",
+      "last_execution": "kis-portfolio-wi029-s04-migration-dngbw", "last_completed_at": "2026-08-28T14:51:03.663660Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33182018996",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi029-s04"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi029-s04-verify", "region": "asia-northeast3",
+      "image_digest": "sha256:c1bee7d983deec8586a361265f2b1935088aad5750a0be407e9b49870b922a43",
+      "configuration_sha256": "4d7a47553093d6ce9d9a1b4ba0bf7ebb28528c0ac43435172780b4608122c8ab",
+      "last_execution": "kis-portfolio-wi029-s04-verify-jlvt6", "last_completed_at": "2026-08-28T14:53:01.573448Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33182018996",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi029-s04"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi030-s02", "region": "asia-northeast3",
+      "image_digest": "sha256:b890023a54438f7a873923a75712238830c2ac30c18bb8a3d4a7c757f3cd6f5a",
+      "configuration_sha256": "3105105bc0146367411b0adc63e54dd0b0109191d03ef6c9fd93d02736cf05a0",
+      "last_execution": "kis-portfolio-wi030-s02-gt9g4", "last_completed_at": "2026-09-01T00:21:28.847428Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:33454254322",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi030-s02"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi030-s03", "region": "asia-northeast3",
+      "image_digest": "sha256:be069287467c7a8c398ddf494b514acc595da9bd3dc96303df068b187db4ddf9",
+      "configuration_sha256": "65319fc2b143d8efdb2626dbffd5abdfa6ec019a1ae55e14b7d5ef0e7ab57fa3",
+      "last_execution": "kis-portfolio-wi030-s03-gsplw", "last_completed_at": "2026-09-10T10:32:04.179921Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:34466281709",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi030-s03"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi046-migration", "region": "asia-northeast3",
+      "image_digest": "sha256:ce9ff2a01c2f1bf28d09c5f2336bd2eeeb406bc602a153860f6bf5707d802a1a",
+      "configuration_sha256": "8cf2075ed3e8bbb8c57afdb5789c8ffa7fd205efd8af14ef8f305dde66c0862c",
+      "last_execution": "kis-portfolio-wi046-migration-czmrl", "last_completed_at": "2026-09-11T16:21:36.679162Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:34621191176",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:scripts/deploy_cloud_run.py#wi046-migration"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi046-state-migration", "region": "asia-northeast3",
+      "image_digest": "sha256:ce9ff2a01c2f1bf28d09c5f2336bd2eeeb406bc602a153860f6bf5707d802a1a",
+      "configuration_sha256": "df5873d37cbc90d2770cba86e9ca5bfce7c8b58c8bd0134945dd56a492a73d52",
+      "last_execution": "kis-portfolio-wi046-state-migration-rknjw", "last_completed_at": "2026-09-11T16:22:06.498654Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:34621191176",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:scripts/deploy_cloud_run.py#wi046-state-migration"
+    },
+    {
+      "kind": "cloud_run_job", "name": "kis-portfolio-wi048-s02", "region": "asia-northeast3",
+      "image_digest": "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab",
+      "configuration_sha256": "cad3d1e1adb29ad610f77554875f96b67213af938bde78be32d53a374cafc839",
+      "last_execution": "kis-portfolio-wi048-s02-ct5p9", "last_completed_at": "2026-09-13T13:14:23.980958Z",
+      "last_execution_status": "SUCCEEDED", "scheduler_refs": [], "deployment_ref": "github-run:34759029400",
+      "recovery_ref": "git:67ff38b9b74d752d88b87a61347ef5f21635f2d3:.github/workflows/deploy-cloud-run.yml#wi048-s02"
+    }
+  ],
+  "recovery_evidence": {
+    "backup_index_uri": "gs://grand-forge-279904-kis-portfolio-private/recovery/wi048/backup.v2-index/post/sha256/bc/bc91f37b77f5bc2ef98d218a416337de71e2112ccecba2bf879b8afd15968da0",
+    "backup_index_sha256": "bc91f37b77f5bc2ef98d218a416337de71e2112ccecba2bf879b8afd15968da0",
+    "backup_verified_at": "2026-09-13T13:14:23.980958Z",
+    "backup_result": "pass",
+    "source_git_sha": "fdd59355a6a8c3440bd654e67adebe8f5d0447c5",
+    "workflow_reference": "github-run:34759029400"
+  }
+}

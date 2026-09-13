@@ -15,7 +15,7 @@ V2 cutover 뒤 V1 runtime·data consumer·문서 잔존물을 검증 가능한 �
 | ---: | --- | --- | --- | --- |
 | 1 | WI-047 V1 public-surface retirement | V2-W0801/0802 | WI-046 | closed; local/setup/public activation paths retired, internal history preserved |
 | 2 | WI-048 V1 main consumer transition | V2-W0803 | WI-046 | closed; protected reference transition, restore and owner-observed canonical Remote read passed |
-| 3 | WI-049 V1 runtime resource cleanup | V2-W0804 | WI-047 | proposed; destructive approval gate |
+| 3 | WI-049 V1 runtime resource cleanup | V2-W0804 | WI-047 | in progress; S01 verified no-apply manifest and protected-history baseline; S02 exact Job approval pending, S03 image cleanup separate |
 | 4 | WI-050 steady-state operations runbooks | V2-W0805 | WI-047, WI-048 | proposed |
 | 5 | WI-051 final V2 architecture audit | V2-W0806 | WI-047~050 | proposed |
 | 6 | WI-032 V2 canonical documentation | V2-W0807 | WI-051 | proposed; final documentation gate |
@@ -44,6 +44,8 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-13.8 | 2026-09-13 | Verified WI-049-S01 cleanup readiness without production mutation | 11 unscheduled Job candidates, 15 protected data baselines, 19 protected resources and exact private recovery index are frozen; apply remains disabled |
+| 2026-09-13.7 | 2026-09-13 | Activated WI-049 in isolated read-only inventory phase | Databases, portfolio/trade history and backups remain protected; no deletion authorized |
 | 2026-09-13.6 | 2026-09-13 | Closed WI-048 after protected production transition and owner-observed canonical Remote read passed | V2 is the sole canonical path; retained V1 cleanup remains separately gated by WI-049 |
 | 2026-09-13.5 | 2026-09-13 | Closed WI-047 and activated isolated WI-048 | V2-only public surface is canonical; destructive data/runtime cleanup remains excluded |
 | 2026-09-13.4 | 2026-09-13 | Opened MS-004 and activated WI-047 after owner accepted V2-only production | MS-003 and WI-046 closed under DEC-056/ADR-028; one isolated Work Item active, destructive cleanup remains WI-049 |

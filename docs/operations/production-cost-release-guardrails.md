@@ -115,6 +115,18 @@ Any incomplete inventory, active mismatch, missing active/rollback version, futu
 restore proof makes `complete=false` and emits blockers. Candidate rows may still be shown for diagnosis, but they do
 not override blockers and never authorize deletion.
 
+WI-049 runtime cleanup readiness is validated separately. This command only validates a review artifact; the v1
+contract rejects `apply_allowed=true`, owner approval claims, scheduled candidates and every data/backup/IAM/Secret/
+Scheduler mutation flag:
+
+```bash
+uv run python scripts/production_guardrails.py validate-runtime-cleanup \
+  governance/project/evidence/wi049/runtime-cleanup-readiness-2026-09-13.json
+```
+
+There is intentionally no runtime cleanup apply command. Exact-target approval and the production execution path are
+owned by the later WI-049 sub-item.
+
 ## Future production apply checklist
 
 This checklist is intentionally inactive while MS-002 is stabilizing:

@@ -13,6 +13,7 @@ from kis_portfolio.platform.production_guardrails import (
     plan_artifact_cleanup,
     validate_inventory,
     validate_release_manifest,
+    validate_runtime_cleanup_manifest,
 )
 
 
@@ -191,3 +192,51 @@ def test_release_manifest_requires_restore_evidence_and_target_rollback():
 
     assert "rollback_targets missing active targets" in str(raised.value)
     assert "restore_evidence.result must be pass" in str(raised.value)
+
+
+def test_wi049_runtime_cleanup_manifest_is_exact_and_review_only():
+    manifest = validate_runtime_cleanup_manifest(
+        _fixture("runtime-cleanup-manifest-v1.json")
+    )
+
+    assert manifest["mode"] == "dry_run"
+    assert manifest["apply_allowed"] is False
+    assert manifest["owner_approved"] is False
+    assert len(manifest["candidates"]) == 1
+    assert manifest["candidates"][0]["scheduler_refs"] == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "match"),
+    [
+        (lambda value: value.update({"apply_allowed": True}), "apply_allowed must be false"),
+        (
+            lambda value: value["destructive_controls"].update(
+                {"data_deletion_allowed": True}
+            ),
+            "data_deletion_allowed must be false",
+        ),
+        (
+            lambda value: value["candidates"][0].update(
+                {"scheduler_refs": ["some-live-schedule"]}
+            ),
+            "scheduler_refs must be empty",
+        ),
+        (
+            lambda value: value["protected_resources"].append(
+                {
+                    "kind": "cloud_run_job",
+                    "name": "kis-portfolio-wi021-s06",
+                    "reason": "must not overlap",
+                }
+            ),
+            "cleanup candidate is protected",
+        ),
+    ],
+)
+def test_wi049_runtime_cleanup_manifest_fails_closed(mutation, match):
+    manifest = _fixture("runtime-cleanup-manifest-v1.json")
+    mutation(manifest)
+
+    with pytest.raises(GuardrailValidationError, match=match):
+        validate_runtime_cleanup_manifest(manifest)
