@@ -76,6 +76,16 @@ def test_workflow_dispatches_wi048_s02_to_protected_transition_target():
     assert 'KIS_WI048_S02_JOB_NAME' in workflow
 
 
+def test_workflow_dispatches_wi049_s02_exact_cleanup_from_production():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi049-s02" in workflow
+    assert "github.event.inputs.target == 'wi049-s02'" in workflow
+    assert "scripts/cleanup_cloud_run_jobs.py" in workflow
+    assert "runtime-cleanup-readiness-2026-09-13.json" in workflow
+    assert "runtime-cleanup-approval-2026-09-14.json" in workflow
+    assert "--apply" in workflow
+
+
 def test_deploy_workflow_does_not_activate_firestore_during_pre_auth_tests():
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     test_step = workflow.split("- name: Run test suite", 1)[1].split(

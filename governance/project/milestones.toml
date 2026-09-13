@@ -989,7 +989,7 @@ status = "verified"
 id = "WI-049-S02"
 parent_id = "WI-049"
 title = "Execute owner-approved one-time Cloud Run Job cleanup"
-status = "proposed"
+status = "in_progress"
 
 [[subitems]]
 id = "WI-049-S03"

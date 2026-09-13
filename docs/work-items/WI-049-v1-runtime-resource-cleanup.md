@@ -10,8 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0804
 parent_work_item: none
 depends_on: WI-047
-execution_scope: isolated
-production_effects: none
+execution_scope: production
+production_effects: delete exactly 11 owner-approved unscheduled one-time Cloud Run Job definitions
 architecture_impact: removes superseded deployment resources
 data_impact: no data deletion
 security_impact: obsolete identities/secrets require scoped review
@@ -38,7 +38,7 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 
 ## Acceptance criteria
 
-- [ ] owner approves exact targets and recovery artifacts.
+- [x] owner approves exact targets and recovery artifacts.
 - [ ] active/rollback/V2 resources cannot match cleanup.
 - [ ] post-cleanup smoke and cost evidence pass.
 
@@ -55,7 +55,7 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 ## Sub-items
 
 - `WI-049-S01` — verified: freeze runtime inventory, history protections and recovery evidence.
-- `WI-049-S02` — proposed: execute owner-approved one-time Cloud Run Job cleanup.
+- `WI-049-S02` — in progress: execute owner-approved one-time Cloud Run Job cleanup.
 - `WI-049-S03` — proposed: review and execute separately approved Artifact Registry image cleanup.
 
 ## Evidence
@@ -80,11 +80,20 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 - Focused guardrail verification passed 23 tests; related guardrail/readiness verification passed 33 tests; the full
   gate passed 682 tests with one existing Authlib deprecation warning. No Cloud Run, Scheduler, IAM, Secret, Firestore,
   MotherDuck, GCS or Artifact Registry mutation occurred.
+- On 2026-09-14 the owner approved all 11 exact S02 Job names and reaffirmed the exclusions. The approval artifact
+  exactly matches the frozen candidate set and continues to exclude images, backups, data, IAM, Schedulers, Secrets and
+  services. S02 production effects are now limited to those exact Job definitions.
+- The S02 implementation adds no local apply path: `--apply` fails unless it runs in GitHub Actions from
+  `refs/heads/master`. Its live dry-run revalidated all 11 exact image/configuration hashes, found no Scheduler target,
+  and confirmed the immutable private backup index still exists; `deleted_names=[]`. The production workflow will
+  re-run the same preflight, delete exact names without a wildcard, verify all approved names are absent, preserve all
+  six scheduled Jobs and six Schedulers, then smoke Auth/Remote health and the unauthenticated MCP 401 boundary.
+- S02 implementation verification passed 92 focused tests and the full 690-test gate with one existing Authlib
+  deprecation warning.
 
 ## Closeout
 
-- Result: in progress; destructive execution has not started.
-- Remaining risk: S02 still needs owner approval of the exact 11 Job names. Deleting a Job definition also removes its
-  Cloud Run execution view, so the frozen manifest and GitHub evidence are the durable replacement. S03 requires a
-  later, independent exact-digest review and approval.
+- Result: in progress; S02 implementation and production execution are underway after exact-target approval.
+- Remaining risk: deleting a Job definition also removes its Cloud Run execution view, so the frozen manifest and
+  GitHub evidence are the durable replacement. S03 requires a later, independent exact-digest review and approval.
 - Follow-up Work Item: WI-051.
