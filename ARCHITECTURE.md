@@ -2,9 +2,9 @@
 
 이 문서는 프로젝트의 코드 배치와 장기 구조 원칙을 정리한다.
 
-2026-09-13부터 Remote MCP V2가 유일한 production architecture다. 이 문서에 남은 V1 package·schema 설명은
-MS-004/WI-032가 전수 정본화할 때까지 보존하는 migration history이며 현재 운영 계약이 아니다. 승인된 V2
-구조와 전환 근거는 `docs/design/kis-portfolio-v2-system-design.md`,
+2026-09-13부터 Remote MCP V2가 유일한 production architecture다. V1 언급은
+`governance/project/v1-document-disposition.toml`에 분류된 migration/forensic history이며 현재 운영 계약이
+아니다. 현재 문서 지도는 `docs/README.md`, 승인된 V2 구조와 전환 근거는 `docs/design/kis-portfolio-v2-system-design.md`,
 `docs/design/kis-portfolio-v2-delivery-plan.md`, ADR-021과 ADR-028이 소유한다.
 
 제품 architecture의 변경·검증·배포·운영 feedback은 상위 **Project Operating System**의 통제를 받는다.
@@ -59,7 +59,7 @@ KIS_Portfolio_MCP/
 └── var/                       # 로컬 토큰, local DB, 백업 파일 위치
 ```
 
-## 현재 단계
+## 현재 운영 기준선
 
 현재 구조는 `baseline/pre-service-refactor` 이후의 서비스 전환 단계다.
 
@@ -77,9 +77,10 @@ KIS_Portfolio_MCP/
 - 로컬 DuckDB는 `KIS_DB_MODE=local`일 때만 사용하며 운영 트랜잭션 중심이 아니다.
 - `KIS_DATA_DIR` 기본값은 프로젝트 루트 기준 `var`이다.
 - 상대경로로 지정한 `KIS_DATA_DIR`, `KIS_TOKEN_DIR`, `KIS_LOCAL_DB_PATH`는 현재 작업 디렉터리가 아니라 프로젝트 루트 기준으로 해석한다.
-- KIS API access token은 `kis_api_access_tokens` 테이블에 암호화 저장한다.
-- legacy `var/tokens/token_{CANO}.json`은 1회 migration 입력값으로만 남기고, 정상 경로의 source of truth는 DB다.
-- 주문 tool은 disabled stub이며 실제 KIS 주문 API를 호출하지 않는다.
+- active KIS API access token은 Firestore `kis_token_cache`에 저장한다.
+- MotherDuck `kis_api_access_tokens`와 legacy `var/tokens/token_{CANO}.json`은 migration 입력/증거로만
+  남기고 현재 operational source of truth로 사용하지 않는다.
+- V1 내부 주문 stub은 역사로만 보존하고 V2 public catalog에는 주문 tool을 등록하지 않는다.
 - remote MCP는 `kis-portfolio-remote`가 제공한다.
 - batch CLI는 `kis-portfolio-batch`가 제공한다.
 - OAuth auth server는 `kis-portfolio-auth`가 제공한다.
@@ -87,13 +88,13 @@ KIS_Portfolio_MCP/
 - cross-cutting 보안 primitive는 `src/kis_portfolio/security/` 아래에 둔다.
 - side effect 없는 공통 값 변환 helper는 `src/kis_portfolio/common/` 아래에 둔다.
 
-## 장기 목표
+## Architecture direction
 
 MCP adapter는 tool 등록만 담당하고, 장기적으로 KIS 호출은 client/service로 계속 얇게 분리한다.
 
-사용자-facing 제품표면은 OAuth Remote MCP 하나로 수렴한다. local stdio entrypoint는 remote parity와
-운영 복구경로를 검증하는 동안 개발·test harness로 남을 수 있지만 사용자 제품 SSOT가 아니다. 현재
-코드베이스의 shared core를 점진적으로 개선하며, 별도 REST microservice는 dashboard·mobile app 등 실제
+사용자-facing 제품표면은 OAuth Remote MCP 하나다. 폐기된 local stdio entrypoint는 migration diagnostic과
+내부 fixture 외에는 사용하지 않으며 운영 복구경로가 아니다. 현재 코드베이스의 shared core를 점진적으로
+개선하며, 별도 REST microservice는 dashboard·mobile app 등 실제
 consumer가 MCP와 다른 안정 계약을 요구할 때만 추가한다.
 
 ```text
@@ -186,11 +187,10 @@ control  migration ledger and reference/override data
 security encrypted or hashed auth/token state
 ```
 
-위 `security` schema는 현재 V1 목표 계약이다. 승인된 V2 목표는 OAuth/KIS token·lease·run request를
-Seoul의 named Firestore Standard `kis-portfolio-state` database로 옮기고 장기 credential과 encryption key를 Secret Manager에
-두며, MotherDuck을 `bronze/silver/gold/control` 분석 plane으로 제한한다. Firestore collection allowlist와
-trust-boundary별 key 격리를 적용하며, 별도 Work Item의 provisioning·migration·reconnect rehearsal과
-cutover 승인 전에는 현재 runtime에 적용하지 않는다.
+운영 V2는 OAuth/KIS token·lease·run request를 Seoul의 named Firestore Standard
+`kis-portfolio-state` database에 두고 장기 credential과 encryption key를 Secret Manager에 둔다. MotherDuck은
+`bronze/silver/gold/control` 분석 plane을 맡는다. Firestore collection allowlist와 trust-boundary별 key 격리를
+적용하며, 보존된 MotherDuck security/main 객체는 migration snapshot이지 active state SSOT가 아니다.
 
 물리 이동은 runtime auto-DDL과 분리된 versioned migration runner, 단일 writer, backup/restore rehearsal,
 row-count/aggregate reconciliation을 갖춘 뒤 수행한다. 그 전에도 logical layer 계약과 신규 객체 등록
@@ -240,7 +240,8 @@ canonical policy로 둔다.
 아키텍처 관점의 경계는 다음과 같다.
 
 - 장기 provider credential은 runtime env 또는 플랫폼 secret store에만 둔다.
-- MotherDuck에는 운영 데이터, 암호화된 KIS token cache, OAuth digest state만 저장한다.
+- MotherDuck에는 V2 분석 데이터와 보존된 migration snapshot을 저장한다. active OAuth/KIS token state는
+  Firestore가 소유한다.
 - auth server는 OAuth 발급과 owner login을 담당하고, remote MCP는 bearer token 검증 뒤 read-only tool을 실행한다.
 - 로그와 MCP 계좌 메타데이터에는 전체 계좌번호를 노출하지 않는다. 운영 DB row와 백업은 계좌 id를
   포함할 수 있으므로 민감 데이터로 취급한다.

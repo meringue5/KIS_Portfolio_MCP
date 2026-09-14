@@ -26,21 +26,20 @@ DB 객체의 전체 목록, logical layer, grain과 sensitivity 등급은 `docs/
   Federation credential과 비시크릿 vars만 둔다.
 - GitHub Environment secret `KIS_DEPLOY_ENV`는 deprecated migration artifact다. 새 workflow에서는 사용하지 않는다.
 
-## 현재 V1과 승인된 V2 목표
+## 현재 V2 운영 기준선
 
-현재 runtime은 아래 inventory와 같이 MotherDuck에 encrypted KIS token cache와 OAuth digest state를 저장하고,
-Secret Manager의 개별 secret resource를 `latest` version으로 주입한다. 이는 migration 전까지 유효한 V1
-운영 계약이다.
+현재 production runtime은 OAuth user/client/grant/code/token digest, encrypted KIS token cache, lease와 run
+request를 named Firestore `kis-portfolio-state`에 저장한다. 장기 credential과 cryptographic key의 SSOT는 GCP
+Secret Manager이며 runtime identity별 exact resource binding을 사용한다. MotherDuck은 V2 분석 plane과 보존된
+migration snapshot을 소유하고 active operational-state SSOT가 아니다.
 
-2026-08-28 승인된 V2 security plane은 다음과 같다. 이 결정은 목표 architecture이며 아직 secret 재구성,
-Firestore 활성화 또는 token migration을 수행하지 않았다.
+2026-08-28 승인된 V2 security plane의 현재 계약은 다음과 같다.
 
 - 장기 credential과 cryptographic key의 SSOT는 GCP Secret Manager다.
-- Secret Manager는 `KIS provider`, `OAuth providers`, `OAuth server keyring`, `Warehouse access`,
-  `Token encryption keyring`, `Notification`의 신뢰경계별 최대 6개 bundle을 목표로 한다. 하나의
-  mega-secret으로 합치지 않는다.
-- release manifest는 `latest` 대신 숫자 secret version을 pin하고, runtime은 필요한 bundle만 시작 시 읽어
-  process memory에 cache한다.
+- 현재 개별 Secret Manager resource는 trust boundary별 최소권한으로 주입한다. 향후 bundle 전환은 별도
+  security Work Item과 restore/reconnect 검증 없이는 수행하지 않는다.
+- release manifest는 민감 notification secret 등 승인된 항목을 숫자 version으로 pin한다. `latest`를
+  숫자/bundle 계약으로 일괄 전환하지 않는다.
 - rotation의 previous version은 7일 rollback window 동안 disable하고 검증 뒤 destroy한다.
 - OAuth digest, encrypted KIS token cache, lease와 run request는 Seoul의 Firestore Standard database 하나에
   저장한다. database IAM 위에 identity별 application collection allowlist와 negative test를 둔다.
@@ -48,7 +47,7 @@ Firestore 활성화 또는 token migration을 수행하지 않았다.
   `bronze/silver/gold/control`만 소유한다.
 
 실제 secret payload를 bundle로 옮기는 작업은 별도 security/provisioning Work Item과 rollback rehearsal 뒤에
-수행한다. 그 전에는 아래 V1 inventory와 rotation runbook이 현재 운영 절차다.
+수행한다. 아래 inventory와 rotation runbook은 현재 V2 운영 절차다.
 
 WI-046의 zero-traffic 후보는 bundle 전환 전에 최소권한 runtime identity를 먼저 적용한다. auth identity는
 Firestore와 auth 전용 여섯 secret만, Remote V2 identity는 Firestore, MotherDuck, OAuth pepper와 고정된 세
@@ -84,8 +83,8 @@ bootstrap으로 분리하고, protected deploy는 이미 존재하는 identity�
 - WI-046 Remote V2 candidate: governed MotherDuck read model과 고정 Cloud Run Job command만 사용한다. 직접 KIS
   API를 호출하지 않으며 계좌 credential을 주입받지 않는다.
 - Cloud Run batch job: 예약 수집 job이다. KIS/MotherDuck runtime env를 사용하지만 MCP OAuth client token은 쓰지 않는다.
-- MotherDuck: 현재 V1 운영 데이터베이스다. portfolio data, encrypted KIS token cache, OAuth digest state를
-  저장한다. 승인된 V2에서는 분석 plane만 맡는다.
+- Firestore `kis-portfolio-state`: active OAuth/KIS token digest/ciphertext, lease와 run request state를 저장한다.
+- MotherDuck: V2 analytical Bronze/Silver/Gold/Control data와 보존된 migration snapshot을 저장한다.
 - KIS Open API: app key/secret으로 KIS API access token을 발급한다.
 - Claude/ChatGPT clients: MCP OAuth access token을 bearer로 보내고 refresh token을 클라이언트 쪽에 보관한다.
 
@@ -103,14 +102,14 @@ manual evidence는 private provenance로만 append하고 broker cash fact를 덮
 
 | Name or pattern | Source of truth | Runtime consumer | DB storage | Stored form | Rotation notes |
 | --- | --- | --- | --- | --- | --- |
-| `KIS_APP_KEY_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy. Cache key includes app key, so new keys create new KIS token cache rows. |
-| `KIS_APP_SECRET_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy. Clear stale KIS token cache if the old secret is revoked before token expiry. |
-| `KIS_CANO_{ACCOUNT}` | User account records, local `.env`, GCP Secret Manager | local MCP, remote, batch | Yes, in portfolio/order rows | Account id in operational data | Treat as sensitive. MCP account metadata must mask it, but DB snapshots and backups may contain full account ids. |
-| `KIS_ACNT_PRDT_CD_{ACCOUNT}` | User account records, local `.env`, GitHub vars/Cloud Run env | local MCP, remote, batch | Yes, in order/canonical rows where needed | Product code | Needed for IRP/pension API routing and order identity. |
-| `MOTHERDUCK_TOKEN` | MotherDuck console, local `.env`, GCP Secret Manager | local MCP, auth, remote, batch, backup | No | env/secret manager only | Rotate in MotherDuck, sync Secret Manager, redeploy all services/jobs. |
-| `MOTHERDUCK_DATABASE` | Config | local MCP, auth, remote, batch, backup | No | env only | Not secret, but must match across auth and remote. |
-| `KIS_TOKEN_ENCRYPTION_KEY` | Generated Fernet key, local `.env`, GCP Secret Manager | local MCP, remote, batch | No | env/secret manager only | Protect carefully. Rotation requires re-encrypting or deleting `kis_api_access_tokens`; otherwise cached KIS tokens become unreadable. |
-| KIS API access token | KIS token endpoint response | local MCP, remote, batch | Yes | encrypted `token_ciphertext` in `kis_api_access_tokens` | Automatically refreshed when expired or near expiry. Never log or return raw token. |
+| `KIS_APP_KEY_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | managed batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy affected Jobs. Cache key includes app key, so new keys create new KIS token cache rows. |
+| `KIS_APP_SECRET_{ACCOUNT}` | KIS developer console, local `.env`, GCP Secret Manager | managed batch | No | env/secret manager only | Update `.env`, sync Secret Manager, redeploy affected Jobs. Invalidate an unusable old token through the governed cache path. |
+| `KIS_CANO_{ACCOUNT}` | User account records, local `.env`, GCP Secret Manager | managed batch | Yes, in portfolio/order rows | Account id in analytical data | Treat as sensitive. MCP account metadata must mask it, but snapshots and backups may contain full account ids. |
+| `KIS_ACNT_PRDT_CD_{ACCOUNT}` | User account records, local `.env`, Cloud Run env | managed batch | Yes, in order/canonical rows where needed | Product code | Needed for IRP/pension API routing and order identity. |
+| `MOTHERDUCK_TOKEN` | MotherDuck console, local `.env`, GCP Secret Manager | Remote, managed batch, backup/recovery | No | env/secret manager only | Rotate in MotherDuck, sync Secret Manager, redeploy affected services/Jobs. |
+| `MOTHERDUCK_DATABASE` | Config | Remote, managed batch, backup/recovery | No | env only | Not secret; must identify the canonical analytical database. |
+| `KIS_TOKEN_ENCRYPTION_KEY` | Generated Fernet key, local `.env`, GCP Secret Manager | managed batch | No | env/secret manager only | Rotation requires a separately reconciled Firestore ciphertext migration or safe token reissue. |
+| KIS API access token | KIS token endpoint response | managed batch | Yes | encrypted `token_ciphertext` in Firestore `kis_token_cache` | Automatically refreshed when expired or near expiry. Never log or return raw token. |
 | `KIS_AUTH_TOKEN_PEPPER` | Generated secret, local `.env`, GCP Secret Manager | auth and remote | No | env/secret manager only | Must be identical on auth and remote. Rotation invalidates existing OAuth token digests unless users reconnect. |
 | MCP OAuth access token | auth server generated value | Claude/ChatGPT bearer requests | Yes | digest only in `oauth_tokens` | Short-lived. Raw value is not recoverable from DB. |
 | MCP OAuth refresh token | auth server generated value | Claude/ChatGPT token refresh | Yes | digest only in `oauth_tokens` | Rotated on refresh. Pepper rotation or expiry requires connector reauthorization. |
@@ -136,30 +135,33 @@ manual evidence는 private provenance로만 append하고 broker cash fact를 덮
 
 ## Runtime Env vs DB State
 
-Runtime env is the source of truth for long-lived provider credentials and encryption/digest secrets. DB state is the
-source of truth for service-issued state: portfolio snapshots, KIS token cache rows, OAuth grants, OAuth token digests,
-dynamic OAuth client metadata, and identity allowlist results.
+Runtime env/Secret Manager is the source of truth for long-lived provider credentials and encryption/digest secrets.
+Firestore is the source of truth for service-issued operational state: KIS token cache, OAuth grants/token digests,
+dynamic OAuth client metadata, lease and run requests. MotherDuck is the source of truth for governed analytical
+portfolio facts and read models.
 
-Do not move provider secrets into MotherDuck. MotherDuck can hold encrypted or hashed service-issued tokens, but it
-must not become the store for KIS app secrets, MotherDuck token, OAuth provider secrets, or encryption/pepper keys.
+Do not move provider secrets into Firestore or MotherDuck. Neither store may contain KIS app secrets, MotherDuck
+token, OAuth provider secrets, or encryption/pepper keys.
 
 ## Token Storage Model
 
 KIS API token cache:
 
-- Table: `kis_api_access_tokens`
+- Active collection: Firestore `kis_token_cache`
 - Key: `sha256("{KIS_ACCOUNT_TYPE}:{KIS_CANO}:{KIS_APP_KEY}")`
 - Sensitive value: KIS access token
 - Stored value: Fernet-encrypted `token_ciphertext`
 - Required env: `KIS_TOKEN_ENCRYPTION_KEY`
-- Shared consumers: local MCP, Cloud Run remote, and batch use the same cache key and common token manager
+- Consumers: credentialed managed batch paths use the common token manager; Remote V2 has no KIS account credential
 - Expiry policy: compare KIS wall-clock timestamps in `Asia/Seoul` and refresh from `expires_at - 10 minutes`
 - Refresh ownership: whichever consumer refreshes first upserts the shared row; later cold starts reuse that ciphertext
-- Legacy migration input: `var/tokens/token_{CANO}.json`, then delete the file after migration
+- Retained migration inputs: MotherDuck `kis_api_access_tokens` and local `var/tokens/token_{CANO}.json`; neither is
+  the active V2 operational-state SSOT
 
 MCP OAuth state:
 
-- Tables: `auth_users`, `auth_identities`, `oauth_clients`, `oauth_grants`, `oauth_authorization_codes`, `oauth_tokens`
+- Active Firestore collections: `auth_users`, `auth_identities`, `oauth_clients`, `oauth_grants`, `oauth_codes`,
+  `oauth_tokens`
 - Access/refresh tokens: digest only, using `KIS_AUTH_TOKEN_PEPPER`
 - Authorization codes: digest only, one-time use
 - Client secrets: hash only
@@ -172,7 +174,7 @@ MCP OAuth state:
 
 ## Backups
 
-Default Parquet backups exclude OAuth state tables and `kis_api_access_tokens`. Backups can still contain account ids,
+Default V2 Parquet backups exclude Firestore operational state. Backups can still contain account ids,
 holdings, order history, and portfolio values, so treat backup folders as sensitive data.
 
 Do not commit `var/backup`, local DuckDB files, legacy token files, or exported Parquet snapshots. Store off-machine

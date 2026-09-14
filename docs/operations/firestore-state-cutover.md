@@ -1,5 +1,8 @@
 # Firestore operational-state cutover and rollback
 
+> Historical cutover procedure. Activation is complete. Its V1 traffic rollback was superseded by ADR-028; current
+> incidents use immutable V2 forward recovery from `docs/deployment.md`.
+
 ## Boundary
 
 `KIS_STATE_BACKEND=firestore` moves OAuth user/client/grant/code/token state and encrypted KIS access-token cache
@@ -22,9 +25,10 @@ jobs; serving startup performs read-only required-table verification and fails c
 6. Reconnect the MCP client to mint a new code/token pair. Existing migrated active digests may remain valid, but a
    reconnect is the recovery contract and avoids relying on a partially completed rotation.
 
-## Rollback
+## Historical rollback contract (superseded)
 
-- Route traffic back to the last V1 revision and set `KIS_STATE_BACKEND=motherduck` there.
+- Do not execute the former V1 traffic rollback. Preserve this line of history only; current recovery deploys the last
+  verified V2 image/config or an additive V2 correction while keeping `KIS_STATE_BACKEND=firestore`.
 - Do not copy Firestore state back into MotherDuck and do not delete either store during incident response.
 - Reconnect the MCP client; KIS tokens are safely reissued from the upstream API when the old cache is absent/expired.
 - If OAuth pepper exposure is suspected, rotate `KIS_AUTH_TOKEN_PEPPER` in Secret Manager and force reconnect.

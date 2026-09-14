@@ -7,13 +7,15 @@
 여러 계좌의 국내/해외 자산을 한 번에 조회하고, MotherDuck/DuckDB에 스냅샷을 쌓아 이력과 비중 변화를 분석할 수 있습니다.
 장기 비전은 개인 자산 포트폴리오 관리와 데이터 분석 기반 투자 의사결정 war-room입니다.
 
-이 프로젝트는 원래 `migusdn/KIS_MCP_Server` 포크에서 출발했지만, 현재는 단일 MCP 서버와 포트폴리오 분석 서비스 구조를 중심으로 재설계된 상태입니다.
+이 프로젝트는 원래 `migusdn/KIS_MCP_Server` 포크에서 출발했지만, 현재는 OAuth Remote MCP, managed batch와
+Firestore/MotherDuck 데이터 경계를 가진 포트폴리오 서비스로 재설계되었습니다. 현재 문서의 단일 진입점은
+[docs/README.md](./docs/README.md)입니다.
 
 한국투자증권과 무관한 비공식 오픈소스 프로젝트입니다.
 
 ## 한눈에 보기
 
-- 여러 KIS 계좌를 하나의 MCP 서버 `kis-portfolio`로 묶어서 조회
+- 여러 KIS 계좌를 OAuth Remote custom connector `KIS Portfolio` 하나로 조회
 - 국내 자산 + 해외 주식 + 해외 예수금까지 합친 canonical 총자산 계산
 - 국내 상장 해외 ETF/REIT를 `해외우회투자`로 분리 표시
 - MotherDuck/DuckDB에 스냅샷을 저장하고 총자산 이력/일간 변화/추세 분석
@@ -29,37 +31,23 @@
 
 ## 현재 제공 기능
 
-### 1. 계좌/포트폴리오
+### 1. 포트폴리오와 분석
 
-- 등록된 계좌 목록 조회
-- 전체 계좌 국내/연금 스냅샷 갱신
-- 특정 계좌 잔고 조회 (`allow_stale_on_error=true`일 때만 장애 시 저장된 잔고를 stale로 반환)
-- 전체 자산현황 요약
-  - 국내 자산
-  - 해외 주식 평가액
-  - 해외 예수금/현금성
-  - 총자산
-  - 계좌 기준 비중
-  - 경제적 노출 기준 비중
+- 저장된 전체 자산현황, 계좌 alias별 구성과 경제적 노출 조회
+- 포지션 분석, 성과 이력, 총자산 변동과 기여도 분석
+- freshness, completeness, reconciliation과 lineage를 포함한 명시적 품질 상태
 
 ### 2. 시세/이력
 
-- 국내 주식 현재가 / 호가 / 기본정보
-- 국내 주식 가격 이력
-- 해외 주식 현재가 / 가격 이력
-- 환율 이력
+- 저장된 시장 snapshot과 가격·환율 이력
+- 거래 원장, 거래 thread와 배당 요약
 
-### 3. 손익/분석
+### 3. 전망·신호·운영 명령
 
-- 국내 주식 기간별 손익
-- 해외 주식 기간별 손익
-- 해외 주식 일별거래내역 / 주문체결내역
-- 해외 주식 결제기준잔고
-- 총자산 이력
-- 총자산 일간 변화
-- 총자산 추세
-- 총자산 allocation history
-- 국내/연금 feeder 기준 포트폴리오 변화, 추세, 이상치
+- fundamental outlook, exposure와 signal 상태
+- data catalog, quality, pipeline run과 journal review queue
+- 고정된 managed pipeline 실행과 owner journal/thread revision
+- 주문·정정·취소 tool은 공개 catalog에 없음
 
 ### 4. 데이터 저장
 
@@ -67,9 +55,11 @@
 - Silver: 정규화 시세/환율, canonical 총자산·보유종목·주문/거래
 - Gold: 일별 대표 스냅샷과 분석용 view
 - Control: migration, 시장 달력, 종목마스터, 분류 override
-- Security: 암호화/해시된 KIS token과 MCP OAuth state
+- Operational state: Firestore의 OAuth/KIS token·lease·run-request state
+- Security: Secret Manager의 장기 credential/key와 analytics DB 밖의 보안 경계
 
-현재 관리하는 25개 table과 2개 view의 grain, key, 적재 방식, 민감도와 백업 정책은
+현재 V2 registry의 79개 table과 27개 view, 그리고 보존된 legacy `main` 객체의 grain, key, 적재 방식,
+민감도와 백업 정책은
 [데이터 저장소 거버넌스와 카탈로그](./docs/data-catalog.md)에 정리되어 있습니다.
 
 ## 중요한 현재 상태
@@ -213,7 +203,7 @@ Cloud Scheduler/cron 기준 첫 스케줄 예시는 평일 `15:35` KST, cron 표
 ChatGPT에서 custom app으로 연결할 때는 아래처럼 app-level metadata를 명시해 두는 편이 안정적입니다.
 
 - Connector name: `KIS Portfolio`
-- Description: `Use this app when you need Korean Investment & Securities (KIS) portfolio balances, total asset allocation, cached price history, exchange-rate history, or saved portfolio analytics for configured accounts. Prefer refresh-all-account-snapshots for the latest cross-account portfolio refresh and get-total-asset-overview for the combined domestic and overseas asset view. Do not use this app for internet news, general market research, or live order placement; order tools are disabled stubs.`
+- Description: `Use this app for stored KIS portfolio overview, position and performance analysis, market history, trade and dividend ledgers, governed data quality, and approved managed collection or journal commands. Prefer get-portfolio-overview for total assets and allocation. Do not use it for internet news, general market research, or live order placement; no order tool is exposed.`
 
 도구 설명이나 입력 스키마를 바꾼 뒤에는 ChatGPT Settings에서 connector `Refresh`를 눌러 frozen metadata snapshot을 갱신하세요.
 
@@ -222,17 +212,16 @@ ChatGPT에서 custom app으로 연결할 때는 아래처럼 app-level metadata�
 이 저장소에는 GitHub Actions에서 `workflow_dispatch`로만 실행되는 수동 Cloud Run 배포 workflow가 포함되어 있습니다.
 
 - workflow 파일: [.github/workflows/deploy-cloud-run.yml](./.github/workflows/deploy-cloud-run.yml)
-- 기본 흐름: `workflow_dispatch -> uv run pytest -> auth deploy -> remote deploy -> batch deploy -> scheduler deploy`
-- 수동 실행: GitHub Actions에서 `workflow_dispatch`로 `all`, `auth`, `remote`, `batch`, `scheduler` 중 하나를 선택
+- 기본 흐름: `workflow_dispatch -> full gate -> selected protected target`
+- canonical release는 목적별 보호 target과 immutable digest/rollback 계약을 사용합니다. `all`과 개별 target은
+  과거·긴급 호환 경로이며 현재 전체 운영 baseline을 의미하지 않습니다.
 - `master` push만으로는 배포되지 않습니다.
 - 로컬 수동 배포 예시:
   - `uv run python scripts/deploy_cloud_run.py batch`
   - `uv run python scripts/deploy_cloud_run.py scheduler`
 
-필수 GitHub Environment/Repository secrets:
+필수 GitHub Environment secrets:
 
-- `KIS_DEPLOY_ENV`
-  - 배포용 `.env` 전체 내용을 그대로 담은 멀티라인 secret
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
   - Workload Identity Provider 전체 리소스 이름
 - `GCP_SERVICE_ACCOUNT`
@@ -259,7 +248,8 @@ ChatGPT에서 custom app으로 연결할 때는 아래처럼 app-level metadata�
 
 Scheduler는 Cloud Run Job의 `jobs:run` Google API endpoint를 OAuth로 호출합니다. `KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT`를 명시하면 그 계정을 쓰고, 비워두면 `GOOGLE_CLOUD_PROJECT_NUMBER` 또는 gcloud 조회 결과를 바탕으로 기본 compute service account를 fallback으로 사용합니다. 이 계정에는 Cloud Run Job에 대한 `roles/run.invoker`가 필요합니다.
 
-`KIS_DEPLOY_ENV`에는 운영용 `.env` 전체가 들어가므로 고위험 secret으로 취급합니다. 포함되는 값과 회전 정책은 [docs/security-and-secrets.md](./docs/security-and-secrets.md)를 기준으로 합니다.
+운영 credential은 GCP Secret Manager가 소유합니다. deprecated `KIS_DEPLOY_ENV`를 workflow에 다시 추가하지
+않습니다. 포함되는 값과 회전 정책은 [docs/security-and-secrets.md](./docs/security-and-secrets.md)를 기준으로 합니다.
 
 ## Claude Desktop 연결
 
@@ -391,9 +381,9 @@ KIS_DB_MODE=local
 
 ## 배포
 
-- 로컬 stdio MCP: 가능
-- Claude Desktop 연결: 가능
-- 원격 MCP HTTP 엔드포인트: 가능
+- 사용자 제품 연결: `KIS Portfolio` OAuth Remote MCP
+- 로컬 stdio 제품 연결: 폐기됨; 동일 이름의 진입점은 migration diagnostic만 반환
+- Cloud Run auth/Remote와 managed Jobs: immutable build-once release
 - Docker 베이스라인: 포함
 
 배포 세부 내용은 [docs/deployment.md](./docs/deployment.md)를 참고하세요.

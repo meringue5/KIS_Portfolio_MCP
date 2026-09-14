@@ -45,7 +45,7 @@ representative tool call in a new conversation; do not declare success from a se
 
 The machine-readable SSOT is
 [`governance/project/remote-mcp-v2-migration.toml`](../governance/project/remote-mcp-v2-migration.toml). It lists every
-current V1 tool exactly once and is checked against both live builders in the test suite.
+retired V1 tool exactly once and is checked against the retained migration fixture and canonical V2 builder.
 
 | V1 capability group | V2 destination | Migration behavior |
 | --- | --- | --- |
@@ -68,8 +68,8 @@ active; inspect `quality` and `missing_coverage` on every read.
 
 V2 is the only supported production surface. A fault is recovered by deploying or routing to a verified immutable V2
 image/configuration and applying an additive correction. Firestore OAuth state and MotherDuck data remain preserved.
-Do not route traffic to a V1 revision. Deleting retained V1 Cloud Run revisions, jobs, images or data is a separate
-destructive WI-049 action and is not part of connector retirement.
+Do not route traffic to a V1 revision. WI-049 removed only its exact approved resource/image set; any further retained
+artifact or data deletion requires a new exact destructive scope and is not part of connector retirement.
 
 ## New-conversation smoke matrix
 

@@ -34,15 +34,11 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 자동 삭제하지 않는다. `schema = main`만으로 필터링하면 다른 catalog의 동명 객체가 섞이므로 운영
 검사에서는 항상 catalog와 schema를 함께 제한한다.
 
-현재 checkout이 관리하는 객체는 **25 tables + 2 views = 27 objects**다. 운영 DB에는 분기된
-`codex/portfolio-pipeline-reliability`의 객체까지 적용되어 **27 tables + 3 views = 30 objects**가 있다.
-현재 물리 위치는 모두 `kis_portfolio.main`이며, 아래 계층은 즉시 적용하는 논리 계약이자 향후 목표
-schema다.
-
-> 승인된 V2 목표: `docs/design/kis-portfolio-v2-system-design.md`의 V2-ADR-005는 operational Security
-> state를 Seoul의 Firestore Standard database 하나와 Secret Manager로 분리한다. 이 architecture 승인은
-> schema migration이나 cutover가 아니다. 별도 Work Item이 완료되기 전까지 이 문서의 현재 V1 catalog,
-> registry와 live DB 계약은 그대로 유지한다.
+현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
+registry의 **79 tables + 27 views = 106 objects**를 관리한다. 운영 V2는 checksum migration `0019`까지의
+`bronze/silver/gold/control` physical schema를 사용하며, active operational Security state는 Seoul의
+Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된 네 live-drift fingerprint는 migration/history
+호환을 위해 보존되며 V2 분석 SSOT가 아니다.
 
 ## Layer Model
 
@@ -58,12 +54,13 @@ Bronze/Silver/Gold는 데이터 품질과 소비 목적을 나타낸다. Control
 medallion 계층에 섞지 않는다. Gold는 반드시 Silver 또는 명시된 Control 기준정보에서 파생하며,
 Bronze를 임의로 직접 조인해 새로운 공식 지표를 만들지 않는다.
 
-## V2 Parallel Physical Catalog
+## Canonical V2 Physical Catalog
 
-DEC-045에 따라 기존 `main` 객체는 그대로 보존하고 V2는 explicit migration
-`src/kis_portfolio/platform/sql/0001_v2_foundation.sql`과 `0002_v2_read_models.sql`로 병렬 생성한다.
-V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다. V1
-`get_connection()`의 `init_schema()`는 이 객체를 만들지 않는다.
+DEC-045에 따라 기존 `main` 객체를 그대로 보존하면서 V2를 explicit checksum migration
+`src/kis_portfolio/platform/sql/0001_v2_foundation.sql`부터 `0019_v2_reference_control_plane.sql`까지
+additive 생성했다. V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다.
+Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며 production startup도 DDL을 실행하지
+않는다.
 
 ### V2 Bronze
 
@@ -297,6 +294,10 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 `--fail-on-unregistered-drift` 검사가 즉시 실패한다.
 
 ### Managed V2 production register
+
+Canonical production은 migration `0019`까지 적용됐고 WI-048의 private pre/post backup, fresh restore와
+reference reconciliation을 통과했다. 아래 항목은 그 상태에 도달한 날짜별 append-only release history이며,
+초기 migration 번호를 현재 ceiling으로 해석하지 않는다.
 
 2026-08-28 WI-022-S06 managed release가 checksum-verified migration을 `0010`까지 적용했다. canonical
 reconstruction hash와 57-partition aggregate가 일치한 뒤 corporate-action coverage 미평가를 나타내는

@@ -15,9 +15,10 @@ owns backup format and restore mechanics.
 active OAuth/token/lease state를 MotherDuck이나 이 Parquet 백업에 복제하지 않는다. V2 operational-state
 복구는 OAuth connector 재연결, KIS token 재발급, immutable run summary와 idempotent 재실행을 기본으로 하며,
 Firestore PITR/managed backup은 실제 비용·RPO 검토를 거친 별도 Work Item 전에는 활성화하지 않는다.
-현재 V1 백업 대상과 실행 절차는 아래와 같이 유지된다.
+보존된 legacy `main` 백업은 migration/forensic 용도로만 유지된다. 현재 canonical 복구 경로는 아래 V2
+manifest v3, private GCS index와 fresh local restore 절차다.
 
-## V2 parallel backup contract
+## Canonical V2 backup contract
 
 V2 Parquet manifest v3 records the exact checksum-verified migration prefix observed at capture time. A backup is
 complete only when its managed table set exactly matches the schema produced by that prefix. Restore applies that
@@ -27,8 +28,8 @@ omitting live tables or pretending that later tables already existed. Legacy ful
 readable; new exports always use v3.
 
 V2 registry의 backup policy는 `V2_DATA_OBJECTS`와 `v2_backup_table_names()`에 machine-readable하게 있다.
-운영 migration 전까지 현재 V1 `backup_motherduck.py`의 export 목록에는 자동 편입하지 않는다. V2가 live로
-적용되면 qualified schema를 보존하는 새 backup manifest version으로 다음을 export한다.
+`backup_motherduck.py`는 retained `main` compatibility backup이며 canonical V2 export에 자동 혼합하지 않는다.
+V2는 qualified schema를 보존하는 manifest v3로 다음을 export한다.
 
 ```bash
 uv run python scripts/backup_v2_motherduck.py

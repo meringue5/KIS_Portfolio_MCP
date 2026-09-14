@@ -14,8 +14,8 @@ continues to own deployment commands and release mechanics.
 uv run kis-portfolio-remote
 ```
 
-`kis-portfolio-remote`는 `/mcp` endpoint를 stateless Streamable HTTP로 노출한다. local stdio entrypoint는
-MS-004에서 제거할 compatibility/development harness이며 사용자-facing 제품 경로가 아니다.
+`kis-portfolio-remote`는 `/mcp` endpoint를 stateless Streamable HTTP로 노출한다. local stdio 제품 entrypoint는
+폐기됐고 같은 이름의 diagnostic은 Remote migration guidance를 반환한 뒤 실패 종료한다.
 
 ### V2 canonical recovery
 
@@ -23,14 +23,15 @@ DEC-056과 ADR-028에 따라 V1 revision은 production rollback target이 아니
 state/data stores를 유지한 채 마지막 검증 V2 immutable image/config를 재배포하거나 새 V2 correction으로
 roll forward한다. Firestore operational state와 MotherDuck canonical data를 V1 store로 역복사하지 않는다.
 보존된 V1 revision과 기존 WI-046 rollback 기록은 forensic/migration history이며 traffic destination으로
-사용하지 않는다. V1 resource의 삭제는 WI-049의 별도 파괴적 gate 전까지 금지한다.
+사용하지 않는다. 남은 historical artifact의 추가 삭제는 새 exact inventory, 복구 증거와 별도 승인이 필요하다.
 
 ### 승인된 V2 배포 기준선
 
 2026-08-28 승인된 V2 기준선은 auth와 Remote MCP를 별도 service로 유지하되, commit당 한 번 만든 동일한
 immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP는
 `stateless_http=true`·`json_response=true`로 운영되며 Claude/iPhone OAuth, read와 managed-command smoke가
-통과했다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
+통과했다. 현재 Secret Manager resource는 runtime identity별 최소권한으로 연결하며 승인된 민감 항목은 숫자
+version을 pin한다. bundle 재구성은 별도 security Work Item 없이는 수행하지 않는다.
 
 기본 `auth`/`remote` target은 과거 호환용 개별 배포 경로다. canonical production 전환은 protected `master`의
 `wi048-s02` target으로 수행했다. 최종 런타임 digest 수렴은 `wi051-final-audit` target이 담당하며, WI-046
@@ -41,6 +42,9 @@ contracts are documented in `docs/operations/production-cost-release-guardrails.
 path; cleanup activation remains a separately approved production action.
 
 ### WI-046 zero-traffic stage
+
+> Historical transition procedure. Do not use this section as the current recovery path; use V2 canonical recovery
+> and the steady-state release contract above.
 
 GitHub Actions의 `Deploy Cloud Run` workflow에서 `wi046-stage`를 선택한다. 이 target은 다음 순서를 fail closed로
 실행한다.
@@ -112,7 +116,7 @@ serving revision으로 자동 복원한다.
 
 remote resource server는 두 가지 모드를 지원한다.
 
-### 1. OAuth v1
+### 1. OAuth production mode
 
 ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth server + 기존 remote MCP resource server 분리**다.
 
@@ -144,7 +148,11 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 리소스 서버 필수 환경변수:
 
 - `KIS_REMOTE_AUTH_MODE=oauth`
-- `KIS_TOKEN_ENCRYPTION_KEY=...`
+- `KIS_REMOTE_SURFACE_VERSION=v2`
+- `KIS_STATE_BACKEND=firestore`
+- `KIS_GCP_PROJECT=...`
+- `KIS_FIRESTORE_DATABASE=kis-portfolio-state`
+- `KIS_DB_MODE=motherduck`, `MOTHERDUCK_DATABASE=...`, `MOTHERDUCK_TOKEN=...`
 - `KIS_AUTH_ISSUER_URL=https://...`
 - `KIS_RESOURCE_SERVER_URL=https://...`
 - `KIS_AUTH_REQUIRED_SCOPES=mcp:read`
@@ -154,6 +162,8 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 auth 서버 필수 환경변수:
 
 - `KIS_AUTH_BASE_URL=https://...`
+- `KIS_RESOURCE_SERVER_URL=https://.../mcp`
+- `KIS_STATE_BACKEND=firestore`, `KIS_GCP_PROJECT=...`, `KIS_FIRESTORE_DATABASE=kis-portfolio-state`
 - `KIS_AUTH_OWNER_EMAILS=owner@example.com`
 - `KIS_AUTH_SESSION_SECRET=...`
 - `KIS_AUTH_TOKEN_PEPPER=...`
@@ -177,7 +187,7 @@ ChatGPT connector 호환 추가사항:
 ChatGPT connector 등록 시 app-level metadata 권장값:
 
 - Connector name: `KIS Portfolio`
-- Description: `Use this app when you need Korean Investment & Securities (KIS) portfolio balances, total asset allocation, cached price history, exchange-rate history, or saved portfolio analytics for configured accounts. Prefer refresh-all-account-snapshots for the latest cross-account portfolio refresh and get-total-asset-overview for the combined domestic and overseas asset view. Do not use this app for internet news, general market research, or live order placement; order tools are disabled stubs.`
+- Description: `Use this app for stored KIS portfolio overview, position and performance analysis, market history, trade and dividend ledgers, governed data quality, and approved managed collection or journal commands. Prefer get-portfolio-overview for total assets and allocation. Do not use it for internet news, general market research, or live order placement; no order tool is exposed.`
 - MCP tool metadata를 바꾼 뒤에는 ChatGPT Settings에서 connector `Refresh`를 눌러 frozen snapshot을 갱신한다.
 
 ### 2. Bearer fallback
@@ -196,10 +206,9 @@ opaque token을 DB에 digest로 저장하고 resource server가 같은 방식으
 token/revoke endpoint는 `client_secret_basic`과 `client_secret_post`를 모두 받는다.
 Claude static client는 basic을, ChatGPT dynamic client는 post를 사용해도 되도록 메타데이터를 맞춘다.
 
-`KIS_TOKEN_ENCRYPTION_KEY`는 remote/local KIS 조회 런타임에서 공통으로 필요하다. KIS API access token을
-MotherDuck/local DuckDB의 `kis_api_access_tokens` 테이블에 암호화해 저장하기 때문이다. 일반적인 코드
-재배포만으로는 Claude/ChatGPT connector를 다시 연결할 필요가 없지만, 이미 열려 있던 MCP transport/session은
-끊기고 다음 호출에서 새 세션을 잡는다.
+V2 Remote는 KIS account credential이나 `KIS_TOKEN_ENCRYPTION_KEY`를 받지 않는다. 일반적인 코드 재배포만으로
+Claude/ChatGPT connector를 다시 연결할 필요는 없지만, 이미 열려 있던 MCP transport/session은 끊기고 다음
+호출에서 새 세션을 잡는다.
 
 `/healthz`는 Cloud Run에서 예약 경로와 충돌할 수 있으므로 운영 경로로 사용하지 않는다.
 
@@ -219,26 +228,24 @@ MotherDuck/local DuckDB의 `kis_api_access_tokens` 테이블에 암호화해 저
 - 전체 계좌번호는 운영 DB row와 백업에 포함될 수 있으므로 민감 데이터로 취급하고, 로그와 MCP 계좌 메타데이터에서는 마스킹한다.
 - 운영 Cloud Run secret source of truth는 GCP Secret Manager다. GitHub `KIS_DEPLOY_ENV`는 deprecated이며 새 workflow에서 사용하지 않는다.
 
-## 추천 배포 경로
+## Canonical release path
 
-1. Claude Desktop local MCP로 실사용 기준선을 검증한다.
-2. 조회-only remote MCP를 만든다.
-3. Fly.io, Render, Cloud Run 중 하나에 Docker 이미지로 배포한다.
-4. 주문 tool은 remote 배포 기본값에서 비활성화한다.
-5. audit log, confirmation, 권한 분리 이후에만 주문 기능 노출을 검토한다.
+1. 변경을 Work Item과 계약/테스트로 검증하고 `master`에 병합한다.
+2. GitHub `production` environment의 목적별 protected target을 실행한다.
+3. build-once immutable digest, rollback manifest와 runtime provenance를 확인한다.
+4. auth/Remote health, OAuth metadata, 무인증 `/mcp` 401과 필요한 owner client smoke를 검증한다.
+5. 장애 시 V1으로 되돌리지 않고 마지막 검증 V2 image/config 또는 새 correction으로 roll forward한다.
 
 ## 컨테이너 실행 예시
 
 ```bash
 docker build -t kis-portfolio .
-docker run --rm -i \
+docker run --rm \
   --env-file .env \
   -e KIS_DB_MODE=motherduck \
   -e MOTHERDUCK_DATABASE=kis_portfolio \
-  kis-portfolio
+  kis-portfolio kis-portfolio-remote
 ```
-
-stdio MCP는 표준 입출력을 사용하므로 컨테이너 테스트도 `-i`가 필요하다.
 
 원격 MCP 실행 예시 (ChatGPT/운영 권장 OAuth):
 
@@ -254,7 +261,7 @@ docker run --rm -p 8000:8000 \
   -e KIS_DB_MODE=motherduck \
   -e MOTHERDUCK_DATABASE=kis_portfolio \
   kis-portfolio \
-  uv run kis-portfolio-remote
+  kis-portfolio-remote
 ```
 
 원격 MCP 실행 예시 (bearer fallback):
@@ -268,7 +275,7 @@ docker run --rm -p 8000:8000 \
   -e KIS_DB_MODE=motherduck \
   -e MOTHERDUCK_DATABASE=kis_portfolio \
   kis-portfolio \
-  uv run kis-portfolio-remote
+  kis-portfolio-remote
 ```
 
 remote endpoint는 `http://localhost:8000/mcp` 또는 배포 플랫폼의 HTTPS URL에서 `/mcp`이다.
@@ -518,11 +525,8 @@ Google Cloud 권장 인증 방식:
 - [gcloud run jobs deploy](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/deploy)
 - [gcloud scheduler jobs create http](https://docs.cloud.google.com/sdk/gcloud/reference/scheduler/jobs/create/http)
 
-## Remote MCP 후속 작업
+## Non-baseline future changes
 
-- auth schema migration command 분리
-- consent/audit UI 다듬기
-- custom domain 연결
-- read-only mode 기본값 추가
-- 주문 tool은 disabled stub으로 유지
-- MCP inspector로 remote endpoint 검증
+Custom domain, consent UI refinement or any order capability is a new change intake, not unfinished deployment work.
+The current product deliberately exposes no order tool. Validate future Remote changes with the same OAuth/401/client
+smoke and immutable release contract.

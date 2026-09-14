@@ -11,44 +11,30 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 
 ---
 
-## 유즈케이스
+## Current canonical use cases
 
-### 현재 구현됨
-
-| 유즈케이스 | 관련 Tool |
+| 유즈케이스 | Public V2 tool |
 |-----------|----------|
-| 전체 계좌 구성 조회 | `get-configured-accounts` |
-| 전체 계좌 국내/연금 잔고 스냅샷 | `refresh-all-account-snapshots` |
-| 국내/해외/환율 반영 전체 자산 요약 | `get-total-asset-overview` |
-| 총자산 일별 변화/종목별 원화 평가액 변화 기여도/추이/비중 이력 | `get-total-asset-daily-change`, `get-total-asset-trend`, `get-total-asset-allocation-history` |
-| 단일 계좌 국내주식 잔고 조회 | `get-account-balance` |
-| 단일 계좌 해외주식 잔고 조회 | `get-overseas-balance` |
-| 해외 예수금 + 적용환율 조회 | `get-overseas-deposit` |
-| 국내주식 현재가/호가 조회 | `get-stock-price`, `get-stock-ask` |
-| 해외주식 현재가 조회 | `get-overseas-stock-price` |
-| 국내주식 가격 이력 | `get-stock-history` |
-| 해외주식 가격 이력 | `get-overseas-stock-history` |
-| 환율 이력 조회 | `get-exchange-rate-history` |
-| 국내주식 기간별 매매손익 | `get-period-trade-profit` |
-| 해외주식 기간별 손익 | `get-overseas-period-profit` |
-| 해외주식 일별거래내역 | `get-overseas-transaction-history` |
-| 해외주식 주문체결내역 | `get-overseas-order-history` |
-| 해외주식 결제기준잔고 | `get-overseas-settlement-balance` |
-| 주문 조회/상세 | `get-order-list`, `get-order-detail` |
-| 주문 stub | `submit-stock-order`, `submit-overseas-stock-order` |
-| 종목 기본정보 | `get-stock-info` |
+| 전체 자산·계좌 alias·구성·품질 조회 | `get-portfolio-overview` |
+| 포지션·성과·노출 분석 | `get-position-analysis`, `get-performance-history`, `get-exposure-analysis` |
+| 저장된 시장 snapshot과 이력 | `get-market-snapshot`, `get-market-history` |
+| 거래·thread·배당 분석 | `get-trade-ledger`, `get-trade-thread`, `get-dividend-summary` |
+| fundamental 전망과 signal | `get-fundamental-outlook`, `get-signal-status` |
+| catalog·quality·pipeline run 조회 | `get-data-catalog`, `get-data-quality`, `get-pipeline-run` |
+| owner review queue | `get-journal-review-queue` |
+| governed collection command | `run-managed-pipeline` |
+| owner journal/thread revision | `upsert-trade-journal`, `revise-trade-thread` |
 
-### 예정
-
-- [x] DuckDB(MotherDuck) 캐시: 주가/환율 이력 자동 저장
-- [x] DuckDB(MotherDuck) 누적 저장: 계좌 잔고 스냅샷 시계열
-- [ ] 볼린저 밴드 등 기술적 지표 분석 (→ [DuckDB 분석 플랜](#duckdb-분석-플랜) 참고)
-- [ ] 계좌 변동 추이 분석 및 이상치 탐지 (→ [DuckDB 분석 플랜](#duckdb-분석-플랜) 참고)
-- [ ] 클라우드 컨테이너 배포 (환경변수 .env 방식)
+The public catalog is exactly 18 tools. It exposes no live order, cancellation or correction tool. New capabilities
+are not an implicit backlog in this document; they enter through a new approved requirement and Work Item.
 
 ---
 
 ## 아키텍처 의사결정
+
+ADR entries are append-only decision history. When an older entry describes a local server, endpoint-shaped tool or
+V1 rollback, ADR-021 and ADR-028 plus the current canonical documentation map take precedence. Older text remains
+discoverable evidence, not current setup or recovery guidance.
 
 ### ADR-001: 계좌별 독립 MCP 서버 인스턴스
 
@@ -61,7 +47,7 @@ KIS API client, 계좌 오케스트레이션, MotherDuck 기반 데이터 저장
 
 **대안 검토**: 단일 서버 + 계좌 파라미터 → 자연어 인식 정확도 저하 우려로 기각
 
-**상태**: `baseline/pre-service-refactor` 이후 폐기. 현재 기본 MCP 표면은 단일 `kis-portfolio` 서버다.
+**상태**: 폐기. 현재 제품 표면은 `KIS Portfolio` OAuth Remote connector 하나다.
 
 ---
 
@@ -119,7 +105,7 @@ is_pension = acnt_prdt_cd == "29"
 - 기존 Claude/Codex Desktop 설정은 루트 `server.py`를 실행하므로 호환 shim을 남겨 점진 이행
 - 루트에 런타임 산출물과 소스가 섞이는 문제를 줄이고 보안/배포 문서화를 명확히 함
 
-**현재 적용**:
+**당시 적용 (현재 제품 경로는 ADR-021/028 참조)**:
 - 루트 `server.py`: `src/kis_portfolio/app.py`의 `main()` 호출
 - DB 레이어: `src/kis_portfolio/db/` 패키지
 - 루트 `db.py` 호환 wrapper는 제거. 내부/테스트 코드는 `kis_portfolio.db`를 직접 import
@@ -129,7 +115,7 @@ is_pension = acnt_prdt_cd == "29"
 - 토큰 refresh는 프로세스 내 keyed async lock으로 직렬화하고, 만료 10분 전부터 새 발급 대상으로 간주
 - local 모드 DuckDB는 `var/local/kis_portfolio.duckdb`
 
-**현재 구조 전환**:
+**당시 구조 전환**:
 - 패키지명은 `kis_portfolio`
 - public MCP adapter는 `src/kis_portfolio/adapters/mcp/server.py`
 - `clients/`, `services/`, `adapters/` 구조를 도입
@@ -179,7 +165,7 @@ KIS_DATA_DIR=var
 - LLM/MCP 호출로 생성된 관측 이력을 감사할 수 있음
 - 일 단위, 분 단위, 장 마감 기준 등 대표값 정책이 바뀌어도 raw를 잃지 않음
 
-**현재 적용**:
+**당시 적용 (현재 public surface는 상단 canonical 표 참조)**:
 - raw table: `portfolio_snapshots`
 - curated view: `portfolio_daily_snapshots`
 - `portfolio_daily_snapshots`는 계좌별/일자별 마지막 스냅샷을 대표값으로 사용
@@ -199,7 +185,7 @@ KIS_DATA_DIR=var
 - MCP tool은 클라이언트가 달라도 같은 schema와 서버 로직을 재사용할 수 있음
 - 포트폴리오 합산, 일별 변화, 이상치 탐지는 재현성과 테스트가 중요함
 
-**현재 적용**:
+**당시 적용 (현재 public surface는 상단 canonical 표 참조)**:
 - 공통 skill: `.agent/skills/kis-portfolio-ops/SKILL.md`
 - canonical 총자산 tool: `get-total-asset-overview`
 - 글로벌 분석 tool: `get-total-asset-history`, `get-total-asset-daily-change`, `get-total-asset-trend`
@@ -209,6 +195,8 @@ KIS_DATA_DIR=var
 ---
 
 ### ADR-009: 컨테이너와 bearer 인증 remote MCP 베이스라인
+
+**상태**: OAuth Remote MCP로 대체. 아래 결정은 컨테이너 도입과 초기 bearer 단계의 역사다.
 
 **결정**: Dockerfile을 추가해 배포 가능한 실행 환경을 준비한다. 기본 엔트리포인트는 local stdio MCP로
 유지하고, 원격 클라이언트용 `kis-portfolio-remote` 엔트리포인트는 `/mcp` Streamable HTTP endpoint를
@@ -814,7 +802,13 @@ Portfolio의 유일한 production architecture로 확정한다. V1 revision과 l
 
 ---
 
-## API 제한사항
+## Retained V1 implementation appendix
+
+> 이 아래 내용은 초기 KIS endpoint 조사와 V1 구현 명세를 보존한 역사 자료다. 현재 client setup, public
+> MCP tool, runtime state 또는 배포 명령으로 사용하지 않는다. 현재 계약은 이 문서 상단의 canonical use
+> cases와 [`docs/README.md`](docs/README.md)의 owner 문서를 따른다.
+
+### V1 API 제한사항
 
 - 대량 이력 조회 시 KIS 서버에서 차단 가능 → 로컬 캐시 도입의 주요 이유
 - `inquire-daily-chartprice`: 미국 주식은 다우30/나스닥100/S&P500 종목만 조회 가능. 전체 종목은 `dailyprice`(HHDFS76240000) API 사용
@@ -823,17 +817,17 @@ Portfolio의 유일한 production architecture로 확정한다. V1 revision과 l
 
 ---
 
-## 환경 구성
+### V1 환경 구성
 
-### Claude Desktop (로컬)
+#### Claude Desktop (로컬, 폐기)
 환경변수를 `claude_desktop_config.json`의 `env` 블록에서 주입.
 
-### 클라우드 배포 (예정)
+#### 초기 클라우드 배포 계획 (대체됨)
 `python-dotenv`로 `.env` 파일 로드. `server.py`는 `os.environ`만 사용하므로 코드 변경 불필요.
 
 ---
 
-## DuckDB 분석 플랜
+### V1 DuckDB 분석 플랜
 
 > 이 섹션은 Codex(또는 다른 AI 코딩 도구)에 구현을 위임하기 위한 상세 명세다.
 > 모든 쿼리는 `kis_portfolio.db.get_connection()`으로 얻은 커넥션에서 실행한다.
