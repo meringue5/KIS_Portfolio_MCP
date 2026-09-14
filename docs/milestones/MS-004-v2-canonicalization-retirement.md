@@ -16,7 +16,7 @@ V2 cutover 뒤 V1 runtime·data consumer·문서 잔존물을 검증 가능한 �
 | 1 | WI-047 V1 public-surface retirement | V2-W0801/0802 | WI-046 | closed; local/setup/public activation paths retired, internal history preserved |
 | 2 | WI-048 V1 main consumer transition | V2-W0803 | WI-046 | closed; protected reference transition, restore and owner-observed canonical Remote read passed |
 | 3 | WI-049 V1 runtime resource cleanup | V2-W0804 | WI-047 | closed; 11 obsolete Job definitions and 59 separately approved untagged digests removed with runtime/history/recovery preservation |
-| 4 | WI-050 steady-state operations runbooks | V2-W0805 | WI-047, WI-048 | in progress; isolated runbook and local/read-only rehearsal phase |
+| 4 | WI-050 steady-state operations runbooks | V2-W0805 | WI-047, WI-048 | closed; canonical cadence, deterministic review and fresh local restore passed within all guardrails |
 | 5 | WI-051 final V2 architecture audit | V2-W0806 | WI-047~050 | proposed |
 | 6 | WI-032 V2 canonical documentation | V2-W0807 | WI-051 | proposed; final documentation gate |
 
@@ -44,6 +44,7 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-14.15 | 2026-09-14 | Closed WI-050 after the initial steady-state review and restore rehearsal passed | RPO 522 minutes, RTO 8 seconds, private object hashes, cost/capacity/source/access/exception reviews and full 710 passed; WI-051 is next |
 | 2026-09-14.14 | 2026-09-14 | Activated WI-050 steady-state runbooks in isolated scope | Documentation, fixtures, read-only inspection and local restore rehearsal only; no automation or production mutation |
 | 2026-09-14.13 | 2026-09-14 | Closed WI-049 and S03 after exact Artifact Registry cleanup and preservation checks | 59 approved untagged digests removed; exact 49-digest retain set, active runtime, 15 history baselines and private recovery index passed; WI-050 is next |
 | 2026-09-14.12 | 2026-09-14 | Activated WI-049-S03 production phase after owner approved all 59 exact untagged digests | Apply is limited to the merged specification; tag, data, backup, IAM, Scheduler, Secret, service and active V2 changes remain forbidden |
