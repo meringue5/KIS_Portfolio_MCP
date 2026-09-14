@@ -103,6 +103,11 @@ Job 여섯 개를 수렴한다. 기존 runtime configuration, command/args, serv
 activation은 변경하지 않는다. 마지막에는 auth/Remote health, protected-resource metadata와 unauthenticated
 `/mcp` 401 경계를 검사한다. 실패 시 manifest의 이전 service revision 또는 Job image로 복원한다.
 
+Service rollback 좌표는 `latestReadyRevision`이 아니라 실행 직전 traffic 100%를 받는 실제 serving revision을
+기록한다. image update에는 run별 고정 revision suffix를 부여하고, 두 새 revision이 ready가 된 뒤 그 정확한
+revision에 traffic을 명시적으로 전환한다. promotion 또는 smoke 실패 시 이미 전환된 service는 실제 이전
+serving revision으로 자동 복원한다.
+
 ## Remote MCP 인증
 
 remote resource server는 두 가지 모드를 지원한다.

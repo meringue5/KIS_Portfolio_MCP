@@ -1559,11 +1559,15 @@ def test_wi051_release_updates_all_canonical_runtimes_with_one_digest(monkeypatc
     )
 
     assert result == 0
-    assert len(commands) == 8
-    assert {command[command.index("--image") + 1] for command in commands} == {image}
+    assert len(commands) == 10
+    image_updates = [command for command in commands if "--image" in command]
+    assert len(image_updates) == 8
+    assert {command[command.index("--image") + 1] for command in image_updates} == {image}
     assert [command[3] for command in commands[:6]] == ["update"] * 6
     assert all(command[:3] == ["gcloud", "run", "jobs"] for command in commands[:6])
     assert all(command[:3] == ["gcloud", "run", "services"] for command in commands[6:])
+    assert all("--revision-suffix" in command for command in commands[6:8])
+    assert all(command[3] == "update-traffic" for command in commands[8:])
     flattened = {part for command in commands for part in command}
     assert "execute" not in flattened
     assert "scheduler" not in flattened
@@ -1583,7 +1587,13 @@ def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatc
             payload = {
                 "metadata": {"name": name, "generation": 12},
                 "spec": {"template": {"spec": {"containers": [{"image": f"old/{name}@sha256:1"}]}}},
-                "status": {"latestReadyRevisionName": f"{name}-00012-abc"},
+                "status": {
+                    "latestReadyRevisionName": f"{name}-00012-abc",
+                    "traffic": [
+                        {"revisionName": f"{name}-00010-stable", "percent": 100},
+                        {"revisionName": f"{name}-00012-abc", "tag": "candidate"},
+                    ],
+                },
             }
         else:
             payload = {
@@ -1614,5 +1624,32 @@ def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatc
     assert all("rollback_command" in item for item in manifest["components"])
     assert all("env" not in item and "secrets" not in item for item in manifest["components"])
     services = [item for item in manifest["components"] if item["kind"] == "service"]
-    assert all("previous_ready_revision" in item for item in services)
+    assert all("previous_serving_revision" in item for item in services)
+    assert all(item["previous_serving_revision"].endswith("-00010-stable") for item in services)
     assert all("update-traffic" in item["rollback_command"] for item in services)
+
+
+def test_wi051_service_traffic_rollback_restores_actual_prior_serving_revisions(monkeypatch):
+    commands = []
+    components = [
+        {"kind": "service", "name": "auth", "previous_serving_revision": "auth-00010-stable"},
+        {"kind": "service", "name": "remote", "previous_serving_revision": "remote-00020-stable"},
+    ]
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    result = deploy_cloud_run._rollback_wi051_service_traffic(
+        components=components,
+        service_names=["auth", "remote"],
+        region="asia-northeast3",
+        project="project",
+    )
+
+    assert result is True
+    assert commands[0][4] == "remote"
+    assert commands[0][commands[0].index("--to-revisions") + 1] == "remote-00020-stable=100"
+    assert commands[1][4] == "auth"
+    assert commands[1][commands[1].index("--to-revisions") + 1] == "auth-00010-stable=100"

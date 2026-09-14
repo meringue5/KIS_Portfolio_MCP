@@ -916,11 +916,17 @@ def _capture_wi051_rollback_manifest(
                 component["previous_generation"] = metadata["generation"]
             if kind == "service":
                 status = description.get("status", {})
-                revision = status.get("latestReadyRevisionName") if isinstance(status, dict) else None
+                traffic = status.get("traffic", []) if isinstance(status, dict) else []
+                serving = [
+                    item for item in traffic
+                    if isinstance(item, dict) and item.get("percent") == 100
+                ]
+                revision = serving[0].get("revisionName") if len(serving) == 1 else None
                 if not isinstance(revision, str) or not revision:
-                    print(f"Missing rollback revision for service {name}.")
+                    print(f"Missing unique 100% serving rollback revision for service {name}.")
                     return False
-                component["previous_ready_revision"] = revision
+                component["previous_serving_revision"] = revision
+                component["previous_traffic"] = traffic
                 component["rollback_command"] = [
                     "gcloud", "run", "services", "update-traffic", name,
                     "--to-revisions", f"{revision}=100",
@@ -947,6 +953,32 @@ def _capture_wi051_rollback_manifest(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return True
+
+
+def _rollback_wi051_service_traffic(
+    *,
+    components: list[dict[str, object]],
+    service_names: list[str],
+    region: str,
+    project: str,
+) -> bool:
+    by_name = {item["name"]: item for item in components if item.get("kind") == "service"}
+    restored = True
+    for name in reversed(service_names):
+        item = by_name.get(name, {})
+        revision = item.get("previous_serving_revision")
+        if not isinstance(revision, str) or not revision:
+            print(f"Cannot restore WI-051 traffic for {name}: previous serving revision missing.")
+            restored = False
+            continue
+        command = [
+            "gcloud", "run", "services", "update-traffic", name,
+            "--to-revisions", f"{revision}=100",
+            "--region", region, "--project", project,
+        ]
+        if _run(command, dry_run=False) != 0:
+            restored = False
+    return restored
 
 
 def _deploy_wi051_final_audit(
@@ -981,6 +1013,7 @@ def _deploy_wi051_final_audit(
         print("Failed to resolve the immutable WI-051 image digest.")
         return 1
 
+    rollback_manifest: dict[str, object] | None = None
     if not args.dry_run:
         if not args.rollback_manifest:
             print("WI-051 production release requires --rollback-manifest.")
@@ -994,6 +1027,7 @@ def _deploy_wi051_final_audit(
             output_path=Path(args.rollback_manifest),
         ):
             return 1
+        rollback_manifest = json.loads(Path(args.rollback_manifest).read_text(encoding="utf-8"))
 
     labels = _build_deploy_labels("wi051-final-audit")
     label_flags = [
@@ -1008,14 +1042,39 @@ def _deploy_wi051_final_audit(
         ]
         if _run(command, dry_run=args.dry_run) != 0:
             return 1
+    run_identity = os.environ.get("GITHUB_RUN_ID", "").strip()
+    if not run_identity:
+        run_identity = (_git_stdout(["rev-parse", "--short=8", "HEAD"]) or "dry-run")
+    revision_suffix = _sanitize_label_value(f"wi051-{run_identity}")
+    revision_names: dict[str, str] = {}
     for service in services:
+        revision_names[service] = f"{service}-{revision_suffix}"
         command = [
             "gcloud", "run", "services", "update", service,
             "--image", image, "--region", args.region,
+            "--revision-suffix", revision_suffix,
             *label_flags, "--project", project,
         ]
         if _run(command, dry_run=args.dry_run) != 0:
             return 1
+
+    promoted: list[str] = []
+    for service in services:
+        command = [
+            "gcloud", "run", "services", "update-traffic", service,
+            "--to-revisions", f"{revision_names[service]}=100",
+            "--region", args.region, "--project", project,
+        ]
+        if _run(command, dry_run=args.dry_run) != 0:
+            if rollback_manifest and promoted:
+                _rollback_wi051_service_traffic(
+                    components=rollback_manifest["components"],
+                    service_names=promoted,
+                    region=args.region,
+                    project=project,
+                )
+            return 1
+        promoted.append(service)
 
     if args.dry_run:
         print(f"WI-051 dry-run: one immutable image would update 2 services and 6 jobs: {image}")
@@ -1027,7 +1086,13 @@ def _deploy_wi051_final_audit(
         remote_url=remote_url,
         expected_resource=resource,
     ):
-        print("WI-051 canonical service smoke failed; use the captured rollback manifest.")
+        restored = _rollback_wi051_service_traffic(
+            components=rollback_manifest["components"] if rollback_manifest else [],
+            service_names=promoted,
+            region=args.region,
+            project=project,
+        )
+        print(f"WI-051 canonical service smoke failed; prior traffic restored={restored}.")
         return 1
     print(f"WI-051 canonical runtimes converged on one immutable image: {image}")
     return 0
