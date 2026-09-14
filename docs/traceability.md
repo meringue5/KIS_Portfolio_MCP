@@ -98,7 +98,7 @@
 | DEC-034/040 V1 resource cleanup | V2-W0804 | WI-049 / WI-049-S01/S02/S03 | WI-047 | closed; owner-approved workflow 34784520628 deleted exactly 59 obsolete untagged digests; post-state equals the 49-item retain set, all live references remain retained, and runtime, 15 history baselines and private recovery index passed |
 | DEC-033..041 steady-state runbooks | V2-W0805 | WI-050 | WI-047, WI-048 | closed; canonical monthly/quarterly/release runbook and deterministic evaluator pass; fresh local restore achieved RPO 522 minutes/RTO 8 seconds through migration 0019, all 33 private objects verified, cost KRW 434 normal, source/access/exception review passed, full 710 passed; no automation or production mutation |
 | DEC-034/045 final V2 audit | V2-W0806 | WI-051 | WI-047~050 | closed; five obsolete shims removed, four bounded live-drift exceptions owned/expiring, corrected run 34824514114 converged two services and six Jobs on one immutable digest with exact 100% serving revisions, rollback artifact and HTTP/OAuth/401 smoke passed, full 717 passed |
-| DEC-047 final V2 documentation SSOT | V2-W0807 | WI-032 | WI-051 | ready; final MS-004 |
+| DEC-047 final V2 documentation SSOT | V2-W0807 | WI-032 | WI-051 | in progress; repository-only canonical documentation inventory and truth cutover; no production effect |
 
 ## Governance Requirements
 

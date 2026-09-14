@@ -1,7 +1,7 @@
 ---
 id: WI-032
 title: Consolidate V1 documentation and establish V2 as the canonical baseline
-status: proposed
+status: in_progress
 type: governance
 owner: owner
 decision_refs: DEC-047
@@ -10,6 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0807
 parent_work_item: none
 depends_on: WI-051
+execution_scope: isolated
+production_effects: none
 architecture_impact: final documentation cutover makes the implemented V2 architecture canonical and retires conflicting V1 guidance
 data_impact: reconciles catalog and migration documentation; no data deletion is implied
 security_impact: security and secrets documentation must remain canonical and must not expose values
@@ -79,11 +81,14 @@ make V2 the canonical baseline.
 
 ## Evidence
 
-- Commands/tests: pending MS-004 execution.
-- Operating evidence: pending V2 cutover and final audit.
+- Activated 2026-09-14 from master `349ce15` after WI-051 closed with all eight canonical runtimes on one immutable
+  image. This phase changes repository documentation and link/navigation contracts only; it does not change runtime,
+  data, IAM, Secret, Scheduler, source activation or public MCP behavior.
+- Commands/tests: inventory and canonicalization in progress.
+- Operating evidence: WI-046 through WI-051 closed; canonical OAuth Remote and forward-recovery baseline verified.
 
 ## Closeout
 
-- Result: proposed.
-- Remaining risk: cannot start until MS-003 cutover evidence establishes what V2 actually is.
+- Result: in progress.
+- Remaining risk: none blocking; final document inventory and full gate remain.
 - Follow-up Work Item: none allocated.
