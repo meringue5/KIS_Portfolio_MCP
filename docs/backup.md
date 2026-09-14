@@ -1,5 +1,9 @@
 # MotherDuck Backup
 
+The canonical steady-state cadence, quarterly rehearsal and RPO/RTO escalation procedure is
+[`docs/operations/steady-state-operations-runbook.md`](operations/steady-state-operations-runbook.md). This document
+owns backup format and restore mechanics.
+
 운영 데이터베이스는 MotherDuck이다. 로컬 DuckDB 파일은 운영 트랜잭션 중심이 아니라
 개발, 장애 대응, 백업 검증을 위한 보조 산출물로 다룬다.
 
