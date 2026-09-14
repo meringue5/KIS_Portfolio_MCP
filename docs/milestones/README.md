@@ -216,7 +216,8 @@ flowchart TB
     class W37,W38,W39,W41,W42,W43,W44 verified;
     class W45 closed;
     class W46,W47,W48,W49 closed;
-    class W50,W51,W32 proposed;
+    class W50 active;
+    class W51,W32 proposed;
     class M2DONE,M3OPEN gate;
 ```
 
@@ -228,7 +229,7 @@ flowchart TB
 | 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
 | 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
 | 현재 production baseline | `WI-046`과 MS-003 closed; DEC-056/ADR-028에 따라 Remote MCP V2와 forward recovery가 유일한 운영 경로 |
-| 현재 단일 WIP | 없음; MS-004의 다음 dependency-ready 항목은 `WI-050` |
+| 현재 단일 WIP | MS-004 `WI-050` in progress; isolated runbook·fixture·read-only/local rehearsal scope |
 | 최근 파괴적 변경 | WI-049-S03 closed; 승인된 exact 59 untagged digest만 삭제했고 49개 유지 집합과 active V2·data·backup을 검증 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 

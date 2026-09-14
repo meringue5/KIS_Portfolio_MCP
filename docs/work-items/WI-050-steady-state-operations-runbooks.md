@@ -1,7 +1,7 @@
 ---
 id: WI-050
 title: Finalize steady-state recovery cost and source review runbooks
-status: proposed
+status: in_progress
 type: maintenance
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-023
@@ -10,6 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0805
 parent_work_item: none
 depends_on: WI-047, WI-048
+execution_scope: isolated
+production_effects: none
 architecture_impact: none
 data_impact: documents restore capacity and source-contract review cadence
 security_impact: includes quarterly IAM and secret review without values
@@ -51,10 +53,12 @@ The final platform needs repeatable quarterly restore and monthly capacity/cost/
 
 ## Evidence
 
-- Pending.
+- Activated 2026-09-14 after WI-047 and WI-048 closed and WI-049 cleanup completed. The active phase is limited to
+  documentation, fixtures, read-only inspection and local restore verification. It does not create recurring
+  automation, mutate production data, deploy resources, change IAM/Secrets or activate a source.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress.
 - Remaining risk: automations require explicit user request.
 - Follow-up Work Item: WI-051.
