@@ -2,15 +2,15 @@
   "schema_version": 1,
   "work_item_id": "WI-051",
   "observed_on": "2026-09-14",
-  "status": "repository_verified_production_release_pending",
-  "production_change_authorized": false,
+  "status": "pass_closed",
+  "production_change_authorized": true,
   "repository": {
     "obsolete_reexport_shims_removed": 5,
     "retained_root_entrypoint_role": "fail_closed_v1_migration_diagnostic",
     "public_mcp_tool_count": 18,
     "quick_gate": "pass",
     "full_gate": "pass",
-    "full_test_count": 716,
+    "full_test_count": 717,
     "warnings": [
       "AuthlibDeprecationWarning: authlib.jose remains compatible before 2.0.0"
     ]
@@ -81,11 +81,51 @@
       "source_activation"
     ],
     "dry_run": "pass",
-    "focused_test_count": 66
+    "focused_test_count": 67
   },
-  "remaining_gate": {
-    "blocker": "canonical runtimes do not yet share one immutable image digest",
-    "required_action": "merge the repository change, explicitly authorize the production workflow, run wi051-final-audit from master, verify one digest and service smoke",
-    "documentation_truth_cutover_work_item": "WI-032"
+  "production_release": {
+    "initial_run": {
+      "workflow_run_id": 34823473028,
+      "result": "rejected_after_independent_traffic_inspection",
+      "reason": "service templates changed but revision-pinned traffic remained on older serving revisions"
+    },
+    "corrected_run": {
+      "workflow_run_id": 34824514114,
+      "workflow_conclusion": "success",
+      "git_sha": "e458ba5dc1c62561b3841cbf45e9bf246fc0f438",
+      "cloud_build_id": "defb404c-23c1-4983-8741-1f9874d16034",
+      "image_digest": "sha256:31f8fed5b2ef9527272634a93d8608fa215dc16a95c813381fd94ad8409c10b0",
+      "service_revisions": {
+        "kis-portfolio-auth": "kis-portfolio-auth-wi051-34824514114",
+        "kis-portfolio-remote": "kis-portfolio-remote-wi051-34824514114"
+      },
+      "service_traffic_percent": 100,
+      "updated_service_count": 2,
+      "updated_job_count": 6,
+      "executed_job_count": 0,
+      "unrelated_workflow_stages": "skipped"
+    },
+    "post_release_http": {
+      "auth_health_status": 200,
+      "authorization_server_metadata_status": 200,
+      "remote_health_status": 200,
+      "protected_resource_metadata_status": 200,
+      "unauthenticated_mcp_status": 401,
+      "resource_contract": "pass"
+    },
+    "rollback_artifact": {
+      "name": "wi051-rollback-manifest-34824514114",
+      "artifact_id": 10340250702,
+      "retention_days": 30,
+      "actual_prior_serving_revisions_recorded": true,
+      "prior_job_images_recorded": 6
+    },
+    "forbidden_mutations_observed": []
+  },
+  "closeout": {
+    "result": "pass",
+    "closed_on": "2026-09-14",
+    "next_work_item": "WI-032",
+    "next_work_item_status": "ready"
   }
 }
