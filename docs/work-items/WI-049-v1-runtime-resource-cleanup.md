@@ -1,7 +1,7 @@
 ---
 id: WI-049
 title: Approve and execute bounded V1 runtime resource cleanup
-status: in_progress
+status: closed
 type: maintenance
 owner: owner
 decision_refs: ADR-020, ADR-021
@@ -10,8 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0804
 parent_work_item: none
 depends_on: WI-047
-execution_scope: production
-production_effects: delete exactly the 59 owner-approved untagged Artifact Registry digests in the S03 specification
+execution_scope: isolated
+production_effects: none
 architecture_impact: removes superseded deployment resources
 data_impact: no data deletion
 security_impact: obsolete identities/secrets require scoped review
@@ -41,7 +41,7 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 - [x] owner approves exact targets and recovery artifacts.
 - [x] active/rollback/V2 resources cannot match cleanup.
 - [x] post-cleanup smoke and S02 cost evidence pass.
-- [ ] Artifact Registry versions receive an independent exact-digest retain/delete decision.
+- [x] Artifact Registry versions receive an independent exact-digest retain/delete decision.
 
 ## Change impact
 
@@ -57,8 +57,8 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 
 - `WI-049-S01` — verified: freeze runtime inventory, history protections and recovery evidence.
 - `WI-049-S02` — closed: executed and verified owner-approved one-time Cloud Run Job cleanup.
-- `WI-049-S03` — in progress: prepare an exact-digest retain/delete specification in read-only scope; deletion remains
-  disabled until separate owner approval.
+- `WI-049-S03` — closed: deleted the 59 separately approved exact untagged digests and verified the complete 49-digest
+  retain set, active runtime, protected history and recovery evidence.
 
 ## Evidence
 
@@ -119,11 +119,25 @@ Past images, Jobs and Schedulers should not remain indefinitely after rollback c
 - The implemented S03 live dry-run passed with `approved_target_count=59`, `deleted_targets=[]`: all 108 inventory
   identities still matched, every removal target remained untagged and every live service traffic/template and Job
   digest remained in the 49-item retain set. Focused workflow/guardrail verification passed 71 tests.
+- PR #104 merged as `a354882`; master workflow run `34784520628` revalidated the owner approval against canonical
+  specification SHA-256 `bea06488...3ee9a`, deleted all 59 exact `package@digest` targets without wildcard or tag
+  deletion, and passed Auth/Remote health plus unauthenticated MCP 401 smoke. No deploy step or non-image mutation ran.
+- The independent post-run inventory is exactly the 49-item retain set: no approved removal target remains, no retain
+  target is missing, and all six live service/traffic/Job image references resolve inside the retain set. All two
+  services and six scheduled Jobs are ready; all six Schedulers are enabled.
+- The owner-authenticated canonical Remote read accepted at WI-048 closeout remains representative: S03 did not deploy
+  or change either service, its traffic revision or any live image reference. The post-cleanup workflow additionally
+  repeated both public health probes and the unauthenticated 401 boundary against those unchanged revisions.
+- The immutable WI-048 private backup index remains present at 25,138 bytes. A fresh aggregate-only MotherDuck check
+  found every one of the 15 protected total-asset, holding, order/transaction, realized-trade, cash, position, lot,
+  revision, thread and journal counts unchanged from S01. Exact evidence is recorded in
+  `governance/project/evidence/wi049/artifact-cleanup-result-2026-09-14.json`.
 
 ## Closeout
 
-- Result: WI-049-S02 closed; exact-target production cleanup and preservation checks passed. WI-049 remains in
-  progress only for the independently gated S03 Artifact Registry decision.
-- Remaining risk: the deleted Job execution views now rely on the frozen manifest and GitHub evidence. No image digest
-  is approved for deletion; S03 requires a fresh exact-digest review and owner approval or an explicit retain decision.
-- Follow-up Work Item: WI-051.
+- Result: closed. S02 removed the 11 approved obsolete one-time Job definitions; S03 removed the 59 separately approved
+  obsolete untagged digests. Canonical V2 runtime, 49 retained digests, history and recovery evidence passed.
+- Remaining risk: logical image-size sum is not measured billing savings because Artifact Registry layers may be
+  shared. Recreating deleted historical definitions/images now relies on the frozen manifests, Git history and private
+  recovery evidence; current runtime and forward-recovery digests remain intact.
+- Follow-up Work Item: WI-050.

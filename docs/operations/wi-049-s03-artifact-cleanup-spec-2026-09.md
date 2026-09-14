@@ -91,4 +91,24 @@ digest를 확인했다. 현행 WI-035 보수 정책을 그대로 적용한 결�
 허용하지 않는다.
 
 구현 후 live dry-run은 59개 승인 대상을 다시 확인하고 `deleted_targets=[]`, `status=dry_run_pass`를
-반환했다. master GitHub Actions 외부에서는 `--apply`가 실패하며 실제 삭제는 아직 수행되지 않았다.
+반환했다. master GitHub Actions 외부에서는 `--apply`가 실패한다.
+
+## 실행 결과
+
+2026-09-14 master workflow run `34784520628`이 fresh inventory, tag와 live-reference gate를 다시 통과한 뒤
+59개 exact `package@digest`를 삭제했다. workflow의 삭제 후 검사는 모든 removal target 부재와 모든 retain
+target 존재를 확인했고, Auth/Remote health 200 및 unauthenticated `/mcp` 401 smoke도 통과했다.
+
+별도 live 재조사에서 현재 49개 digest가 정본의 retain 집합과 정확히 일치했고 removal 잔존과 retain 누락은
+각각 0이었다. 여섯 live image reference는 모두 retain 집합에 속했다. 2개 서비스, 6개 예약 Job, 6개
+Scheduler와 private WI-048 복구 index가 유지됐으며, 15개 보호 history aggregate count도 S01 기준선과
+동일했다. 기계 판독 결과는
+`governance/project/evidence/wi049/artifact-cleanup-result-2026-09-14.json`이 소유한다.
+
+S03는 서비스 배포, traffic revision 또는 live image reference를 변경하지 않았다. 따라서 WI-048 closeout의
+owner-authenticated 대표 읽기는 동일한 운영 revision에 계속 적용되며, workflow는 삭제 후 그 revision의 두
+health endpoint와 unauthenticated 401 경계를 다시 검증했다.
+
+5,996,113,502 bytes는 삭제된 image manifest의 논리적 합계일 뿐 layer 공유를 반영한 실제 과금 절감량이
+아니다. Tag, data, backup, bucket, Firestore, IAM, Secret, Scheduler, Cloud Run Job/service는 이 실행에서
+변경하지 않았다.
