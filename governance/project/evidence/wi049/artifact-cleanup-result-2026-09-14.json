@@ -1,0 +1,73 @@
+{
+  "schema_version": "kis-portfolio.artifact-cleanup-result/v1",
+  "executed_at": "2026-09-14T06:46:28+09:00",
+  "verified_at": "2026-09-14T06:49:25+09:00",
+  "project_id": "grand-forge-279904",
+  "region": "asia-northeast3",
+  "source_git_sha": "a354882b190b9e13954355203dcd1518e198c380",
+  "workflow_run": "34784520628",
+  "workflow_url": "https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/34784520628",
+  "status": "pass",
+  "spec_reference": "governance/project/evidence/wi049/artifact-cleanup-spec-2026-09-14.json",
+  "spec_canonical_sha256": "bea06488b2cbac374921efe168b6cb81b1ae50b598e301d15fb97d8fc083ee9a",
+  "approved_target_count": 59,
+  "deleted_target_count": 59,
+  "artifact_registry": {
+    "pre_cleanup_versions": 108,
+    "post_cleanup_versions": 49,
+    "expected_retained_versions": 49,
+    "retained_set_exact": true,
+    "removal_targets_remaining": 0,
+    "retained_targets_missing": 0,
+    "live_reference_count": 6,
+    "all_live_references_retained": true,
+    "post_cleanup_tagged_versions": 36,
+    "removed_logical_image_size_bytes": 5996113502,
+    "size_interpretation": "sum of removed image manifest sizes; not measured billing storage savings because layers may be shared"
+  },
+  "protected_runtime": {
+    "cloud_run_jobs": {"expected": 6, "actual": 6, "ready": 6},
+    "scheduler_jobs": {"expected": 6, "actual": 6, "enabled": 6},
+    "cloud_run_services": {"expected": 2, "actual": 2, "ready": 2},
+    "auth_health_http_status": 200,
+    "remote_health_http_status": 200,
+    "unauthenticated_mcp_http_status": 401,
+    "active_runtime_changed": false,
+    "owner_authenticated_read_evidence": "WI-048 closeout read remains applicable because S03 changed no service, traffic revision or live image reference"
+  },
+  "protected_data": [
+    {"dataset": "gold.portfolio_daily_state", "baseline_rows": 1865, "post_cleanup_rows": 1865, "status": "pass"},
+    {"dataset": "main.asset_holding_snapshots", "baseline_rows": 1895, "post_cleanup_rows": 1895, "status": "pass"},
+    {"dataset": "main.asset_overview_snapshots", "baseline_rows": 57, "post_cleanup_rows": 57, "status": "pass"},
+    {"dataset": "main.order_history", "baseline_rows": 111, "post_cleanup_rows": 111, "status": "pass"},
+    {"dataset": "main.overseas_order_history", "baseline_rows": 0, "post_cleanup_rows": 0, "status": "pass"},
+    {"dataset": "main.overseas_transaction_history", "baseline_rows": 69, "post_cleanup_rows": 69, "status": "pass"},
+    {"dataset": "main.trade_profit_history", "baseline_rows": 15, "post_cleanup_rows": 15, "status": "pass"},
+    {"dataset": "silver.cash_flow_event_revisions", "baseline_rows": 49, "post_cleanup_rows": 49, "status": "pass"},
+    {"dataset": "silver.cash_flow_events", "baseline_rows": 49, "post_cleanup_rows": 49, "status": "pass"},
+    {"dataset": "silver.position_snapshots", "baseline_rows": 2127, "post_cleanup_rows": 2127, "status": "pass"},
+    {"dataset": "silver.purchase_lot_revisions", "baseline_rows": 0, "post_cleanup_rows": 0, "status": "pass"},
+    {"dataset": "silver.trade_event_revisions", "baseline_rows": 282, "post_cleanup_rows": 282, "status": "pass"},
+    {"dataset": "silver.trade_events", "baseline_rows": 282, "post_cleanup_rows": 282, "status": "pass"},
+    {"dataset": "silver.trade_journal_revisions", "baseline_rows": 0, "post_cleanup_rows": 0, "status": "pass"},
+    {"dataset": "silver.trade_threads", "baseline_rows": 19, "post_cleanup_rows": 19, "status": "pass"}
+  ],
+  "recovery_evidence": {
+    "backup_index_sha256": "bc91f37b77f5bc2ef98d218a416337de71e2112ccecba2bf879b8afd15968da0",
+    "backup_index_present": true,
+    "backup_index_size_bytes": 25138
+  },
+  "destructive_controls": {
+    "data_mutated": false,
+    "backup_mutated": false,
+    "cloud_run_job_mutated": false,
+    "cloud_run_service_mutated": false,
+    "scheduler_mutated": false,
+    "firestore_mutated": false,
+    "bucket_mutated": false,
+    "iam_mutated": false,
+    "secret_mutated": false,
+    "tag_mutated": false,
+    "only_approved_artifact_digests_deleted": true
+  }
+}
