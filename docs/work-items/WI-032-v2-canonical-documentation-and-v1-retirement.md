@@ -1,7 +1,7 @@
 ---
 id: WI-032
 title: Consolidate V1 documentation and establish V2 as the canonical baseline
-status: in_progress
+status: closed
 type: governance
 owner: owner
 decision_refs: DEC-047
@@ -48,14 +48,14 @@ make V2 the canonical baseline.
 
 ## Acceptance criteria
 
-- [ ] Every tracked V1-era document is classified as canonical V2, retained historical evidence, superseded redirect,
+- [x] Every tracked V1-era document is classified as canonical V2, retained historical evidence, superseded redirect,
   or approved deletion candidate.
-- [ ] One canonical V2 path exists for architecture, requirements/decisions, MCP surface, data catalog/pipeline,
+- [x] One canonical V2 path exists for architecture, requirements/decisions, MCP surface, data catalog/pipeline,
   security/secrets, deployment, backup/restore, cost and onboarding.
-- [ ] Fresh-clone and iPhone/Remote MCP instructions contain no local MCP product-path ambiguity.
-- [ ] Commands, links, object names and service names in canonical docs match the verified final implementation.
-- [ ] Historical decisions, migration mappings and evidence remain discoverable and are not silently overwritten.
-- [ ] Architecture, MCP surface, warehouse, release and Project OS full gates pass.
+- [x] Fresh-clone and iPhone/Remote MCP instructions contain no local MCP product-path ambiguity.
+- [x] Commands, links, object names and service names in canonical docs match the verified final implementation.
+- [x] Historical decisions, migration mappings and evidence remain discoverable and are not silently overwritten.
+- [x] Architecture, MCP surface, warehouse, release and Project OS full gates pass.
 
 ## Change impact
 
@@ -84,11 +84,22 @@ make V2 the canonical baseline.
 - Activated 2026-09-14 from master `349ce15` after WI-051 closed with all eight canonical runtimes on one immutable
   image. This phase changes repository documentation and link/navigation contracts only; it does not change runtime,
   data, IAM, Secret, Scheduler, source activation or public MCP behavior.
-- Commands/tests: inventory and canonicalization in progress.
+- `governance/project/v1-document-disposition.toml` classifies all 99 repository Markdown documents that mention V1:
+  22 canonical V2, 76 retained historical evidence, one superseded redirect and zero deletion candidates.
+- `docs/README.md` is the single canonical navigation entrypoint. `scripts/check_v2_documentation.py` verifies both
+  classification coverage and local links from the root/documentation entrypoints.
+- Implementation commit: `edf084b61f7a5bb8eed9ad23a1b80aebe116b317`.
+- `bash scripts/check.sh quick`: passed with 58 tracked Work Items, one active WIP during verification, 162 governed
+  contracts and 18 public MCP tools.
+- `bash scripts/check.sh full`: 719 passed with one third-party Authlib deprecation warning; Project OS, Data
+  Governance, architecture, warehouse, MCP surface and V2 documentation contracts passed.
+- Machine evidence: `governance/project/evidence/wi032/v2-canonical-documentation-2026-09-14.json`.
 - Operating evidence: WI-046 through WI-051 closed; canonical OAuth Remote and forward-recovery baseline verified.
 
 ## Closeout
 
-- Result: in progress.
-- Remaining risk: none blocking; final document inventory and full gate remain.
-- Follow-up Work Item: none allocated.
+- Result: closed. V2 is the single documented production baseline and retained V1 material is explicitly historical,
+  redirect-only or governed evidence.
+- Remaining risk: documentation drift is prevented by the quick/full checker. The reported new Claude behavior is not
+  absorbed into this governance outcome and must be classified as a separate defect.
+- Follow-up Work Item: none allocated; the next independent defect receives the next unused Work Item ID at intake.

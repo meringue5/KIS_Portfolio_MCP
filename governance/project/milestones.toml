@@ -116,7 +116,7 @@ work_item_ids = [
 [[milestones]]
 id = "MS-004"
 title = "V2 canonicalization and V1 retirement"
-status = "in_progress"
+status = "closed"
 depends_on = ["MS-003"]
 implementation_gate = [{ milestone_id = "MS-003", minimum_status = "stabilizing" }]
 production_gate = [{ milestone_id = "MS-003", minimum_status = "closed" }]

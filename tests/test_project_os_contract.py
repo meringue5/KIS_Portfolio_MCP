@@ -65,7 +65,7 @@ def test_current_repository_satisfies_project_os_contract():
     assert checker.check(REPO_ROOT) == []
 
 
-def test_current_milestone_baseline_has_entered_v2_canonicalization():
+def test_current_milestone_baseline_has_completed_v2_canonicalization():
     registry = tomllib.loads(
         (REPO_ROOT / "governance/project/milestones.toml").read_text(encoding="utf-8")
     )
@@ -89,7 +89,7 @@ def test_current_milestone_baseline_has_entered_v2_canonicalization():
     assert milestones["MS-004"]["implementation_gate"] == [
         {"milestone_id": "MS-003", "minimum_status": "stabilizing"}
     ]
-    assert milestones["MS-004"]["status"] == "in_progress"
+    assert milestones["MS-004"]["status"] == "closed"
     for filename in (
         "WI-029-signal-replay-shadow-calibration.md",
         "WI-030-outbound-telegram-delivery.md",
@@ -306,9 +306,9 @@ def test_project_os_rejects_dangling_milestone_dependency(tmp_path: Path):
     path.write_text(
         path.read_text(encoding="utf-8").replace(
             'id = "MS-004"\ntitle = "V2 canonicalization and V1 retirement"\n'
-            'status = "in_progress"\ndepends_on = ["MS-003"]',
+            'status = "closed"\ndepends_on = ["MS-003"]',
             'id = "MS-004"\ntitle = "V2 canonicalization and V1 retirement"\n'
-            'status = "in_progress"\ndepends_on = ["MS-999"]',
+            'status = "closed"\ndepends_on = ["MS-999"]',
             1,
         ),
         encoding="utf-8",
