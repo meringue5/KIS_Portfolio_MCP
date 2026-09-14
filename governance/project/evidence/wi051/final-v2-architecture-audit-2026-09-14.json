@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "work_item_id": "WI-051",
+  "observed_on": "2026-09-14",
+  "status": "repository_verified_production_release_pending",
+  "production_change_authorized": false,
+  "repository": {
+    "obsolete_reexport_shims_removed": 5,
+    "retained_root_entrypoint_role": "fail_closed_v1_migration_diagnostic",
+    "public_mcp_tool_count": 18,
+    "quick_gate": "pass",
+    "full_gate": "pass",
+    "full_test_count": 716,
+    "warnings": [
+      "AuthlibDeprecationWarning: authlib.jose remains compatible before 2.0.0"
+    ]
+  },
+  "warehouse": {
+    "missing_managed_objects": [],
+    "registered_drift_exception_count": 4,
+    "exception_owner": "owner",
+    "exception_expiry": "2026-12-14",
+    "exception_review": "pass",
+    "production_change_authorized": false
+  },
+  "live_runtime_before_release": {
+    "canonical_component_count": 8,
+    "unique_image_digest_count": 5,
+    "services": [
+      {
+        "name": "kis-portfolio-auth",
+        "ready_revision": "kis-portfolio-auth-00031-cew",
+        "image_digest": "sha256:c8abbb57dc28995ee2c4c3e6e0587776aff4031956c9e8753fafe076e1dfcf6b"
+      },
+      {
+        "name": "kis-portfolio-remote",
+        "ready_revision": "kis-portfolio-remote-00045-kag",
+        "image_digest": "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab"
+      }
+    ],
+    "jobs": [
+      {
+        "name": "kis-portfolio-domestic-order-history",
+        "image_digest": "sha256:c3b15efd194887e1fad58901be6804926c61c0422ba95611bb50373e51719b49"
+      },
+      {
+        "name": "kis-portfolio-overseas-transaction-history",
+        "image_digest": "sha256:7a0846acc27718653159c22648990cd725f02e9ea255dae5c007556c52b7346f"
+      },
+      {
+        "name": "kis-portfolio-token-warmup-dry-run",
+        "image_digest": "sha256:394ddf8ceb4b4504c33ed0e5a68f5ab41a6cfebd202deb867e1b92b968cba3b2"
+      },
+      {
+        "name": "kis-portfolio-owned-core-v2-1000",
+        "image_digest": "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab"
+      },
+      {
+        "name": "kis-portfolio-owned-core-v2-1430",
+        "image_digest": "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab"
+      },
+      {
+        "name": "kis-portfolio-owned-core-v2-1600",
+        "image_digest": "sha256:a35e6899cfe17faa02d42352f4d8eb76dacd8ff71ec1488ceaa4eff2458208ab"
+      }
+    ]
+  },
+  "prepared_release": {
+    "workflow_target": "wi051-final-audit",
+    "build_count": 1,
+    "service_update_count": 2,
+    "job_update_count": 6,
+    "job_execution_count": 0,
+    "rollback_manifest_required_before_runtime_update": true,
+    "rollback_artifact_retention_days": 30,
+    "forbidden_mutations": [
+      "scheduler",
+      "iam",
+      "secret",
+      "database",
+      "source_activation"
+    ],
+    "dry_run": "pass",
+    "focused_test_count": 66
+  },
+  "remaining_gate": {
+    "blocker": "canonical runtimes do not yet share one immutable image digest",
+    "required_action": "merge the repository change, explicitly authorize the production workflow, run wi051-final-audit from master, verify one digest and service smoke",
+    "documentation_truth_cutover_work_item": "WI-032"
+  }
+}

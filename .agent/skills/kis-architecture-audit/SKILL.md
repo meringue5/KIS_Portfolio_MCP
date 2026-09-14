@@ -30,8 +30,10 @@ Use this skill before and after structural refactors, package renames, MCP expos
 - Public/runtime CLI scripts are `kis-portfolio-auth`, `kis-portfolio-batch`, `kis-portfolio-mcp`, and
   `kis-portfolio-remote`. The administrative explicit migration CLI is `kis-portfolio-migrate`; runtime targets
   must not invoke it during startup.
-- Public MCP is the single `kis-portfolio` service.
-- Root `server.py` is a compatibility shim to `kis_portfolio.adapters.mcp`.
+- Public MCP is the single `kis-portfolio` service built by `remote.py` and `adapters/mcp/v2.py`.
+- Root `server.py` is a fail-closed migration diagnostic to `kis_portfolio.legacy_entrypoint`.
+- `app.py`, `orchestrator.py`, `kis_token_crypto.py`, `db/utils.py`, and `adapters/auth/crypto.py` compatibility
+  re-export shims are retired and must not return.
 - `scripts/setup.sh` creates only `kis-portfolio` in Claude config.
 - MCP adapter registers tools and delegates core logic to `services/`.
 - Orders remain disabled stubs.

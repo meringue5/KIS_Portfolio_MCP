@@ -62,6 +62,17 @@ def main() -> int:
     if (ROOT / "src/kis_mcp_server").exists():
         fail("legacy src/kis_mcp_server directory must not exist", failures)
 
+    obsolete_shims = [
+        "src/kis_portfolio/app.py",
+        "src/kis_portfolio/orchestrator.py",
+        "src/kis_portfolio/kis_token_crypto.py",
+        "src/kis_portfolio/db/utils.py",
+        "src/kis_portfolio/adapters/auth/crypto.py",
+    ]
+    for shim in obsolete_shims:
+        if (ROOT / shim).exists():
+            fail(f"obsolete compatibility shim must not exist: {shim}", failures)
+
     for required in [
         "src/kis_portfolio/adapters/batch/cli.py",
         "src/kis_portfolio/adapters/mcp/server.py",
@@ -75,6 +86,17 @@ def main() -> int:
 
     if "kis_portfolio.legacy_entrypoint" not in file_text("server.py"):
         fail("root server.py must import the retired V1 diagnostic", failures)
+
+    remote_text = file_text("src/kis_portfolio/remote.py")
+    if "kis_portfolio.adapters.mcp.v2" not in remote_text:
+        fail("Remote MCP must build the canonical V2 adapter", failures)
+    for obsolete_import in [
+        "kis_portfolio.adapters.mcp.server",
+        "kis_portfolio.app",
+        "kis_portfolio.orchestrator",
+    ]:
+        if obsolete_import in remote_text:
+            fail(f"Remote MCP must not import obsolete runtime path: {obsolete_import}", failures)
 
     setup_text = file_text("scripts/setup.sh")
     if "retire_local_claude_config.py" not in setup_text:

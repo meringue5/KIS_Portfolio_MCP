@@ -291,6 +291,10 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 이 객체들은 정체불명의 수동 DDL은 아니지만 V2 정본으로 채택하지 않는다. WI-048 disposition은
 `governance/project/v1-main-transition.toml`이 기록하며, 어떤 객체도 자동 삭제·수정·조회하지 않는다.
 향후 보존기간 또는 파괴적 정리가 필요하면 별도 승인과 backup/restore 증거를 가진 새 범위로 다룬다.
+현재 네 drift fingerprint의 운영 예외 owner는 `owner`, expiry는 2026-12-14이다. machine-readable 정본은
+`governance/project/live-drift-exceptions.toml`이며 분기 복원·권한 검토와 함께 재검토한다. 만료는 삭제나
+수정을 자동 승인하지 않고 새 Work Item을 요구하며, live fingerprint가 달라지면
+`--fail-on-unregistered-drift` 검사가 즉시 실패한다.
 
 ### Managed V2 production register
 

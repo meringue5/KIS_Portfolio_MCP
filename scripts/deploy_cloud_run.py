@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import json
 import os
 import subprocess
@@ -855,6 +856,181 @@ def _build_release_image(args: argparse.Namespace, *, project: str) -> str | Non
     )
     digest = completed.stdout.strip() if completed.returncode == 0 else ""
     return f"{tag.split(':', 1)[0]}@{digest}" if digest.startswith("sha256:") else None
+
+
+def _first_nested_value(value: object, key: str) -> object | None:
+    if isinstance(value, dict):
+        if key in value:
+            return value[key]
+        for nested in value.values():
+            found = _first_nested_value(nested, key)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for nested in value:
+            found = _first_nested_value(nested, key)
+            if found is not None:
+                return found
+    return None
+
+
+def _capture_wi051_rollback_manifest(
+    *,
+    project: str,
+    region: str,
+    services: tuple[str, ...],
+    jobs: tuple[str, ...],
+    release_image: str,
+    output_path: Path,
+) -> bool:
+    components: list[dict[str, object]] = []
+    for kind, names in (("service", services), ("job", jobs)):
+        noun = "services" if kind == "service" else "jobs"
+        for name in names:
+            completed = _run_capture(
+                [
+                    "gcloud", "run", noun, "describe", name,
+                    "--region", region, "--project", project, "--format=json",
+                ],
+                dry_run=False,
+            )
+            if completed.returncode != 0:
+                print(f"Failed to capture rollback state for {kind} {name}.")
+                return False
+            try:
+                description = json.loads(completed.stdout)
+            except json.JSONDecodeError:
+                print(f"Invalid rollback state JSON for {kind} {name}.")
+                return False
+            image = _first_nested_value(description, "image")
+            if not isinstance(image, str) or not image:
+                print(f"Missing rollback image for {kind} {name}.")
+                return False
+            component: dict[str, object] = {
+                "kind": kind,
+                "name": name,
+                "previous_image": image,
+            }
+            metadata = description.get("metadata", {})
+            if isinstance(metadata, dict) and metadata.get("generation") is not None:
+                component["previous_generation"] = metadata["generation"]
+            if kind == "service":
+                status = description.get("status", {})
+                revision = status.get("latestReadyRevisionName") if isinstance(status, dict) else None
+                if not isinstance(revision, str) or not revision:
+                    print(f"Missing rollback revision for service {name}.")
+                    return False
+                component["previous_ready_revision"] = revision
+                component["rollback_command"] = [
+                    "gcloud", "run", "services", "update-traffic", name,
+                    "--to-revisions", f"{revision}=100",
+                    "--region", region, "--project", project,
+                ]
+            else:
+                component["rollback_command"] = [
+                    "gcloud", "run", "jobs", "update", name,
+                    "--image", image,
+                    "--region", region, "--project", project,
+                ]
+            components.append(component)
+
+    manifest = {
+        "schema_version": 1,
+        "work_item_id": "WI-051",
+        "captured_at": datetime.now(UTC).isoformat(),
+        "project": project,
+        "region": region,
+        "release_image": release_image,
+        "production_change_authorized": False,
+        "components": components,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
+def _deploy_wi051_final_audit(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Converge every canonical runtime on one immutable image without changing config."""
+    auth_service = env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
+    remote_service = env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    jobs = (
+        env.get("KIS_BATCH_JOB_NAME", DEFAULT_BATCH_JOB),
+        env.get("KIS_OVERSEAS_BATCH_JOB_NAME", DEFAULT_OVERSEAS_BATCH_JOB),
+        env.get("KIS_TOKEN_WARMUP_JOB_NAME", DEFAULT_TOKEN_WARMUP_JOB),
+        *(env.get(f"KIS_V2_CORE_JOB_{slot.split('-', 1)[1]}", default_job)
+          for slot, default_job in DEFAULT_V2_CORE_JOBS.items()),
+    )
+    services = (auth_service, remote_service)
+    missing = [
+        key for key in ("KIS_AUTH_BASE_URL", "KIS_RESOURCE_SERVER_URL")
+        if not env.get(key, "").strip()
+    ]
+    if missing:
+        print("Missing required WI-051 release inputs:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-051 image digest.")
+        return 1
+
+    if not args.dry_run:
+        if not args.rollback_manifest:
+            print("WI-051 production release requires --rollback-manifest.")
+            return 1
+        if not _capture_wi051_rollback_manifest(
+            project=project,
+            region=args.region,
+            services=services,
+            jobs=jobs,
+            release_image=image,
+            output_path=Path(args.rollback_manifest),
+        ):
+            return 1
+
+    labels = _build_deploy_labels("wi051-final-audit")
+    label_flags = [
+        "--update-labels",
+        ",".join(f"{key}={value}" for key, value in sorted(labels.items())),
+    ]
+    for job in jobs:
+        command = [
+            "gcloud", "run", "jobs", "update", job,
+            "--image", image, "--region", args.region,
+            *label_flags, "--project", project,
+        ]
+        if _run(command, dry_run=args.dry_run) != 0:
+            return 1
+    for service in services:
+        command = [
+            "gcloud", "run", "services", "update", service,
+            "--image", image, "--region", args.region,
+            *label_flags, "--project", project,
+        ]
+        if _run(command, dry_run=args.dry_run) != 0:
+            return 1
+
+    if args.dry_run:
+        print(f"WI-051 dry-run: one immutable image would update 2 services and 6 jobs: {image}")
+        return 0
+    resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
+    remote_url = resource[:-4] if resource.endswith("/mcp") else resource
+    if not _smoke_wi046_remote(
+        auth_url=env["KIS_AUTH_BASE_URL"],
+        remote_url=remote_url,
+        expected_resource=resource,
+    ):
+        print("WI-051 canonical service smoke failed; use the captured rollback manifest.")
+        return 1
+    print(f"WI-051 canonical runtimes converged on one immutable image: {image}")
+    return 0
 
 
 def _ensure_runtime_identity(
@@ -2358,6 +2534,7 @@ def main() -> int:
             "wi046-promote-auth",
             "wi046-promote-remote",
             "wi048-s02",
+            "wi051-final-audit",
         ),
     )
     parser.add_argument("--region", default=DEFAULT_REGION)
@@ -2379,6 +2556,7 @@ def main() -> int:
     parser.add_argument("--wi046-candidates-only", action="store_true")
     parser.add_argument("--candidate-revision")
     parser.add_argument("--rollback-revision")
+    parser.add_argument("--rollback-manifest")
     args = parser.parse_args()
 
     env = _load_env()
@@ -2614,6 +2792,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi048_s02(args, env=env, project=project)
+
+    if args.target == "wi051-final-audit":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi051_final_audit(args, env=env, project=project)
 
     if not project:
         print("Missing required environment variables:")

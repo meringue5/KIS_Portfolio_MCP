@@ -5,7 +5,6 @@ from datetime import date, datetime
 from cryptography.fernet import Fernet
 
 from kis_portfolio.common import values
-from kis_portfolio.db import utils as db_utils
 from kis_portfolio.security import oauth_crypto, redaction, token_encryption
 
 
@@ -29,15 +28,6 @@ def test_redact_mapping_removes_known_secret_values():
     }
 
 
-def test_db_utils_reexports_common_value_helpers():
-    assert db_utils.to_float is values.to_float
-    assert db_utils.to_int is values.to_int
-    assert db_utils.normalize_row is values.normalize_row
-    assert db_utils.rows_to_dicts is values.rows_to_dicts
-    assert db_utils.json_safe is values.json_safe
-    assert db_utils.json_loads is values.json_loads
-
-
 def test_common_values_preserve_json_safe_conversion():
     row = {
         "created_at": datetime(2026, 5, 3, 12, 30, 0),
@@ -59,26 +49,19 @@ def test_common_values_preserve_json_safe_conversion():
     assert values.json_safe("plain") == "plain"
 
 
-def test_kis_token_crypto_shim_reexports_security_helpers(monkeypatch):
-    from kis_portfolio import kis_token_crypto
-
+def test_canonical_token_encryption_helpers(monkeypatch):
     key = Fernet.generate_key().decode("utf-8")
     monkeypatch.setenv("KIS_TOKEN_ENCRYPTION_KEY", key)
 
-    ciphertext = kis_token_crypto.encrypt_token("raw-token")
+    ciphertext = token_encryption.encrypt_token("raw-token")
 
-    assert kis_token_crypto.decrypt_token(ciphertext) == "raw-token"
-    assert kis_token_crypto.encrypt_token is token_encryption.encrypt_token
-    assert kis_token_crypto.decrypt_token is token_encryption.decrypt_token
-    assert kis_token_crypto.TokenDecryptionError is token_encryption.TokenDecryptionError
+    assert token_encryption.decrypt_token(ciphertext) == "raw-token"
 
 
-def test_auth_crypto_shim_reexports_security_helpers():
-    from kis_portfolio.adapters.auth import crypto
-
-    digest = crypto.digest_token("token", "pepper")
+def test_canonical_oauth_crypto_helpers():
+    digest = oauth_crypto.digest_token("token", "pepper")
 
     assert digest == oauth_crypto.digest_token("token", "pepper")
-    assert crypto.generate_token is oauth_crypto.generate_token
-    assert crypto.hash_client_secret is oauth_crypto.hash_client_secret
-    assert crypto.verify_client_secret is oauth_crypto.verify_client_secret
+    secret_hash = oauth_crypto.hash_client_secret("secret")
+    assert oauth_crypto.verify_client_secret("secret", secret_hash)
+    assert oauth_crypto.generate_token(8)

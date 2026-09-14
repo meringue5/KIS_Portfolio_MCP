@@ -10,7 +10,7 @@ MCP는 primary adapter이며, core service는 MCP에 종속되지 않아야 합�
 
 ```
 KIS_Portfolio_MCP/
-├── server.py          # 기존 MCP 설정 호환용 thin entrypoint
+├── server.py          # 폐기된 로컬 V1 연결에 migration guidance를 반환하는 diagnostic
 ├── src/
 │   └── kis_portfolio/
 │       ├── adapters/  # MCP/remote/batch 등 외부 adapter
