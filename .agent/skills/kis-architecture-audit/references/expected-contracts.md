@@ -10,7 +10,8 @@
 
 ## Important Paths
 
-- MCP adapter: `src/kis_portfolio/adapters/mcp/server.py`
+- Production Remote MCP entrypoint: `src/kis_portfolio/remote.py`
+- Public V2 MCP adapter: `src/kis_portfolio/adapters/mcp/v2.py`
 - Batch adapter: `src/kis_portfolio/adapters/batch/cli.py`
 - Remote adapter: `src/kis_portfolio/remote.py`
 - Core services: `src/kis_portfolio/services/`
@@ -21,6 +22,8 @@
 ## Must Not Regress
 
 - Do not recreate `src/kis_mcp_server/`.
+- Do not recreate the retired compatibility re-export shims `app.py`, `orchestrator.py`, `kis_token_crypto.py`,
+  `db/utils.py`, or `adapters/auth/crypto.py`.
 - Do not add `kis-mcp-*` console scripts.
 - Do not add `kis-ria`, `kis-isa`, `kis-irp`, `kis-pension`, or `kis-brokerage` to default setup.
 - Do not expose `inquery-*` or `order-*` MCP tool aliases.

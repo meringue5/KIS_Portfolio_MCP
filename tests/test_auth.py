@@ -13,7 +13,7 @@ from cryptography.fernet import Fernet
 from kis_portfolio import auth
 from kis_portfolio.db.connection import close_connection, get_connection
 from kis_portfolio.db.kis_token_repository import get_kis_api_access_token, upsert_kis_api_access_token
-from kis_portfolio.kis_token_crypto import (
+from kis_portfolio.security.token_encryption import (
     TokenDecryptionError,
     TokenEncryptionConfigError,
     encrypt_token,

@@ -76,8 +76,10 @@ repositories / warehouse / analytics
 adapters: local MCP, remote MCP, batch jobs, future backend HTTP API
 ```
 
-현재 public MCP adapter는 `src/kis_portfolio/adapters/mcp/server.py`이며, KIS 호출 로직은
-`services/` 아래로 이동하는 중이다.
+현재 production public MCP는 `src/kis_portfolio/remote.py`의 OAuth transport와
+`src/kis_portfolio/adapters/mcp/v2.py`의 18-tool adapter이며, application logic은 `services/`와
+`application/`에 둔다. `src/kis_portfolio/adapters/mcp/server.py`는 V1 migration contract 검증용 내부
+fixture surface일 뿐 production entrypoint가 아니다.
 
 Future backend API는 별도 public surface가 필요해지는 시점에 `adapters/http` 후보로 둔다. ETL orchestration은
 현재 `adapters/batch + services` 조합을 유지하고, 독립 ETL workflow가 여러 개로 늘어나면 `pipelines`

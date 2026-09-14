@@ -25,9 +25,9 @@ runtime component나 별도 warehouse가 아니며, data architecture가 승인�
 `scripts/`, 런타임 산출물은 장기적으로 `var/` 또는 운영 환경의 안전한 데이터
 디렉터리로 분리한다.
 
-사용자-facing 기본 연결은 OAuth 기반 `kis-portfolio-remote`다. `kis-portfolio-mcp`와 루트 `server.py`는
-MS-004에서 퇴역시키는 local compatibility/development harness일 뿐 제품 SSOT가 아니다. 실제 구현은
-`src/kis_portfolio/` 아래에 둔다.
+사용자-facing 연결은 OAuth 기반 `kis-portfolio-remote` 하나다. `kis-portfolio-mcp`와 루트 `server.py`는
+폐기된 로컬 V1 연결에 migration guidance만 반환하는 fail-closed diagnostic이며 제품 runtime이 아니다.
+실제 구현은 `src/kis_portfolio/` 아래에 둔다.
 
 ```text
 KIS_Portfolio_MCP/
@@ -37,7 +37,7 @@ KIS_Portfolio_MCP/
 ├── AGENTS.md
 ├── pyproject.toml
 ├── Dockerfile                 # 컨테이너 실행 베이스라인
-├── server.py                  # 기존 MCP 설정 호환용 thin entrypoint
+├── server.py                  # 폐기된 로컬 V1 연결용 migration diagnostic
 ├── .agent/
 │   └── skills/                # 에이전트 공통 운용 runbook
 ├── governance/
@@ -63,13 +63,16 @@ KIS_Portfolio_MCP/
 
 현재 구조는 `baseline/pre-service-refactor` 이후의 서비스 전환 단계다.
 
-- public MCP는 `src/kis_portfolio/adapters/mcp/server.py` 하나다.
+- production public MCP는 `src/kis_portfolio/remote.py`가 OAuth transport를 소유하고
+  `src/kis_portfolio/adapters/mcp/v2.py`의 18-tool catalog를 등록한다.
 - batch adapter는 `src/kis_portfolio/adapters/batch/` 아래에 둔다.
 - OAuth auth server는 `src/kis_portfolio/adapters/auth/` 아래에 둔다.
-- 기존 `app.py`는 새 MCP adapter를 re-export하는 compatibility shim이다.
 - 기존 `db.py` 구현은 `src/kis_portfolio/db/` 패키지로 분리되어 있다.
-- 루트 `server.py`는 `kis_portfolio.adapters.mcp.main()`을 호출한다.
+- 루트 `server.py`는 `kis_portfolio.legacy_entrypoint.main()`을 호출해 Remote migration guidance를 반환하고
+  실패 종료한다.
 - 루트 `db.py` 호환 wrapper는 제거했다. 내부 코드는 `kis_portfolio.db`를 직접 import한다.
+- `app.py`, `orchestrator.py`, `kis_token_crypto.py`, `db/utils.py`, `adapters/auth/crypto.py` re-export shim은
+  canonical package 경계가 정착해 제거했다.
 - MotherDuck을 기본 운영 DB로 사용한다 (`KIS_DB_MODE=motherduck`).
 - 로컬 DuckDB는 `KIS_DB_MODE=local`일 때만 사용하며 운영 트랜잭션 중심이 아니다.
 - `KIS_DATA_DIR` 기본값은 프로젝트 루트 기준 `var`이다.
