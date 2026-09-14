@@ -25,7 +25,7 @@ flowchart LR
     MS1["MS-001<br/>Canonical portfolio + managed collection<br/>closed"]
     MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>closed"]
     MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>closed"]
-    MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>in progress"]
+    MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>closed"]
 
     MS1 --> MS2 --> MS3 --> MS4
     MSGOV -. governs .-> MS2
@@ -36,8 +36,7 @@ flowchart LR
     classDef verified fill:#e5f4ff,stroke:#0870a8,color:#123b72;
     classDef active fill:#fff1bf,stroke:#9a6b00,color:#4b3500;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
-    class MS1,MS2,MS3,MSGOV closed;
-    class MS4 active;
+    class MS1,MS2,MS3,MS4,MSGOV closed;
 ```
 
 실선 화살표는 구조적 dependency DAG다. 실행 gate는 두 단계다. MS-002가 `stabilizing`이면 MS-003을
@@ -218,7 +217,7 @@ flowchart TB
     class W46,W47,W48,W49 closed;
     class W50 closed;
     class W51 closed;
-    class W32 ready;
+    class W32 closed;
     class M2DONE,M3OPEN gate;
 ```
 
@@ -226,17 +225,14 @@ flowchart TB
 
 | 구분 | 현재 가능한 범위 |
 | --- | --- |
-| 계속 자동 진행 | `WI-029-S05/S06`: 2026-09-14까지 corrected DB-only shadow 증적 축적 |
-| 운영 안정화 | `WI-030-S04`: 실제 Rich Message의 calendar-window 증거와 owner acceptance 축적 |
-| 첫 슬롯 확인 | `WI-055`: 10:00/16:00 총자산 digest 수신과 Control-ledger terminal 상태 확인 |
+| 완료된 MS-002 관찰 | `WI-029`, `WI-030`, `WI-055`는 2026-09-11 owner acceptance로 closed; 단축된 관찰창과 잔여 위험은 각 Closeout에 보존 |
 | 현재 production baseline | `WI-046`과 MS-003 closed; DEC-056/ADR-028에 따라 Remote MCP V2와 forward recovery가 유일한 운영 경로 |
-| 현재 단일 WIP | 없음; MS-004 `WI-051` closed, `WI-032` ready for the final documentation truth cutover |
+| 현재 단일 WIP | 없음; WI-032와 MS-004가 closed되어 계획된 V2 전환 공정 완료 |
 | 최근 파괴적 변경 | WI-049-S03 closed; 승인된 exact 59 untagged digest만 삭제했고 49개 유지 집합과 active V2·data·backup을 검증 |
 | 별도 미래 intake | ETF constituent 수집과 look-through. `WI-026/027`은 초기 V2에서 rejected되어 재사용하지 않음 |
 
-`WI-038`은 `WI-037`, `WI-041`도 `WI-037`을 기다린다. 사용자-facing Remote MCP 경로인 `WI-042`는
-Telegram `WI-030`, catalog/quality `WI-040`, forward outlook `WI-041`이 모두 끝나야 시작한다. 이후
-managed command(`WI-043`)와 client compatibility(`WI-044`)를 거쳐 dual-run과 production cutover로 간다.
+표의 dependency 설명은 완료 당시의 실행 순서를 보존한다. MS-002, MS-003과 MS-004는 모두 닫혔고
+현재 활성 Work Item은 없다. 새 오류나 요구는 기존 완료 이력을 다시 열지 않고 append-only intake한다.
 
 ## 불변 규칙
 

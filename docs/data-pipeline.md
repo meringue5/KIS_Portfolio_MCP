@@ -1,13 +1,13 @@
 # Data Pipeline Direction
 
-이 프로젝트의 현재 쓰기 경로는 MCP tool이 KIS API에서 데이터를 받아 MotherDuck에 저장하는
-OLTP 성격이 강하다. 하지만 장기 목표는 포트폴리오 분석, 시계열 비교, 이상치 탐지 같은 OLAP
-워크로드다. 따라서 저장 계층과 분석 계층을 섞지 않는 방향으로 설계한다.
+이 프로젝트의 production 쓰기 경로는 allowlisted managed Cloud Run Job이 KIS/승인 source를 수집하고,
+Firestore operational state와 MotherDuck analytical data plane을 분리해 기록한다. MCP adapter는 저장된 read
+model과 고정 managed command만 노출하며 임의 source write를 소유하지 않는다.
 
-2026-08-28 승인된 V2 목표에서는 Scheduler와 LLM 요청이 동일한 allowlisted managed pipeline registry를
+현재 V2에서는 Scheduler와 LLM 요청이 동일한 allowlisted managed pipeline registry를
 호출하고, fixed Job args와 Firestore의 run request·lease·idempotency claim을 사용한다. MotherDuck은
-`bronze/silver/gold/control` 데이터 plane을 맡는다. 이 문서 아래의 현재 V1 쓰기 경로는 별도 pipeline
-Work Item과 dual-run 전까지 그대로 유효하다.
+`bronze/silver/gold/control` 데이터 plane을 맡는다. 아래 V1 언급은 오염 교정·migration identity 또는
+versioned 계약 이름이며 현재 public/runtime architecture를 뜻하지 않는다.
 
 ## 원칙
 
@@ -259,8 +259,8 @@ lineage와 daily state를 검증한다. 이 rehearsal은 production source 호�
 
 ## 계층
 
-논리 계층은 Bronze/Silver/Gold와 별도 Control/Security 영역으로 고정한다. 현재 물리 객체는 모두
-`kis_portfolio.main`에 있지만, 객체마다 목표 schema가 지정되어 있다.
+논리·물리 analytical 계층은 Bronze/Silver/Gold와 별도 Control 영역으로 고정한다. Operational Security
+state는 Firestore에 분리되며, 보존된 `kis_portfolio.main` 객체는 compatibility/migration history다.
 
 ```text
 KIS API observations -> Bronze -> Silver -> Gold -> MCP / analytics / dashboard
@@ -275,8 +275,8 @@ Security -> auth/token repositories only
 - Silver: 정규화 시계열, deduplicated order/transaction, canonical total assets
 - Gold: 일별 대표값과 재생성 가능한 분석 view/table
 - Control: migration, 시장 달력, 종목마스터, classification override
-- Security: 현재 V1은 암호화/해시된 token과 OAuth state를 MotherDuck에서 격리한다. 승인된 V2는 이를
-  Firestore와 Secret Manager로 이동한다.
+- Security: active OAuth/KIS token·lease·run request state는 Firestore, 장기 credential/key는 Secret Manager가
+  소유한다. MotherDuck에는 analytical fact와 보존된 migration snapshot만 둔다.
 
 전체 객체 목록, grain, key, 민감도, 백업 정책과 물리 schema 전환 계획은
 [Data Store Governance and Catalog](./data-catalog.md)가 관리한다. 이 문서에서는 객체 목록을

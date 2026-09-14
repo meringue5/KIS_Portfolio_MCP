@@ -1,6 +1,6 @@
 # MS-004 — V2 canonicalization and V1 retirement
 
-> 상태: in_progress; project delivery의 final milestone
+> 상태: closed; project delivery의 final milestone complete
 > 선행 milestone: MS-003
 > machine registry: `governance/project/milestones.toml`
 
@@ -18,7 +18,7 @@ V2 cutover 뒤 V1 runtime·data consumer·문서 잔존물을 검증 가능한 �
 | 3 | WI-049 V1 runtime resource cleanup | V2-W0804 | WI-047 | closed; 11 obsolete Job definitions and 59 separately approved untagged digests removed with runtime/history/recovery preservation |
 | 4 | WI-050 steady-state operations runbooks | V2-W0805 | WI-047, WI-048 | closed; canonical cadence, deterministic review and fresh local restore passed within all guardrails |
 | 5 | WI-051 final V2 architecture audit | V2-W0806 | WI-047~050 | closed; final contracts pass and eight canonical runtimes share one immutable image |
-| 6 | WI-032 V2 canonical documentation | V2-W0807 | WI-051 | ready; final documentation gate |
+| 6 | WI-032 V2 canonical documentation | V2-W0807 | WI-051 | closed; canonical index, complete V1 disposition and full 719 gate passed |
 
 WI-032는 문서 정본화 outcome만 소유하며 live resource 삭제를 자동으로 포함하지 않는다. 실제 resource
 cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변경 승인 아래에서만 수행한다.
@@ -44,6 +44,8 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-14.19 | 2026-09-14 | Closed WI-032 and MS-004 after the final V2 documentation truth cutover | 99 V1-era Markdown documents classified, canonical links and full 719 passed; no deletion or production effect |
+| 2026-09-14.18 | 2026-09-14 | Activated WI-032 final documentation truth cutover | Documentation inventory, canonical navigation and supersession markers only; no production effect |
 | 2026-09-14.17 | 2026-09-14 | Closed WI-051 after corrected canonical runtime convergence | Run 34824514114 put two services and six Jobs on one immutable digest; exact 100% service traffic, rollback artifact, HTTP/OAuth/401 smoke and full 717 passed; WI-032 is ready |
 | 2026-09-14.16 | 2026-09-14 | Activated WI-051 final V2 architecture audit in isolated scope | Repository inventory, proven-obsolete shim cleanup and read-only/local audits only; no production mutation or WI-032 documentation truth cutover |
 | 2026-09-14.15 | 2026-09-14 | Closed WI-050 after the initial steady-state review and restore rehearsal passed | RPO 522 minutes, RTO 8 seconds, private object hashes, cost/capacity/source/access/exception reviews and full 710 passed; WI-051 is next |

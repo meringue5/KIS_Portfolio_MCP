@@ -1,0 +1,58 @@
+schema_version = 1
+work_item_id = "WI-032"
+canonical_index = "docs/README.md"
+scan_pattern = "(?i)(?<![A-Za-z0-9])v1(?![A-Za-z0-9])"
+classifications = [
+  "canonical_v2",
+  "retained_historical_evidence",
+  "superseded_redirect",
+  "approved_deletion_candidate",
+]
+rule_order = "first_match_wins"
+production_change_authorized = false
+
+[[rules]]
+id = "canonical-root-and-current-contracts"
+classification = "canonical_v2"
+paths = [
+  "README.md",
+  "AGENTS.md",
+  "ARCHITECTURE.md",
+  "SPEC.md",
+  "docs/README.md",
+  "docs/api-capability-map.md",
+  "docs/backup.md",
+  "docs/data-catalog.md",
+  "docs/data-pipeline.md",
+  "docs/deployment.md",
+  "docs/security-and-secrets.md",
+  "docs/traceability.md",
+  "docs/design/kis-portfolio-v2-system-design.md",
+]
+
+[[rules]]
+id = "v1-connection-redirect"
+classification = "superseded_redirect"
+paths = ["docs/remote-mcp-v2-migration.md"]
+
+[[rules]]
+id = "canonical-governance-and-requirements"
+classification = "canonical_v2"
+globs = [
+  "docs/governance/*.md",
+  "docs/milestones/*.md",
+  "docs/requirements/*.md",
+]
+
+[[rules]]
+id = "retained-work-history"
+classification = "retained_historical_evidence"
+paths = ["TODO.md"]
+globs = [
+  "docs/work-items/*.md",
+  "docs/design/*.md",
+  "docs/operations/*.md",
+]
+
+# WI-032 found no documentation whose deletion is required for correctness.
+# Future deletion still requires an explicit path and approval; a broad glob is forbidden.

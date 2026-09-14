@@ -25,6 +25,10 @@ run_mcp_surface() {
   uv run python .agent/skills/kis-mcp-surface-audit/scripts/inspect_mcp_surface.py
 }
 
+run_v2_documentation() {
+  uv run python scripts/check_v2_documentation.py
+}
+
 run_shell_and_json() {
   while IFS= read -r script_path; do
     bash -n "$script_path"
@@ -45,6 +49,7 @@ case "$MODE" in
     run_architecture
     run_warehouse
     run_mcp_surface
+    run_v2_documentation
     run_shell_and_json
     git diff --check
     ;;
@@ -54,6 +59,7 @@ case "$MODE" in
     run_architecture
     run_warehouse
     run_mcp_surface
+    run_v2_documentation
     run_shell_and_json
     uv run pytest
     git diff --check
