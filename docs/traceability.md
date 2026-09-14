@@ -97,7 +97,7 @@
 | DEC-034/045/056 V1 main consumer transition | ADR-028 / V2-W0803 | WI-048 / WI-048-S01/S02 | WI-046 | closed; S02 production run 34759029400 passed private pre/post restore, additive 0019, exact/idempotent reference reconciliation and one-digest V2 update with source calls/mutations/deletions zero; owner then passed one read-only `get-portfolio-overview` in a new Claude session with freshness available and both quality statuses pass; retained V1 drift remains WI-049 only |
 | DEC-034/040 V1 resource cleanup | V2-W0804 | WI-049 / WI-049-S01/S02/S03 | WI-047 | closed; owner-approved workflow 34784520628 deleted exactly 59 obsolete untagged digests; post-state equals the 49-item retain set, all live references remain retained, and runtime, 15 history baselines and private recovery index passed |
 | DEC-033..041 steady-state runbooks | V2-W0805 | WI-050 | WI-047, WI-048 | closed; canonical monthly/quarterly/release runbook and deterministic evaluator pass; fresh local restore achieved RPO 522 minutes/RTO 8 seconds through migration 0019, all 33 private objects verified, cost KRW 434 normal, source/access/exception review passed, full 710 passed; no automation or production mutation |
-| DEC-034/045 final V2 audit | V2-W0806 | WI-051 | WI-047~050 | proposed; MS-004 |
+| DEC-034/045 final V2 audit | V2-W0806 | WI-051 | WI-047~050 | in progress; isolated residual inventory, bounded shim cleanup and architecture/MCP/warehouse/security/release/cost audit; production effects none |
 | DEC-047 final V2 documentation SSOT | V2-W0807 | WI-032 | WI-051 | proposed; final MS-004 |
 
 ## Governance Requirements

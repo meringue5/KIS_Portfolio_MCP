@@ -1,7 +1,7 @@
 ---
 id: WI-051
 title: Remove obsolete shims and complete the final V2 architecture audit
-status: proposed
+status: in_progress
 type: architecture
 owner: owner
 decision_refs: ADR-021, ADR-022, ADR-023
@@ -10,6 +10,8 @@ milestone_ref: MS-004
 delivery_refs: V2-W0806
 parent_work_item: none
 depends_on: WI-047, WI-048, WI-049, WI-050
+execution_scope: isolated
+production_effects: none
 architecture_impact: establishes the implemented final V2 boundary
 data_impact: verifies warehouse contract and drift; no silent deletion
 security_impact: verifies trust boundaries and obsolete privileges
@@ -51,10 +53,13 @@ After retirement work, obsolete code/shims and cross-document drift may still co
 
 ## Evidence
 
-- Pending.
+- Activated 2026-09-14 from master `9bf78a9` after WI-047 through WI-050 closed. The active phase is limited to
+  repository inventory, bounded removal of proven-obsolete code/shims, deterministic audit tooling, read-only live
+  inspection and local verification. It does not rewrite historical evidence, delete data, deploy, change IAM or
+  Secrets, activate sources, mutate production, or perform the WI-032 documentation truth cutover.
 
 ## Closeout
 
-- Result: proposed.
+- Result: in progress.
 - Remaining risk: documentation truth cutover belongs to WI-032.
 - Follow-up Work Item: WI-032.
