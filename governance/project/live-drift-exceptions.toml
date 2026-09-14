@@ -1,0 +1,46 @@
+schema_version = 1
+work_item_id = "WI-051"
+review_cadence = "quarterly"
+production_change_authorized = false
+
+[[exceptions]]
+kind = "unmanaged_object"
+schema = "main"
+name = "cash_flow"
+object_type = "table"
+owner = "owner"
+expires_on = 2026-12-14
+disposition = "archive_only"
+next_action = "Re-evaluate retention at the next quarterly review; deletion requires a new approved destructive Work Item."
+
+[[exceptions]]
+kind = "unmanaged_object"
+schema = "main"
+name = "trade_journal"
+object_type = "table"
+owner = "owner"
+expires_on = 2026-12-14
+disposition = "archive_only"
+next_action = "Re-evaluate retention at the next quarterly review; deletion requires a new approved destructive Work Item."
+
+[[exceptions]]
+kind = "unmanaged_object"
+schema = "main"
+name = "asset_return_daily"
+object_type = "view"
+owner = "owner"
+expires_on = 2026-12-14
+disposition = "broken_view_do_not_query"
+next_action = "Keep excluded from V2 runtime; repair or deletion requires a new approved Work Item."
+
+[[exceptions]]
+kind = "managed_column_drift"
+schema = "main"
+name = "asset_overview_daily_snapshots"
+missing_columns = ["is_complete", "quality_flags", "quality_status"]
+extra_columns = []
+type_mismatches = []
+owner = "owner"
+expires_on = 2026-12-14
+disposition = "known_v1_archive_projection_gap"
+next_action = "Keep V2 runtime on gold.portfolio_daily_state; repair requires a new approved migration Work Item."

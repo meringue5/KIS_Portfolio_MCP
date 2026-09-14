@@ -34,6 +34,8 @@ Use this skill for DB schema, repository, analytics, backup, and pipeline change
    ```
 
    After known branch/live drift is reconciled, use `--fail-on-drift` in release checks.
+   While preservation-approved drift remains, use `--fail-on-unregistered-drift`; it passes only when the live
+   fingerprint exactly matches current owner/expiry exceptions and never treats those objects as managed.
 
 5. Run DB/analytics tests:
 

@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 
@@ -49,6 +51,95 @@ def json_safe(value):
     if hasattr(value, "isoformat"):
         return value.isoformat()
     return value
+
+
+def load_drift_exception_registry(
+    path: Path = ROOT / "governance/project/live-drift-exceptions.toml",
+) -> dict:
+    return tomllib.loads(path.read_text(encoding="utf-8"))
+
+
+def _exception_key(item: dict) -> tuple:
+    kind = item.get("kind")
+    if kind == "unmanaged_object":
+        return kind, item.get("schema"), item.get("name"), item.get("object_type")
+    if kind == "managed_column_drift":
+        return (
+            kind,
+            item.get("schema"),
+            item.get("name"),
+            tuple(sorted(item.get("missing_columns", []))),
+            tuple(sorted(item.get("extra_columns", []))),
+            tuple(sorted(item.get("type_mismatches", []))),
+        )
+    raise ValueError(f"unsupported drift exception kind: {kind}")
+
+
+def review_drift_exceptions(
+    drift: dict,
+    registry: dict,
+    *,
+    observed_on: date | None = None,
+) -> dict:
+    observed_on = observed_on or date.today()
+    errors: list[str] = []
+    entries = registry.get("exceptions", [])
+    if registry.get("schema_version") != 1:
+        errors.append("unsupported exception registry schema_version")
+    if registry.get("production_change_authorized") is not False:
+        errors.append("exception registry must not authorize production changes")
+
+    registered: dict[tuple, dict] = {}
+    expired: list[str] = []
+    for item in entries:
+        try:
+            key = _exception_key(item)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+        if key in registered:
+            errors.append(f"duplicate drift exception: {item.get('schema')}.{item.get('name')}")
+        registered[key] = item
+        if not str(item.get("owner", "")).strip():
+            errors.append(f"owner missing: {item.get('schema')}.{item.get('name')}")
+        expires_on = item.get("expires_on")
+        if not isinstance(expires_on, date):
+            errors.append(f"expiry missing: {item.get('schema')}.{item.get('name')}")
+        elif expires_on < observed_on:
+            expired.append(f"{item.get('schema')}.{item.get('name')}")
+        if not str(item.get("next_action", "")).strip():
+            errors.append(f"next_action missing: {item.get('schema')}.{item.get('name')}")
+
+    observed: dict[tuple, str] = {}
+    for item in drift.get("unmanaged_objects", []):
+        key = _exception_key({"kind": "unmanaged_object", "object_type": item["type"], **item})
+        observed[key] = f"{item['schema']}.{item['name']}"
+    for item in drift.get("managed_column_drift", []):
+        key = _exception_key({"kind": "managed_column_drift", **item})
+        observed[key] = f"{item['schema']}.{item['name']}"
+
+    unregistered = sorted(label for key, label in observed.items() if key not in registered)
+    stale = sorted(
+        f"{item.get('schema')}.{item.get('name')}"
+        for key, item in registered.items()
+        if key not in observed
+    )
+    missing_managed = sorted(drift.get("missing_managed_objects", []))
+    blockers = [*errors]
+    blockers.extend(f"missing managed object: {item}" for item in missing_managed)
+    blockers.extend(f"unregistered drift: {item}" for item in unregistered)
+    blockers.extend(f"expired drift exception: {item}" for item in expired)
+    blockers.extend(f"stale drift exception: {item}" for item in stale)
+    return {
+        "status": "pass" if not blockers else "block",
+        "registered_exception_count": len(registered),
+        "unregistered_drift": unregistered,
+        "expired_exceptions": sorted(expired),
+        "stale_exceptions": stale,
+        "missing_managed_objects": missing_managed,
+        "blockers": blockers,
+        "production_change_authorized": False,
+    }
 
 
 def inspect() -> dict:
@@ -253,6 +344,9 @@ def inspect() -> dict:
         },
         "tables": {name: fetch_one(con, query) for name, query in tables.items()},
     }
+    result["drift_exception_review"] = review_drift_exceptions(
+        result["drift"], load_drift_exception_registry()
+    )
     result["portfolio_by_account_type"] = fetch_all(con, """
         SELECT account_type,
                COUNT(*) AS rows,
@@ -295,13 +389,23 @@ def main() -> int:
         action="store_true",
         help="Exit non-zero when managed objects are missing or live object/column drift exists.",
     )
+    parser.add_argument(
+        "--fail-on-unregistered-drift",
+        action="store_true",
+        help="Exit non-zero when drift is missing an exact current owner/expiry exception.",
+    )
     args = parser.parse_args()
 
     result = inspect()
     drift_found = any(result["drift"].values())
+    exception_blocked = result["drift_exception_review"]["status"] != "pass"
+    exit_code = int(
+        (args.fail_on_drift and drift_found)
+        or (args.fail_on_unregistered_drift and exception_blocked)
+    )
     if args.json:
         print(json.dumps(result, ensure_ascii=False, default=json_safe, indent=2))
-        return int(args.fail_on_drift and drift_found)
+        return exit_code
 
     if args.inventory:
         print(f"KIS Portfolio DB inventory: database={result['database']}")
@@ -339,7 +443,13 @@ def main() -> int:
                 for item in result["drift"]["managed_column_drift"]
             )
         )
-        return int(args.fail_on_drift and drift_found)
+        review = result["drift_exception_review"]
+        print(
+            "  drift_exception_review="
+            f"{review['status']},registered={review['registered_exception_count']},"
+            f"blockers={len(review['blockers'])}"
+        )
+        return exit_code
 
     print(f"KIS Portfolio DB inspection: database={result['database']}")
     for name, row in result["tables"].items():
@@ -370,7 +480,13 @@ def main() -> int:
             for item in result["drift"]["managed_column_drift"]
         )
     )
-    return int(args.fail_on_drift and drift_found)
+    review = result["drift_exception_review"]
+    print(
+        "  drift_exception_review="
+        f"{review['status']},registered={review['registered_exception_count']},"
+        f"blockers={len(review['blockers'])}"
+    )
+    return exit_code
 
 
 if __name__ == "__main__":
