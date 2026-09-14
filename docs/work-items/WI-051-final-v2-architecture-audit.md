@@ -67,6 +67,9 @@ After retirement work, obsolete code/shims and cross-document drift may still co
   image/provenance of two services and six Jobs, executes no Job and changes no Scheduler/IAM/Secret/DB/source. Its
   66 focused deployment tests, CLI flag inspection, local dry-run and quick gate pass. Production execution remains
   deliberately pending explicit owner authorization.
+- Full gate passed 716 tests with one existing Authlib deprecation warning. The repository/live pre-release audit is
+  recorded in `governance/project/evidence/wi051/final-v2-architecture-audit-2026-09-14.json`; WI-051 stays in progress
+  until the protected release runs and all eight canonical runtimes are verified on one digest.
 
 ## Closeout
 
