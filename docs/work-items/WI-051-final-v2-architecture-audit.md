@@ -1,7 +1,7 @@
 ---
 id: WI-051
 title: Remove obsolete shims and complete the final V2 architecture audit
-status: in_progress
+status: closed
 type: architecture
 owner: owner
 decision_refs: ADR-021, ADR-022, ADR-023
@@ -35,9 +35,9 @@ After retirement work, obsolete code/shims and cross-document drift may still co
 
 ## Acceptance criteria
 
-- [ ] no obsolete runtime path or unauthorized dependency remains.
-- [ ] architecture, warehouse, MCP, security, release and full gates pass with live evidence.
-- [ ] residual exceptions have owners and expiry.
+- [x] no obsolete runtime path or unauthorized dependency remains.
+- [x] architecture, warehouse, MCP, security, release and full gates pass with live evidence.
+- [x] residual exceptions have owners and expiry.
 
 ## Change impact
 
@@ -75,9 +75,18 @@ After retirement work, obsolete code/shims and cross-document drift may still co
   the actual 100% serving revision. WI-051 therefore remained open. The correction records actual serving traffic,
   creates predictable run-scoped revisions, explicitly promotes those revisions and automatically restores prior
   traffic on promotion/smoke failure; focused deployment tests increased to 67 passing.
+- Corrected owner-approved run `34824514114` from master `e458ba5` built immutable digest
+  `sha256:31f8fed5b2ef9527272634a93d8608fa215dc16a95c813381fd94ad8409c10b0`, updated all six canonical Jobs and
+  deployed run-scoped auth/Remote revisions. Workflow and independent evidence show 100% traffic on
+  `kis-portfolio-auth-wi051-34824514114` and `kis-portfolio-remote-wi051-34824514114`. Public post-release smoke
+  returned 200 for both health endpoints and both OAuth metadata endpoints, and 401 for unauthenticated `/mcp`.
+- Rollback artifact `wi051-rollback-manifest-34824514114` (artifact `10340250702`, 30-day retention) preserves the
+  actual prior 100% serving revisions and prior immutable digest for all six Jobs. No Job was executed and every
+  unrelated deploy stage was skipped; Scheduler, IAM, Secret, database and source activation remained unchanged.
+- Final repository gate passed 717 tests with the same existing Authlib deprecation warning.
 
 ## Closeout
 
-- Result: in progress.
+- Result: closed on corrected production convergence and post-release boundary verification.
 - Remaining risk: documentation truth cutover belongs to WI-032.
 - Follow-up Work Item: WI-032.
