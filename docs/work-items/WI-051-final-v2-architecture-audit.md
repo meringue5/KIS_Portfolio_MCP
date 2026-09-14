@@ -70,6 +70,11 @@ After retirement work, obsolete code/shims and cross-document drift may still co
 - Full gate passed 716 tests with one existing Authlib deprecation warning. The repository/live pre-release audit is
   recorded in `governance/project/evidence/wi051/final-v2-architecture-audit-2026-09-14.json`; WI-051 stays in progress
   until the protected release runs and all eight canonical runtimes are verified on one digest.
+- First production run `34823473028` built once and updated all desired images, but independent inspection found the
+  two services still pinned traffic to older revisions. The initial manifest also recorded latest-ready rather than
+  the actual 100% serving revision. WI-051 therefore remained open. The correction records actual serving traffic,
+  creates predictable run-scoped revisions, explicitly promotes those revisions and automatically restores prior
+  traffic on promotion/smoke failure; focused deployment tests increased to 67 passing.
 
 ## Closeout
 

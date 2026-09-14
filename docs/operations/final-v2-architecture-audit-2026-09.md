@@ -30,3 +30,14 @@ After updates it verifies auth/Remote health, protected-resource metadata and th
 
 WI-051 remains `in_progress` until the owner explicitly authorizes that production workflow and post-release evidence
 shows one digest across all eight canonical runtimes. WI-032 then owns the final documentation truth cutover.
+
+## First-run correction
+
+Owner-approved run `34823473028` succeeded at the workflow level and updated the six Job definitions, but independent
+traffic inspection found that Cloud Run retained revision-pinned service traffic. Auth still served its prior stable
+revision and Remote still served its prior tagged revision even though each service template pointed at the new
+digest. The run was therefore not accepted as completion evidence.
+
+The corrected target records the actual 100% serving revision rather than `latestReadyRevision`, gives each new
+service revision a run-scoped suffix, promotes those exact revisions, and restores already-promoted services if a
+later promotion or smoke fails. The correction stays within the approved image-only release scope.
