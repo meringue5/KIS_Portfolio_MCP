@@ -2,6 +2,7 @@ import argparse
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "deploy_cloud_run.py"
@@ -74,6 +75,18 @@ def test_workflow_dispatches_wi048_s02_to_protected_transition_target():
     assert "github.event.inputs.target == 'wi048-s02'" in workflow
     assert "scripts/deploy_cloud_run.py wi048-s02" in workflow
     assert 'KIS_WI048_S02_JOB_NAME' in workflow
+
+
+def test_workflow_dispatches_wi051_one_image_release_with_rollback_artifact():
+    workflow = WORKFLOW_PATH.read_text()
+
+    assert "- wi051-final-audit" in workflow
+    assert "github.event.inputs.target == 'wi051-final-audit'" in workflow
+    assert "scripts/deploy_cloud_run.py wi051-final-audit" in workflow
+    assert '--rollback-manifest "${RUNNER_TEMP}/wi051-rollback-manifest.json"' in workflow
+    assert "actions/upload-artifact@v4" in workflow
+    assert "environment: production" in workflow
+    assert 'test "${GITHUB_REF}" = "refs/heads/master"' in workflow
 
 
 def test_workflow_dispatches_wi049_s02_exact_cleanup_from_production():
@@ -1519,3 +1532,87 @@ def test_deploy_workflow_uses_secret_manager_not_bundled_env():
     assert "environment: production" in workflow
     assert 'test "${GITHUB_REF}" = "refs/heads/master"' in workflow
     assert "KIS_DEPLOY_SECRET_MODE: secret-manager" in workflow
+
+
+def test_wi051_release_updates_all_canonical_runtimes_with_one_digest(monkeypatch):
+    commands = []
+    image = "asia-northeast3-docker.pkg.dev/project/kis-portfolio/kis-portfolio@sha256:" + "a" * 64
+    args = argparse.Namespace(
+        region="asia-northeast3",
+        target="wi051-final-audit",
+        dry_run=True,
+        rollback_manifest=None,
+    )
+    env = {
+        "KIS_AUTH_BASE_URL": "https://auth.example.com",
+        "KIS_RESOURCE_SERVER_URL": "https://remote.example.com/mcp",
+    }
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi051_final_audit(
+        args, env=env, project="project",
+    )
+
+    assert result == 0
+    assert len(commands) == 8
+    assert {command[command.index("--image") + 1] for command in commands} == {image}
+    assert [command[3] for command in commands[:6]] == ["update"] * 6
+    assert all(command[:3] == ["gcloud", "run", "jobs"] for command in commands[:6])
+    assert all(command[:3] == ["gcloud", "run", "services"] for command in commands[6:])
+    flattened = {part for command in commands for part in command}
+    assert "execute" not in flattened
+    assert "scheduler" not in flattened
+    assert "--env-vars-file" not in flattened
+    assert "--command" not in flattened
+    assert "--service-account" not in flattened
+    assert "--source" not in flattened
+
+
+def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatch, tmp_path):
+    service_names = ("auth", "remote")
+    job_names = ("domestic", "overseas", "warmup", "1000", "1430", "1600")
+
+    def capture(command, *, dry_run):
+        name = command[4]
+        if command[2] == "services":
+            payload = {
+                "metadata": {"name": name, "generation": 12},
+                "spec": {"template": {"spec": {"containers": [{"image": f"old/{name}@sha256:1"}]}}},
+                "status": {"latestReadyRevisionName": f"{name}-00012-abc"},
+            }
+        else:
+            payload = {
+                "metadata": {"name": name, "generation": 7},
+                "spec": {"template": {"spec": {"template": {"spec": {"containers": [{"image": f"old/{name}@sha256:1"}]}}}}},
+            }
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload), stderr="")
+
+    monkeypatch.setattr(deploy_cloud_run, "_run_capture", capture)
+    output = tmp_path / "rollback.json"
+
+    result = deploy_cloud_run._capture_wi051_rollback_manifest(
+        project="project",
+        region="asia-northeast3",
+        services=service_names,
+        jobs=job_names,
+        release_image="new/image@sha256:2",
+        output_path=output,
+    )
+
+    manifest = json.loads(output.read_text())
+    assert result is True
+    assert manifest["work_item_id"] == "WI-051"
+    assert manifest["production_change_authorized"] is False
+    assert len(manifest["components"]) == 8
+    assert {item["name"] for item in manifest["components"]} == set(service_names + job_names)
+    assert all("previous_image" in item for item in manifest["components"])
+    assert all("rollback_command" in item for item in manifest["components"])
+    assert all("env" not in item and "secrets" not in item for item in manifest["components"])
+    services = [item for item in manifest["components"] if item["kind"] == "service"]
+    assert all("previous_ready_revision" in item for item in services)
+    assert all("update-traffic" in item["rollback_command"] for item in services)

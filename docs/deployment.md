@@ -33,7 +33,8 @@ immutable image digest를 두 service와 managed Job에 배포한다. Remote MCP
 통과했다. Secret Manager는 신뢰경계별 최대 6개 bundle과 숫자 version pin을 사용한다.
 
 기본 `auth`/`remote` target은 과거 호환용 개별 배포 경로다. canonical production 전환은 protected `master`의
-`wi048-s02` target으로 수행하며, WI-046 stage/promotion target은 당시 전환 이력과 제한적 복구 도구로만 남긴다.
+`wi048-s02` target으로 수행했다. 최종 런타임 digest 수렴은 `wi051-final-audit` target이 담당하며, WI-046
+stage/promotion target은 당시 전환 이력과 제한적 복구 도구로만 남긴다.
 
 Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
 contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply
@@ -88,6 +89,19 @@ digest로 다음 순서를 fail closed로 실행한다.
 호출하지 않으며, Telegram 전송도 만들지 않는다. 기존 V1 table/view/revision 삭제는 수행하지 않는다.
 전환 Job 실패 시 core/Remote revision 갱신 전에 종료한다. core 또는 Remote 배포 실패 시 데이터는 pre/post
 private backup으로 복구 가능하며, serving V2는 마지막 검증 V2 image/config로 roll forward한다.
+
+### WI-051 final runtime digest convergence
+
+GitHub Actions의 `Deploy Cloud Run` workflow에서 `wi051-final-audit`를 선택한다. 이 target은 protected
+`master`에서 commit을 한 번만 build해 얻은 immutable digest로 canonical auth/Remote service 두 개와 관리
+Job 여섯 개를 수렴한다. 기존 runtime configuration, command/args, service account, Secret reference는 그대로
+두고 image와 provenance label만 update한다.
+
+배포 전에 각 service의 ready revision/image와 각 Job의 generation/image를 secret-free rollback manifest로
+기록한다. workflow는 이를 30일 보존 artifact로 업로드한다. manifest가 생성되지 않으면 어떤 runtime도
+갱신하지 않는다. Job은 정의만 갱신하고 실행하지 않으며 Scheduler, IAM, Secret, DB migration과 source
+activation은 변경하지 않는다. 마지막에는 auth/Remote health, protected-resource metadata와 unauthenticated
+`/mcp` 401 경계를 검사한다. 실패 시 manifest의 이전 service revision 또는 Job image로 복원한다.
 
 ## Remote MCP 인증
 

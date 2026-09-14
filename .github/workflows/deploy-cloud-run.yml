@@ -35,6 +35,7 @@ on:
           - wi046-promote-auth
           - wi046-promote-remote
           - wi048-s02
+          - wi051-final-audit
           - wi049-s02
           - wi049-s03
       candidate_revision:
@@ -150,13 +151,13 @@ jobs:
           target="${{ github.event.inputs.target }}"
           test "${GITHUB_REF}" = "refs/heads/master" || { echo "Production deploys must run from master."; exit 1; }
           test -n "${GOOGLE_CLOUD_PROJECT}" || { echo "GOOGLE_CLOUD_PROJECT var is required."; exit 1; }
-          if [ "${target}" = "all" ] || [ "${target}" = "auth" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-auth-candidate" ] || [ "${target}" = "wi046-promote-auth" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "auth" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-auth-candidate" ] || [ "${target}" = "wi046-promote-auth" ] || [ "${target}" = "wi051-final-audit" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_AUTH_CLAUDE_CLIENT_ID}" || { echo "KIS_AUTH_CLAUDE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GITHUB_CLIENT_ID}" || { echo "KIS_OAUTH_GITHUB_CLIENT_ID var is required."; exit 1; }
           fi
-          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ] || [ "${target}" = "wi048-s02" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ] || [ "${target}" = "wi048-s02" ] || [ "${target}" = "wi051-final-audit" ]; then
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -456,6 +457,24 @@ jobs:
             --service "${KIS_REMOTE_SERVICE_NAME}" \
             --job "${KIS_WI048_S02_JOB_NAME}" \
             --secret-mode secret-manager
+
+      - name: Converge canonical WI-051 runtimes on one immutable image
+        if: github.event.inputs.target == 'wi051-final-audit'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi051-final-audit \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --rollback-manifest "${RUNNER_TEMP}/wi051-rollback-manifest.json" \
+            --secret-mode secret-manager
+
+      - name: Preserve WI-051 rollback manifest
+        if: always() && github.event.inputs.target == 'wi051-final-audit'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wi051-rollback-manifest-${{ github.run_id }}
+          path: ${{ runner.temp }}/wi051-rollback-manifest.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Delete exact owner-approved WI-049 one-time jobs
         if: github.event.inputs.target == 'wi049-s02'
