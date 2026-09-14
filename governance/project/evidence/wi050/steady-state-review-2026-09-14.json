@@ -1,0 +1,67 @@
+{
+  "schema_version": "kis-portfolio.steady-state-review-evidence/v1",
+  "observed_at": "2026-09-13T21:55:30Z",
+  "evidence_scope": "production_read_only",
+  "cadence": "quarterly",
+  "recovery": {
+    "backup_created_at": "2026-09-13T13:13:39.085446Z",
+    "rehearsal_verified_at": "2026-09-13T21:55:30Z",
+    "rpo_minutes": 522,
+    "rto_seconds": 8,
+    "result": "pass",
+    "tables_restored": 78,
+    "through_migration": "0019",
+    "object_count": 79,
+    "byte_size": 14409499,
+    "index_sha256": "bc91f37b77f5bc2ef98d218a416337de71e2112ccecba2bf879b8afd15968da0",
+    "restricted_object_bytes_included": false,
+    "private_object_recovery_verified": true,
+    "private_object_count": 33,
+    "private_object_byte_size": 3954341
+  },
+  "capacity": {
+    "database_size_mib": 129.7,
+    "previous_database_size_mib": 129.7,
+    "artifact_versions": 49,
+    "previous_artifact_versions": 49,
+    "expected_services": 2,
+    "actual_services": 2,
+    "expected_jobs": 6,
+    "actual_jobs": 6,
+    "expected_schedulers": 6,
+    "actual_schedulers": 6,
+    "min_instances_zero": true,
+    "explicit_max_instances": true,
+    "review_reference": "WI-049 post-cleanup exact inventory plus live Cloud Run scaling metadata"
+  },
+  "source_contracts": {
+    "contract_count": 19,
+    "reviewed_contract_count": 19,
+    "approved_contract_count": 13,
+    "proposed_contract_count": 6,
+    "approved_unknown_rights_count": 0,
+    "approved_unknown_cost_count": 0,
+    "prohibited_collection_attempt_count": 0,
+    "terms_change_findings": 0,
+    "review_reference": "governance/catalog/sources.toml and docs/governance/source-inventory-and-collection-basket.md"
+  },
+  "access_control": {
+    "service_account_count": 4,
+    "secret_resource_count": 26,
+    "project_role_kind_count": 1,
+    "resource_policies_reviewed": true,
+    "secret_payloads_read": false,
+    "iam_mutated": false,
+    "secret_mutated": false,
+    "overbroad_finding_count": 0,
+    "review_reference": "2026-09-14 metadata recount plus WI-046 exact resource-policy review"
+  },
+  "exceptions": {
+    "reconstruction_open_count": 57,
+    "owner_review_open_count": 0,
+    "governance_exception_count": 0,
+    "expired_governance_exception_count": 0,
+    "ownerless_governance_exception_count": 0,
+    "review_reference": "MotherDuck current views and repository emergency-exception search"
+  }
+}

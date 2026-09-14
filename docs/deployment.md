@@ -1,5 +1,9 @@
 # Deployment Notes
 
+Steady-state release, capacity and cost review cadence is defined in
+[`docs/operations/steady-state-operations-runbook.md`](operations/steady-state-operations-runbook.md). This document
+continues to own deployment commands and release mechanics.
+
 이 문서는 원격 MCP/Web 배포를 준비하기 위한 운영 원칙을 정리한다.
 
 ## 현재 상태

@@ -1,5 +1,9 @@
 # Security and Secrets
 
+The read-only quarterly IAM and Secret metadata review procedure is defined in
+[`docs/operations/steady-state-operations-runbook.md`](operations/steady-state-operations-runbook.md). It never
+authorizes reading Secret payloads or changing access policy.
+
 이 문서는 KIS Portfolio Service의 인증, 시크릿, 토큰 관리 원칙과 현재 source of truth를 한곳에 모은다.
 배포 절차는 `docs/deployment.md`, DB/백업 절차는 `docs/backup.md`, 장기 아키텍처 결정은 `SPEC.md`와
 `ARCHITECTURE.md`를 참고한다.
