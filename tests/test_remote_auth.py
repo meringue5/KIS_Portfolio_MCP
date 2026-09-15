@@ -13,6 +13,24 @@ from kis_portfolio.adapters.auth.config import StaticOAuthClientConfig
 from kis_portfolio.adapters.auth.provider import KisOAuthProvider
 
 
+def test_remote_transport_security_allows_only_canonical_and_exact_additional_hosts(monkeypatch):
+    monkeypatch.setenv(
+        "KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS",
+        "wi046-v2---remote.example.test, wi058-candidate---remote.example.test",
+    )
+    remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
+
+    security = remote._transport_security("https://remote.example.test/mcp")
+
+    assert security.enable_dns_rebinding_protection is True
+    assert security.allowed_hosts == [
+        "remote.example.test",
+        "wi046-v2---remote.example.test",
+        "wi058-candidate---remote.example.test",
+    ]
+    assert "*.example.test" not in security.allowed_hosts
+
+
 def test_remote_v2_rejects_retired_bearer_mode(monkeypatch):
     monkeypatch.delenv("KIS_REMOTE_AUTH_TOKEN", raising=False)
     monkeypatch.delenv("KIS_REMOTE_AUTH_DISABLED", raising=False)

@@ -658,6 +658,12 @@ parent_id = ""
 sequence = 1
 
 [[subitems]]
+id = "WI-058-S01"
+parent_id = "WI-058"
+title = "Allow the exact deployed compatibility-tag Host for Claude"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-018-S01"
 parent_id = "WI-018"
 title = "Verify unique delivery-plan item IDs and enforce the check"

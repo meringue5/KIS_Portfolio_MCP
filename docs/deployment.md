@@ -128,6 +128,9 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 - auth와 Remote에는 같은 canonical `KIS_RESOURCE_SERVER_URL`을 주입한다. Auth는 누락된 RFC 8707 resource
   indicator를 이 값으로 바인딩하고 다른 explicit resource를 거부하며, Remote는 동일 resource가 없는 token도
   거부한다.
+- Cloud Run revision tag URL처럼 canonical URL과 다른 운영 호스트를 connector에 보존해야 하면
+  `KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS`에 정확한 호스트 이름만 쉼표로 구분해 등록한다. 이 값은
+  DNS-rebinding 보호의 exact allowlist에 추가되며 URL scheme/path나 와일드카드는 넣지 않는다.
 - required scope: `mcp:read`
 - resource server는 MCP OAuth discovery를 위해 다음 공개 endpoint를 제공한다.
   - `/.well-known/oauth-protected-resource`
@@ -155,6 +158,7 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 - `KIS_DB_MODE=motherduck`, `MOTHERDUCK_DATABASE=...`, `MOTHERDUCK_TOKEN=...`
 - `KIS_AUTH_ISSUER_URL=https://...`
 - `KIS_RESOURCE_SERVER_URL=https://...`
+- `KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS=exact-tag---service-....a.run.app` (선택; 정확한 추가 호스트만)
 - `KIS_AUTH_REQUIRED_SCOPES=mcp:read`
 - `KIS_AUTH_ALLOWED_SCOPES=mcp:read offline_access` (선택, 기본값 동일)
 - `KIS_AUTH_TOKEN_PEPPER=...`

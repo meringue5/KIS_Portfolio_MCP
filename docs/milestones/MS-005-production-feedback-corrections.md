@@ -13,7 +13,7 @@ read-model 결함을 append-only corrective Work Item으로 교정한다.
 
 | Sequence | Work Item | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- |
-| 1 | WI-058 Remote MCP identifier and coverage correction | WI-051 | stabilizing; production deployed, owner Claude acceptance pending |
+| 1 | WI-058 Remote MCP identifier and coverage correction | WI-051 | stabilizing; WI-058-S01 tagged Host correction in progress |
 
 ## Gates
 
@@ -27,6 +27,7 @@ read-model 결함을 append-only corrective Work Item으로 교정한다.
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-15.4 | 2026-09-15 | Opened WI-058-S01 after structured logs proved exact compatibility-tag Host rejection with HTTP 421 | Same WI outcome; append-only corrective sub-item |
 | 2026-09-15.3 | 2026-09-15 | Released Remote revision 00046 and V2 core Jobs; entered owner-read stabilization | No identity change; release evidence appended |
 | 2026-09-15.2 | 2026-09-15 | Owner approved protected Remote MCP and owned-core Job deployment | No identity change; production gate already satisfied by closed MS-004 |
 | 2026-09-15.1 | 2026-09-15 | Opened corrective milestone and WI-058 from real Claude usage | New append-only milestone and Work Item; MS-003/MS-004 history remains closed |
