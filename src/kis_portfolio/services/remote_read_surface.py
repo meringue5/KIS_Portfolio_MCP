@@ -83,13 +83,21 @@ class PerformanceHistoryRequest(_DateRangeRequest):
 
 
 class MarketSnapshotRequest(_Request):
-    instrument_id: str = Field(min_length=1, max_length=64)
+    instrument_id: str = Field(
+        min_length=1,
+        max_length=64,
+        description="Public symbol such as 000660/AAPL, market-qualified symbol, or canonical v1 instrument id.",
+    )
     market: Literal["KR", "US", "FX"]
     freshness_policy: Literal["stored", "cached", "bounded-live"] = "cached"
 
 
 class MarketHistoryRequest(_DateRangeRequest):
-    instrument_id: str = Field(min_length=1, max_length=64)
+    instrument_id: str = Field(
+        min_length=1,
+        max_length=64,
+        description="Public symbol such as 000660/AAPL, market-qualified symbol, or canonical v1 instrument id.",
+    )
     market: Literal["KR", "US", "FX"]
     adjusted: bool = True
     limit: int = Field(default=250, ge=1, le=1_000)
@@ -155,7 +163,12 @@ class DataQualityRequest(_Request):
 
 class PipelineRunRequest(_Request):
     run_id: str | None = Field(default=None, min_length=1, max_length=160)
-    pipeline_id: str | None = Field(default=None, min_length=1, max_length=160)
+    pipeline_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=160,
+        description="Public pipeline name portfolio-refresh or a canonical pipeline.* id.",
+    )
     as_of: datetime | None = None
     lookback_days: int = Field(default=7, ge=1, le=31)
     cursor: str | None = Field(default=None, max_length=2_048)

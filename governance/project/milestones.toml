@@ -135,6 +135,17 @@ overlap_work_item_ids = []
 overlap_mode = "none"
 work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056", "WI-057"]
 
+[[milestones]]
+id = "MS-005"
+title = "Production feedback and Remote MCP usability corrections"
+status = "in_progress"
+depends_on = ["MS-004"]
+implementation_gate = [{ milestone_id = "MS-004", minimum_status = "closed" }]
+production_gate = [{ milestone_id = "MS-004", minimum_status = "closed" }]
+overlap_work_item_ids = []
+overlap_mode = "none"
+work_item_ids = ["WI-058"]
+
 [[work_items]]
 id = "WI-009"
 identity = "canonical-portfolio-ledger"
@@ -630,6 +641,19 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 7
+
+[[work_items]]
+id = "WI-058"
+identity = "remote-mcp-identifier-and-coverage-correction"
+title = "Correct Remote MCP identifiers and empty-coverage semantics after real Claude use"
+milestone_id = "MS-005"
+delivery_refs = []
+depends_on = ["WI-051"]
+discovered_from = ["WI-042", "WI-046"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 1
 
 [[subitems]]
 id = "WI-018-S01"
