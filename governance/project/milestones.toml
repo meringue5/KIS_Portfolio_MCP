@@ -138,7 +138,7 @@ work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056", "WI
 [[milestones]]
 id = "MS-005"
 title = "Production feedback and Remote MCP usability corrections"
-status = "stabilizing"
+status = "closed"
 depends_on = ["MS-004"]
 implementation_gate = [{ milestone_id = "MS-004", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-004", minimum_status = "closed" }]
@@ -667,7 +667,7 @@ status = "closed"
 id = "WI-058-S02"
 parent_id = "WI-058"
 title = "Resolve the public price-bar dataset name in quality reads"
-status = "stabilizing"
+status = "closed"
 
 [[subitems]]
 id = "WI-018-S01"

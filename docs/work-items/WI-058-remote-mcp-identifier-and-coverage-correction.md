@@ -1,7 +1,7 @@
 ---
 id: WI-058
 title: Correct Remote MCP identifiers and empty-coverage semantics after real Claude use
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-028
@@ -102,7 +102,7 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 
 - `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`closed` after
   owner Claude confirmed all four tools connected).
-- `WI-058-S02` — resolve the public price-bar dataset name in quality reads (`stabilizing`).
+- `WI-058-S02` — resolve the public price-bar dataset name in quality reads (`closed` after owner Claude confirmation).
 
 ## Stabilization plan
 
@@ -156,12 +156,19 @@ then showed that this exact tag host reached revision `00046` but was rejected b
   `00048` was then promoted to 100%; canonical and tag checks both returned 200/401.
 - S02 verification: 49 focused tests passed; quick gate passed; full gate and PR CI each passed with 729 tests and one
   pre-existing Authlib deprecation warning.
+- Owner Claude acceptance for S02: the exact public `price-bar-daily`, 7-day request returned freshness `available`,
+  overall quality `pass`, two rows, empty `missing_coverage`, and matching 34/34 passing price coverage for the 14:30
+  and 16:00 runs.
+- The absent 10:00 price-quality row is a pre-release historical run, not a slot filter or failed trigger. Cloud Run
+  execution metadata shows `kis-portfolio-owned-core-v2-1000-p87wt` started at 01:00:05Z with git SHA `e458ba5` and
+  image digest `sha256:31f8fed5...9c10b0`; the quality-evidence Job release ran at 01:12:06Z and deployed the new jobs
+  at 01:14:02Z--01:15:07Z. The 14:30 and 16:00 executions used git SHA `8e09c45` and image digest
+  `sha256:ea57f6cf...5ab06`, which contains the unconditional `held-instrument-price-coverage` evidence rule.
 
 ## Closeout
 
-- Result: the data/read, tagged connector Host and public dataset-name corrections are deployed; `WI-058-S02` is
-  stabilizing for one owner Claude quality-read confirmation.
-- Remaining risk: authenticated tool payloads still require an owner Claude session; scale-to-zero may make the first
-  reconnect slower even after the deterministic 421 is corrected; historical runs will not gain
-  retroactive price-quality evidence, while the next successful owned-core run will record it.
-- Follow-up Work Item: `WI-058-S01` within the same corrective outcome.
+- Result: the data/read, tagged connector Host and public dataset-name corrections are deployed and owner-confirmed;
+  WI-058-S01, WI-058-S02 and the parent outcome are closed.
+- Remaining risk: scale-to-zero may make the first reconnect slower. Historical pre-release runs intentionally do not
+  gain retroactive price-quality evidence; the next successful 10:00 run will create the first post-release 10:00 row.
+- Follow-up Work Item: none. A future post-release 10:00 failure would be new operational evidence and separate intake.
