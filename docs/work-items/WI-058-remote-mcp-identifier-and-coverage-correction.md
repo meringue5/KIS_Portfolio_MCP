@@ -33,12 +33,12 @@ canonical dataset `dataset.price-bar-daily`, and `get-pipeline-run` with public 
 All three returned `no_governed_rows` even though read-only production inspection found current price bars and
 successful owned-core runs. `get-exposure-analysis` also returned empty while current Gold position rows existed.
 
-The causes are distinct: public symbol and command aliases are not resolved to internal canonical IDs, the owned-core
+The initial causes are distinct: public symbol and command aliases are not resolved to internal canonical IDs, the owned-core
 quality stage records account coverage but not the price-bar coverage it publishes, the generic empty envelope makes
 missing evidence look like missing data, and the exposure SQL filters the nonexistent aggregate level `instrument`
 instead of the canonical `position` level. The live Claude connector additionally used the preserved `wi046-v2`
-tagged candidate URL rather than the canonical stable service URL; connector correction remains an operational step,
-not a code excuse.
+tagged candidate URL rather than the canonical stable service URL. Post-release structured request and application logs
+then showed that this exact tag host reached revision `00046` but was rejected by transport security with HTTP 421.
 
 ## Classification and contract
 
@@ -59,7 +59,10 @@ not a code excuse.
 - Include current price-bar quality evidence in each owned-core run without adding source calls.
 - Include direct instrument exposure from canonical `position` Gold rows and explicit macro/ETF missing coverage.
 - Include realistic non-empty regression fixtures using the exact Claude inputs.
-- Exclude ETF constituent look-through, macro source activation, live quote read-through, schema changes and deployment.
+- Include exact compatibility-tag Host propagation through the protected deployment workflow while retaining
+  DNS-rebinding protection.
+- Exclude wildcard hosts, disabled DNS-rebinding protection, ETF constituent look-through, macro source activation,
+  live quote read-through, schema changes and standing-instance cost changes.
 
 ## Acceptance criteria
 
@@ -71,6 +74,8 @@ not a code excuse.
 - [x] direct exposure returns current instrument rows; macro and unsupported ETF coverage remain explicit.
 - [x] focused MCP/pipeline tests, quick gate and full gate pass.
 - [x] production deployment and live Claude verification remain separately approved release/stabilization steps.
+- [ ] the exact `wi046-v2` compatibility Host passes transport validation and unauthenticated `/mcp` reaches the OAuth
+      boundary with 401 rather than transport rejection with 421.
 
 ## Change impact
 
@@ -91,7 +96,7 @@ not a code excuse.
 
 ## Sub-items
 
-- `none`.
+- `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`in_progress`).
 
 ## Stabilization plan
 
@@ -106,7 +111,9 @@ not a code excuse.
 - Read-only production inspection on 2026-09-14/15: 16,041 V2 price rows across 24 instruments; three successful
   2026-09-14 owned-core slots; current SK hynix and Samsung Electronics bars; 1,961 Gold daily-state rows, all using
   `position` or `cash`; no `instrument` aggregate rows.
-- Cloud Logging: reported Claude requests reached the preserved `wi046-v2` tagged URL and returned HTTP 200.
+- Cloud Logging after the first corrective release: Claude requests reached the preserved `wi046-v2` tagged URL, but
+  the application logged `Invalid Host header` and returned HTTP 421. The first request also paid about 15.5 seconds
+  of cold-start latency before the deterministic Host rejection; warm requests continued to return 421 quickly.
 - Patched-adapter read-only query against production MotherDuck: `000660` resolved to `v1|KRX|000660` and returned
   the 2026-09-14 raw close 1,699,000; `portfolio-refresh` returned three succeeded runs; direct exposure returned 26
   position rows; missing price quality evidence, macro data and unsupported ETF look-through were distinguished.
@@ -121,7 +128,9 @@ not a code excuse.
 
 ## Closeout
 
-- Result: production release deployed and transport/auth smoke verified; stabilizing for owner Claude read acceptance.
-- Remaining risk: authenticated tool payloads still require an owner Claude session; historical runs will not gain
+- Result: the data/read correction is deployed, but the tagged connector Host regression is now tracked by
+  `WI-058-S01`; stabilizing for corrected transport smoke and owner Claude read acceptance.
+- Remaining risk: authenticated tool payloads still require an owner Claude session; scale-to-zero may make the first
+  reconnect slower even after the deterministic 421 is corrected; historical runs will not gain
   retroactive price-quality evidence, while the next successful owned-core run will record it.
-- Follow-up Work Item: none yet.
+- Follow-up Work Item: `WI-058-S01` within the same corrective outcome.

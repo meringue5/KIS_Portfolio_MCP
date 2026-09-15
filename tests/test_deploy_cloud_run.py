@@ -19,6 +19,15 @@ def test_workflow_dispatches_wi055_s01_to_exact_deploy_target():
     assert "scripts/deploy_cloud_run.py wi055-s01" in workflow
 
 
+def test_workflow_passes_exact_additional_remote_hosts_to_deploy_script():
+    workflow = WORKFLOW_PATH.read_text()
+
+    assert (
+        "KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS: "
+        "${{ vars.KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS }}"
+    ) in workflow
+
+
 def test_workflow_dispatches_wi055_s03_to_exact_deploy_target():
     workflow = WORKFLOW_PATH.read_text()
     assert "github.event.inputs.target == 'wi055-s03'" in workflow
