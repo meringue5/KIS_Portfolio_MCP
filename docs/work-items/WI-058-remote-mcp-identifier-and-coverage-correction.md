@@ -20,7 +20,7 @@ data_impact: add per-run price-bar quality evidence without schema, grain, reten
 security_impact: no new fields containing account ids, credentials, raw payloads or provider messages
 cost_impact: no new source calls or standing resources
 stabilization_window: one owner-confirmed Claude session against the canonical or compatibility-tag URL after revision 00046
-stabilization_exit_refs: GitHub runs 34915731283, 34916315077 and 34933310119, revision kis-portfolio-remote-00047-dqz, owner Claude verification
+stabilization_exit_refs: GitHub runs 34915731283, 34916315077, 34933310119 and 34959901112, revision kis-portfolio-remote-00048-77w, owner Claude quality-read verification
 rollback_plan: revert the corrective release to the current immutable V2 image if live read compatibility regresses
 ---
 
@@ -102,7 +102,7 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 
 - `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`closed` after
   owner Claude confirmed all four tools connected).
-- `WI-058-S02` — resolve the public price-bar dataset name in quality reads (`in_progress`).
+- `WI-058-S02` — resolve the public price-bar dataset name in quality reads (`stabilizing`).
 
 ## Stabilization plan
 
@@ -149,11 +149,18 @@ then showed that this exact tag host reached revision `00046` but was rejected b
   public dataset alias, not the pipeline ledger, caused the false absence.
 - Patched-adapter production read: public `price-bar-daily` resolved to the canonical ID and returned both passing
   quality results with empty `missing_coverage`; unknown public names fail as `unknown_dataset_reference`.
+- S02 release: PR #115 merged as `13c0ce53b22f6d272c4fcd407c7ab6338e152a78`; protected Remote workflow
+  `34959901112` created `kis-portfolio-remote-00048-77w` with image digest
+  `sha256:1b1e7d4b4e4461f5e220e63adf6ba7ba1c87405418577559bd965757be943468`. With revision `00047` retained at 100%,
+  the exact Claude tag was mapped to `00048` at 0% and returned `/health` 200 and unauthenticated `/mcp` 401. Revision
+  `00048` was then promoted to 100%; canonical and tag checks both returned 200/401.
+- S02 verification: 49 focused tests passed; quick gate passed; full gate and PR CI each passed with 729 tests and one
+  pre-existing Authlib deprecation warning.
 
 ## Closeout
 
-- Result: the data/read and tagged connector Host corrections are deployed and owner-confirmed; `WI-058-S02` tracks
-  the remaining public dataset-name boundary correction.
+- Result: the data/read, tagged connector Host and public dataset-name corrections are deployed; `WI-058-S02` is
+  stabilizing for one owner Claude quality-read confirmation.
 - Remaining risk: authenticated tool payloads still require an owner Claude session; scale-to-zero may make the first
   reconnect slower even after the deterministic 421 is corrected; historical runs will not gain
   retroactive price-quality evidence, while the next successful owned-core run will record it.
