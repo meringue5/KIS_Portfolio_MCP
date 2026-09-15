@@ -302,6 +302,55 @@ async def test_data_quality_distinguishes_missing_evidence_from_missing_dataset_
 
 
 @pytest.mark.anyio
+async def test_data_quality_accepts_public_price_bar_name_and_returns_canonical_evidence():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        """
+        INSERT INTO control.pipeline_runs(
+            run_id, pipeline_id, pipeline_version, logical_date, slot, partition_key,
+            idempotency_key, status, source_calls, started_at, finished_at
+        ) VALUES ('run-1', 'pipeline.owned-portfolio-core-v2', '1.0.0',
+                  '2026-09-11', 'kr-1600', 'all-accounts', 'logical-key',
+                  'succeeded', 39, ?, ?)
+        """,
+        [NOW, NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO control.quality_results VALUES (
+            'quality-1','run-1','dataset.price-bar-daily',
+            'held-instrument-price-coverage','pass','24','24','{}',?
+        )
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    result = await application.execute(
+        "get-data-quality",
+        DataQualityRequest(dataset_id="price-bar-daily", as_of=NOW, lookback_days=1),
+        ACTOR,
+    )
+
+    assert result["quality"] == {"status": "pass", "row_count": 1}
+    assert result["data"]["results"][0]["dataset_id"] == "dataset.price-bar-daily"
+    assert result["missing_coverage"] == []
+
+
+@pytest.mark.anyio
+async def test_unknown_public_dataset_name_fails_explicitly(application):
+    with pytest.raises(RemoteReadError, match="unknown_dataset_reference"):
+        await application.execute(
+            "get-data-quality",
+            DataQualityRequest(dataset_id="not-a-dataset", as_of=NOW),
+            ACTOR,
+        )
+
+
+@pytest.mark.anyio
 async def test_performance_history_respects_account_alias():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()

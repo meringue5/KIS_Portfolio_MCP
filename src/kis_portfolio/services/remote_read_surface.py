@@ -153,7 +153,11 @@ class DataCatalogRequest(_Request):
 
 
 class DataQualityRequest(_Request):
-    dataset_id: str = Field(min_length=1, max_length=160)
+    dataset_id: str = Field(
+        min_length=1,
+        max_length=160,
+        description="Canonical dataset ID or supported public name such as price-bar-daily.",
+    )
     run_id: str | None = Field(default=None, min_length=1, max_length=160)
     as_of: datetime | None = None
     lookback_days: int = Field(default=7, ge=1, le=31)

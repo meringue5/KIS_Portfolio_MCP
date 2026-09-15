@@ -61,6 +61,8 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 - Include realistic non-empty regression fixtures using the exact Claude inputs.
 - Include exact compatibility-tag Host propagation through the protected deployment workflow while retaining
   DNS-rebinding protection.
+- Include the observed public `price-bar-daily` quality-read alias while retaining the canonical dataset ID in stored
+  evidence and responses.
 - Exclude wildcard hosts, disabled DNS-rebinding protection, ETF constituent look-through, macro source activation,
   live quote read-through, schema changes and standing-instance cost changes.
 
@@ -76,6 +78,8 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 - [x] production deployment and live Claude verification remain separately approved release/stabilization steps.
 - [x] the exact `wi046-v2` compatibility Host passes transport validation and unauthenticated `/mcp` reaches the OAuth
       boundary with 401 rather than transport rejection with 421.
+- [x] `price-bar-daily` resolves to canonical `dataset.price-bar-daily`, returns current evidence, and an unknown public
+      dataset name fails explicitly.
 
 ## Change impact
 
@@ -96,7 +100,9 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 
 ## Sub-items
 
-- `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`stabilizing`).
+- `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`closed` after
+  owner Claude confirmed all four tools connected).
+- `WI-058-S02` — resolve the public price-bar dataset name in quality reads (`in_progress`).
 
 ## Stabilization plan
 
@@ -133,11 +139,21 @@ then showed that this exact tag host reached revision `00046` but was rejected b
   checks both returned 200/401, and post-release logs contained no HTTP 421 or `Invalid Host header` match.
 - Verification for S01: 81 focused tests passed; quick gate passed; full gate passed with 727 tests and one pre-existing
   Authlib deprecation warning; PR CI run `34933143367` passed.
+- Owner Claude verification after revision `00047`: all four requested tools connected; market snapshot, pipeline run
+  and direct exposure returned rows. `portfolio-refresh` correctly resolved to canonical
+  `pipeline.owned-portfolio-core-v2`. The quality response echoed `price-bar-daily` without its canonical `dataset.`
+  prefix and returned zero evidence.
+- Read-only production diagnosis for S02: the 2026-09-15 14:30 and 16:00 owned-core runs each contain a passing
+  `dataset.price-bar-daily` / `held-instrument-price-coverage` result. The production adapter returned both rows for
+  canonical `dataset.price-bar-daily` and reproduced Claude's zero-row result for `price-bar-daily`; the missing
+  public dataset alias, not the pipeline ledger, caused the false absence.
+- Patched-adapter production read: public `price-bar-daily` resolved to the canonical ID and returned both passing
+  quality results with empty `missing_coverage`; unknown public names fail as `unknown_dataset_reference`.
 
 ## Closeout
 
-- Result: the data/read and tagged connector Host corrections are deployed; `WI-058-S01` transport smoke is verified
-  and remains stabilizing for owner Claude read acceptance.
+- Result: the data/read and tagged connector Host corrections are deployed and owner-confirmed; `WI-058-S02` tracks
+  the remaining public dataset-name boundary correction.
 - Remaining risk: authenticated tool payloads still require an owner Claude session; scale-to-zero may make the first
   reconnect slower even after the deterministic 421 is corrected; historical runs will not gain
   retroactive price-quality evidence, while the next successful owned-core run will record it.

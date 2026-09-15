@@ -36,6 +36,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 PUBLIC_PIPELINE_ALIASES = {
     "portfolio-refresh": "pipeline.owned-portfolio-core-v2",
 }
+PUBLIC_DATASET_ALIASES = {
+    "price-bar-daily": "dataset.price-bar-daily",
+}
 KR_MARKETS = frozenset({"KR", "KRX"})
 US_MARKETS = frozenset({"US", "NAS", "NYS", "AMS", "NASDAQ", "NYSE", "AMEX"})
 
@@ -160,6 +163,15 @@ class WarehouseReadQueryPort:
         if value.startswith("pipeline."):
             return value
         raise RemoteReadError("unknown_pipeline_reference")
+
+    @staticmethod
+    def _resolve_dataset_id(dataset_ref: str) -> str:
+        value = dataset_ref.strip()
+        if value in PUBLIC_DATASET_ALIASES:
+            return PUBLIC_DATASET_ALIASES[value]
+        if value.startswith("dataset."):
+            return value
+        raise RemoteReadError("unknown_dataset_reference")
 
     def _get_portfolio_overview(self, request: PortfolioOverviewRequest) -> dict[str, Any]:
         rows = self._rows(
@@ -554,6 +566,7 @@ class WarehouseReadQueryPort:
         )
 
     def _get_data_quality(self, request: DataQualityRequest) -> dict[str, Any]:
+        dataset_id = self._resolve_dataset_id(request.dataset_id)
         rows = self._rows(
             """
             SELECT q.run_id, q.dataset_id, q.rule_id, q.status, q.observed_value,
@@ -564,11 +577,11 @@ class WarehouseReadQueryPort:
               AND q.evaluated_at>=coalesce(?, current_timestamp)-(? * INTERVAL '1 day')
             ORDER BY q.evaluated_at DESC, q.rule_id LIMIT ?
             """,
-            [request.dataset_id, request.run_id, request.run_id, request.as_of, request.as_of,
+            [dataset_id, request.run_id, request.run_id, request.as_of, request.as_of,
              request.lookback_days, request.limit],
         )
         missing = [] if rows else [{
-            "dataset_id": request.dataset_id,
+            "dataset_id": dataset_id,
             "reason": "no_quality_evidence_in_window",
         }]
         return self._envelope(

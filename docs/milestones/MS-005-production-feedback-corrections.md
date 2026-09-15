@@ -13,7 +13,7 @@ read-model 결함을 append-only corrective Work Item으로 교정한다.
 
 | Sequence | Work Item | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- |
-| 1 | WI-058 Remote MCP identifier and coverage correction | WI-051 | stabilizing; WI-058-S01 deployed and transport-verified, owner Claude acceptance pending |
+| 1 | WI-058 Remote MCP identifier and coverage correction | WI-051 | stabilizing; S01 owner-confirmed, S02 public dataset alias correction in progress |
 
 ## Gates
 
@@ -27,6 +27,7 @@ read-model 결함을 append-only corrective Work Item으로 교정한다.
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-15.6 | 2026-09-15 | Closed S01 from owner Claude connection evidence and opened S02 after production ledger proved a missing public dataset alias | Same WI outcome; append-only corrective sub-item |
 | 2026-09-15.5 | 2026-09-15 | Deployed revision 00047, verified exact tagged Host at 0% and 100%, and retained owner-read stabilization | No identity change; release evidence appended |
 | 2026-09-15.4 | 2026-09-15 | Opened WI-058-S01 after structured logs proved exact compatibility-tag Host rejection with HTTP 421 | Same WI outcome; append-only corrective sub-item |
 | 2026-09-15.3 | 2026-09-15 | Released Remote revision 00046 and V2 core Jobs; entered owner-read stabilization | No identity change; release evidence appended |
