@@ -1,6 +1,6 @@
 # MS-005 — Production feedback and Remote MCP usability corrections
 
-> 상태: stabilizing
+> 상태: closed
 > 선행 milestone: MS-004
 > machine registry: `governance/project/milestones.toml`
 
@@ -13,7 +13,7 @@ read-model 결함을 append-only corrective Work Item으로 교정한다.
 
 | Sequence | Work Item | Depends on | 상태 / 결과 |
 | ---: | --- | --- | --- |
-| 1 | WI-058 Remote MCP identifier and coverage correction | WI-051 | stabilizing; S01 closed, S02 deployed and awaiting owner Claude quality-read confirmation |
+| 1 | WI-058 Remote MCP identifier and coverage correction | WI-051 | closed; S01/S02 owner-confirmed in Claude production use |
 
 ## Gates
 
@@ -27,6 +27,7 @@ read-model 결함을 append-only corrective Work Item으로 교정한다.
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-15.8 | 2026-09-15 | Closed WI-058-S02, WI-058 and MS-005 after owner Claude returned two passing canonical price-quality rows through the public alias; confirmed the absent 10:00 row came from the pre-release execution image | No identity change; historical pre-release run remains immutable and tomorrow's 10:00 slot supplies the first post-release sample |
 | 2026-09-15.7 | 2026-09-15 | Deployed revision 00048 and entered S02 owner-read stabilization after exact tag/canonical smoke | No identity change; release evidence appended |
 | 2026-09-15.6 | 2026-09-15 | Closed S01 from owner Claude connection evidence and opened S02 after production ledger proved a missing public dataset alias | Same WI outcome; append-only corrective sub-item |
 | 2026-09-15.5 | 2026-09-15 | Deployed revision 00047, verified exact tagged Host at 0% and 100%, and retained owner-read stabilization | No identity change; release evidence appended |

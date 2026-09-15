@@ -26,7 +26,7 @@ flowchart LR
     MS2["MS-002<br/>Analytics + risk signals + Telegram<br/>closed"]
     MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>closed"]
     MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>closed"]
-    MS5["MS-005<br/>Production feedback corrections<br/>stabilizing"]
+    MS5["MS-005<br/>Production feedback corrections<br/>closed"]
 
     MS1 --> MS2 --> MS3 --> MS4 --> MS5
     MSGOV -. governs .-> MS2
