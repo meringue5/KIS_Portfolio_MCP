@@ -33,6 +33,11 @@ from kis_portfolio.services.remote_read_surface import (
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PUBLIC_PIPELINE_ALIASES = {
+    "portfolio-refresh": "pipeline.owned-portfolio-core-v2",
+}
+KR_MARKETS = frozenset({"KR", "KRX"})
+US_MARKETS = frozenset({"US", "NAS", "NYS", "AMS", "NASDAQ", "NYSE", "AMEX"})
 
 
 class WarehouseReadQueryPort:
@@ -73,8 +78,9 @@ class WarehouseReadQueryPort:
         dataset_id: str,
         as_of: datetime | None = None,
         lineage_ref: str | None = None,
+        missing_coverage: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        missing = self._coverage(items, dataset_id)
+        missing = self._coverage(items, dataset_id) if missing_coverage is None else missing_coverage
         observed_at = as_of or datetime.now(UTC)
         return {
             "schema_version": "2.0.0",
@@ -87,6 +93,73 @@ class WarehouseReadQueryPort:
             "request_id": "pending",
             "data": data,
         }
+
+    def _resolve_market_instrument_id(self, instrument_ref: str, market: str) -> str:
+        value = instrument_ref.strip().upper()
+        if market == "FX":
+            return value.replace("/", "").replace("-", "")
+
+        if value.startswith("V1|"):
+            parts = value.split("|")
+            if len(parts) != 3:
+                raise RemoteReadError("invalid_instrument_reference")
+            stored_market = parts[1]
+            if (market == "KR" and stored_market != "KRX") or (
+                market == "US" and stored_market not in {"NAS", "NYS", "AMS"}
+            ):
+                raise RemoteReadError("instrument_market_mismatch")
+            return f"v1|{parts[1]}|{parts[2]}"
+
+        prefix = None
+        symbol = value
+        if ":" in value:
+            prefix, symbol = value.split(":", 1)
+        if not symbol or "|" in symbol:
+            raise RemoteReadError("invalid_instrument_reference")
+
+        if market == "KR":
+            if prefix is not None and prefix not in KR_MARKETS:
+                raise RemoteReadError("instrument_market_mismatch")
+            return f"v1|KRX|{symbol}"
+
+        if prefix is not None and prefix not in US_MARKETS:
+            raise RemoteReadError("instrument_market_mismatch")
+        explicit_market = {
+            "NASDAQ": "NAS", "NYSE": "NYS", "AMEX": "AMS",
+            "NAS": "NAS", "NYS": "NYS", "AMS": "AMS",
+        }.get(prefix or "")
+        if explicit_market:
+            return f"v1|{explicit_market}|{symbol}"
+
+        candidates = self._rows(
+            """
+            SELECT DISTINCT instrument_id FROM (
+                SELECT instrument_id, market, symbol FROM silver.instruments_current
+                UNION ALL
+                SELECT instrument_id, split_part(instrument_id, '|', 2) AS market,
+                       split_part(instrument_id, '|', 3) AS symbol
+                FROM silver.price_bars_daily
+            ) candidates
+            WHERE upper(symbol)=? AND market IN ('NAS','NYS','AMS')
+            ORDER BY instrument_id
+            """,
+            [symbol],
+        )
+        ids = [str(row["instrument_id"]) for row in candidates]
+        if not ids:
+            raise RemoteReadError("unknown_instrument_reference")
+        if len(ids) > 1:
+            raise RemoteReadError("ambiguous_instrument_reference")
+        return ids[0]
+
+    @staticmethod
+    def _resolve_pipeline_id(pipeline_ref: str) -> str:
+        value = pipeline_ref.strip()
+        if value in PUBLIC_PIPELINE_ALIASES:
+            return PUBLIC_PIPELINE_ALIASES[value]
+        if value.startswith("pipeline."):
+            return value
+        raise RemoteReadError("unknown_pipeline_reference")
 
     def _get_portfolio_overview(self, request: PortfolioOverviewRequest) -> dict[str, Any]:
         rows = self._rows(
@@ -196,40 +269,49 @@ class WarehouseReadQueryPort:
 
     def _get_market_snapshot(self, request: MarketSnapshotRequest) -> dict[str, Any]:
         if request.market == "FX":
+            instrument_id = self._resolve_market_instrument_id(request.instrument_id, request.market)
             rows = self._rows(
                 """SELECT base_currency, quote_currency, rate_date, rate_type, rate, quality_status
                    FROM silver.fx_rates_daily
                    WHERE base_currency=? OR (base_currency || quote_currency)=?
                    ORDER BY rate_date DESC LIMIT 1""",
-                [request.instrument_id, request.instrument_id],
+                [instrument_id, instrument_id],
             )
             as_of = _latest_datetime(rows, "rate_date")
+            dataset_id = "dataset.fx-rate-daily"
+            lineage_ref = "silver.fx_rates_daily"
         else:
+            instrument_id = self._resolve_market_instrument_id(request.instrument_id, request.market)
             rows = self._rows(
                 """SELECT instrument_id, session_date, price_basis, open, high, low, close,
                           volume, effective_at, knowledge_at, quality_status
-                   FROM silver.price_bars_daily WHERE instrument_id=?
-                   ORDER BY session_date DESC, knowledge_at DESC LIMIT 2""",
-                [request.instrument_id],
+                   FROM silver.price_bars_daily WHERE instrument_id=? AND price_basis='raw'
+                   ORDER BY session_date DESC, knowledge_at DESC LIMIT 1""",
+                [instrument_id],
             )
             as_of = _latest_datetime(rows, "knowledge_at")
+            dataset_id = "dataset.price-bar-daily"
+            lineage_ref = "silver.price_bars_daily"
         return self._envelope(
             data={"snapshot": rows[0] if rows else None}, items=rows,
-            dataset_id="dataset.market-snapshot", as_of=as_of,
-            lineage_ref="silver.price_bars_daily|silver.fx_rates_daily",
+            dataset_id=dataset_id, as_of=as_of, lineage_ref=lineage_ref,
         )
 
     def _get_market_history(self, request: MarketHistoryRequest) -> dict[str, Any]:
         if request.market == "FX":
+            instrument_id = self._resolve_market_instrument_id(request.instrument_id, request.market)
             rows = self._rows(
                 """SELECT base_currency, quote_currency, rate_date, rate_type, rate, quality_status
                    FROM silver.fx_rates_daily
                    WHERE (base_currency=? OR (base_currency || quote_currency)=?)
                      AND rate_date BETWEEN ? AND ? ORDER BY rate_date LIMIT ?""",
-                [request.instrument_id, request.instrument_id, request.start_date, request.end_date, request.limit],
+                [instrument_id, instrument_id, request.start_date, request.end_date, request.limit],
             )
             as_of = _latest_datetime(rows, "rate_date")
+            dataset_id = "dataset.fx-rate-daily"
+            lineage_ref = "silver.fx_rates_daily"
         else:
+            instrument_id = self._resolve_market_instrument_id(request.instrument_id, request.market)
             basis = "adjusted" if request.adjusted else "raw"
             rows = self._rows(
                 """SELECT instrument_id, session_date, price_basis, open, high, low, close,
@@ -237,12 +319,14 @@ class WarehouseReadQueryPort:
                    FROM silver.price_bars_daily
                    WHERE instrument_id=? AND price_basis=? AND session_date BETWEEN ? AND ?
                    ORDER BY session_date LIMIT ?""",
-                [request.instrument_id, basis, request.start_date, request.end_date, request.limit],
+                [instrument_id, basis, request.start_date, request.end_date, request.limit],
             )
             as_of = _latest_datetime(rows, "knowledge_at")
+            dataset_id = "dataset.price-bar-daily"
+            lineage_ref = "silver.price_bars_daily"
         return self._envelope(
-            data={"history": rows}, items=rows, dataset_id="dataset.price-bar-daily",
-            as_of=as_of, lineage_ref="silver.price_bars_daily|silver.fx_rates_daily",
+            data={"history": rows}, items=rows, dataset_id=dataset_id,
+            as_of=as_of, lineage_ref=lineage_ref,
         )
 
     def _get_trade_ledger(self, request: TradeLedgerRequest) -> dict[str, Any]:
@@ -366,7 +450,8 @@ class WarehouseReadQueryPort:
                 JOIN silver.accounts a ON a.account_id=p.account_id
                 WHERE (? IS NULL OR p.as_of<=?) AND (? IS NULL OR a.account_label=?)
             )
-            SELECT a.account_label, coalesce(i.asset_type, 'unknown') AS asset_type,
+            SELECT a.account_label, p.instrument_id, i.name AS instrument_name,
+                   coalesce(i.asset_type, 'unknown') AS asset_type,
                    coalesce(i.economic_exposure, 'unknown') AS economic_exposure,
                    sum(p.value_krw) AS value_krw, sum(p.allocation_pct) AS allocation_pct,
                    max(p.as_of) AS as_of
@@ -374,8 +459,8 @@ class WarehouseReadQueryPort:
             JOIN latest l ON p.as_of=l.as_of
             JOIN silver.accounts a ON a.account_id=p.account_id
             LEFT JOIN silver.instruments_current i ON i.instrument_id=p.instrument_id
-            WHERE p.aggregate_level='instrument' AND (? IS NULL OR a.account_label=?)
-            GROUP BY a.account_label, asset_type, economic_exposure
+            WHERE p.aggregate_level='position' AND (? IS NULL OR a.account_label=?)
+            GROUP BY a.account_label, p.instrument_id, i.name, asset_type, economic_exposure
             ORDER BY value_krw DESC
             """,
             [request.as_of, request.as_of, request.account_alias, request.account_alias,
@@ -390,10 +475,18 @@ class WarehouseReadQueryPort:
                    WHERE (? IS NULL OR evaluation_at<=?) ORDER BY evaluation_at DESC LIMIT 1""",
                 [request.as_of, request.as_of],
             )
+        missing = [] if rows else [{"dataset_id": "dataset.portfolio-daily-state", "reason": "no_governed_rows"}]
+        if request.include_macro and not macro:
+            missing.append({"dataset_id": "dataset.macro-profile-snapshot", "reason": "no_governed_rows"})
+        missing.append({
+            "dataset_id": "dataset.etf-constituent-snapshot",
+            "reason": "unsupported_initial_v2",
+        })
         return self._envelope(
             data={"direct": rows, "macro": macro[0] if macro else None}, items=rows,
-            dataset_id="dataset.exposure-analysis", as_of=_latest_datetime(rows, "as_of"),
+            dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),
             lineage_ref="gold.portfolio_daily_state|gold.macro_profile_snapshots",
+            missing_coverage=missing,
         )
 
     def _get_signal_status(self, request: SignalStatusRequest) -> dict[str, Any]:
@@ -474,13 +567,19 @@ class WarehouseReadQueryPort:
             [request.dataset_id, request.run_id, request.run_id, request.as_of, request.as_of,
              request.lookback_days, request.limit],
         )
+        missing = [] if rows else [{
+            "dataset_id": request.dataset_id,
+            "reason": "no_quality_evidence_in_window",
+        }]
         return self._envelope(
             data={"results": rows, "next_cursor": None}, items=rows,
-            dataset_id="control.quality-results", as_of=_latest_datetime(rows, "evaluated_at"),
+            dataset_id="dataset.data-quality-evidence", as_of=_latest_datetime(rows, "evaluated_at"),
             lineage_ref="control.quality_results",
+            missing_coverage=missing,
         )
 
     def _get_pipeline_run(self, request: PipelineRunRequest) -> dict[str, Any]:
+        pipeline_id = self._resolve_pipeline_id(request.pipeline_id) if request.pipeline_id else None
         rows = self._rows(
             """
             SELECT s.run_id, s.pipeline_id, s.pipeline_version, s.logical_date, s.slot,
@@ -495,12 +594,12 @@ class WarehouseReadQueryPort:
             ORDER BY s.started_at DESC LIMIT ?
             """,
             [request.run_id, request.run_id, request.run_id,
-             request.pipeline_id, request.pipeline_id,
+             pipeline_id, pipeline_id,
              request.as_of, request.as_of, request.lookback_days, request.limit],
         )
         return self._envelope(
             data={"runs": rows, "next_cursor": None}, items=rows,
-            dataset_id="control.pipeline-runs", as_of=_latest_datetime(rows, "finished_at", "started_at"),
+            dataset_id="dataset.pipeline-run-evidence", as_of=_latest_datetime(rows, "finished_at", "started_at"),
             lineage_ref="control.pipeline_run_summary",
         )
 

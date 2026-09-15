@@ -73,7 +73,13 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
     assert first["status"] == "succeeded" and first["source_calls"] == 2
     assert second["status"] == "succeeded" and second["reused"] is True
     assert con.execute("select count(*) from bronze.raw_object_manifest").fetchone()[0] == 1
-    assert con.execute("select count(*) from control.quality_results").fetchone()[0] == 1
+    quality = con.execute(
+        "select dataset_id, rule_id, status from control.quality_results order by dataset_id"
+    ).fetchall()
+    assert quality == [
+        ("dataset.portfolio-position-observation", "configured-account-coverage", "pass"),
+        ("dataset.price-bar-daily", "held-instrument-price-coverage", "pass"),
+    ]
     assert con.execute("select count(*) from control.lineage_edges").fetchone()[0] == 3
     assert con.execute("select count(*) from control.watermarks").fetchone()[0] == 1
     assert con.execute("select count(*) from gold.portfolio_daily_state").fetchone()[0] == 2
@@ -106,7 +112,17 @@ def test_managed_collection_resumes_from_landed_bundle_without_source_recall(mon
                 "observed_at": datetime(2026, 8, 28, 7, tzinfo=UTC),
                 "raw": {"output1": [{"pdno": "005930", "hldg_qty": "1", "evlu_amt": "1"}],
                         "output2": [{"tot_evlu_amt": "2"}]} }],
-            "overseas": {}, "overseas_deposit": {}, "source_calls": 1, "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "overseas": {}, "overseas_deposit": {}, "source_calls": 1,
+            "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "price_observations": [{
+                "market": "KRX", "symbol": "005930", "adjusted": False,
+                "fetched_at": datetime(2026, 8, 28, 7, tzinfo=UTC),
+                "raw": {"output2": [{
+                    "stck_bsop_date": "20260828", "stck_oprc": "1",
+                    "stck_hgpr": "1", "stck_lwpr": "1",
+                    "stck_clpr": "1", "acml_vol": "1",
+                }]},
+            }],
         }
 
     monkeypatch.setattr(v2_collection, "_collect_sources", fake_collect)

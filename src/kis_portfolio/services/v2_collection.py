@@ -470,6 +470,9 @@ def build_owned_portfolio_pipeline(
                 repository.upsert_price_bar(payload, obs)
                 normalized += 1
 
+        context.state["price_expected_count"] = len(collected.get("price_observations", []))
+        context.state["price_observed_count"] = len(operational_keys)
+
         # Historical price and FX rows are already governed in silver.price_bars_daily
         # and silver.fx_rates_daily.  Re-reading V1 main here would turn an archive into a
         # production dependency and create fresh lineage for unchanged historical facts.
@@ -486,12 +489,23 @@ def build_owned_portfolio_pipeline(
         status = "pass" if account_count == expected else "fail"
         if status == "fail":
             raise RuntimeError(f"account coverage failed: {account_count}/{expected}")
+        price_expected = int(context.state.get("price_expected_count", 0))
+        price_observed = int(context.state.get("price_observed_count", 0))
+        price_status = "pass" if price_expected > 0 and price_observed == price_expected else "fail"
+        if price_status == "fail":
+            raise RuntimeError(f"price coverage failed: {price_observed}/{price_expected}")
         return StageResult(
             input_count=context.state.get("normalized_count", 0), output_count=account_count,
-            quality=(QualityEvidence(
-                "dataset.portfolio-position-observation", "configured-account-coverage", status,
-                str(account_count), str(expected), {"slot": context.slot},
-            ),),
+            quality=(
+                QualityEvidence(
+                    "dataset.portfolio-position-observation", "configured-account-coverage", status,
+                    str(account_count), str(expected), {"slot": context.slot},
+                ),
+                QualityEvidence(
+                    "dataset.price-bar-daily", "held-instrument-price-coverage", price_status,
+                    str(price_observed), str(price_expected), {"slot": context.slot},
+                ),
+            ),
         )
 
     def publish(context: StageContext) -> StageResult:

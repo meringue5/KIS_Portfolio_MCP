@@ -160,6 +160,148 @@ async def test_pipeline_run_accepts_logical_run_handle_for_reused_run():
 
 
 @pytest.mark.anyio
+async def test_pipeline_run_accepts_public_portfolio_refresh_name():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        """
+        INSERT INTO control.pipeline_runs(
+            run_id, pipeline_id, pipeline_version, logical_date, slot, partition_key,
+            idempotency_key, status, source_calls, started_at, finished_at
+        ) VALUES ('run-1', 'pipeline.owned-portfolio-core-v2', '1.0.0',
+                  '2026-09-11', 'kr-1600', 'all-accounts', 'logical-key',
+                  'succeeded', 39, ?, ?)
+        """,
+        [NOW, NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    result = await application.execute(
+        "get-pipeline-run",
+        PipelineRunRequest(pipeline_id="portfolio-refresh", as_of=NOW, lookback_days=1),
+        ACTOR,
+    )
+
+    assert result["data"]["runs"][0]["pipeline_id"] == "pipeline.owned-portfolio-core-v2"
+    assert result["source"]["dataset_id"] == "dataset.pipeline-run-evidence"
+
+
+@pytest.mark.anyio
+async def test_unknown_public_pipeline_name_fails_explicitly(application):
+    with pytest.raises(RemoteReadError, match="unknown_pipeline_reference"):
+        await application.execute(
+            "get-pipeline-run",
+            PipelineRunRequest(pipeline_id="not-a-pipeline", as_of=NOW),
+            ACTOR,
+        )
+
+
+@pytest.mark.anyio
+async def test_market_snapshot_resolves_public_kr_symbol_and_returns_raw_bar():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        """
+        INSERT INTO silver.price_bars_daily(
+            instrument_id, session_date, price_basis, close, source_observation_id,
+            quality_status, effective_at, knowledge_at
+        ) VALUES
+            ('v1|KRX|000660', '2026-09-11', 'raw', 1812000, 'raw-1', 'pass', ?, ?),
+            ('v1|KRX|000660', '2026-09-11', 'adjusted', 1811000, 'adj-1', 'pass', ?, ?)
+        """,
+        [NOW, NOW, NOW, NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    for instrument_ref in ("000660", "KRX:000660", "v1|KRX|000660"):
+        result = await application.execute(
+            "get-market-snapshot",
+            MarketSnapshotRequest(instrument_id=instrument_ref, market="KR"),
+            ACTOR,
+        )
+        assert result["data"]["snapshot"]["instrument_id"] == "v1|KRX|000660"
+        assert result["data"]["snapshot"]["price_basis"] == "raw"
+        assert result["data"]["snapshot"]["close"] == "1812000.00000000"
+        assert result["missing_coverage"] == []
+
+
+@pytest.mark.anyio
+async def test_market_snapshot_rejects_instrument_market_mismatch(application):
+    with pytest.raises(RemoteReadError, match="instrument_market_mismatch"):
+        await application.execute(
+            "get-market-snapshot",
+            MarketSnapshotRequest(instrument_id="US:AAPL", market="KR"),
+            ACTOR,
+        )
+
+
+@pytest.mark.anyio
+async def test_exposure_analysis_returns_direct_positions_and_explicit_optional_gaps():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','ria','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO silver.instruments VALUES (
+            'v1|KRX|000660','KRX','000660','SK hynix','equity','KRW','unknown',?,NULL,'fixture','{}'
+        )
+        """,
+        [NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
+            quantity, value_krw, cost_krw, unrealized_pnl_krw, contribution_pct,
+            allocation_pct, as_of, input_watermarks, quality_status, lineage_hash
+        ) VALUES ('2026-09-11','kr-1600','acct-a','v1|KRX|000660','position',
+                  110,199320000,NULL,NULL,NULL,27.5,?,'{}','pass','lineage')
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    result = await application.execute(
+        "get-exposure-analysis", ExposureAnalysisRequest(), ACTOR
+    )
+
+    assert result["data"]["direct"][0]["instrument_id"] == "v1|KRX|000660"
+    assert result["data"]["direct"][0]["value_krw"] == "199320000.00"
+    assert result["quality"]["status"] == "pass"
+    assert result["missing_coverage"] == [
+        {"dataset_id": "dataset.macro-profile-snapshot", "reason": "no_governed_rows"},
+        {"dataset_id": "dataset.etf-constituent-snapshot", "reason": "unsupported_initial_v2"},
+    ]
+
+
+@pytest.mark.anyio
+async def test_data_quality_distinguishes_missing_evidence_from_missing_dataset_rows(application):
+    result = await application.execute(
+        "get-data-quality",
+        DataQualityRequest(
+            dataset_id="dataset.price-bar-daily", as_of=NOW, lookback_days=1
+        ),
+        ACTOR,
+    )
+
+    assert result["data"]["results"] == []
+    assert result["source"]["dataset_id"] == "dataset.data-quality-evidence"
+    assert result["missing_coverage"] == [{
+        "dataset_id": "dataset.price-bar-daily",
+        "reason": "no_quality_evidence_in_window",
+    }]
+
+
+@pytest.mark.anyio
 async def test_performance_history_respects_account_alias():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()

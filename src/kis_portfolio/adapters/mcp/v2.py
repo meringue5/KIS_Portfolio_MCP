@@ -57,7 +57,14 @@ NON_DESTRUCTIVE_WRITE_TOOL = ToolAnnotations(
 ActorProvider = Callable[[], ReadActor]
 CommandActorProvider = Callable[[], CommandActor]
 AccountAlias = Annotated[str, Field(min_length=1, max_length=64)]
-InstrumentId = Annotated[str, Field(min_length=1, max_length=64)]
+InstrumentId = Annotated[
+    str,
+    Field(
+        min_length=1,
+        max_length=64,
+        description="Public symbol such as 000660/AAPL, market-qualified symbol, or canonical v1 instrument id.",
+    ),
+]
 OpaqueId = Annotated[str, Field(min_length=1, max_length=160)]
 Cursor = Annotated[str, Field(max_length=2_048)]
 Limit50 = Annotated[int, Field(ge=1, le=50)]
