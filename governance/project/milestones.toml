@@ -138,12 +138,14 @@ work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056", "WI
 [[milestones]]
 id = "MS-005"
 title = "Production feedback and Remote MCP usability corrections"
-status = "in_progress"
+status = "stabilizing"
 depends_on = ["MS-004"]
 implementation_gate = [{ milestone_id = "MS-004", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-004", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
+stabilization_exit_work_item_ids = ["WI-058"]
+rollback_policy = "append_only_feedback"
 work_item_ids = ["WI-058"]
 
 [[work_items]]

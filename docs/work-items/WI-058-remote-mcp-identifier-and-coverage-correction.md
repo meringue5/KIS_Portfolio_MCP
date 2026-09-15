@@ -1,7 +1,7 @@
 ---
 id: WI-058
 title: Correct Remote MCP identifiers and empty-coverage semantics after real Claude use
-status: verified
+status: stabilizing
 type: defect
 owner: owner
 decision_refs: ADR-020, ADR-021, ADR-028
@@ -19,8 +19,8 @@ architecture_impact: none; restores approved public identifiers, direct exposure
 data_impact: add per-run price-bar quality evidence without schema, grain, retention or source changes
 security_impact: no new fields containing account ids, credentials, raw payloads or provider messages
 cost_impact: no new source calls or standing resources
-stabilization_window: none
-stabilization_exit_refs: none
+stabilization_window: one owner-confirmed Claude session against the canonical or compatibility-tag URL after revision 00046
+stabilization_exit_refs: GitHub runs 34915731283 and 34916315077, revision kis-portfolio-remote-00046-4t8, owner Claude verification
 rollback_plan: revert the corrective release to the current immutable V2 image if live read compatibility regresses
 ---
 
@@ -112,9 +112,16 @@ not a code excuse.
   position rows; missing price quality evidence, macro data and unsupported ETF look-through were distinguished.
 - Verification: 32 focused warehouse/managed-collection tests passed; 63 adjacent MCP/read/governance tests passed;
   quick gate passed; full gate passed with 725 tests and one pre-existing Authlib deprecation warning.
+- Release: PR #111 merged as `8e09c45bb0d92719c611d2bd194fd2ea42251bcf`; Remote workflow
+  `34915731283` and V2 core Job workflow `34916315077` succeeded. The three jobs use the same immutable image digest
+  `sha256:ea57f6cf8f40c26ec958cbac8dcfcb354d84b57257d7dcaf0ab09b12cdd5ab06` and retain their fixed slot arguments.
+- Remote traffic: workflow created `kis-portfolio-remote-00046-4t8` with the expected SHA/image, but historical pinned
+  traffic left it retired. A controlled 0% tagged health/auth smoke passed, then exact-revision traffic was promoted
+  to 100%. Canonical and compatibility-tag `/health` return 200 and unauthenticated `/mcp` returns 401.
 
 ## Closeout
 
-- Result: repository correction verified; production unchanged.
-- Remaining risk: production remains unchanged until protected release approval and stable-URL Claude verification.
+- Result: production release deployed and transport/auth smoke verified; stabilizing for owner Claude read acceptance.
+- Remaining risk: authenticated tool payloads still require an owner Claude session; historical runs will not gain
+  retroactive price-quality evidence, while the next successful owned-core run will record it.
 - Follow-up Work Item: none yet.
