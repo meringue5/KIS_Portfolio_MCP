@@ -661,7 +661,7 @@ sequence = 1
 id = "WI-058-S01"
 parent_id = "WI-058"
 title = "Allow the exact deployed compatibility-tag Host for Claude"
-status = "in_progress"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-018-S01"

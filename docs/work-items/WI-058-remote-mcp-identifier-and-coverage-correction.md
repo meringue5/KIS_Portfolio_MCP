@@ -20,7 +20,7 @@ data_impact: add per-run price-bar quality evidence without schema, grain, reten
 security_impact: no new fields containing account ids, credentials, raw payloads or provider messages
 cost_impact: no new source calls or standing resources
 stabilization_window: one owner-confirmed Claude session against the canonical or compatibility-tag URL after revision 00046
-stabilization_exit_refs: GitHub runs 34915731283 and 34916315077, revision kis-portfolio-remote-00046-4t8, owner Claude verification
+stabilization_exit_refs: GitHub runs 34915731283, 34916315077 and 34933310119, revision kis-portfolio-remote-00047-dqz, owner Claude verification
 rollback_plan: revert the corrective release to the current immutable V2 image if live read compatibility regresses
 ---
 
@@ -74,7 +74,7 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 - [x] direct exposure returns current instrument rows; macro and unsupported ETF coverage remain explicit.
 - [x] focused MCP/pipeline tests, quick gate and full gate pass.
 - [x] production deployment and live Claude verification remain separately approved release/stabilization steps.
-- [ ] the exact `wi046-v2` compatibility Host passes transport validation and unauthenticated `/mcp` reaches the OAuth
+- [x] the exact `wi046-v2` compatibility Host passes transport validation and unauthenticated `/mcp` reaches the OAuth
       boundary with 401 rather than transport rejection with 421.
 
 ## Change impact
@@ -96,7 +96,7 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 
 ## Sub-items
 
-- `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`in_progress`).
+- `WI-058-S01` — exact compatibility-tag Host allowlist propagation and protected Remote redeployment (`stabilizing`).
 
 ## Stabilization plan
 
@@ -125,11 +125,19 @@ then showed that this exact tag host reached revision `00046` but was rejected b
 - Remote traffic: workflow created `kis-portfolio-remote-00046-4t8` with the expected SHA/image, but historical pinned
   traffic left it retired. A controlled 0% tagged health/auth smoke passed, then exact-revision traffic was promoted
   to 100%. Canonical and compatibility-tag `/health` return 200 and unauthenticated `/mcp` returns 401.
+- Tagged-Host correction: PR #113 merged as `80d9c9b94d7e2e8316f2ff32a9ecdaa8ec04e4c9`; protected Remote workflow
+  `34933310119` created `kis-portfolio-remote-00047-dqz` with image digest
+  `sha256:c674ca39268f8284a561e92e2a8a705f8ab68b37e076df34992181d9b35088aa`. The GitHub production environment passes
+  only the exact `wi046-v2` host. With revision `00046` retained at 100%, the tag was mapped to `00047` at 0% and
+  returned `/health` 200 and unauthenticated `/mcp` 401. Revision `00047` was then promoted to 100%; canonical and tag
+  checks both returned 200/401, and post-release logs contained no HTTP 421 or `Invalid Host header` match.
+- Verification for S01: 81 focused tests passed; quick gate passed; full gate passed with 727 tests and one pre-existing
+  Authlib deprecation warning; PR CI run `34933143367` passed.
 
 ## Closeout
 
-- Result: the data/read correction is deployed, but the tagged connector Host regression is now tracked by
-  `WI-058-S01`; stabilizing for corrected transport smoke and owner Claude read acceptance.
+- Result: the data/read and tagged connector Host corrections are deployed; `WI-058-S01` transport smoke is verified
+  and remains stabilizing for owner Claude read acceptance.
 - Remaining risk: authenticated tool payloads still require an owner Claude session; scale-to-zero may make the first
   reconnect slower even after the deterministic 421 is corrected; historical runs will not gain
   retroactive price-quality evidence, while the next successful owned-core run will record it.
