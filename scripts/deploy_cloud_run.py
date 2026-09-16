@@ -1672,6 +1672,12 @@ def _deploy_v2_core_jobs(
     image: str | None = None,
     deploy_label: str = "v2-core-batch",
 ) -> int:
+    if args.target == "v2-core-batch" and deploy_label == "v2-core-batch":
+        print(
+            "Generic V2 core deployment is disabled after the owner-approved Telegram cutover. "
+            "Use the protected wi055-s04 release target, which restores outbound flags and runs photo smoke."
+        )
+        return 1
     required = _required_keys_for_batch(env)
     if env.get("KIS_TELEGRAM_DELIVERY_ENABLED", "").strip().lower() == "true":
         required.extend(["KIS_TELEGRAM_BOT_TOKEN", "KIS_TELEGRAM_CHAT_ID"])

@@ -560,7 +560,7 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
         lambda command, dry_run: commands.append(command) or 0,
     )
     result = deploy_cloud_run._deploy_v2_core_jobs(
-        args, env=env, project="grand-forge-279904",
+        args, env=env, project="grand-forge-279904", deploy_label="fixture-fixed-slot",
     )
     assert result == 0 and len(commands) == 3
     assert {command[command.index("--image") + 1] for command in commands} == {"image@sha256:one-build"}
@@ -570,6 +570,22 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1430,--partition-key,all-accounts",
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1600,--partition-key,all-accounts",
     }
+
+
+def test_generic_v2_core_release_cannot_erase_owner_telegram_configuration(monkeypatch, capsys):
+    args = argparse.Namespace(
+        region="asia-northeast3", target="v2-core-batch", dry_run=True,
+        secret_mode="secret-manager",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_build_release_image",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must not build")),
+    )
+    result = deploy_cloud_run._deploy_v2_core_jobs(
+        args, env={"KIS_DB_MODE": "motherduck"}, project="grand-forge-279904",
+    )
+    assert result == 1
+    assert "Use the protected wi055-s04 release target" in capsys.readouterr().out
 
 
 def test_wi048_s02_transitions_before_one_digest_v2_runtime_update(monkeypatch):

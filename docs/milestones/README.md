@@ -10,7 +10,7 @@ machine-readable SSOT는 `governance/project/milestones.toml`, 상태·작업·�
 | --- | --- |
 | V2의 시스템 구성·경계 | [`docs/design/kis-portfolio-v2-system-design.md`](../design/kis-portfolio-v2-system-design.md) |
 | 승인 설계를 구현 단위로 나눈 계획 | [`docs/design/kis-portfolio-v2-delivery-plan.md`](../design/kis-portfolio-v2-delivery-plan.md) |
-| milestone별 outcome·인수 조건·사람이 읽는 순서 | 이 문서와 [`MS-002`](./MS-002-portfolio-analytics-alerting.md), [`MS-003`](./MS-003-enrichment-remote-cutover.md), [`MS-004`](./MS-004-v2-canonicalization-retirement.md), [`MS-005`](./MS-005-production-feedback-corrections.md) |
+| milestone별 outcome·인수 조건·사람이 읽는 순서 | 이 문서와 [`MS-002`](./MS-002-portfolio-analytics-alerting.md), [`MS-003`](./MS-003-enrichment-remote-cutover.md), [`MS-004`](./MS-004-v2-canonicalization-retirement.md), [`MS-005`](./MS-005-production-feedback-corrections.md), [`MS-006`](./MS-006-scheduled-core-telegram-recovery.md) |
 | Work Item identity·dependency·sequence의 정본 | [`governance/project/milestones.toml`](../../governance/project/milestones.toml) |
 | 요구·결정·구현·증거 연결 | [`docs/traceability.md`](../traceability.md) |
 
@@ -27,8 +27,9 @@ flowchart LR
     MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>closed"]
     MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>closed"]
     MS5["MS-005<br/>Production feedback corrections<br/>closed"]
+    MS6["MS-006<br/>Scheduled core + Telegram recovery<br/>in_progress"]
 
-    MS1 --> MS2 --> MS3 --> MS4 --> MS5
+    MS1 --> MS2 --> MS3 --> MS4 --> MS5 --> MS6
     MSGOV -. governs .-> MS2
     MSGOV -. governs .-> MS3
     MSGOV -. governs .-> MS4
@@ -38,7 +39,8 @@ flowchart LR
     classDef active fill:#fff1bf,stroke:#9a6b00,color:#4b3500;
     classDef proposed fill:#eef1f5,stroke:#667085,color:#344054;
     class MS1,MS2,MS3,MS4,MSGOV closed;
-    class MS5 active;
+    class MS5 closed;
+    class MS6 active;
 ```
 
 실선 화살표는 구조적 dependency DAG다. 실행 gate는 두 단계다. MS-002가 `stabilizing`이면 MS-003을

@@ -450,14 +450,16 @@ def build_owned_portfolio_pipeline(
                 repository.upsert_cash(cash_payload, cash_obs)
                 normalized += 1
 
-        operational_keys: set[tuple[str, str, date, str]] = set()
+        covered_price_requests = 0
         for observation in collected.get("price_observations", []):
-            for payload in _operational_price_rows(observation):
-                if payload["session_date"] > context.logical_date:
-                    continue
+            admissible_rows = [
+                payload for payload in _operational_price_rows(observation)
+                if payload["session_date"] <= context.logical_date
+            ]
+            if admissible_rows:
+                covered_price_requests += 1
+            for payload in admissible_rows:
                 market, symbol = payload["instrument_id"].split("|")[1:]
-                key = (market, symbol, payload["session_date"], payload["price_basis"])
-                operational_keys.add(key)
                 obs = repository.record_observation(
                     "dataset.price-bar-daily",
                     _envelope(
@@ -471,7 +473,7 @@ def build_owned_portfolio_pipeline(
                 normalized += 1
 
         context.state["price_expected_count"] = len(collected.get("price_observations", []))
-        context.state["price_observed_count"] = len(operational_keys)
+        context.state["price_observed_count"] = covered_price_requests
 
         # Historical price and FX rows are already governed in silver.price_bars_daily
         # and silver.fx_rates_daily.  Re-reading V1 main here would turn an archive into a

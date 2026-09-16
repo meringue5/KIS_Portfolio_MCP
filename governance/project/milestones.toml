@@ -148,6 +148,19 @@ stabilization_exit_work_item_ids = ["WI-058"]
 rollback_policy = "append_only_feedback"
 work_item_ids = ["WI-058"]
 
+[[milestones]]
+id = "MS-006"
+title = "Scheduled portfolio collection and Telegram recovery"
+status = "in_progress"
+depends_on = ["MS-005"]
+implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
+production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
+overlap_work_item_ids = []
+overlap_mode = "none"
+stabilization_exit_work_item_ids = ["WI-059"]
+rollback_policy = "append_only_feedback"
+work_item_ids = ["WI-059"]
+
 [[work_items]]
 id = "WI-009"
 identity = "canonical-portfolio-ledger"
@@ -652,6 +665,19 @@ milestone_id = "MS-005"
 delivery_refs = []
 depends_on = ["WI-051"]
 discovered_from = ["WI-042", "WI-046"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-059"
+identity = "scheduled-core-and-telegram-recovery"
+title = "Restore 10:00 quality and scheduled Telegram delivery after the V2 core deployment"
+milestone_id = "MS-006"
+delivery_refs = []
+depends_on = ["WI-058", "WI-055"]
+discovered_from = ["WI-058", "WI-055"]
 supersedes = []
 rollback_of = []
 parent_id = ""

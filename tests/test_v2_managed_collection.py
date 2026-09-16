@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 import duckdb
+import pytest
 
 from kis_portfolio.platform.migrations import MigrationRunner
+from kis_portfolio.platform.pipeline import PipelineExecutionError
 from kis_portfolio.ports.object_store import StoredObject
 from kis_portfolio.services import v2_collection
 
@@ -58,6 +60,10 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
                     "stck_bsop_date": "20260828", "stck_oprc": "70000",
                     "stck_hgpr": "73000", "stck_lwpr": "69000",
                     "stck_clpr": "72000", "acml_vol": "100",
+                }, {
+                    "stck_bsop_date": "20260827", "stck_oprc": "69000",
+                    "stck_hgpr": "71000", "stck_lwpr": "68000",
+                    "stck_clpr": "70000", "acml_vol": "90",
                 }]},
             }],
         }
@@ -74,16 +80,52 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
     assert second["status"] == "succeeded" and second["reused"] is True
     assert con.execute("select count(*) from bronze.raw_object_manifest").fetchone()[0] == 1
     quality = con.execute(
-        "select dataset_id, rule_id, status from control.quality_results order by dataset_id"
+        "select dataset_id, rule_id, status, observed_value, expected_value "
+        "from control.quality_results order by dataset_id"
     ).fetchall()
     assert quality == [
-        ("dataset.portfolio-position-observation", "configured-account-coverage", "pass"),
-        ("dataset.price-bar-daily", "held-instrument-price-coverage", "pass"),
+        ("dataset.portfolio-position-observation", "configured-account-coverage", "pass", "1", "1"),
+        ("dataset.price-bar-daily", "held-instrument-price-coverage", "pass", "1", "1"),
     ]
     assert con.execute("select count(*) from control.lineage_edges").fetchone()[0] == 3
     assert con.execute("select count(*) from control.watermarks").fetchone()[0] == 1
     assert con.execute("select count(*) from gold.portfolio_daily_state").fetchone()[0] == 2
     assert con.execute("select count(*) from silver.instrument_versions").fetchone()[0] == 1
+
+
+def test_price_quality_rejects_one_uncovered_request_among_multirow_history(monkeypatch):
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    con.execute("INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('krx','2026-08-28',true,NULL)")
+    observed = datetime(2026, 8, 28, 7, tzinfo=UTC)
+    valid = {"stck_bsop_date": "20260828", "stck_oprc": "1", "stck_hgpr": "1",
+             "stck_lwpr": "1", "stck_clpr": "1", "acml_vol": "1"}
+    older = {**valid, "stck_bsop_date": "20260827"}
+    future = {**valid, "stck_bsop_date": "20260829"}
+
+    async def fake_collect(slot):
+        return {
+            "domestic": [{"account_label": "ria", "account_type": "REAL", "snapshot_id": "s",
+                          "observed_at": observed,
+                          "raw": {"output1": [{"pdno": "005930", "hldg_qty": "1", "evlu_amt": "1"}],
+                                  "output2": [{"tot_evlu_amt": "2"}]}}],
+            "overseas": {}, "overseas_deposit": {}, "source_calls": 2,
+            "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "price_observations": [
+                {"market": "KRX", "symbol": "005930", "adjusted": False,
+                 "fetched_at": observed, "raw": {"output2": [valid, older]}},
+                {"market": "KRX", "symbol": "005930", "adjusted": True,
+                 "fetched_at": observed, "raw": {"output2": [future]}},
+            ],
+        }
+
+    monkeypatch.setattr(v2_collection, "_collect_sources", fake_collect)
+    monkeypatch.setattr(v2_collection, "load_account_registry", lambda: [FakeAccount("ria")])
+    with pytest.raises(PipelineExecutionError, match="price coverage failed: 1/2"):
+        v2_collection.run_owned_portfolio_pipeline(
+            con, logical_date=date(2026, 8, 28), slot="kr-1000", object_store=FakeObjectStore(),
+        )
+    con.close()
 
 
 def test_managed_collection_skips_declared_closed_day():
