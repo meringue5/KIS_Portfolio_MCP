@@ -151,7 +151,7 @@ work_item_ids = ["WI-058"]
 [[milestones]]
 id = "MS-006"
 title = "Scheduled portfolio collection and Telegram recovery"
-status = "in_progress"
+status = "stabilizing"
 depends_on = ["MS-005"]
 implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]

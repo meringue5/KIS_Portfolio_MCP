@@ -27,7 +27,7 @@ flowchart LR
     MS3["MS-003<br/>Enrichment + Remote MCP V2 + cutover<br/>closed"]
     MS4["MS-004<br/>V2 canonicalization + V1 retirement<br/>closed"]
     MS5["MS-005<br/>Production feedback corrections<br/>closed"]
-    MS6["MS-006<br/>Scheduled core + Telegram recovery<br/>in_progress"]
+    MS6["MS-006<br/>Scheduled core + Telegram recovery<br/>stabilizing"]
 
     MS1 --> MS2 --> MS3 --> MS4 --> MS5 --> MS6
     MSGOV -. governs .-> MS2

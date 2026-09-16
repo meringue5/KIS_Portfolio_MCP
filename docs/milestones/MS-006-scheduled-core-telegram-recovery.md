@@ -1,6 +1,6 @@
 # MS-006 — Scheduled collection and Telegram recovery
 
-> 상태: in_progress
+> 상태: stabilizing
 > 선행 milestone: MS-005
 > machine registry: `governance/project/milestones.toml`
 
@@ -13,7 +13,7 @@ total-asset report configuration without replaying historical messages or weaken
 
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
-| 1 | WI-059 scheduled core and Telegram recovery | WI-058, WI-055 | in_progress |
+| 1 | WI-059 scheduled core and Telegram recovery | WI-058, WI-055 | stabilizing; deployed, awaiting first post-release slots and owner receipt |
 
 ## Gates
 
@@ -26,4 +26,5 @@ total-asset report configuration without replaying historical messages or weaken
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-09-16.2 | 2026-09-16 | PR #118 passed CI and merged as `9c7d518`; protected run `35070642487` passed photo smoke and restored all three Jobs on one immutable image | No new identity; parent enters live stabilization without replaying 2026-09-16 messages |
 | 2026-09-16.1 | 2026-09-16 | Opened WI-059 after the first post-release 10:00 run failed at price quality and the generic Job deployment removed Telegram delivery configuration | New append-only corrective milestone; MS-005 remains closed |
