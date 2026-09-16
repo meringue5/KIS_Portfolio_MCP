@@ -155,6 +155,7 @@ def _set_ms003_overlap_state(target: Path) -> None:
     _set_milestone_status(target, "MS-003", "in_progress")
     _set_milestone_status(target, "MS-004", "proposed")
     _set_milestone_status(target, "MS-005", "proposed")
+    _set_milestone_status(target, "MS-006", "proposed")
     correction = target / "docs/work-items/WI-058-remote-mcp-identifier-and-coverage-correction.md"
     document = correction.read_text(encoding="utf-8")
     document = re.sub(r"(?m)^status: .+$", "status: proposed", document, count=1)
