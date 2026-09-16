@@ -156,16 +156,20 @@ def _set_ms003_overlap_state(target: Path) -> None:
     _set_milestone_status(target, "MS-004", "proposed")
     _set_milestone_status(target, "MS-005", "proposed")
     _set_milestone_status(target, "MS-006", "proposed")
-    correction = target / "docs/work-items/WI-058-remote-mcp-identifier-and-coverage-correction.md"
-    document = correction.read_text(encoding="utf-8")
-    document = re.sub(r"(?m)^status: .+$", "status: proposed", document, count=1)
-    document = re.sub(
-        r"(?m)^execution_scope: .+$", "execution_scope: isolated", document, count=1
-    )
-    document = re.sub(
-        r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
-    )
-    correction.write_text(document, encoding="utf-8")
+    for filename in (
+        "WI-058-remote-mcp-identifier-and-coverage-correction.md",
+        "WI-059-scheduled-core-telegram-recovery.md",
+    ):
+        correction = target / "docs/work-items" / filename
+        document = correction.read_text(encoding="utf-8")
+        document = re.sub(r"(?m)^status: .+$", "status: proposed", document, count=1)
+        document = re.sub(
+            r"(?m)^execution_scope: .+$", "execution_scope: isolated", document, count=1
+        )
+        document = re.sub(
+            r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
+        )
+        correction.write_text(document, encoding="utf-8")
 
 
 def test_initial_v2_alert_chain_preserves_but_excludes_etf_work():

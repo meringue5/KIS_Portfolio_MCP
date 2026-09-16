@@ -1,7 +1,7 @@
 ---
 id: WI-059
 title: Restore 10:00 quality and scheduled Telegram delivery after the V2 core deployment
-status: in_progress
+status: stabilizing
 type: incident
 owner: owner
 decision_refs: DEC-051, DEC-053, DEC-055, ADR-021, ADR-023
@@ -58,8 +58,8 @@ deployment did not supply the established outbound configuration or secret refer
 
 - [x] Multi-row overseas history cannot inflate request coverage; one empty/future-only request still fails.
 - [x] Generic V2 core deployment cannot silently disable owner-approved outbound settings.
-- [ ] Focused, quick, full and protected CI gates pass.
-- [ ] Three production Jobs share the tested image and restore alert, report, destination and secret-reference settings.
+- [x] Focused, quick, full and protected CI gates pass.
+- [x] Three production Jobs share the tested image and restore alert, report, destination and secret-reference settings.
 - [ ] First post-release 10:00 run succeeds with exact per-request quality evidence and bounded delivery outcomes.
 - [ ] Owner confirms client-visible report or a legitimate no-send outcome; no historical send is replayed.
 
@@ -101,9 +101,19 @@ deployment did not supply the established outbound configuration or secret refer
   multi-row history response produces 1/1 evidence; a second future-only request produces a 1/2 quality failure.
   The generic `v2-core-batch` target now exits before image build and Job mutation, directing the operator to the
   existing protected owner-report target. Focused regression suite: 74 passed; quick gate passed.
+- Full gate and PR #118 CI passed with 731 tests. PR #118 merged as master
+  `9c7d51888db3b7fcb77053a43b4079fd7cd15d84`.
+- Protected `wi055-s04` run `35070642487` completed successfully. Its finance-free photo smoke execution
+  `kis-portfolio-wi030-s03-4gfv7` completed with logged `outcome=sent` and `error_code=null` before updating the
+  three fixed-slot Jobs.
+- All three Jobs now carry git SHA `9c7d518`, GitHub run `35070642487`, deploy target `wi055-s04-caption-layout` and
+  identical immutable image digest `sha256:f434a46bf717dea0fcb437e94685f227781995db56dab9da486c5f10a2a0ac2c`.
+  Redacted template inspection confirmed delivery, real-use, owner approval and V2 report enabled; canary and legacy
+  digest disabled; destination and pinned bot/chat Secret references present. No Scheduler, DB or recipient changed.
 
 ## Closeout
 
-- Result: recovery in progress; no missed-message replay.
-- Remaining risk: next scheduled 10:00 run and owner receipt are not yet observed.
+- Result: code and configuration recovery deployed; live stabilization remains open. No missed-message replay.
+- Remaining risk: the first post-release 10:00 run and owner receipt are not yet observed; photo-smoke provider success
+  is not proof of a scheduled report or client-visible receipt.
 - Follow-up Work Item: none at intake.
