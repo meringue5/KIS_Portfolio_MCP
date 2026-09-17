@@ -1184,6 +1184,8 @@ async def inquery_exchange_rate_history(
     start_date: str = "",
     end_date: str = "",
     period: str = "D",
+    *,
+    save_to_db: bool = True,
 ):
     """
     환율 기간별 시세 조회 (FHKST03030100).
@@ -1240,6 +1242,8 @@ async def inquery_exchange_rate_history(
 
     # ── DB: 환율 이력 캐시 저장 ──
     try:
+        if not save_to_db:
+            return data
         output = data.get("output2") or []
         if isinstance(output, list):
             rows = []

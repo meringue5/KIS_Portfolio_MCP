@@ -44,6 +44,17 @@ bash scripts/check.sh quick
    writes/backfills and open an incident.
 4. Preserve run ID, logical date/slot, immutable image digest, quality status and aggregate counts. Never paste raw
    provider bodies or portfolio values into repository evidence.
+5. Before treating a 10:00/16:00 owner report as ready, run the no-send, read-only check against the exact date and
+   slot (it returns only status, prior date and bounded blocker codes):
+
+   ```bash
+   .venv/bin/python scripts/check_owner_report_readiness.py YYYY-MM-DD kr-1000
+   .venv/bin/python scripts/check_owner_report_readiness.py YYYY-MM-DD kr-1600
+   ```
+
+   A missing previous same-slot state is not replaced by another slot or older trading day. `fx_input_stale` also
+   blocks numbers even when an older Gold row says `pass`. Neither this check nor a blocked result authorizes a
+   production Job replay or a second Telegram send.
 
 ## Monthly capacity and cost review
 

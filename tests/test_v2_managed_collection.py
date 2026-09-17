@@ -128,6 +128,50 @@ def test_price_quality_rejects_one_uncovered_request_among_multirow_history(monk
     con.close()
 
 
+def test_managed_collection_lands_and_normalizes_returned_fx_without_extra_call(monkeypatch):
+    """The existing morning FX API response must enter governed Silver, not only V1 cache."""
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    con.execute("INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('krx','2026-08-28',true,NULL)")
+    observed = datetime(2026, 8, 28, 1, tzinfo=UTC)
+
+    async def fake_collect(slot):
+        assert slot == "kr-1000"
+        return {
+            "domestic": [{"account_label": "ria", "account_type": "REAL", "snapshot_id": "s",
+                          "observed_at": observed,
+                          "raw": {"output1": [{"pdno": "005930", "hldg_qty": "1", "evlu_amt": "1"}],
+                                  "output2": [{"tot_evlu_amt": "2"}]}}],
+            "overseas": {}, "overseas_deposit": {}, "source_calls": 2,
+            "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "price_observations": [{
+                "market": "KRX", "symbol": "005930", "adjusted": False,
+                "fetched_at": observed,
+                "raw": {"output2": [{"stck_bsop_date": "20260828", "stck_clpr": "1"}]},
+            }],
+            "fx_observations": [{
+                "base_currency": "USD", "quote_currency": "KRW", "fetched_at": observed,
+                "raw": {"output2": [{"xymd": "20260828", "clos": "1300.25"}]},
+            }],
+        }
+
+    monkeypatch.setattr(v2_collection, "_collect_sources", fake_collect)
+    monkeypatch.setattr(v2_collection, "load_account_registry", lambda: [FakeAccount("ria")])
+    result = v2_collection.run_owned_portfolio_pipeline(
+        con, logical_date=date(2026, 8, 28), slot="kr-1000", object_store=FakeObjectStore(),
+    )
+
+    assert result["status"] == "succeeded" and result["source_calls"] == 2
+    assert con.execute(
+        "SELECT rate_date,rate,quality_status FROM silver.fx_rates_daily "
+        "WHERE base_currency='USD' AND quote_currency='KRW' AND rate_type='close'"
+    ).fetchall() == [(date(2026, 8, 28), 1300.25, "pass")]
+    assert con.execute(
+        "SELECT count(*) FROM bronze.source_observations WHERE dataset_id='dataset.fx-rate-daily'"
+    ).fetchone()[0] == 1
+    con.close()
+
+
 def test_managed_collection_skips_declared_closed_day():
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()

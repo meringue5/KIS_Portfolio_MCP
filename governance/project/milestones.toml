@@ -684,6 +684,12 @@ parent_id = ""
 sequence = 1
 
 [[subitems]]
+id = "WI-059-S01"
+parent_id = "WI-059"
+title = "Reproduce missing-prior report cascade and enforce FX/report readiness without waiting for a slot"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-058-S01"
 parent_id = "WI-058"
 title = "Allow the exact deployed compatibility-tag Host for Claude"

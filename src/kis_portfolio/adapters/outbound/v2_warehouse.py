@@ -513,6 +513,12 @@ class V2WarehouseRepository:
               payload.get("quality_status", "pass")])
 
     def materialize_daily_state(self, *, evaluation_date: date, slot: str, as_of: datetime) -> int:
+        prior_open = self.connection.execute(
+            """SELECT max(trade_date) FROM control.market_calendar
+               WHERE lower(market)='krx' AND is_open AND trade_date<?""",
+            [evaluation_date],
+        ).fetchone()[0]
+        earliest_fx_date = prior_open or evaluation_date
         self.connection.execute("""
             INSERT INTO gold.portfolio_daily_state
             WITH latest_positions AS (
@@ -532,7 +538,10 @@ class V2WarehouseRepository:
                 round(p.quantity * (b.close - p.average_cost) * CASE WHEN i.currency = 'KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
                 NULL, NULL, ?,
                 json_object('position_as_of', p.as_of, 'price_date', b.session_date, 'fx_date', f.rate_date),
-                CASE WHEN p.quality_status = 'pass' AND b.quality_status = 'pass' THEN 'pass' ELSE 'degraded' END,
+                CASE WHEN p.quality_status = 'pass' AND b.quality_status = 'pass'
+                          AND (i.currency = 'KRW' OR
+                               (f.quality_status = 'pass' AND f.rate > 0 AND f.rate_date >= ?))
+                     THEN 'pass' ELSE 'degraded' END,
                 sha256(concat(p.source_observation_id, '|', b.source_observation_id, '|', coalesce(f.source_observation_id, 'KRW')))
             FROM latest_positions p
             JOIN silver.instruments i ON i.instrument_id = p.instrument_id
@@ -542,7 +551,8 @@ class V2WarehouseRepository:
                 QUALIFY row_number() OVER (PARTITION BY base_currency, quote_currency ORDER BY rate_date DESC)=1
             ) f ON f.base_currency = i.currency AND f.quote_currency = 'KRW'
             ON CONFLICT DO NOTHING
-        """, [evaluation_date, evaluation_date, evaluation_date, slot, as_of, evaluation_date])
+        """, [evaluation_date, evaluation_date, evaluation_date, slot, as_of,
+              earliest_fx_date, evaluation_date])
         self.connection.execute("""
             INSERT INTO gold.portfolio_daily_state
             WITH latest_cash AS (
@@ -556,7 +566,8 @@ class V2WarehouseRepository:
                    round(amount * CASE WHEN currency='KRW' THEN 1 ELSE coalesce(f.rate, 0) END, 2),
                    NULL, NULL, NULL, NULL, ?,
                    json_object('cash_as_of', c.as_of, 'fx_date', f.rate_date),
-                   CASE WHEN c.quality_status='pass' AND (currency='KRW' OR f.rate IS NOT NULL)
+                   CASE WHEN c.quality_status='pass' AND (currency='KRW' OR
+                        (f.quality_status='pass' AND f.rate>0 AND f.rate_date>=?))
                         THEN 'pass' ELSE 'degraded' END,
                    sha256(c.source_observation_id || '|' || coalesce(f.source_observation_id, 'KRW'))
             FROM latest_cash c
@@ -565,7 +576,7 @@ class V2WarehouseRepository:
                 QUALIFY row_number() OVER (PARTITION BY base_currency, quote_currency ORDER BY rate_date DESC)=1
             ) f ON f.base_currency=c.currency AND f.quote_currency='KRW'
             ON CONFLICT DO NOTHING
-        """, [evaluation_date, evaluation_date, slot, as_of, evaluation_date])
+        """, [evaluation_date, evaluation_date, slot, as_of, earliest_fx_date, evaluation_date])
         return self.connection.execute(
             "SELECT count(*) FROM gold.portfolio_daily_state WHERE evaluation_date=? AND evaluation_slot=?",
             [evaluation_date, slot],

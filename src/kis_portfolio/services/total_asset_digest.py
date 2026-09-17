@@ -134,6 +134,34 @@ def _previous_open_date(connection: Any, logical_date: date) -> date | None:
     return row[0] if row and row[0] else None
 
 
+def _has_stale_fx_inputs(connection: Any, *, evaluation_date: date, slot: str) -> bool:
+    """Recheck persisted FX watermarks, including older pass-marked Gold rows."""
+    earliest = _previous_open_date(connection, evaluation_date) or evaluation_date
+    rows = connection.execute("""
+        SELECT s.aggregate_level,s.instrument_id,i.currency,
+               json_extract_string(s.input_watermarks,'$.fx_date')
+        FROM gold.portfolio_daily_state s
+        LEFT JOIN silver.instruments i ON i.instrument_id=s.instrument_id
+        WHERE s.evaluation_date=? AND s.evaluation_slot=?
+          AND s.aggregate_level IN ('position','cash')
+    """, [evaluation_date, slot]).fetchall()
+    for level, instrument_id, instrument_currency, raw_fx_date in rows:
+        currency = (
+            str(instrument_id).split("|", 1)[1]
+            if level == "cash" and "|" in str(instrument_id)
+            else str(instrument_currency or "KRW")
+        ).upper()
+        if currency == "KRW":
+            continue
+        try:
+            fx_date = date.fromisoformat(str(raw_fx_date))
+        except ValueError:
+            return True
+        if not earliest <= fx_date <= evaluation_date:
+            return True
+    return False
+
+
 def _decimal(value: object | None) -> Decimal:
     return Decimal("0") if value is None else Decimal(str(value))
 
@@ -171,6 +199,14 @@ def _build_digest(connection: Any, *, logical_date: date, slot: str, top_n: int)
         }
 
     assert prior is not None and current is not None
+    if _has_stale_fx_inputs(connection, evaluation_date=prior_date, slot=slot) or _has_stale_fx_inputs(
+        connection, evaluation_date=logical_date, slot=slot,
+    ):
+        digest = TotalAssetDigest(slot, current.snapshot_at, "unavailable", unavailable_codes=("fx_input_stale",))
+        return digest, {
+            "quality_status": "unavailable", "blocker_codes": ["fx_input_stale"],
+            "prior_date": prior_date.isoformat(),
+        }
     result = build_valuation_change_result(prior, current, top_n=top_n, include_account_breakdown=False)
     if result["status"] != "pass":
         public_blockers = ["state_quality_failed"]
@@ -252,6 +288,15 @@ def _build_owner_report(
             slot, source_at, "unavailable", unavailable_codes=tuple(blockers),
         ), {"quality_status": "unavailable", "blocker_codes": blockers, "prior_date": prior_date.isoformat()}
     assert prior is not None and current is not None
+    if _has_stale_fx_inputs(connection, evaluation_date=prior_date, slot=slot) or _has_stale_fx_inputs(
+        connection, evaluation_date=logical_date, slot=slot,
+    ):
+        return OwnerPortfolioReport(
+            slot, current.snapshot_at, "unavailable", unavailable_codes=("fx_input_stale",),
+        ), {
+            "quality_status": "unavailable", "blocker_codes": ["fx_input_stale"],
+            "prior_date": prior_date.isoformat(),
+        }
     result = build_valuation_change_result(prior, current, top_n=top_n, include_account_breakdown=False)
     if result["status"] != "pass" or current.total_value_krw <= 0:
         public_blockers = ["state_quality_failed"]
@@ -368,6 +413,26 @@ def _build_owner_report(
         "negative_count": len(report.negative),
         "top_impact_count": len(report.top_impacts),
         "reconciliation_status": "pass",
+    }
+
+
+def inspect_owner_report_readiness(
+    connection: Any, *, logical_date: date, slot: str,
+) -> dict[str, object]:
+    """Read-only, value-free preview of the exact scheduled owner-report gate."""
+    if slot not in ALLOWED_SLOTS:
+        raise ValueError("slot is not an owner-report slot")
+    report, evidence = _build_owner_report(
+        connection, logical_date=logical_date, slot=slot, top_n=5,
+    )
+    return {
+        "logical_date": logical_date.isoformat(),
+        "slot": slot,
+        "status": "ready" if report.quality_status == "pass" else "blocked",
+        "quality_status": report.quality_status,
+        "prior_date": evidence.get("prior_date"),
+        "blocker_codes": evidence.get("blocker_codes", []),
+        "send_attempted": False,
     }
 
 
