@@ -25,6 +25,8 @@ from kis_portfolio.services.total_asset_digest import (
     TotalAssetDigestConfig,
     run_owner_portfolio_report,
     run_total_asset_digest,
+    _build_owner_report,
+    inspect_owner_report_readiness,
     validate_total_asset_report_modes,
 )
 
@@ -343,6 +345,78 @@ def test_owner_report_suppresses_amounts_and_chart_when_state_is_incomplete() ->
     assert not client.photos and len(client.rich) == 1
     assert "계산 보류" in client.rich[0].html
     assert "₩" not in client.rich[0].html
+
+
+def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None:
+    """A failed prior 10:00 cannot be replaced by 16:00 or an older 10:00."""
+    connection = _connection()
+    connection.execute("UPDATE control.market_calendar SET trade_date='2026-09-15' WHERE trade_date='2026-09-07'")
+    connection.execute("UPDATE control.market_calendar SET trade_date='2026-09-17' WHERE trade_date='2026-09-08'")
+    connection.execute(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('KRX','2026-09-16',true,'')"
+    )
+    connection.execute(
+        "UPDATE gold.portfolio_daily_state SET evaluation_date='2026-09-15' WHERE evaluation_date='2026-09-07'"
+    )
+    connection.execute(
+        "UPDATE gold.portfolio_daily_state SET evaluation_date='2026-09-17' WHERE evaluation_date='2026-09-08'"
+    )
+    connection.execute(
+        "INSERT INTO gold.portfolio_daily_state SELECT '2026-09-16','kr-1600',account_id,instrument_id,"
+        "aggregate_level,quantity,value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,"
+        "as_of,input_watermarks,quality_status,lineage_hash FROM gold.portfolio_daily_state "
+        "WHERE evaluation_date='2026-09-17'"
+    )
+
+    report, evidence = _build_owner_report(
+        connection, logical_date=date(2026, 9, 17), slot="kr-1000", top_n=5,
+    )
+
+    assert report.quality_status == "unavailable"
+    assert evidence == {
+        "quality_status": "unavailable",
+        "blocker_codes": ["missing_prior_state"],
+        "prior_date": "2026-09-16",
+    }
+    assert report.total_asset_krw is None
+    assert inspect_owner_report_readiness(
+        connection, logical_date=date(2026, 9, 17), slot="kr-1000",
+    ) == {
+        "logical_date": "2026-09-17", "slot": "kr-1000", "status": "blocked",
+        "quality_status": "unavailable", "prior_date": "2026-09-16",
+        "blocker_codes": ["missing_prior_state"], "send_attempted": False,
+    }
+    assert connection.execute(
+        "SELECT count(*) FROM control.pipeline_runs WHERE pipeline_id=?", [V2_PIPELINE_ID],
+    ).fetchone()[0] == 0
+    connection.close()
+
+
+def test_report_readiness_rejects_stale_fx_even_when_gold_was_marked_pass() -> None:
+    """A historical pass label cannot launder a missing FX freshness check."""
+    connection = _connection()
+    observed = datetime(2026, 9, 8, 1, tzinfo=UTC)
+    connection.execute(
+        "INSERT INTO silver.instruments VALUES ('v1|NAS|TEST','NAS','TEST','Synthetic','equity','USD',NULL,?,NULL,'source','{}')",
+        [observed],
+    )
+    connection.execute("""
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,quantity,
+            value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,as_of,
+            input_watermarks,quality_status,lineage_hash
+        ) VALUES ('2026-09-08','kr-1000','acct-1','v1|NAS|TEST','position',1,
+                  1300,NULL,NULL,NULL,NULL,?,'{"fx_date":"2026-09-01"}','pass','stale-fx-lineage')
+    """, [observed])
+
+    readiness = inspect_owner_report_readiness(
+        connection, logical_date=date(2026, 9, 8), slot="kr-1000",
+    )
+
+    assert readiness["status"] == "blocked"
+    assert readiness["blocker_codes"] == ["fx_input_stale"]
+    assert readiness["send_attempted"] is False
+    connection.close()
 
 
 def test_owner_report_requires_private_destination_approval_and_exclusive_mode() -> None:

@@ -60,7 +60,7 @@ deployment did not supply the established outbound configuration or secret refer
 - [x] Generic V2 core deployment cannot silently disable owner-approved outbound settings.
 - [x] Focused, quick, full and protected CI gates pass.
 - [x] Three production Jobs share the tested image and restore alert, report, destination and secret-reference settings.
-- [ ] First post-release 10:00 run succeeds with exact per-request quality evidence and bounded delivery outcomes.
+- [x] First post-release 10:00 core run succeeds with exact per-request quality evidence and bounded delivery outcomes.
 - [ ] Owner confirms client-visible report or a legitimate no-send outcome; no historical send is replayed.
 
 ## Change impact
@@ -81,7 +81,10 @@ deployment did not supply the established outbound configuration or secret refer
 
 ## Sub-items
 
-- none.
+- `WI-059-S01` (`in_progress`): 2026-09-17 owner-visible 10:00 report was `unavailable` despite the
+  core run succeeding. Reproduce the missing-prior-slot cascade and stale FX gap with deterministic fixtures,
+  add a no-send report-readiness check, and correct existing FX ingestion/quality within the approved contract.
+  A current-only numeric report would change DEC-055 and remains outside this sub-item until owner approval.
 
 ## Stabilization plan
 
@@ -90,6 +93,30 @@ deployment did not supply the established outbound configuration or secret refer
 - Exit after live runtime evidence and owner-visible receipt or an explicitly justified no-send result.
 
 ## Evidence
+
+- 2026-09-17 10:00 execution `kis-portfolio-owned-core-v2-1000-wv8vg` completed successfully in 17m36s;
+  core run `194694f4-8907-4808-8f93-b7c0a08301ec` succeeded with 57 source calls. Owner report run
+  `7c2b6aa6-e7ae-4962-a465-1e1dc6b2ef56` was provider-sent with `quality_status=unavailable`.
+  Core quality rows were 5/5 configured-account coverage and 42/42 held-price-request coverage. The owner screenshot
+  confirms client-visible receipt of the 10:00 `계산 보류` message, not acceptance of a numeric report.
+  Read-only Control build evidence and a direct no-send invocation both returned `missing_prior_state` for
+  2026-09-16 `kr-1000`. Gold has no rows for that slot, though the failed run retained 26 positions, six cash
+  snapshots and 42 raw/adjusted price revision identities in governed Silver/Bronze. No historical message was
+  resent.
+- Independent read-only inventory found the latest `silver.fx_rates_daily` USD/KRW close dated 2026-09-11,
+  while 2026-09-17 `kr-1000` Gold contains four USD positions marked `pass`. The V2 core calls the FX API but
+  discards its return value instead of upserting governed Silver FX; the existing position quality expression
+  does not include FX freshness. This is an additional contract defect, not evidence that today's total is sound.
+- WI-059-S01 deterministic fixtures reproduce (a) the 9/16 failed-10:00 to 9/17 sent-but-unavailable cascade
+  without any provider request and (b) an old or missing FX rate incorrectly marking foreign Gold `pass`.
+  The governed Gold writer now degrades missing/stale FX; the owner-report reader rechecks historical Gold FX
+  watermarks before releasing values, and the existing 10:00 FX response is landed in V2 Bronze/Silver rather
+  than discarded. The read-only `scripts/check_owner_report_readiness.py` reproduced today's blocker as
+  `missing_prior_state` and found `fx_input_stale` on the otherwise pass-marked 9/16 16:00 comparison.
+- A single bounded, read-only KIS FX probe on 2026-09-17 with V1 cache write disabled yielded six parsable,
+  positive dated rows with latest source date 2026-09-17; no rates, credentials, account IDs or payloads were printed.
+  The correction adds no source call to the scheduled morning Job. Full shared gate: 737 passed, one pre-existing
+  Authlib deprecation warning; no production release or resend has occurred for WI-059-S01 yet.
 
 - 2026-09-16 execution `kis-portfolio-owned-core-v2-1000-fp9s2` failed at quality on run
   `4a561c37-c755-42c7-b402-8359f4cd2fd4` with 834 normalized distinct price rows from 42 requests.

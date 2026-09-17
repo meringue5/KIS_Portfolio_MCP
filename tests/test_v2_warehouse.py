@@ -93,3 +93,52 @@ def test_unknown_trade_side_fails_before_creating_event_or_lot(tmp_path: Path) -
     assert repository.table_count("silver.trade_event_revisions") == 0
     assert repository.table_count("silver.purchase_lots") == 0
     con.close()
+
+
+@pytest.mark.parametrize(
+    ("fx_date", "expected_quality"),
+    [
+        (date(2026, 9, 11), "degraded"),
+        (date(2026, 9, 16), "pass"),
+        (None, "degraded"),
+    ],
+)
+def test_foreign_daily_state_requires_recent_governed_fx(
+    fx_date: date | None, expected_quality: str,
+) -> None:
+    """A pass-marked USD position must not use a missing or week-old FX rate."""
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    observed = datetime(2026, 9, 17, 1, tzinfo=UTC)
+    con.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) VALUES ('KRX',?,true,'')",
+        [[date(2026, 9, 16)], [date(2026, 9, 17)]],
+    )
+    con.execute("INSERT INTO silver.accounts VALUES ('account','brokerage','REAL','KRW',?,NULL,'{}')", [observed])
+    con.execute(
+        "INSERT INTO silver.instruments VALUES ('v1|NAS|TEST','NAS','TEST','Synthetic','equity','USD',NULL,?,NULL,'source','{}')",
+        [observed],
+    )
+    con.execute(
+        "INSERT INTO silver.position_snapshots VALUES ('account','v1|NAS|TEST',?,1,10,'USD','position-observation','pass')",
+        [observed],
+    )
+    con.execute(
+        "INSERT INTO silver.price_bars_daily(instrument_id,session_date,price_basis,close,source_observation_id,quality_status) "
+        "VALUES ('v1|NAS|TEST','2026-09-16','raw',12,'price-observation','pass')",
+    )
+    if fx_date is not None:
+        con.execute(
+            "INSERT INTO silver.fx_rates_daily VALUES ('USD','KRW',?,'close',1300,'fx-observation','pass')",
+            [fx_date],
+        )
+
+    V2WarehouseRepository(con).materialize_daily_state(
+        evaluation_date=date(2026, 9, 17), slot="kr-1000", as_of=observed,
+    )
+
+    quality, = con.execute(
+        "SELECT quality_status FROM gold.portfolio_daily_state WHERE instrument_id='v1|NAS|TEST'"
+    ).fetchone()
+    assert quality == expected_quality
+    con.close()

@@ -143,6 +143,7 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
     overseas: dict[str, Any] = {}
     overseas_deposit: dict[str, Any] = {}
     price_observations: list[dict[str, Any]] = []
+    fx_observations: list[dict[str, Any]] = []
     if slot == "kr-1000":
         brokerage = next(account for account in accounts if account.label == "brokerage")
         with scoped_account_env(brokerage):
@@ -185,7 +186,14 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
                         "fetched_at": datetime.now(UTC), "raw": raw,
                     })
                     calls += 1
-            await kis_api.inquery_exchange_rate_history("USD", ymd, ymd)
+            fx_raw = await kis_api.inquery_exchange_rate_history(
+                "USD", (datetime.now(SEOUL).date() - timedelta(days=7)).strftime("%Y%m%d"),
+                ymd, save_to_db=False,
+            )
+            fx_observations.append({
+                "base_currency": "USD", "quote_currency": "KRW",
+                "fetched_at": datetime.now(UTC), "raw": fx_raw,
+            })
             calls += 1
     return {
         "domestic": domestic,
@@ -195,6 +203,7 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
         "domestic_symbols": domestic_symbols,
         "overseas_symbols": overseas_symbols,
         "price_observations": price_observations,
+        "fx_observations": fx_observations,
     }
 
 
@@ -233,6 +242,30 @@ def _operational_price_rows(observation: dict[str, Any]) -> list[dict[str, Any]]
     return rows
 
 
+def _operational_fx_rows(observation: dict[str, Any]) -> list[dict[str, Any]]:
+    output = observation["raw"].get("output2") or []
+    rows: list[dict[str, Any]] = []
+    for item in output if isinstance(output, list) else []:
+        session = item.get("stck_bsop_date") or item.get("xymd")
+        raw_rate = item.get("ovrs_nmix_prpr") or item.get("clos")
+        if not session or raw_rate in (None, ""):
+            continue
+        try:
+            rate = Decimal(str(raw_rate).replace(",", ""))
+            rate_date = datetime.strptime(str(session), "%Y%m%d").date()
+        except (InvalidOperation, ValueError):
+            continue
+        if not rate.is_finite() or rate <= 0:
+            continue
+        rows.append({
+            "base_currency": observation["base_currency"],
+            "quote_currency": observation["quote_currency"],
+            "rate_date": rate_date, "rate_type": "close", "rate": rate,
+            "quality_status": "pass",
+        })
+    return rows
+
+
 def build_owned_portfolio_pipeline(
     connection: duckdb.DuckDBPyConnection,
     *,
@@ -256,6 +289,7 @@ def build_owned_portfolio_pipeline(
             "overseas": collected["overseas"],
             "overseas_deposit": collected.get("overseas_deposit", {}),
             "price_observations": collected.get("price_observations", []),
+            "fx_observations": collected.get("fx_observations", []),
         }
         payload = json.dumps(redact_nested(safe_bundle), ensure_ascii=False, sort_keys=True, default=str).encode()
         stored = object_store.put_bytes(
@@ -311,8 +345,11 @@ def build_owned_portfolio_pipeline(
                 "overseas_deposit": bundle.get("overseas_deposit", {}),
                 "source_calls": 0, "domestic_symbols": [], "overseas_symbols": [],
                 "price_observations": bundle.get("price_observations", []),
+                "fx_observations": bundle.get("fx_observations", []),
             }
             for item in collected["price_observations"]:
+                item["fetched_at"] = datetime.fromisoformat(item["fetched_at"])
+            for item in collected["fx_observations"]:
                 item["fetched_at"] = datetime.fromisoformat(item["fetched_at"])
             context.state["collected"] = collected
         normalized = 0
@@ -472,8 +509,30 @@ def build_owned_portfolio_pipeline(
                 repository.upsert_price_bar(payload, obs)
                 normalized += 1
 
+        covered_fx_requests = 0
+        for observation in collected.get("fx_observations", []):
+            admissible_rows = [
+                payload for payload in _operational_fx_rows(observation)
+                if payload["rate_date"] <= context.logical_date
+            ]
+            if admissible_rows:
+                covered_fx_requests += 1
+            for payload in admissible_rows:
+                obs = repository.record_observation(
+                    "dataset.fx-rate-daily",
+                    _envelope(
+                        f"{context.run_id}:fx:{payload['base_currency']}:{payload['rate_date']}:close",
+                        payload, observation["fetched_at"],
+                    ),
+                    context.run_id,
+                )
+                repository.upsert_fx_rate(payload, obs)
+                normalized += 1
+
         context.state["price_expected_count"] = len(collected.get("price_observations", []))
         context.state["price_observed_count"] = covered_price_requests
+        context.state["fx_expected_count"] = len(collected.get("fx_observations", []))
+        context.state["fx_observed_count"] = covered_fx_requests
 
         # Historical price and FX rows are already governed in silver.price_bars_daily
         # and silver.fx_rates_daily.  Re-reading V1 main here would turn an archive into a

@@ -171,6 +171,7 @@ def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
             "missing_current_state": "현재 상태 없음",
             "state_quality_failed": "비교 상태 품질 미달",
             "reconciliation_failed": "합계 정합성 미달",
+            "fx_input_stale": "환율 입력 시점 품질 미달",
         }
         reasons = [reason_labels.get(str(code), "데이터 품질 확인 필요") for code in digest.unavailable_codes]
         html = (

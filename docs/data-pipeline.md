@@ -65,6 +65,9 @@ WI-012의 첫 production adapter는 `kis-portfolio-batch collect-owned-portfolio
 Cloud Run Job이며 build-once image digest를 공유한다. 10:00 slot은 미국 최근 마감 입력도 함께 읽고,
 최근 7일의 source history에서 latest applicable session을 선택해 주말·한국 휴일 gap을 메운다. 모든 raw
 bundle은 recursive secret redaction과 account masking 후 private GCS에 content hash로 랜딩한다.
+오전 slot이 이미 요청하는 USD/KRW 일별 환율 응답은 버리지 않고 동일 bundle의 관측과 V2 Bronze/Silver FX 행으로
+정규화한다. 외화 포지션·현금의 Gold 품질은 전 KRX 개장일부터 평가일까지의 positive passing FX가 있을 때만
+`pass`다. 과거 Gold의 `pass` 표기만으로 리포트 품질을 신뢰하지 않고 입력 FX watermark를 재검사한다.
 
 WI-015의 `pipeline.price-history-v2`는 계좌 snapshot 수집과 분리된 held-instrument price partition을 사용한다.
 국내와 해외 endpoint의 수정주가 option 의미를 따로 고정하고, page raw observation과 normalized content
