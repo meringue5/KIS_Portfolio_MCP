@@ -28,6 +28,7 @@ from kis_portfolio.application.valuation_change import (
     build_valuation_change_result,
     load_v2_canonical_state,
 )
+from kis_portfolio.application.portfolio_quality import fx_watermark_is_current
 from kis_portfolio.modules.core import new_id
 from kis_portfolio.platform.pipeline import ManagedPipelineRunner, PipelineDefinition, PipelineStage, StageResult
 from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig
@@ -149,15 +150,12 @@ def _has_stale_fx_inputs(connection: Any, *, evaluation_date: date, slot: str) -
         currency = (
             str(instrument_id).split("|", 1)[1]
             if level == "cash" and "|" in str(instrument_id)
-            else str(instrument_currency or "KRW")
+            else str(instrument_currency or "UNKNOWN")
         ).upper()
-        if currency == "KRW":
-            continue
-        try:
-            fx_date = date.fromisoformat(str(raw_fx_date))
-        except ValueError:
-            return True
-        if not earliest <= fx_date <= evaluation_date:
+        if not fx_watermark_is_current(
+            currency=currency, raw_fx_date=raw_fx_date,
+            evaluation_date=evaluation_date, earliest_fx_date=earliest,
+        ):
             return True
     return False
 

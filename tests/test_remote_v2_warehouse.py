@@ -104,6 +104,13 @@ async def test_portfolio_overview_summary_respects_account_alias():
         [NOW, NOW],
     )
     connection.executemany(
+        "INSERT INTO silver.instruments VALUES (?,?,?,?,?,?,NULL,?,NULL,'official','{}')",
+        [
+            ("KR:AAA", "KRX", "AAA", "Alpha", "stock", "KRW", NOW),
+            ("KR:BBB", "KRX", "BBB", "Beta", "stock", "KRW", NOW),
+        ],
+    )
+    connection.executemany(
         """
         INSERT INTO gold.portfolio_daily_state(
             evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
@@ -128,6 +135,117 @@ async def test_portfolio_overview_summary_respects_account_alias():
     assert result["data"]["summary"]["total_value_krw"] == "125.00"
     assert result["data"]["summary"]["quality_status"] == "pass"
     assert {row["account_label"] for row in result["data"]["positions"]} == {"alpha"}
+
+
+@pytest.mark.anyio
+async def test_portfolio_overview_does_not_claim_complete_total_from_degraded_rows():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.execute(
+        "INSERT INTO silver.instruments VALUES "
+        "('v1|KRX|000660','KRX','000660','SK하이닉스','stock','KRW',NULL,?,NULL,'official','{}')",
+        [NOW],
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
+            quantity, value_krw, cost_krw, unrealized_pnl_krw, contribution_pct,
+            allocation_pct, as_of, input_watermarks, quality_status, lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a',?,'position',1,?,NULL,NULL,NULL,NULL,?,'{}',?,?)
+        """,
+        [
+            ("v1|KRX|000660", "100", NOW, "pass", "lineage-krw"),
+            ("v1|NASDAQ|AAPL", "200", NOW, "degraded", "lineage-usd"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute("get-portfolio-overview", PortfolioOverviewRequest(), ACTOR)
+
+    assert result["quality"]["status"] == "partial"
+    assert result["data"]["summary"]["quality_status"] == "degraded"
+    assert result["data"]["summary"]["total_value_krw"] is None
+    assert result["data"]["summary"]["verified_krw_listed_positions_krw"] == "100.00"
+    assert result["missing_coverage"]
+
+
+@pytest.mark.anyio
+async def test_portfolio_overview_rechecks_old_pass_marked_fx_without_erasing_krw_positions():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.executemany(
+        "INSERT INTO silver.instruments VALUES (?,?,?,?,?,?,NULL,?,NULL,'official','{}')",
+        [
+            ("v1|KRX|000660", "KRX", "000660", "SK하이닉스", "stock", "KRW", NOW),
+            ("v1|NASDAQ|AAPL", "NASDAQ", "AAPL", "Apple", "stock", "USD", NOW),
+        ],
+    )
+    connection.execute(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open) VALUES ('KRX','2026-09-10',true)"
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
+            quantity, value_krw, cost_krw, unrealized_pnl_krw, contribution_pct,
+            allocation_pct, as_of, input_watermarks, quality_status, lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a',?,'position',1,?,NULL,NULL,NULL,NULL,?,?,?,?)
+        """,
+        [
+            ("v1|KRX|000660", "100", NOW, "{}", "pass", "lineage-krw"),
+            ("v1|NASDAQ|AAPL", "200", NOW, '{"fx_date":"2026-09-01"}', "pass", "lineage-usd"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute("get-portfolio-overview", PortfolioOverviewRequest(), ACTOR)
+
+    assert result["quality"]["status"] == "partial"
+    assert result["data"]["summary"]["total_value_krw"] is None
+    assert result["data"]["summary"]["verified_krw_listed_positions_krw"] == "100.00"
+    foreign = next(row for row in result["data"]["positions"] if row["instrument_id"] == "v1|NASDAQ|AAPL")
+    assert foreign["quality_status"] == "degraded"
+    assert foreign["value_krw"] is None
+    assert {item["reason"] for item in result["missing_coverage"]} == {"fx_input_stale"}
+
+
+@pytest.mark.anyio
+async def test_portfolio_overview_does_not_claim_complete_total_when_account_is_missing():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES "
+        "('acct-a','alpha','brokerage','KRW',?,NULL,'{}'),"
+        "('acct-b','beta','isa','KRW',?,NULL,'{}')",
+        [NOW, NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            quantity,value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,
+            allocation_pct,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a','cash|KRW','cash',NULL,100,
+                  NULL,NULL,NULL,NULL,?,'{}','pass','lineage-a')
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute("get-portfolio-overview", PortfolioOverviewRequest(), ACTOR)
+
+    assert result["quality"]["status"] == "partial"
+    assert result["data"]["summary"]["total_value_krw"] is None
+    assert {item["reason"] for item in result["missing_coverage"]} == {"account_coverage_gap"}
 
 
 @pytest.mark.anyio
@@ -276,7 +394,7 @@ async def test_exposure_analysis_returns_direct_positions_and_explicit_optional_
 
     assert result["data"]["direct"][0]["instrument_id"] == "v1|KRX|000660"
     assert result["data"]["direct"][0]["value_krw"] == "199320000.00"
-    assert result["quality"]["status"] == "pass"
+    assert result["quality"]["status"] == "partial"
     assert result["missing_coverage"] == [
         {"dataset_id": "dataset.macro-profile-snapshot", "reason": "no_governed_rows"},
         {"dataset_id": "dataset.etf-constituent-snapshot", "reason": "unsupported_initial_v2"},
@@ -366,7 +484,7 @@ async def test_performance_history_respects_account_alias():
             evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
             quantity, value_krw, cost_krw, unrealized_pnl_krw, contribution_pct,
             allocation_pct, as_of, input_watermarks, quality_status, lineage_hash
-        ) VALUES ('2026-09-11','kr-1000',?,?,'position',NULL,?,NULL,NULL,NULL,NULL,?,'{}','passed',?)
+        ) VALUES ('2026-09-11','kr-1000',?,?,'position',NULL,?,NULL,NULL,NULL,NULL,?,'{}','pass',?)
         """,
         [
             ("acct-a", "KR:AAA", "100", NOW, "lineage-a"),
@@ -387,6 +505,42 @@ async def test_performance_history_respects_account_alias():
     )
 
     assert result["data"]["history"][0]["total_value_krw"] == "100.00"
+    assert result["data"]["history"][0]["quality_status"] == "pass"
+
+
+@pytest.mark.anyio
+async def test_performance_history_does_not_sum_degraded_rows_as_complete_total():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            quantity,value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,
+            allocation_pct,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a',?,'position',1,?,
+                  NULL,NULL,NULL,NULL,?,'{}',?,?)
+        """,
+        [
+            ("v1|KRX|000660", "100", NOW, "pass", "lineage-krw"),
+            ("v1|NASDAQ|AAPL", "200", NOW, "degraded", "lineage-usd"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-performance-history",
+        PerformanceHistoryRequest(start_date=date(2026, 9, 11), end_date=date(2026, 9, 11)),
+        ACTOR,
+    )
+
+    assert result["quality"]["status"] == "partial"
+    assert result["data"]["history"][0]["quality_status"] == "degraded"
+    assert result["data"]["history"][0]["total_value_krw"] is None
 
 
 @pytest.mark.anyio
