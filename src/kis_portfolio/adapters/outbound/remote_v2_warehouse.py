@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import tomllib
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Mapping
 
 import duckdb
 
+from kis_portfolio.application.portfolio_quality import fx_watermark_is_current
 from kis_portfolio.common.values import rows_to_dicts
 from kis_portfolio.services.remote_read_surface import (
     V2_READ_TOOL_NAMES,
@@ -82,6 +84,7 @@ class WarehouseReadQueryPort:
         as_of: datetime | None = None,
         lineage_ref: str | None = None,
         missing_coverage: list[dict[str, Any]] | None = None,
+        quality_status: str | None = None,
     ) -> dict[str, Any]:
         missing = self._coverage(items, dataset_id) if missing_coverage is None else missing_coverage
         observed_at = as_of or datetime.now(UTC)
@@ -90,7 +93,7 @@ class WarehouseReadQueryPort:
             "as_of": observed_at,
             "source": {"mode": "stored", "dataset_id": dataset_id},
             "freshness": {"status": "available" if items else "unavailable", "as_of": observed_at},
-            "quality": {"status": "pass" if items else "partial", "row_count": len(items)},
+            "quality": {"status": quality_status or ("pass" if items else "partial"), "row_count": len(items)},
             "missing_coverage": missing,
             "lineage_ref": lineage_ref,
             "request_id": "pending",
@@ -184,45 +187,101 @@ class WarehouseReadQueryPort:
                   AND (? IS NULL OR a.account_label=?)
             )
             SELECT p.evaluation_date, p.evaluation_slot, a.account_label,
-                   p.instrument_id, i.name AS instrument_name, i.asset_type,
+                   p.instrument_id, coalesce(i.name,b.name) AS instrument_name, i.asset_type,
                    p.aggregate_level, p.quantity, p.value_krw, p.cost_krw,
                    p.unrealized_pnl_krw, p.contribution_pct, p.allocation_pct,
-                   p.as_of, p.quality_status
+                   p.as_of, p.quality_status,
+                   coalesce(i.market,b.market) AS _market,
+                   coalesce(i.currency,b.currency) AS _currency,
+                   json_extract_string(p.input_watermarks,'$.fx_date') AS _fx_date
             FROM gold.portfolio_daily_state p
             JOIN selected s ON p.as_of=s.as_of
             JOIN silver.accounts a ON a.account_id=p.account_id
             LEFT JOIN silver.instruments_current i ON i.instrument_id=p.instrument_id
+            LEFT JOIN silver.instruments b ON b.instrument_id=p.instrument_id
             WHERE (? IS NULL OR a.account_label=?)
             ORDER BY a.account_label, p.aggregate_level, p.value_krw DESC NULLS LAST
             """,
             [request.as_of, request.as_of, request.account_alias, request.account_alias,
              request.account_alias, request.account_alias],
         )
-        if not request.include_holdings:
-            rows = [row for row in rows if row.get("aggregate_level") != "instrument"]
         as_of = _latest_datetime(rows, "as_of")
+        evaluation_date = rows[0]["evaluation_date"] if rows else None
+        prior_open = self.connection.execute(
+            "SELECT max(trade_date) FROM control.market_calendar "
+            "WHERE lower(market)='krx' AND is_open AND trade_date<?",
+            [evaluation_date],
+        ).fetchone()[0] if evaluation_date else None
+        earliest_fx_date = prior_open or evaluation_date
+        missing: list[dict[str, Any]] = []
+        for row in rows:
+            currency = str(row.pop("_currency") or (
+                str(row["instrument_id"]).split("|", 1)[1]
+                if row["aggregate_level"] == "cash" and "|" in str(row["instrument_id"])
+                else "UNKNOWN"
+            )).upper()
+            market = str(row.pop("_market") or "").upper()
+            fx_date = row.pop("_fx_date")
+            row["_verified_krw_listed"] = (
+                row["aggregate_level"] == "position" and market == "KRX" and currency == "KRW"
+                and row["quality_status"] == "pass"
+            )
+            if currency == "UNKNOWN":
+                row["quality_status"] = "degraded"
+                missing.append({"dataset_id": "dataset.instrument-master", "reason": "unknown_currency"})
+            elif earliest_fx_date and not fx_watermark_is_current(
+                currency=currency, raw_fx_date=fx_date,
+                evaluation_date=evaluation_date, earliest_fx_date=earliest_fx_date,
+            ):
+                row["quality_status"] = "degraded"
+                missing.append({"dataset_id": "dataset.fx-rate-daily", "reason": "fx_input_stale"})
+            elif row["quality_status"] != "pass":
+                missing.append({"dataset_id": "dataset.portfolio-daily-state", "reason": "degraded_components"})
+            if row["quality_status"] != "pass":
+                for field in ("value_krw", "cost_krw", "unrealized_pnl_krw", "contribution_pct", "allocation_pct"):
+                    row[field] = None
         total_rows = [
             row for row in rows if row.get("aggregate_level") in {"position", "cash"}
         ]
+        observed_aliases = {str(row["account_label"]) for row in total_rows}
+        expected_aliases = {
+            str(account[0]) for account in self.connection.execute(
+                "SELECT account_label FROM silver.accounts "
+                "WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?) "
+                "AND (? IS NULL OR account_label=?)",
+                [as_of, as_of, request.account_alias, request.account_alias],
+            ).fetchall()
+        } if as_of else set()
+        if observed_aliases != expected_aliases:
+            missing.append({"dataset_id": "dataset.portfolio-daily-state", "reason": "account_coverage_gap"})
+        complete = bool(total_rows) and not missing
+        verified_krw_rows = [row for row in total_rows if row.pop("_verified_krw_listed")]
+        for row in rows:
+            row.pop("_verified_krw_listed", None)
         summary = None
         if total_rows:
             summary = {
                 "evaluation_date": total_rows[0]["evaluation_date"],
                 "evaluation_slot": total_rows[0]["evaluation_slot"],
-                "total_value_krw": sum(row["value_krw"] for row in total_rows),
-                "quality_status": (
-                    "degraded"
-                    if any(row.get("quality_status") != "pass" for row in total_rows)
-                    else "pass"
+                "total_value_krw": sum((row["value_krw"] for row in total_rows), Decimal("0")) if complete else None,
+                "verified_krw_listed_positions_krw": sum(
+                    (row["value_krw"] for row in verified_krw_rows), Decimal("0")
                 ),
+                "verified_krw_listed_positions_count": len(verified_krw_rows),
+                "quality_status": "pass" if complete else "degraded",
                 "as_of": as_of,
             }
+        if not request.include_holdings:
+            rows = [row for row in rows if row.get("aggregate_level") != "instrument"]
+        missing = list({(item["dataset_id"], item["reason"]): item for item in missing}.values())
         return self._envelope(
             data={"summary": summary, "positions": rows},
             items=rows,
             dataset_id="dataset.portfolio-daily-state",
             as_of=as_of,
             lineage_ref="gold.portfolio_daily_state",
+            missing_coverage=missing if rows else None,
+            quality_status="pass" if complete else "partial",
         )
 
     def _get_position_analysis(self, request: PositionAnalysisRequest) -> dict[str, Any]:
@@ -258,9 +317,10 @@ class WarehouseReadQueryPort:
         rows = self._rows(
             """
             SELECT p.evaluation_date, p.evaluation_slot,
-                   sum(p.value_krw) AS total_value_krw,
-                   CASE WHEN count_if(p.quality_status <> 'passed') > 0
-                        THEN 'degraded' ELSE 'passed' END AS quality_status,
+                   CASE WHEN count_if(p.quality_status <> 'pass') > 0
+                        THEN NULL ELSE sum(p.value_krw) END AS total_value_krw,
+                   CASE WHEN count_if(p.quality_status <> 'pass') > 0
+                        THEN 'degraded' ELSE 'pass' END AS quality_status,
                    max(p.as_of) AS as_of
             FROM gold.portfolio_daily_state p
             JOIN silver.accounts a ON a.account_id=p.account_id
@@ -273,10 +333,15 @@ class WarehouseReadQueryPort:
             [request.start_date, request.end_date, request.account_alias,
              request.account_alias, request.limit],
         )
+        missing = [
+            {"dataset_id": "dataset.portfolio-daily-state", "reason": "degraded_history_rows"}
+        ] if any(row["quality_status"] != "pass" for row in rows) else None
         return self._envelope(
             data={"grain": request.grain, "history": rows}, items=rows,
             dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),
             lineage_ref="gold.portfolio_daily_summary",
+            missing_coverage=missing,
+            quality_status="partial" if missing else None,
         )
 
     def _get_market_snapshot(self, request: MarketSnapshotRequest) -> dict[str, Any]:
@@ -499,6 +564,7 @@ class WarehouseReadQueryPort:
             dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),
             lineage_ref="gold.portfolio_daily_state|gold.macro_profile_snapshots",
             missing_coverage=missing,
+            quality_status="partial" if missing else "pass",
         )
 
     def _get_signal_status(self, request: SignalStatusRequest) -> dict[str, Any]:

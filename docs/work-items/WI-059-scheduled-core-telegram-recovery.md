@@ -81,10 +81,11 @@ deployment did not supply the established outbound configuration or secret refer
 
 ## Sub-items
 
-- `WI-059-S01` (`in_progress`): 2026-09-17 owner-visible 10:00 report was `unavailable` despite the
+- `WI-059-S01` (`stabilizing`): 2026-09-17 owner-visible 10:00 report was `unavailable` despite the
   core run succeeding. Reproduce the missing-prior-slot cascade and stale FX gap with deterministic fixtures,
   add a no-send report-readiness check, and correct existing FX ingestion/quality within the approved contract.
-  A current-only numeric report would change DEC-055 and remains outside this sub-item until owner approval.
+  A current-only numeric report would change DEC-055 and remains outside this sub-item. The owner has since
+  requested an independent partial-capability redesign under WI-060; this recovery item's history is preserved.
 
 ## Stabilization plan
 
@@ -116,7 +117,10 @@ deployment did not supply the established outbound configuration or secret refer
 - A single bounded, read-only KIS FX probe on 2026-09-17 with V1 cache write disabled yielded six parsable,
   positive dated rows with latest source date 2026-09-17; no rates, credentials, account IDs or payloads were printed.
   The correction adds no source call to the scheduled morning Job. Full shared gate: 737 passed, one pre-existing
-  Authlib deprecation warning; no production release or resend has occurred for WI-059-S01 yet.
+  Authlib deprecation warning. PR #120 merged as master `10de63a`; protected run `35172054518` succeeded with
+  finance-free photo smoke. The three owned-core Jobs share immutable image `sha256:e02bf49aa13057287a323d368401dc4fc8eb41f633684a541b75f509bda762c3` and restored owner-report flags.
+  Post-release no-send readiness still reports `missing_prior_state` for 9/17 10:00 and `fx_input_stale` for 9/16
+  16:00. No historical financial message was replayed; user-visible numeric acceptance remains open.
 
 - 2026-09-16 execution `kis-portfolio-owned-core-v2-1000-fp9s2` failed at quality on run
   `4a561c37-c755-42c7-b402-8359f4cd2fd4` with 834 normalized distinct price rows from 42 requests.
