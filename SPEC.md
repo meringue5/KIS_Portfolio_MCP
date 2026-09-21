@@ -802,6 +802,31 @@ Portfolio의 유일한 production architecture로 확정한다. V1 revision과 l
 
 ---
 
+### ADR-029: 포트폴리오 소비자는 capability별 품질을 합성하고 독립 실패를 전파하지 않는다
+
+**결정**: 총자산 consumer의 품질 단위를 하나의 전역 boolean에서 `native holdings`, `KRX/KRW listed
+positions`, `foreign conversion`, `complete current total`, `same-slot comparison`, `optional context` capability로
+분리한다. application layer의 순수 판정기가 각 capability의 값·상태·누락 범위를 구성하고 Remote MCP와
+Telegram adapter는 동일 판정을 표현한다.
+
+**상태**: 2026-09-17 owner의 resilient-but-accurate 재설계 지시와 2026-09-21 단일 release 지시로 승인.
+제품 표시 계약은 DEC-057, 실행 추적은 WI-060이 소유한다.
+
+**계약**:
+
+- 완전 현재 총액과 비교 metric은 기존 fail-closed 품질·reconciliation을 유지한다.
+- 이전 상태는 비교 capability의 입력이지 현재 보유나 현재 총액 capability의 입력이 아니다.
+- 환율은 외화 원화환산의 입력이지 KRX/KRW 상장 포지션 부분값의 입력이 아니다.
+- optional macro와 ETF look-through는 core holdings를 gate하지 않으며 unsupported와 missing을 구분한다.
+- application 판정기는 adapter, transport와 provider를 import하지 않는다. adapter는 값 의미를 재판정하지
+  않고 안전한 필드 allowlist, 크기, 개인정보와 외부 전송 계약만 집행한다.
+- 부분값은 이름에 coverage를 포함하고 source/effective time과 제외 이유를 함께 제공한다. 완전 합계 필드의
+  의미를 완화하지 않는다.
+- 운영 변경은 하나의 immutable image를 Remote MCP와 owner-report Job에 반영하는 좁은 보호된 release target을
+  사용한다. 별도 서비스나 always-on fallback worker는 추가하지 않는다.
+
+---
+
 ## Retained V1 implementation appendix
 
 > 이 아래 내용은 초기 KIS endpoint 조사와 V1 구현 명세를 보존한 역사 자료다. 현재 client setup, public

@@ -29,6 +29,7 @@ on:
           - wi055-s01
           - wi055-s03
           - wi055-s04
+          - wi060
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -128,6 +129,7 @@ jobs:
       KIS_WI048_S02_JOB_NAME: ${{ vars.KIS_WI048_S02_JOB_NAME || 'kis-portfolio-wi048-s02' }}
       KIS_TELEGRAM_BOT_TOKEN_VERSION: ${{ vars.KIS_TELEGRAM_BOT_TOKEN_VERSION }}
       KIS_TELEGRAM_CHAT_ID_VERSION: ${{ vars.KIS_TELEGRAM_CHAT_ID_VERSION }}
+      KOREA_EXIM_API_KEY_VERSION: ${{ vars.KOREA_EXIM_API_KEY_VERSION || '1' }}
       KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED: ${{ vars.KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED || 'false' }}
       KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED: ${{ vars.KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED || 'false' }}
       KIS_TELEGRAM_OWNER_DESTINATION_APPROVED: ${{ vars.KIS_TELEGRAM_OWNER_DESTINATION_APPROVED || 'false' }}
@@ -158,7 +160,7 @@ jobs:
             test -n "${KIS_OAUTH_GOOGLE_CLIENT_ID}" || { echo "KIS_OAUTH_GOOGLE_CLIENT_ID var is required."; exit 1; }
             test -n "${KIS_OAUTH_GITHUB_CLIENT_ID}" || { echo "KIS_OAUTH_GITHUB_CLIENT_ID var is required."; exit 1; }
           fi
-          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ] || [ "${target}" = "wi048-s02" ] || [ "${target}" = "wi051-final-audit" ]; then
+          if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ] || [ "${target}" = "wi048-s02" ] || [ "${target}" = "wi051-final-audit" ] || [ "${target}" = "wi060" ]; then
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -396,6 +398,25 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI030_S03_JOB_NAME}" \
             --secret-mode secret-manager
+
+      - name: Deploy WI-060 resilient partial portfolio release
+        if: github.event.inputs.target == 'wi060'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi060 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_REMOTE_SERVICE_NAME}" \
+            --rollback-manifest "${RUNNER_TEMP}/wi060-rollback-manifest.json" \
+            --secret-mode secret-manager
+
+      - name: Preserve WI-060 rollback manifest
+        if: always() && github.event.inputs.target == 'wi060'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wi060-rollback-manifest-${{ github.run_id }}
+          path: ${{ runner.temp }}/wi060-rollback-manifest.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Stage WI-046 additive migration and zero-traffic V2 candidates
         if: github.event.inputs.target == 'wi046-stage'

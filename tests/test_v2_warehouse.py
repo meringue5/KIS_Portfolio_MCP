@@ -96,15 +96,16 @@ def test_unknown_trade_side_fails_before_creating_event_or_lot(tmp_path: Path) -
 
 
 @pytest.mark.parametrize(
-    ("fx_date", "expected_quality"),
+    ("fx_date", "rate_type", "expected_quality"),
     [
-        (date(2026, 9, 11), "degraded"),
-        (date(2026, 9, 16), "pass"),
-        (None, "degraded"),
+        (date(2026, 9, 11), "close", "degraded"),
+        (date(2026, 9, 16), "close", "pass"),
+        (date(2026, 9, 17), "deal_bas_r", "pass"),
+        (None, "close", "degraded"),
     ],
 )
 def test_foreign_daily_state_requires_recent_governed_fx(
-    fx_date: date | None, expected_quality: str,
+    fx_date: date | None, rate_type: str, expected_quality: str,
 ) -> None:
     """A pass-marked USD position must not use a missing or week-old FX rate."""
     con = duckdb.connect(":memory:")
@@ -129,8 +130,8 @@ def test_foreign_daily_state_requires_recent_governed_fx(
     )
     if fx_date is not None:
         con.execute(
-            "INSERT INTO silver.fx_rates_daily VALUES ('USD','KRW',?,'close',1300,'fx-observation','pass')",
-            [fx_date],
+            "INSERT INTO silver.fx_rates_daily VALUES ('USD','KRW',?,?,1300,'fx-observation','pass')",
+            [fx_date, rate_type],
         )
 
     V2WarehouseRepository(con).materialize_daily_state(

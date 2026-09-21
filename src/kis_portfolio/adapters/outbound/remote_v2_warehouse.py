@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import tomllib
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Mapping
 
 import duckdb
 
+from kis_portfolio.application.portfolio_quality import (
+    PortfolioQualityComponent,
+    component_quality_reasons,
+    evaluate_portfolio_capabilities,
+)
 from kis_portfolio.common.values import rows_to_dicts
 from kis_portfolio.services.remote_read_surface import (
     V2_READ_TOOL_NAMES,
@@ -82,6 +88,7 @@ class WarehouseReadQueryPort:
         as_of: datetime | None = None,
         lineage_ref: str | None = None,
         missing_coverage: list[dict[str, Any]] | None = None,
+        quality_status: str | None = None,
     ) -> dict[str, Any]:
         missing = self._coverage(items, dataset_id) if missing_coverage is None else missing_coverage
         observed_at = as_of or datetime.now(UTC)
@@ -90,7 +97,7 @@ class WarehouseReadQueryPort:
             "as_of": observed_at,
             "source": {"mode": "stored", "dataset_id": dataset_id},
             "freshness": {"status": "available" if items else "unavailable", "as_of": observed_at},
-            "quality": {"status": "pass" if items else "partial", "row_count": len(items)},
+            "quality": {"status": quality_status or ("pass" if items else "partial"), "row_count": len(items)},
             "missing_coverage": missing,
             "lineage_ref": lineage_ref,
             "request_id": "pending",
@@ -184,45 +191,116 @@ class WarehouseReadQueryPort:
                   AND (? IS NULL OR a.account_label=?)
             )
             SELECT p.evaluation_date, p.evaluation_slot, a.account_label,
-                   p.instrument_id, i.name AS instrument_name, i.asset_type,
+                   p.instrument_id, coalesce(i.name,b.name) AS instrument_name, i.asset_type,
                    p.aggregate_level, p.quantity, p.value_krw, p.cost_krw,
                    p.unrealized_pnl_krw, p.contribution_pct, p.allocation_pct,
-                   p.as_of, p.quality_status
+                   p.as_of, p.quality_status,
+                   coalesce(i.market,b.market) AS _market,
+                   coalesce(i.currency,b.currency) AS _currency,
+                   json_extract_string(p.input_watermarks,'$.fx_date') AS _fx_date
             FROM gold.portfolio_daily_state p
             JOIN selected s ON p.as_of=s.as_of
             JOIN silver.accounts a ON a.account_id=p.account_id
             LEFT JOIN silver.instruments_current i ON i.instrument_id=p.instrument_id
+            LEFT JOIN silver.instruments b ON b.instrument_id=p.instrument_id
             WHERE (? IS NULL OR a.account_label=?)
             ORDER BY a.account_label, p.aggregate_level, p.value_krw DESC NULLS LAST
             """,
             [request.as_of, request.as_of, request.account_alias, request.account_alias,
              request.account_alias, request.account_alias],
         )
-        if not request.include_holdings:
-            rows = [row for row in rows if row.get("aggregate_level") != "instrument"]
         as_of = _latest_datetime(rows, "as_of")
+        evaluation_date = rows[0]["evaluation_date"] if rows else None
+        prior_open = self.connection.execute(
+            "SELECT max(trade_date) FROM control.market_calendar "
+            "WHERE lower(market)='krx' AND is_open AND trade_date<?",
+            [evaluation_date],
+        ).fetchone()[0] if evaluation_date else None
+        earliest_fx_date = prior_open or evaluation_date
+        missing: list[dict[str, Any]] = []
+        quality_components: list[PortfolioQualityComponent] = []
+        for row in rows:
+            currency = str(row.pop("_currency") or (
+                str(row["instrument_id"]).split("|", 1)[1]
+                if row["aggregate_level"] == "cash" and "|" in str(row["instrument_id"])
+                else "UNKNOWN"
+            )).upper()
+            market = str(row.pop("_market") or "").upper()
+            fx_date = row.pop("_fx_date")
+            component = PortfolioQualityComponent(
+                account_ref=str(row["account_label"]),
+                aggregate_level=str(row["aggregate_level"]),
+                market=market,
+                currency=currency,
+                value_krw=Decimal(str(row["value_krw"] or 0)),
+                quality_status=str(row["quality_status"]),
+                fx_date=fx_date,
+            )
+            if component.aggregate_level in {"position", "cash"}:
+                quality_components.append(component)
+            row_reasons = component_quality_reasons(
+                component,
+                evaluation_date=evaluation_date,
+                earliest_fx_date=earliest_fx_date,
+            ) if evaluation_date and earliest_fx_date else ("missing_evaluation_date",)
+            if row_reasons:
+                row["quality_status"] = "degraded"
+                for reason in row_reasons:
+                    dataset_id = {
+                        "unknown_currency": "dataset.instrument-master",
+                        "fx_input_stale": "dataset.fx-rate-daily",
+                    }.get(reason, "dataset.portfolio-daily-state")
+                    missing.append({"dataset_id": dataset_id, "reason": reason})
+            if row["quality_status"] != "pass":
+                for field in ("value_krw", "cost_krw", "unrealized_pnl_krw", "contribution_pct", "allocation_pct"):
+                    row[field] = None
         total_rows = [
             row for row in rows if row.get("aggregate_level") in {"position", "cash"}
         ]
+        observed_aliases = {str(row["account_label"]) for row in total_rows}
+        expected_aliases = {
+            str(account[0]) for account in self.connection.execute(
+                "SELECT account_label FROM silver.accounts "
+                "WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?) "
+                "AND (? IS NULL OR account_label=?)",
+                [as_of, as_of, request.account_alias, request.account_alias],
+            ).fetchall()
+        } if as_of else set()
+        if observed_aliases != expected_aliases:
+            missing.append({"dataset_id": "dataset.portfolio-daily-state", "reason": "account_coverage_gap"})
+        capability = evaluate_portfolio_capabilities(
+            quality_components,
+            expected_accounts=expected_aliases,
+            evaluation_date=evaluation_date,
+            earliest_fx_date=earliest_fx_date,
+        ) if evaluation_date and earliest_fx_date else None
+        complete = bool(capability and capability.complete)
         summary = None
         if total_rows:
             summary = {
                 "evaluation_date": total_rows[0]["evaluation_date"],
                 "evaluation_slot": total_rows[0]["evaluation_slot"],
-                "total_value_krw": sum(row["value_krw"] for row in total_rows),
-                "quality_status": (
-                    "degraded"
-                    if any(row.get("quality_status") != "pass" for row in total_rows)
-                    else "pass"
+                "total_value_krw": capability.complete_total_krw if capability else None,
+                "verified_krw_listed_positions_krw": (
+                    capability.verified_krw_listed_positions_krw if capability else Decimal("0")
                 ),
+                "verified_krw_listed_positions_count": (
+                    capability.verified_krw_listed_positions_count if capability else 0
+                ),
+                "quality_status": "pass" if complete else "degraded",
                 "as_of": as_of,
             }
+        if not request.include_holdings:
+            rows = [row for row in rows if row.get("aggregate_level") != "instrument"]
+        missing = list({(item["dataset_id"], item["reason"]): item for item in missing}.values())
         return self._envelope(
             data={"summary": summary, "positions": rows},
             items=rows,
             dataset_id="dataset.portfolio-daily-state",
             as_of=as_of,
             lineage_ref="gold.portfolio_daily_state",
+            missing_coverage=missing if rows else None,
+            quality_status="pass" if complete else "partial",
         )
 
     def _get_position_analysis(self, request: PositionAnalysisRequest) -> dict[str, Any]:
@@ -258,9 +336,10 @@ class WarehouseReadQueryPort:
         rows = self._rows(
             """
             SELECT p.evaluation_date, p.evaluation_slot,
-                   sum(p.value_krw) AS total_value_krw,
-                   CASE WHEN count_if(p.quality_status <> 'passed') > 0
-                        THEN 'degraded' ELSE 'passed' END AS quality_status,
+                   CASE WHEN count_if(p.quality_status <> 'pass') > 0
+                        THEN NULL ELSE sum(p.value_krw) END AS total_value_krw,
+                   CASE WHEN count_if(p.quality_status <> 'pass') > 0
+                        THEN 'degraded' ELSE 'pass' END AS quality_status,
                    max(p.as_of) AS as_of
             FROM gold.portfolio_daily_state p
             JOIN silver.accounts a ON a.account_id=p.account_id
@@ -273,10 +352,15 @@ class WarehouseReadQueryPort:
             [request.start_date, request.end_date, request.account_alias,
              request.account_alias, request.limit],
         )
+        missing = [
+            {"dataset_id": "dataset.portfolio-daily-state", "reason": "degraded_history_rows"}
+        ] if any(row["quality_status"] != "pass" for row in rows) else None
         return self._envelope(
             data={"grain": request.grain, "history": rows}, items=rows,
             dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),
             lineage_ref="gold.portfolio_daily_summary",
+            missing_coverage=missing,
+            quality_status="partial" if missing else None,
         )
 
     def _get_market_snapshot(self, request: MarketSnapshotRequest) -> dict[str, Any]:
@@ -499,6 +583,7 @@ class WarehouseReadQueryPort:
             dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),
             lineage_ref="gold.portfolio_daily_state|gold.macro_profile_snapshots",
             missing_coverage=missing,
+            quality_status="partial" if missing else "pass",
         )
 
     def _get_signal_status(self, request: SignalStatusRequest) -> dict[str, Any]:
@@ -584,11 +669,21 @@ class WarehouseReadQueryPort:
             "dataset_id": dataset_id,
             "reason": "no_quality_evidence_in_window",
         }]
+        statuses = {str(row["status"]).lower() for row in rows}
+        if not rows:
+            quality_status = "partial"
+        elif statuses & {"fail", "failed", "error", "unavailable"}:
+            quality_status = "failed"
+        elif statuses == {"pass"}:
+            quality_status = "pass"
+        else:
+            quality_status = "partial"
         return self._envelope(
             data={"results": rows, "next_cursor": None}, items=rows,
             dataset_id="dataset.data-quality-evidence", as_of=_latest_datetime(rows, "evaluated_at"),
             lineage_ref="control.quality_results",
             missing_coverage=missing,
+            quality_status=quality_status,
         )
 
     def _get_pipeline_run(self, request: PipelineRunRequest) -> dict[str, Any]:
@@ -597,7 +692,12 @@ class WarehouseReadQueryPort:
             """
             SELECT s.run_id, s.pipeline_id, s.pipeline_version, s.logical_date, s.slot,
                    s.partition_key, s.status, s.source_calls, s.stage_count,
-                   s.succeeded_stage_count, s.started_at, s.finished_at
+                   s.succeeded_stage_count, s.started_at, s.finished_at,
+                   (SELECT count(*) FROM control.quality_results q WHERE q.run_id=s.run_id)
+                       AS quality_evidence_count,
+                   (SELECT count(*) FROM control.quality_results q
+                       WHERE q.run_id=s.run_id AND lower(q.status)<>'pass')
+                       AS failed_quality_evidence_count
             FROM control.pipeline_run_summary s
             JOIN control.pipeline_runs r ON r.run_id=s.run_id
             WHERE (? IS NULL OR s.run_id=? OR r.idempotency_key=?)
@@ -608,12 +708,36 @@ class WarehouseReadQueryPort:
             """,
             [request.run_id, request.run_id, request.run_id,
              pipeline_id, pipeline_id,
-             request.as_of, request.as_of, request.lookback_days, request.limit],
+            request.as_of, request.as_of, request.lookback_days, request.limit],
         )
+        missing: list[dict[str, Any]] = []
+        run_statuses = {str(row["status"]).lower() for row in rows}
+        if not rows:
+            quality_status = "partial"
+        elif run_statuses & {"failed", "error", "cancelled"} or any(
+            int(row["failed_quality_evidence_count"] or 0) > 0 for row in rows
+        ):
+            quality_status = "failed"
+        elif any(
+            row["pipeline_id"] == "pipeline.owned-portfolio-core-v2"
+            and int(row["quality_evidence_count"] or 0) == 0
+            for row in rows
+        ):
+            quality_status = "partial"
+            missing.append({
+                "dataset_id": "dataset.data-quality-evidence",
+                "reason": "quality_evidence_missing_for_run",
+            })
+        elif run_statuses == {"succeeded"}:
+            quality_status = "pass"
+        else:
+            quality_status = "partial"
         return self._envelope(
             data={"runs": rows, "next_cursor": None}, items=rows,
             dataset_id="dataset.pipeline-run-evidence", as_of=_latest_datetime(rows, "finished_at", "started_at"),
             lineage_ref="control.pipeline_run_summary",
+            missing_coverage=missing if rows else None,
+            quality_status=quality_status,
         )
 
     def _get_journal_review_queue(self, request: JournalReviewQueueRequest) -> dict[str, Any]:

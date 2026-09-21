@@ -40,6 +40,16 @@ def test_workflow_dispatches_wi055_s04_to_exact_deploy_target():
     assert "scripts/deploy_cloud_run.py wi055-s04" in workflow
 
 
+def test_workflow_dispatches_wi060_as_one_protected_remote_and_job_release():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi060" in workflow
+    assert "github.event.inputs.target == 'wi060'" in workflow
+    assert "scripts/deploy_cloud_run.py wi060" in workflow
+    assert '--rollback-manifest "${RUNNER_TEMP}/wi060-rollback-manifest.json"' in workflow
+    assert "wi060-rollback-manifest-${{ github.run_id }}" in workflow
+    assert "environment: production" in workflow
+
+
 def test_workflow_dispatches_wi046_zero_traffic_stage_target():
     workflow = WORKFLOW_PATH.read_text()
     assert "github.event.inputs.target == 'wi046-stage'" in workflow
@@ -539,6 +549,141 @@ def test_wi055_s04_reuses_atomic_owner_report_release_with_new_labels(monkeypatc
         "deploy_label": "wi055-s04-caption-layout",
         "smoke_label": "wi055-s04-photo-transport-smoke",
     }
+
+
+def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_send(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi060", dry_run=True,
+        secret_mode="secret-manager", service="kis-portfolio-remote",
+    )
+    image = "registry.example/kis@sha256:test"
+    commands = []
+    captured = {}
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    def deploy_jobs(_args, **kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", deploy_jobs)
+
+    result = deploy_cloud_run._deploy_wi060(
+        args,
+        env={
+            "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
+            "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+            "KOREA_EXIM_API_KEY_VERSION": "1",
+            "KIS_REMOTE_AUTH_MODE": "oauth",
+            "KIS_RESOURCE_SERVER_URL": "https://kis-portfolio-remote.example.test/mcp",
+            "KIS_AUTH_BASE_URL": "https://kis-portfolio-auth.example.test",
+        },
+        project="project",
+    )
+
+    assert result == 0
+    assert len(commands) == 4
+    assert commands[0][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
+    assert commands[0][commands[0].index("--image") + 1] == image
+    assert "--no-traffic" in commands[0]
+    assert commands[1][0:3] == ["gcloud", "secrets", "add-iam-policy-binding"]
+    assert commands[1][3] == "kis-portfolio-korea-exim-api-key"
+    assert commands[2][0:4] == ["gcloud", "run", "jobs", "execute"]
+    assert "validate-korea-exim-fx-source,--date,today" in commands[2]
+    assert commands[3][0:4] == ["gcloud", "run", "services", "update-traffic"]
+    assert "send-telegram-photo-transport-smoke" not in " ".join(commands[0])
+    assert captured["image"] == image
+    assert captured["deploy_label"] == "wi060-resilient-partial"
+    assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
+    assert captured["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
+    assert captured["env"]["KOREA_EXIM_FX_ENABLED"] == "true"
+
+
+def test_wi060_failed_fx_preflight_restores_all_prior_job_definitions(
+    monkeypatch, tmp_path,
+):
+    rollback_path = tmp_path / "rollback.json"
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi060", dry_run=False,
+        secret_mode="secret-manager", service="kis-portfolio-remote",
+        rollback_manifest=str(rollback_path),
+    )
+    image = "registry.example/kis@sha256:test"
+    rollback_components = [
+        {"kind": "job", "name": name, "previous_export": f"metadata:\n  name: {name}\n"}
+        for name in deploy_cloud_run.DEFAULT_V2_CORE_JOBS.values()
+    ]
+    restored = {}
+
+    def capture_manifest(**_kwargs):
+        rollback_path.write_text(json.dumps({"components": rollback_components}))
+        return True
+
+    def run(command, **_kwargs):
+        if command[0:4] == ["gcloud", "run", "jobs", "execute"]:
+            return 1
+        return 0
+
+    def restore(**kwargs):
+        restored.update(kwargs)
+        return True
+
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(deploy_cloud_run, "_capture_wi051_rollback_manifest", capture_manifest)
+    monkeypatch.setattr(deploy_cloud_run, "_anticipated_tagged_service_host", lambda **_kwargs: "candidate.example.test")
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_tagged_service", lambda **_kwargs: 0)
+    monkeypatch.setattr(deploy_cloud_run, "_tagged_service_url", lambda **_kwargs: "https://candidate.example.test")
+    monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_tagged_urls", lambda **_kwargs: True)
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(deploy_cloud_run, "_rollback_job_definitions", restore)
+    monkeypatch.setattr(deploy_cloud_run, "_run", run)
+
+    result = deploy_cloud_run._deploy_wi060(
+        args,
+        env={
+            "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
+            "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+            "KOREA_EXIM_API_KEY_VERSION": "1",
+            "KIS_REMOTE_AUTH_MODE": "oauth",
+            "KIS_RESOURCE_SERVER_URL": "https://kis-portfolio-remote.example.test/mcp",
+            "KIS_AUTH_BASE_URL": "https://kis-portfolio-auth.example.test",
+        },
+        project="project",
+    )
+
+    assert result == 1
+    assert restored["components"] == rollback_components
+    assert restored["job_names"] == list(deploy_cloud_run.DEFAULT_V2_CORE_JOBS.values())
+
+
+def test_rollback_job_definitions_restore_exact_exports_in_reverse_order(monkeypatch):
+    commands = []
+    exports = []
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        exports.append(Path(command[4]).read_text())
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_run", run)
+
+    restored = deploy_cloud_run._rollback_job_definitions(
+        components=[
+            {"kind": "job", "name": "morning", "previous_export": "metadata:\n  name: morning\n"},
+            {"kind": "job", "name": "close", "previous_export": "metadata:\n  name: close\n"},
+        ],
+        job_names=["morning", "close"],
+        region="asia-northeast3",
+        project="project",
+    )
+
+    assert restored is True
+    assert all(command[0:4] == ["gcloud", "run", "jobs", "replace"] for command in commands)
+    assert exports == ["metadata:\n  name: close\n", "metadata:\n  name: morning\n"]
 
 
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
@@ -1608,6 +1753,13 @@ def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatc
 
     def capture(command, *, dry_run):
         name = command[4]
+        if "--format=export" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=f"apiVersion: run.googleapis.com/v1\nmetadata:\n  name: {name}\n",
+                stderr="",
+            )
         if command[2] == "services":
             payload = {
                 "metadata": {"name": name, "generation": 12},
@@ -1652,6 +1804,9 @@ def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatc
     assert all("previous_serving_revision" in item for item in services)
     assert all(item["previous_serving_revision"].endswith("-00010-stable") for item in services)
     assert all("update-traffic" in item["rollback_command"] for item in services)
+    jobs = [item for item in manifest["components"] if item["kind"] == "job"]
+    assert all("previous_export" in item for item in jobs)
+    assert all("replace" in item["rollback_command"] for item in jobs)
 
 
 def test_wi051_service_traffic_rollback_restores_actual_prior_serving_revisions(monkeypatch):

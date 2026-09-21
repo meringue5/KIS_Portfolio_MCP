@@ -161,6 +161,19 @@ stabilization_exit_work_item_ids = ["WI-059"]
 rollback_policy = "append_only_feedback"
 work_item_ids = ["WI-059"]
 
+[[milestones]]
+id = "MS-007"
+title = "Resilient partial portfolio usability and data-source isolation"
+status = "in_progress"
+depends_on = ["MS-005"]
+implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
+production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
+overlap_work_item_ids = []
+overlap_mode = "none"
+stabilization_exit_work_item_ids = ["WI-060"]
+rollback_policy = "append_only_feedback"
+work_item_ids = ["WI-060"]
+
 [[work_items]]
 id = "WI-009"
 identity = "canonical-portfolio-ledger"
@@ -683,11 +696,24 @@ rollback_of = []
 parent_id = ""
 sequence = 1
 
+[[work_items]]
+id = "WI-060"
+identity = "resilient-partial-portfolio-usability"
+title = "Isolate portfolio capability failures and provide accurate partial results"
+milestone_id = "MS-007"
+delivery_refs = []
+depends_on = []
+discovered_from = ["WI-059", "WI-055", "WI-058"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 1
+
 [[subitems]]
 id = "WI-059-S01"
 parent_id = "WI-059"
 title = "Reproduce missing-prior report cascade and enforce FX/report readiness without waiting for a slot"
-status = "in_progress"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-058-S01"

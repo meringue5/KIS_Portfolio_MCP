@@ -156,6 +156,7 @@ def _set_ms003_overlap_state(target: Path) -> None:
     _set_milestone_status(target, "MS-004", "proposed")
     _set_milestone_status(target, "MS-005", "proposed")
     _set_milestone_status(target, "MS-006", "proposed")
+    _set_milestone_status(target, "MS-007", "proposed")
     for filename in (
         "WI-058-remote-mcp-identifier-and-coverage-correction.md",
         "WI-059-scheduled-core-telegram-recovery.md",

@@ -547,8 +547,12 @@ class V2WarehouseRepository:
             JOIN silver.instruments i ON i.instrument_id = p.instrument_id
             JOIN latest_bars b ON b.instrument_id = p.instrument_id
             LEFT JOIN (
-                SELECT * FROM silver.fx_rates_daily WHERE rate_date <= ? AND rate_type='close'
-                QUALIFY row_number() OVER (PARTITION BY base_currency, quote_currency ORDER BY rate_date DESC)=1
+                SELECT * FROM silver.fx_rates_daily
+                WHERE rate_date <= ? AND rate_type IN ('close', 'deal_bas_r')
+                QUALIFY row_number() OVER (
+                    PARTITION BY base_currency, quote_currency
+                    ORDER BY rate_date DESC, CASE rate_type WHEN 'close' THEN 0 ELSE 1 END
+                )=1
             ) f ON f.base_currency = i.currency AND f.quote_currency = 'KRW'
             ON CONFLICT DO NOTHING
         """, [evaluation_date, evaluation_date, evaluation_date, slot, as_of,
@@ -572,8 +576,12 @@ class V2WarehouseRepository:
                    sha256(c.source_observation_id || '|' || coalesce(f.source_observation_id, 'KRW'))
             FROM latest_cash c
             LEFT JOIN (
-                SELECT * FROM silver.fx_rates_daily WHERE rate_date<=? AND rate_type='close'
-                QUALIFY row_number() OVER (PARTITION BY base_currency, quote_currency ORDER BY rate_date DESC)=1
+                SELECT * FROM silver.fx_rates_daily
+                WHERE rate_date<=? AND rate_type IN ('close', 'deal_bas_r')
+                QUALIFY row_number() OVER (
+                    PARTITION BY base_currency, quote_currency
+                    ORDER BY rate_date DESC, CASE rate_type WHEN 'close' THEN 0 ELSE 1 END
+                )=1
             ) f ON f.base_currency=c.currency AND f.quote_currency='KRW'
             ON CONFLICT DO NOTHING
         """, [evaluation_date, evaluation_date, slot, as_of, earliest_fx_date, evaluation_date])

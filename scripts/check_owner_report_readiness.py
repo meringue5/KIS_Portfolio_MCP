@@ -51,7 +51,7 @@ def main() -> int:
         print(json.dumps({"status": "inspection_failed", "send_attempted": False}))
         return 2
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    return 0 if result["status"] == "ready" else 1
+    return 0 if result["status"] in {"ready", "ready_partial"} else 1
 
 
 if __name__ == "__main__":
