@@ -589,7 +589,7 @@ def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_se
     assert commands[0][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
     assert commands[0][commands[0].index("--image") + 1] == image
     assert "--no-traffic" in commands[0]
-    assert commands[1][0:3] == ["gcloud", "secrets", "add-iam-policy-binding"]
+    assert commands[1][0:3] == ["gcloud", "secrets", "get-iam-policy"]
     assert commands[1][3] == "kis-portfolio-korea-exim-api-key"
     assert commands[2][0:4] == ["gcloud", "run", "jobs", "execute"]
     assert "validate-korea-exim-fx-source,--date,today" in commands[2]
@@ -639,6 +639,7 @@ def test_wi060_failed_fx_preflight_restores_all_prior_job_definitions(
     monkeypatch.setattr(deploy_cloud_run, "_tagged_service_url", lambda **_kwargs: "https://candidate.example.test")
     monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_tagged_urls", lambda **_kwargs: True)
     monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(deploy_cloud_run, "_secret_has_accessor", lambda **_kwargs: True)
     monkeypatch.setattr(deploy_cloud_run, "_rollback_job_definitions", restore)
     monkeypatch.setattr(deploy_cloud_run, "_run", run)
 
@@ -658,6 +659,54 @@ def test_wi060_failed_fx_preflight_restores_all_prior_job_definitions(
     assert result == 1
     assert restored["components"] == rollback_components
     assert restored["job_names"] == list(deploy_cloud_run.DEFAULT_V2_CORE_JOBS.values())
+
+
+def test_secret_accessor_preflight_is_read_only_and_exact(monkeypatch):
+    calls = []
+
+    def capture(command, **_kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=json.dumps({
+                "bindings": [{
+                    "role": "roles/secretmanager.secretAccessor",
+                    "members": ["serviceAccount:pipeline@example.test"],
+                }],
+            }),
+            stderr="",
+        )
+
+    monkeypatch.setattr(deploy_cloud_run, "_run_capture", capture)
+
+    assert deploy_cloud_run._secret_has_accessor(
+        secret_id="exact-secret",
+        member="serviceAccount:pipeline@example.test",
+        project="project",
+        dry_run=False,
+    ) is True
+    assert calls == [[
+        "gcloud", "secrets", "get-iam-policy", "exact-secret",
+        "--project", "project", "--format=json",
+    ]]
+
+
+def test_secret_accessor_preflight_rejects_missing_member(monkeypatch):
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run_capture",
+        lambda command, **_kwargs: subprocess.CompletedProcess(
+            command, 0, stdout=json.dumps({"bindings": []}), stderr="",
+        ),
+    )
+
+    assert deploy_cloud_run._secret_has_accessor(
+        secret_id="exact-secret",
+        member="serviceAccount:pipeline@example.test",
+        project="project",
+        dry_run=False,
+    ) is False
 
 
 def test_rollback_job_definitions_restore_exact_exports_in_reverse_order(monkeypatch):

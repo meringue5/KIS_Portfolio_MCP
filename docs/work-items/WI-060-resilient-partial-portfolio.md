@@ -106,7 +106,8 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 
 ## Sub-items
 
-- `none`. Independent future provider activation or physical schema work should receive a separate Work Item.
+- `WI-060-S01` — pre-provision the exact FX Secret accessor and keep the protected release's IAM check read-only;
+  discovered from protected run `35663503027` before any Job or serving-traffic change.
 
 ## Stabilization plan
 
@@ -146,10 +147,17 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - The external FX slice has deterministic parser, source-date, stale-reference, cross-source disagreement and
   empty-response coverage. `scripts/check_fx_fallback_cases.py` passes four immediate no-network/no-DB/no-send
   cases. Focused client/service/pipeline/warehouse/release tests pass (96 tests). The WI-060 dry-run stages one
-  immutable Remote revision at zero traffic, grants only the pipeline identity access to the exact secret, updates
+  immutable Remote revision at zero traffic, verifies the pre-provisioned exact-secret accessor binding, updates
   all three fixed-slot Jobs, executes the read-only source preflight, and promotes Remote only afterward. A failed
   preflight restores all prior Job definitions; HTTP error causes that could embed the auth query are discarded.
   The complete repository gate passes with 763 tests and one pre-existing Authlib deprecation warning.
+- Protected run `35663503027` built merge `a72518e` as digest `sha256:ef124d7a...b81896` and staged Remote revision
+  `kis-portfolio-remote-00063-vab` at 0% traffic, then stopped before any Job update because the intentionally
+  non-admin GitHub deploy identity could not add the new Secret IAM binding. Existing Remote revision `00048-77w`
+  remained at 100% and all Jobs remained unchanged. The corrective release path now treats IAM as pre-provisioned
+  infrastructure and performs an exact read-only accessor check instead of requesting Secret IAM mutation rights.
+  The exact `kis-portfolio-pipeline` accessor binding was then provisioned once with an owner-authorized local
+  administrative identity; no project-wide role and no GitHub Actions IAM-administration permission was added.
 
 ## Closeout
 

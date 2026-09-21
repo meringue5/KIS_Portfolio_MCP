@@ -636,6 +636,31 @@ def _run_capture(command: list[str], *, dry_run: bool) -> subprocess.CompletedPr
     )
 
 
+def _secret_has_accessor(
+    *, secret_id: str, member: str, project: str, dry_run: bool,
+) -> bool:
+    """Verify pre-provisioned least-privilege access without mutating IAM."""
+    command = [
+        "gcloud", "secrets", "get-iam-policy", secret_id,
+        "--project", project, "--format=json",
+    ]
+    if dry_run:
+        return _run(command, dry_run=True) == 0
+    completed = _run_capture(command, dry_run=False)
+    if completed.returncode != 0:
+        return False
+    try:
+        policy = json.loads(completed.stdout or "{}")
+    except json.JSONDecodeError:
+        return False
+    return any(
+        binding.get("role") == "roles/secretmanager.secretAccessor"
+        and member in binding.get("members", [])
+        for binding in policy.get("bindings", [])
+        if isinstance(binding, dict)
+    )
+
+
 def _build_run_job_uri(*, project: str, region: str, job: str) -> str:
     return f"https://run.googleapis.com/v2/projects/{project}/locations/{region}/jobs/{job}:run"
 
@@ -2390,14 +2415,13 @@ def _deploy_wi060(
         "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
         f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
     )
-    if _run([
-        "gcloud", "secrets", "add-iam-policy-binding",
-        _secret_id_for_env_key("KOREA_EXIM_API_KEY"),
-        "--member", f"serviceAccount:{pipeline_identity}",
-        "--role", "roles/secretmanager.secretAccessor",
-        "--project", project,
-    ], dry_run=args.dry_run) != 0:
-        print("WI-060 could not grant the pipeline identity access to the exact FX secret.")
+    if not _secret_has_accessor(
+        secret_id=_secret_id_for_env_key("KOREA_EXIM_API_KEY"),
+        member=f"serviceAccount:{pipeline_identity}",
+        project=project,
+        dry_run=args.dry_run,
+    ):
+        print("WI-060 exact FX secret accessor binding is not pre-provisioned.")
         return 1
     if _deploy_v2_core_jobs(
         args,

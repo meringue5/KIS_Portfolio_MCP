@@ -335,6 +335,10 @@ Secret Manager secret id 규칙:
 - `MOTHERDUCK_TOKEN` → `kis-portfolio-motherduck-token`
 - `KOREA_EXIM_API_KEY` → `kis-portfolio-korea-exim-api-key`; WI-060은 숫자 버전을 고정한다.
 
+`wi060` workflow는 IAM을 변경하지 않는다. 운영 배포 전에 정확한 pipeline service account에 위 Secret의
+`roles/secretmanager.secretAccessor`를 별도로 한 번 부여해야 하며, release script는 그 exact binding을
+read-only로 확인한다. GitHub Actions 배포 계정에는 Secret IAM 관리자 권한을 추가하지 않는다.
+
 `wi060` release는 zero-traffic Remote 후보를 검증하고 세 Job을 갱신한 뒤, 첫 Job을 인자 override로
 `validate-korea-exim-fx-source` 실행한다. 이 preflight는 메시지·포트폴리오 write 없이 exact-date
 `deal_bas_r`와 최근 KIS reference 편차만 확인한다. 실패하면 Job 전체 export를 복구하고 Remote traffic을
