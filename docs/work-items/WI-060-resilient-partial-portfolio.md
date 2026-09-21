@@ -13,15 +13,15 @@ depends_on: none
 discovered_from: WI-059, WI-055, WI-058
 supersedes: none
 rollback_of: none
-execution_scope: isolated
-production_effects: none
+execution_scope: production
+production_effects: guarded Remote MCP and three fixed-slot owned-core Job deployment
 architecture_impact: yes; separate capability quality, read-model and report boundaries without changing the V2 trust boundary
 data_impact: approved additive FX source/observation/rate-type contracts; production activation remains pending
-security_impact: retain owner-only destination, masked accounts, no payload or secret logging
-cost_impact: assess bounded second FX source within the existing monthly ceiling before activation
-stabilization_window: none
-stabilization_exit_refs: none
-rollback_plan: none
+security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; no payload or secret logging
+cost_impact: free official source; at most one fallback call per managed run and no new standing resource
+stabilization_window: protected source preflight plus immediate real MCP review and first owner-visible scheduled report after release
+stabilization_exit_refs: immutable release workflow, exact Job and Remote image labels, source preflight result, real Claude MCP output, redacted owner receipt
+rollback_plan: preserve the prior Remote traffic split and exact three Job exports; restore them automatically on source preflight, promotion or canonical smoke failure
 ---
 
 # WI-060 — Resilient partial portfolio usability

@@ -1,6 +1,6 @@
 # MS-007 — Resilient partial portfolio usability
 
-> 상태: in_progress (approved implementation; protected production release pending)
+> 상태: in_progress (production release authorized; protected workflow pending)
 > 선행 milestone: MS-005 closed; MS-006 is discovery context, not a prerequisite
 > machine registry: `governance/project/milestones.toml`
 
@@ -13,12 +13,12 @@ facts and scoped KRW subsets useful when comparison history, FX or optional anal
 
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
-| 1 | WI-060 capability-isolated portfolio usability | none; discovered from WI-059 | in_progress, approved implementation |
+| 1 | WI-060 capability-isolated portfolio usability | none; discovered from WI-059 | in_progress, production release authorized |
 
 ## Gates
 
-- Implementation: MS-005 closed; WI-060 has approved capability-isolated and external-FX contracts with no
-  production effects yet.
+- Implementation: MS-005 closed; WI-060 has approved capability-isolated and external-FX contracts and the owner
+  authorized the protected production release after providing the external-source credential.
 - Production: MS-005 closed and separately approved DEC/ADR/data contracts. Do not wait for unrelated MS-006
   owner acceptance, which itself needs this usability correction.
 - Exit: deterministic failure matrix, corrected read-model semantics, real Claude and Telegram user review,
