@@ -1056,3 +1056,27 @@ freshness_slo = "query-time projection of available run and stage evidence"
 quality_rules = ["run identity unique", "stage counts reconcile to stage evidence", "view status is not official composed quality"]
 producer_pipeline_ids = []
 consumer_ids = ["legacy operations compatibility", "diagnostics only"]
+
+[[contracts]]
+id = "dataset.fx-rate-fallback-observation"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "한국수출입은행 후보 환율의 요청일·응답일·정확한 native rate field와 수집시각을 보존하는 fallback 검증 관측."
+decision_refs = ["DEC-057", "ADR-029"]
+layer = "silver"
+source_ids = ["source.korea-eximbank-open-api"]
+input_dataset_ids = []
+purpose = "KIS 환율 결손 시 대체 가능성을 검증하되 의미가 다른 환율을 valuation에 자동 혼합하지 않는다."
+grain = "one provider response date, currency pair and native rate field"
+natural_key = ["provider", "response_date", "base_currency", "quote_currency", "native_rate_field"]
+time_semantics = "requested_date, provider response date and fetched_at remain distinct; knowledge begins at fetched_at"
+write_mode = "append-only normalized observations with content hash; no overwrite across provider revisions"
+schema_contract = "proposed FX fallback observation v1 with native value unit rate field requested date response date fetched_at and quality"
+sensitivity = "internal"
+retention_policy = "no rows before activation; after approval retain normalized observations for at least three years"
+backup_policy = "parquet"
+freshness_slo = "unapproved; same-slot 10:00 and 16:00 KST availability must be measured before valuation use"
+quality_rules = ["positive finite rate", "currency pair and native field explicit", "requested and response dates present", "weekend and holiday resolution explicit", "provider shape drift fails", "disagreement with primary source quarantines rather than silently chooses"]
+producer_pipeline_ids = ["pipeline.fx-fallback-validation-v1"]
+consumer_ids = ["FX fallback validation only; not production valuation while proposed"]

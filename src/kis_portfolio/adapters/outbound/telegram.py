@@ -100,6 +100,8 @@ class OwnerPortfolioReport:
     source_at: datetime
     quality_status: str
     total_asset_krw: int | None = None
+    verified_krw_listed_positions_krw: int | None = None
+    verified_krw_listed_positions_count: int = 0
     total_change_krw: int | None = None
     total_change_percent: Decimal | None = None
     asset_allocations: Sequence[ChartAllocation] = ()
@@ -279,7 +281,7 @@ def _validate_allocations(
 
 
 def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichMessage | TelegramPhotoMessage:
-    """Render exact owner values only after complete state and alias-boundary validation."""
+    """Render complete or explicitly scoped owner values after boundary validation."""
     slot_labels = {"kr-1000": "오전 10시", "kr-1600": "오후 4시"}
     slot_label = slot_labels.get(report.slot)
     if slot_label is None or report.source_at.tzinfo is None:
@@ -287,13 +289,63 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
     source_at = report.source_at.astimezone(_SEOUL)
     if report.quality_status == "unavailable":
         if any(value is not None for value in (
-            report.total_asset_krw, report.total_change_krw, report.total_change_percent,
+            report.total_asset_krw, report.verified_krw_listed_positions_krw,
+            report.total_change_krw, report.total_change_percent,
         )) or (report.asset_allocations or report.account_allocations or report.positive
                or report.negative or report.top_impacts):
             raise UnsafeTelegramPayload("unavailable owner report cannot contain financial values")
         return render_total_asset_digest(TotalAssetDigest(
             report.slot, report.source_at, "unavailable", unavailable_codes=report.unavailable_codes,
         ))
+    if report.quality_status == "partial":
+        if report.total_change_krw is not None or report.total_change_percent is not None:
+            raise UnsafeTelegramPayload("partial owner report cannot contain comparison values")
+        if report.asset_allocations or report.account_allocations or report.positive or report.negative or report.top_impacts:
+            raise UnsafeTelegramPayload("partial owner report cannot contain complete allocations or impacts")
+        if not report.unavailable_codes or any(
+            not _SAFE_REASON.fullmatch(str(code)) for code in report.unavailable_codes
+        ):
+            raise UnsafeTelegramPayload("partial owner report requires bounded reason codes")
+        if report.total_asset_krw is not None:
+            if report.total_asset_krw <= 0:
+                raise UnsafeTelegramPayload("partial current total must be positive")
+            value_lines = (
+                f"<p><b>현재 총자산 {_format_krw(report.total_asset_krw)}</b><br>"
+                "현재 상태는 완전하지만 전일 비교는 산출하지 않았습니다.</p>"
+            )
+        else:
+            subtotal = report.verified_krw_listed_positions_krw
+            if subtotal is None or subtotal <= 0 or report.verified_krw_listed_positions_count <= 0:
+                raise UnsafeTelegramPayload("partial owner report requires a positive scoped subtotal")
+            value_lines = (
+                f"<p><b>확인된 KRX·KRW 상장종목 합계 {_format_krw(subtotal)}</b><br>"
+                f"가격·보유 품질을 통과한 {report.verified_krw_listed_positions_count}개 포지션의 부분합입니다. "
+                "총자산이 아닙니다.</p>"
+            )
+        reason_labels = {
+            "missing_prior_state": "이전 동일 시각 상태 없음",
+            "prior_fx_input_stale": "이전 상태 환율 시점 품질 미달",
+            "fx_input_stale": "현재 환율 시점 품질 미달",
+            "degraded_components": "일부 현재 구성요소 품질 미달",
+            "account_coverage_gap": "일부 계좌 상태 누락",
+            "mixed_state_cutoff": "현재 구성요소 기준시각 불일치",
+            "unknown_currency": "일부 통화 식별 불가",
+            "state_quality_failed": "비교 상태 품질 미달",
+            "reconciliation_failed": "비교 합계 정합성 미달",
+        }
+        reasons = [reason_labels.get(str(code), "데이터 품질 확인 필요") for code in report.unavailable_codes]
+        html = (
+            f"<h3>🟡 총자산 현황 · {slot_label}</h3>"
+            "<p>일부 데이터 수집 또는 비교에 문제가 있어 확인된 범위만 표시합니다.</p>"
+            + value_lines
+            + "<details><summary>제외 범위</summary><p>"
+            + escape(" · ".join(dict.fromkeys(reasons)))
+            + "</p></details>"
+            + f"<footer>{source_at:%Y-%m-%d %H:%M} · KST</footer>"
+        )
+        if len(html) > 3500 or _ACCOUNT_NUMBER.search(html):
+            raise UnsafeTelegramPayload("partial owner report is unsafe or too large")
+        return TelegramRichMessage(html)
     if report.quality_status != "pass":
         raise UnsafeTelegramPayload("owner report quality is not allowlisted")
     if report.total_asset_krw is None or report.total_asset_krw <= 0:

@@ -170,3 +170,20 @@ schedule_policy = "disabled"
 trigger_policy = "no scheduler, batch or MCP trigger is authorized"
 cost_budget = "zero because collection is prohibited"
 acceptance_rules = ["no physical table or object created", "no adapter or scraping code shipped", "replacement requires a named source, rights review, cost estimate and owner approval", "links may only enter an approved research-reference contract"]
+
+[[contracts]]
+id = "collection.fx-fallback-validation-v1"
+version = "1.0.0"
+status = "proposed"
+owner = "owner"
+description = "KIS 일별 환율 결손 때 한국수출입은행 공식 환율 후보의 시점·종류·불일치를 검증하는 비활성 장바구니."
+decision_refs = ["DEC-057", "ADR-029"]
+scope = "held foreign currencies only, initially USD/KRW; requested valuation date and bounded prior open dates for holiday resolution"
+source_ids = ["source.korea-eximbank-open-api"]
+dataset_ids = ["dataset.fx-rate-fallback-observation"]
+priority = "recommended"
+history_policy = "no backfill before activation; retain only approved normalized observations and provenance after the activation date"
+schedule_policy = "none while proposed; future calls compose inside existing scale-to-zero portfolio Jobs only"
+trigger_policy = "disabled until API credential, exact rate-field meaning, publication lag and discrepancy thresholds are owner-approved"
+cost_budget = "free official API and at most one shared date lookup per portfolio run; no new service or always-on worker"
+acceptance_rules = ["official oapi.koreaexim.go.kr host only", "public-data license and attribution retained", "requested date and provider response date both recorded", "exact rate field and unit mapped without heuristic", "same-slot availability measured for 10:00 and 16:00 KST", "KIS disagreement over the approved threshold quarantines conversion", "missing holiday empty timeout and shape drift stay explicit", "credential stored only in Secret Manager", "no production calls before approved source dataset and pipeline contracts"]

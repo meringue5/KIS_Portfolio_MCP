@@ -304,6 +304,46 @@ async def test_pipeline_run_accepts_public_portfolio_refresh_name():
 
     assert result["data"]["runs"][0]["pipeline_id"] == "pipeline.owned-portfolio-core-v2"
     assert result["source"]["dataset_id"] == "dataset.pipeline-run-evidence"
+    assert result["quality"]["status"] == "partial"
+    assert result["missing_coverage"] == [{
+        "dataset_id": "dataset.data-quality-evidence",
+        "reason": "quality_evidence_missing_for_run",
+    }]
+
+
+@pytest.mark.anyio
+async def test_pipeline_success_with_pass_quality_evidence_is_not_false_partial():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        """
+        INSERT INTO control.pipeline_runs(
+            run_id,pipeline_id,pipeline_version,logical_date,slot,partition_key,
+            idempotency_key,status,source_calls,started_at,finished_at
+        ) VALUES ('run-quality','pipeline.owned-portfolio-core-v2','1.0.0',
+                  '2026-09-11','kr-1600','all-accounts','logical-quality',
+                  'succeeded',39,?,?)
+        """,
+        [NOW, NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO control.quality_results VALUES (
+            'quality-run','run-quality','dataset.price-bar-daily',
+            'held-instrument-price-coverage','pass','24','24','{}',?
+        )
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-pipeline-run", PipelineRunRequest(pipeline_id="portfolio-refresh", as_of=NOW), ACTOR,
+    )
+
+    assert result["quality"]["status"] == "pass"
+    assert result["data"]["runs"][0]["quality_evidence_count"] == 1
+    assert result["missing_coverage"] == []
 
 
 @pytest.mark.anyio
@@ -456,6 +496,30 @@ async def test_data_quality_accepts_public_price_bar_name_and_returns_canonical_
     assert result["quality"] == {"status": "pass", "row_count": 1}
     assert result["data"]["results"][0]["dataset_id"] == "dataset.price-bar-daily"
     assert result["missing_coverage"] == []
+
+
+@pytest.mark.anyio
+async def test_data_quality_failed_rule_cannot_be_wrapped_as_pass():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        """
+        INSERT INTO control.quality_results VALUES (
+            'quality-failed','run-failed','dataset.price-bar-daily',
+            'held-instrument-price-coverage','failed','23','24','{}',?
+        )
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-data-quality",
+        DataQualityRequest(dataset_id="price-bar-daily", as_of=NOW, lookback_days=1),
+        ACTOR,
+    )
+
+    assert result["quality"] == {"status": "failed", "row_count": 1}
 
 
 @pytest.mark.anyio

@@ -327,7 +327,7 @@ def test_owner_report_rejects_internal_or_unreconciled_impact_values() -> None:
         render_owner_portfolio_report(unreconciled)
 
 
-def test_owner_report_suppresses_amounts_and_chart_when_state_is_incomplete() -> None:
+def test_owner_report_keeps_complete_current_total_when_only_prior_state_is_missing() -> None:
     connection = _connection()
     connection.execute("DELETE FROM gold.portfolio_daily_state WHERE evaluation_date='2026-09-07'")
     client = RecordingPhotoClient()
@@ -341,10 +341,11 @@ def test_owner_report_suppresses_amounts_and_chart_when_state_is_incomplete() ->
         client=client,
     )
 
-    assert result["quality_status"] == "unavailable"
+    assert result["quality_status"] == "partial"
     assert not client.photos and len(client.rich) == 1
-    assert "계산 보류" in client.rich[0].html
-    assert "₩" not in client.rich[0].html
+    assert "현재 총자산 ₩1,050" in client.rich[0].html
+    assert "전일 비교는 산출하지 않았습니다" in client.rich[0].html
+    assert "이전 동일 시각 상태 없음" in client.rich[0].html
 
 
 def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None:
@@ -372,18 +373,20 @@ def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None
         connection, logical_date=date(2026, 9, 17), slot="kr-1000", top_n=5,
     )
 
-    assert report.quality_status == "unavailable"
+    assert report.quality_status == "partial"
     assert evidence == {
-        "quality_status": "unavailable",
+        "quality_status": "partial",
         "blocker_codes": ["missing_prior_state"],
         "prior_date": "2026-09-16",
+        "current_total_available": True,
+        "verified_krw_listed_positions_count": 2,
     }
-    assert report.total_asset_krw is None
+    assert report.total_asset_krw == 1050
     assert inspect_owner_report_readiness(
         connection, logical_date=date(2026, 9, 17), slot="kr-1000",
     ) == {
-        "logical_date": "2026-09-17", "slot": "kr-1000", "status": "blocked",
-        "quality_status": "unavailable", "prior_date": "2026-09-16",
+        "logical_date": "2026-09-17", "slot": "kr-1000", "status": "ready_partial",
+        "quality_status": "partial", "prior_date": "2026-09-16",
         "blocker_codes": ["missing_prior_state"], "send_attempted": False,
     }
     assert connection.execute(
@@ -412,10 +415,44 @@ def test_report_readiness_rejects_stale_fx_even_when_gold_was_marked_pass() -> N
     readiness = inspect_owner_report_readiness(
         connection, logical_date=date(2026, 9, 8), slot="kr-1000",
     )
+    report, evidence = _build_owner_report(
+        connection, logical_date=date(2026, 9, 8), slot="kr-1000", top_n=5,
+    )
+    message = render_owner_portfolio_report(report)
 
-    assert readiness["status"] == "blocked"
+    assert readiness["status"] == "ready_partial"
+    assert readiness["quality_status"] == "partial"
     assert readiness["blocker_codes"] == ["fx_input_stale"]
     assert readiness["send_attempted"] is False
+    assert report.total_asset_krw is None
+    assert report.verified_krw_listed_positions_krw == 840
+    assert report.verified_krw_listed_positions_count == 2
+    assert evidence["current_total_available"] is False
+    assert isinstance(message, TelegramRichMessage)
+    assert "확인된 KRX·KRW 상장종목 합계 ₩840" in message.html
+    assert "총자산이 아닙니다" in message.html
+    connection.close()
+
+
+def test_owner_report_exposes_only_scoped_krw_subset_when_account_is_missing() -> None:
+    connection = _connection()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-2','isa','isa','KRW',?,NULL,'{}')",
+        [datetime(2026, 9, 1, tzinfo=UTC)],
+    )
+
+    report, evidence = _build_owner_report(
+        connection, logical_date=date(2026, 9, 8), slot="kr-1000", top_n=5,
+    )
+    message = render_owner_portfolio_report(report)
+
+    assert report.quality_status == "partial"
+    assert report.total_asset_krw is None
+    assert report.verified_krw_listed_positions_krw == 840
+    assert evidence["blocker_codes"] == ["account_coverage_gap"]
+    assert isinstance(message, TelegramRichMessage)
+    assert "일부 계좌 상태 누락" in message.html
+    assert "총자산이 아닙니다" in message.html
     connection.close()
 
 

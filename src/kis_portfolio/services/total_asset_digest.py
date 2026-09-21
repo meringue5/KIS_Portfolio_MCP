@@ -28,7 +28,12 @@ from kis_portfolio.application.valuation_change import (
     build_valuation_change_result,
     load_v2_canonical_state,
 )
-from kis_portfolio.application.portfolio_quality import fx_watermark_is_current
+from kis_portfolio.application.portfolio_quality import (
+    PortfolioCapabilityQuality,
+    PortfolioQualityComponent,
+    evaluate_portfolio_capabilities,
+    fx_watermark_is_current,
+)
 from kis_portfolio.modules.core import new_id
 from kis_portfolio.platform.pipeline import ManagedPipelineRunner, PipelineDefinition, PipelineStage, StageResult
 from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig
@@ -39,7 +44,7 @@ PIPELINE_VERSION = "1.0.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1600"})
 PARTITION_KEY = "owner-consolidated"
 V2_PIPELINE_ID = "pipeline.telegram-total-asset-report-v2"
-V2_PIPELINE_VERSION = "2.2.0"
+V2_PIPELINE_VERSION = "2.3.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,6 +165,46 @@ def _has_stale_fx_inputs(connection: Any, *, evaluation_date: date, slot: str) -
     return False
 
 
+def _load_current_capabilities(
+    connection: Any, *, evaluation_date: date, slot: str, snapshot_at: datetime,
+) -> PortfolioCapabilityQuality:
+    """Load current rows once and compose complete versus independently verified values."""
+    earliest = _previous_open_date(connection, evaluation_date) or evaluation_date
+    rows = connection.execute("""
+        SELECT s.account_id,s.aggregate_level,coalesce(i.market,'CASH'),
+               coalesce(i.currency,CASE WHEN s.aggregate_level='cash' AND contains(s.instrument_id,'|')
+                   THEN split_part(s.instrument_id,'|',2) ELSE 'UNKNOWN' END),
+               s.value_krw,s.quality_status,json_extract_string(s.input_watermarks,'$.fx_date')
+        FROM gold.portfolio_daily_state s
+        LEFT JOIN silver.instruments i ON i.instrument_id=s.instrument_id
+        WHERE s.evaluation_date=? AND s.evaluation_slot=?
+          AND s.aggregate_level IN ('position','cash')
+        ORDER BY s.account_id,s.aggregate_level,s.instrument_id
+    """, [evaluation_date, slot]).fetchall()
+    expected_accounts = [str(row[0]) for row in connection.execute("""
+        SELECT account_id FROM silver.accounts
+        WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?) ORDER BY account_id
+    """, [snapshot_at, snapshot_at]).fetchall()]
+    components = tuple(
+        PortfolioQualityComponent(
+            account_ref=str(account_id),
+            aggregate_level=str(level),
+            market=str(market or ""),
+            currency=str(currency or "UNKNOWN"),
+            value_krw=_decimal(value),
+            quality_status=str(quality),
+            fx_date=fx_date,
+        )
+        for account_id, level, market, currency, value, quality, fx_date in rows
+    )
+    return evaluate_portfolio_capabilities(
+        components,
+        expected_accounts=expected_accounts,
+        evaluation_date=evaluation_date,
+        earliest_fx_date=earliest,
+    )
+
+
 def _decimal(value: object | None) -> Decimal:
     return Decimal("0") if value is None else Decimal(str(value))
 
@@ -273,38 +318,12 @@ def _build_owner_report(
             slot, fallback_source_at, "unavailable", unavailable_codes=("missing_market_calendar",),
         )
         return report, {"quality_status": "unavailable", "blocker_codes": ["missing_market_calendar"]}
-    prior = load_v2_canonical_state(connection, evaluation_date=prior_date, evaluation_slot=slot)
     current = load_v2_canonical_state(connection, evaluation_date=logical_date, evaluation_slot=slot)
-    blockers: list[str] = []
-    if prior is None:
-        blockers.append("missing_prior_state")
     if current is None:
-        blockers.append("missing_current_state")
-    source_at = current.snapshot_at if current is not None else fallback_source_at
-    if blockers:
         return OwnerPortfolioReport(
-            slot, source_at, "unavailable", unavailable_codes=tuple(blockers),
-        ), {"quality_status": "unavailable", "blocker_codes": blockers, "prior_date": prior_date.isoformat()}
-    assert prior is not None and current is not None
-    if _has_stale_fx_inputs(connection, evaluation_date=prior_date, slot=slot) or _has_stale_fx_inputs(
-        connection, evaluation_date=logical_date, slot=slot,
-    ):
-        return OwnerPortfolioReport(
-            slot, current.snapshot_at, "unavailable", unavailable_codes=("fx_input_stale",),
+            slot, fallback_source_at, "unavailable", unavailable_codes=("missing_current_state",),
         ), {
-            "quality_status": "unavailable", "blocker_codes": ["fx_input_stale"],
-            "prior_date": prior_date.isoformat(),
-        }
-    result = build_valuation_change_result(prior, current, top_n=top_n, include_account_breakdown=False)
-    if result["status"] != "pass" or current.total_value_krw <= 0:
-        public_blockers = ["state_quality_failed"]
-        if result["totals"]["reconciliation_status"] != "pass":
-            public_blockers.append("reconciliation_failed")
-        return OwnerPortfolioReport(
-            slot, current.snapshot_at, "unavailable", unavailable_codes=tuple(public_blockers),
-        ), {
-            "quality_status": "unavailable",
-            "blocker_codes": public_blockers,
+            "quality_status": "unavailable", "blocker_codes": ["missing_current_state"],
             "prior_date": prior_date.isoformat(),
         }
 
@@ -317,10 +336,78 @@ def _build_owner_report(
         return OwnerPortfolioReport(
             slot, current.snapshot_at, "unavailable", unavailable_codes=("state_quality_failed",),
         ), {
-            "quality_status": "unavailable",
-            "blocker_codes": ["unsafe_account_alias"],
+            "quality_status": "unavailable", "blocker_codes": ["unsafe_account_alias"],
             "prior_date": prior_date.isoformat(),
         }
+
+    capability = _load_current_capabilities(
+        connection, evaluation_date=logical_date, slot=slot, snapshot_at=current.snapshot_at,
+    )
+
+    def partial_report(*, codes: tuple[str, ...], include_complete_total: bool) -> tuple[OwnerPortfolioReport, dict[str, object]]:
+        report = OwnerPortfolioReport(
+            slot=slot,
+            source_at=current.snapshot_at,
+            quality_status="partial",
+            total_asset_krw=(
+                _whole_krw(capability.complete_total_krw)
+                if include_complete_total and capability.complete_total_krw is not None else None
+            ),
+            verified_krw_listed_positions_krw=(
+                _whole_krw(capability.verified_krw_listed_positions_krw)
+                if capability.verified_krw_listed_positions_count else None
+            ),
+            verified_krw_listed_positions_count=capability.verified_krw_listed_positions_count,
+            unavailable_codes=codes,
+        )
+        return report, {
+            "quality_status": "partial",
+            "blocker_codes": list(codes),
+            "prior_date": prior_date.isoformat(),
+            "current_total_available": report.total_asset_krw is not None,
+            "verified_krw_listed_positions_count": report.verified_krw_listed_positions_count,
+        }
+
+    handled_state_blockers = {
+        "required_account_coverage_mismatch", "missing_required_account_registry",
+    }
+    state_codes = [
+        "mixed_state_cutoff" if blocker == "mixed_state_cutoff" else "state_quality_failed"
+        for blocker in current.blockers
+        if blocker not in handled_state_blockers and not blocker.startswith("input_quality_")
+    ]
+    current_codes = tuple(dict.fromkeys((*capability.missing_reasons, *state_codes)))
+    current_complete = capability.complete and current.is_complete
+    if not current_complete:
+        codes = current_codes or ("state_quality_failed",)
+        if capability.verified_krw_listed_positions_count:
+            return partial_report(codes=codes, include_complete_total=False)
+        return OwnerPortfolioReport(
+            slot, current.snapshot_at, "unavailable", unavailable_codes=tuple(codes),
+        ), {
+            "quality_status": "unavailable", "blocker_codes": list(codes),
+            "prior_date": prior_date.isoformat(),
+        }
+    if capability.complete_total_krw != current.total_value_krw or current.total_value_krw <= 0:
+        return OwnerPortfolioReport(
+            slot, current.snapshot_at, "unavailable", unavailable_codes=("reconciliation_failed",),
+        ), {
+            "quality_status": "unavailable", "blocker_codes": ["current_total_reconciliation_failed"],
+            "prior_date": prior_date.isoformat(),
+        }
+
+    prior = load_v2_canonical_state(connection, evaluation_date=prior_date, evaluation_slot=slot)
+    if prior is None:
+        return partial_report(codes=("missing_prior_state",), include_complete_total=True)
+    if _has_stale_fx_inputs(connection, evaluation_date=prior_date, slot=slot):
+        return partial_report(codes=("prior_fx_input_stale",), include_complete_total=True)
+
+    result = build_valuation_change_result(prior, current, top_n=top_n, include_account_breakdown=False)
+    if result["status"] != "pass":
+        public_blockers = ["state_quality_failed"]
+        if result["totals"]["reconciliation_status"] != "pass":
+            public_blockers.append("reconciliation_failed")
+        return partial_report(codes=tuple(public_blockers), include_complete_total=True)
 
     account_totals = {alias: Decimal("0") for alias in aliases.values()}
     asset_totals = {"DOMESTIC": Decimal("0"), "OVERSEAS": Decimal("0"), "CASH": Decimal("0")}
@@ -423,10 +510,11 @@ def inspect_owner_report_readiness(
     report, evidence = _build_owner_report(
         connection, logical_date=logical_date, slot=slot, top_n=5,
     )
+    status = {"pass": "ready", "partial": "ready_partial"}.get(report.quality_status, "blocked")
     return {
         "logical_date": logical_date.isoformat(),
         "slot": slot,
-        "status": "ready" if report.quality_status == "pass" else "blocked",
+        "status": status,
         "quality_status": report.quality_status,
         "prior_date": evidence.get("prior_date"),
         "blocker_codes": evidence.get("blocker_codes", []),

@@ -2199,6 +2199,91 @@ def _deploy_wi055_s04(
     )
 
 
+def _deploy_wi060(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Deploy one immutable resilience release to Remote MCP and owner-report Jobs."""
+    for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
+        if not env.get(key, "").strip().isdigit():
+            print(f"Missing or non-numeric pinned secret version: {key}")
+            return 1
+    remote_required = _required_keys_for_remote(env)
+    missing = _validate_required(env, remote_required, secret_mode=args.secret_mode)
+    if missing:
+        print("Missing required environment variables:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-060 image digest.")
+        return 1
+
+    remote_payload, remote_secrets = _split_runtime_env(
+        env=env,
+        payload=_build_remote_env(env),
+        required=remote_required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    remote_env_path = _write_env_yaml(remote_payload)
+    remote_service = args.service or env.get("KIS_REMOTE_SERVICE_NAME") or DEFAULT_REMOTE_SERVICE
+    remote_identity = f"kis-portfolio-remote@{project}.iam.gserviceaccount.com"
+    try:
+        if _run([
+            "gcloud", "run", "deploy", remote_service,
+            "--image", image, "--region", args.region,
+            "--allow-unauthenticated", "--env-vars-file", remote_env_path,
+            "--command", "kis-portfolio-remote", "--args", "",
+            "--service-account", remote_identity,
+            *_build_remote_runtime_flags(env),
+            *_build_secret_flags(remote_secrets),
+            *_build_label_flags("wi060-resilient-partial"),
+            "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(remote_env_path)
+        except FileNotFoundError:
+            pass
+
+    if not args.dry_run:
+        resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
+        remote_url = resource[:-4] if resource.endswith("/mcp") else resource
+        if not _smoke_wi046_remote(
+            auth_url=env["KIS_AUTH_BASE_URL"],
+            remote_url=remote_url,
+            expected_resource=resource,
+        ):
+            print("WI-060 Remote health/discovery/auth-boundary smoke failed; Jobs were not changed.")
+            return 1
+
+    report_env = dict(env)
+    report_env.update({
+        "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+        "KIS_TELEGRAM_CANARY_ENABLED": "false",
+        "KIS_TELEGRAM_REAL_USE_ENABLED": "true",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "false",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED": "true",
+        "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED": "true",
+        "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+    })
+    if _deploy_v2_core_jobs(
+        args,
+        env=report_env,
+        project=project,
+        image=image,
+        deploy_label="wi060-resilient-partial",
+    ) != 0:
+        return 1
+    print(f"WI-060 deployed one immutable image to Remote MCP and owner-report Jobs: {image}")
+    return 0
+
+
 def _deploy_wi029_s04(
     args: argparse.Namespace,
     *,
@@ -2600,6 +2685,7 @@ def main() -> int:
             "wi055-s01",
             "wi055-s03",
             "wi055-s04",
+            "wi060",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -2833,6 +2919,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi055_s04(args, env=env, project=project)
+
+    if args.target == "wi060":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi060(args, env=env, project=project)
 
     if args.target == "wi046-stage":
         if not project:

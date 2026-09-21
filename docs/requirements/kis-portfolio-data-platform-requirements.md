@@ -612,6 +612,30 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   지원 제품표면 또는 운영 fallback이 아니며 MS-004에서 역사 자료와 삭제 후보로 명시적으로 분류한다.
 - 이 결정은 V1 resource, secret, 데이터 또는 revision의 즉시 파괴를 승인하지 않는다. 비가역 cleanup은
   WI-049의 fresh inventory, forward-recovery 증거와 별도 파괴적 변경 승인을 계속 요구한다.
+
+### DEC-057: 총자산 기능은 완전 합계를 엄격히 지키면서 검증된 부분 기능을 독립 제공한다
+
+- 2026-09-17 owner는 전일 동일 slot 결손이나 환율 지연 하나가 현재 국내 원화 보유현황과 모든 MCP 기능을
+  함께 차단하는 동작을 거부하고, 정확성을 유지한 resilient partial 결과와 즉시 재현 가능한 검증을
+  요구했다. 2026-09-21에는 승인된 WI-060 수정 전체를 하나의 보호된 release로 배포하는 방향을 승인했다.
+- 완전한 `총자산` 원화 합계는 필수 계좌, 현금, 가격, 환율, 구성요소 품질과 reconciliation이 모두 통과한
+  현재 상태에서만 표시한다. 불완전한 부분합을 총자산으로 부르거나 stale 환율을 현재값처럼 사용하지 않는다.
+- 현재 상태가 완전하지만 전일 동일 slot이 없거나 비교 상태만 불완전하면 정확한 **현재 총자산**은 표시하고,
+  전일 증감·변화율·Top 5 기여도와 그에 의존하는 chart만 생략한다.
+- 현재 환율이나 일부 계좌·구성요소가 불완전해 전체 합계가 안전하지 않으면, 가격·보유 품질을 통과한
+  `KRX 상장·KRW 표시 포지션 부분합`만 그 범위·종목 수·관측 시각·제외 사유와 함께 표시할 수 있다. 이는
+  국내 경제적 노출, 현금 포함 합계 또는 총자산이 아니며 해당 표현을 payload에 명시한다.
+- native 보유, KRX/KRW 부분값, 외화 환산, 완전 총액, 동일-slot 비교와 선택적 macro/ETF look-through는
+  독립 품질 상태를 가진다. 한 셀의 `missing`, `stale`, `unsupported`는 의존하지 않는 셀을 삭제하거나
+  응답 전체를 `pass`로 가장하게 만들지 않는다.
+- Telegram partial presentation은 owner-only destination, alias/secret 비노출, 본문 비저장, 단일 provider
+  operation과 terminal unknown/no-auto-replay 계약을 유지한다. presentation/pipeline version은 `2.3.0`으로
+  올리고, complete photo와 partial Rich Message는 같은 date-slot idempotency claim을 공유한다.
+- 운영 배포 전 missing prior, stale FX, missing account, degraded row, optional context gap과 complete case를
+  합성 fixture 및 무전송 preview로 재현한다. 다음 예약 slot을 기다리는 것은 인수 테스트의 전제조건이 아니다.
+- 외부 환율 fallback은 별도 source 권리, rate type/source date 의미, credential, 비용과 불일치 quarantine
+  계약이 승인·활성화된 뒤에만 production 입력이 된다. adapter나 fixture가 있다는 사실만으로 단일 source
+  의존이 해결됐다고 표시하지 않는다.
 - owner acceptance로 WI-046과 MS-003을 닫고 MS-004/WI-047을 시작한다. 이후 안정화는 V1 병행관찰이 아니라
   V2 health, OAuth, managed run, Scheduler, 데이터 품질과 사용자-visible 결과를 직접 관찰한다.
 

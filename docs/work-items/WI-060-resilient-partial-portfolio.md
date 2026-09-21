@@ -4,8 +4,8 @@ title: Isolate portfolio capability failures and provide accurate partial result
 status: in_progress
 type: architecture
 owner: owner
-decision_refs: DEC-055, ADR-021, ADR-023, ADR-024, ADR-028
-requirement_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-055
+decision_refs: DEC-055, DEC-057, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029
+requirement_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-055, DEC-057
 milestone_ref: MS-007
 delivery_refs: none
 parent_work_item: none
@@ -47,22 +47,29 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   source rights, rate-basis/time equivalence, new contract versions and architecture review before activation.
 - Detailed proposal and failure matrix: `docs/design/resilient-capability-degradation-review.md`.
 
-## Scope
+## Scope and release unit
 
 - Isolated phase: map producer-to-consumer dependencies, specify independently useful capability cells, freeze
   deterministic failure fixtures and correct clear false-green/false-degraded read-model defects under review.
-- Later approved phase: expose verified current KRW holdings and labeled partial reports independently of prior
-  comparison and USD conversion; evaluate a secondary FX source without mixing unlike rate definitions.
+- Approved isolated implementation: expose verified current KRW holdings and labeled partial reports independently
+  of prior comparison and USD conversion; evaluate a secondary FX source without mixing unlike rate definitions.
 - Exclude: fabricated total assets, stale FX silently treated as current, manual replay of old Telegram sends,
   provider signup/credential provisioning, production collection, public MCP change or deploy in this phase.
+- Ship the WI-060 user-visible correction as **one protected release candidate** after its contracts, fixtures,
+  no-send production preflight and CI pass. Small reviewed commits and PR updates are allowed; do not activate a
+  half-fixed MCP or Telegram surface in separate production deployments. This is a WI-060 boundary, not a promise
+  to finish every unrelated historical TODO before release.
+- A secondary FX provider is part of the same candidate only if source rights, rate semantics, credentials,
+  cost and activation contracts are approved. If those prerequisites are unavailable, do not silently claim that
+  the single-source dependency was fixed; report the remaining gap and seek a release-scope decision before merge.
 
 ## Acceptance criteria
 
-- [ ] A missing prior slot disables only comparison and contribution, not a verified current-only capability.
-- [ ] Stale FX disables USD-to-KRW conversion and complete KRW total, not native values or verified KRX/KRW rows.
-- [ ] Missing one source or optional macro/ETF look-through never yields a false `pass` and never erases unrelated
+- [x] A missing prior slot disables only comparison and contribution, not a verified current-only capability.
+- [x] Stale FX disables USD-to-KRW conversion and complete KRW total, not native values or verified KRX/KRW rows.
+- [x] Missing one source or optional macro/ETF look-through never yields a false `pass` and never erases unrelated
   verified components; every numeric subtotal is labeled by coverage, source time and valuation basis.
-- [ ] MCP and Telegram fixtures reproduce user-visible complete, partial and unavailable cases without a clock wait.
+- [x] MCP and Telegram fixtures reproduce user-visible complete, partial and unavailable cases without a clock wait.
 - [ ] Real Claude/MCP and owner-visible Telegram review accepts the presentation before production closeout.
 - [ ] Any secondary FX source has approved rights, cost, source-date/rate-type mapping and deterministic conflict
   handling; no production calls or credentials are added merely to pass tests.
@@ -82,9 +89,17 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 
 1. Record the usability feedback, trace the dependency graph and identify false-green/false-negative behavior.
 2. Define field-level quality/coverage and a presentation matrix in a proposed DEC/ADR for owner review.
-3. Implement isolated read-model and report slices with fixture tests; preserve exact totals as fail-closed.
+3. Freeze executable fixtures for missing prior, stale FX, missing account, degraded row, optional context gaps
+   and complete states. Implement isolated read-model and report slices; preserve exact totals as fail-closed.
 4. Review source rights, rate basis and operations for secondary FX; activate only after contract approval.
-5. Verify real MCP and Telegram output, including owner receipt, before closeout.
+5. Run quick/full gates, synthetic fault injection, no-send report previews and read-only production preflight.
+   Review the exact single-release diff and rollback image. The current workflow has no narrow target combining
+   Remote MCP and the owner-report Job; add and test such a target instead of deploying unrelated services with
+   `all` or treating two independent target runs as an atomic release.
+6. Merge once and deploy one immutable image through the protected production workflow. Verify Git SHA and image
+   labels across both Remote MCP and the scheduled report job before enabling the changed consumer behavior.
+7. Verify real Claude/MCP output and an owner-visible Telegram report with source/coverage labels and receipt;
+   retain stabilization evidence before closeout. A future scheduler slot is not the sole acceptance test.
 
 ## Sub-items
 
@@ -109,6 +124,16 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   preflight at 2026-09-17 14:32 showed `partial`, complete total suppressed, 22 verified KRX/KRW position lines,
   and `fx_input_stale` as the missing reason. Full shared gate: 741 passed, one pre-existing Authlib
   deprecation warning. No public service or Telegram deployment occurred.
+- DEC-057/ADR-029 approve capability isolation. Shared quality composition, Telegram presentation `2.3.0`,
+  data-quality/pipeline-run false-green correction and the one-image `wi060` protected target have focused
+  deterministic coverage. `scripts/check_resilient_portfolio_cases.py` passes five immediate no-network/no-send
+  scenarios. Korea Eximbank source, collection, dataset and pipeline contracts remain proposed only; no credential,
+  provider call or production valuation fallback exists yet.
+- Read-only MotherDuck previews with branch code require no Scheduler wait: 2026-09-18 `kr-1000` and `kr-1600`
+  are both `ready_partial` with only `prior_fx_input_stale`; 2026-09-21 both slots are `ready`/`pass`. No run row,
+  source call or Telegram claim was created. The standalone fault matrix passed, the protected release command
+  dry-run reused one immutable image for Remote MCP and all three fixed-slot Jobs, and the full repository gate
+  passed with 749 collected tests and one pre-existing Authlib deprecation warning.
 
 ## Closeout
 

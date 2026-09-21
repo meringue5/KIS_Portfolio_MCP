@@ -1,6 +1,7 @@
 # Resilient capability degradation review (WI-060)
 
-> 2026-09-17 evidence-led draft. This is not an approved DEC/ADR or production source activation.
+> 2026-09-17 evidence-led review, approved as DEC-057/ADR-029. WI-060 remains isolated and no new FX source is
+> production-active.
 
 ## Finding
 
@@ -75,6 +76,17 @@ do not make that observation disappear. It remains a stored, time-labeled subset
 The first read-model correction has deterministic tests for a degraded component, an old pass-marked stale FX
 component, a missing account and the `pass`/`passed` history mismatch. It leaves the 18-tool surface intact and
 does not send a message. It adds an explicitly scoped `verified_krw_listed_positions_krw` subtotal while nulling
-`total_value_krw` when complete coverage is not established. This is not yet the shared capability evaluator or
-owner-approved partial Telegram presentation. Other read models need the same row-quality audit before production
-activation; a generic envelope still treats nonempty results as pass unless its caller supplies a quality status.
+`total_value_krw` when complete coverage is not established.
+
+The release candidate now uses the shared application quality composer for MCP and Telegram. Owner presentation
+`2.3.0` has four outcomes: complete photo, complete current total without comparison, scoped KRX/KRW listed-position
+Rich Message, and value-free unavailable. `get-data-quality` aggregates actual rule statuses, and the owned-portfolio
+`get-pipeline-run` is partial when a succeeded run lacks linked quality evidence. The generic envelope remains a
+transport helper; callers with governed row quality must supply their composed status.
+
+`uv run python scripts/check_resilient_portfolio_cases.py` immediately reproduces missing prior, stale FX, missing
+account, degraded row and missing-current cases without network, database, Telegram or scheduler time. The protected
+`wi060` target builds once and supplies the same immutable digest to Remote MCP and the report Jobs; it does not send
+a Telegram test payload. Korea Eximbank's official Open API is registered only as a proposed fallback-validation
+source. No adapter, credential, provider call or valuation use is authorized until its exact rate field and
+10:00/16:00 publication behavior are measured and approved.

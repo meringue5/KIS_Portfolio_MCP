@@ -40,6 +40,14 @@ def test_workflow_dispatches_wi055_s04_to_exact_deploy_target():
     assert "scripts/deploy_cloud_run.py wi055-s04" in workflow
 
 
+def test_workflow_dispatches_wi060_as_one_protected_remote_and_job_release():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi060" in workflow
+    assert "github.event.inputs.target == 'wi060'" in workflow
+    assert "scripts/deploy_cloud_run.py wi060" in workflow
+    assert "environment: production" in workflow
+
+
 def test_workflow_dispatches_wi046_zero_traffic_stage_target():
     workflow = WORKFLOW_PATH.read_text()
     assert "github.event.inputs.target == 'wi046-stage'" in workflow
@@ -539,6 +547,47 @@ def test_wi055_s04_reuses_atomic_owner_report_release_with_new_labels(monkeypatc
         "deploy_label": "wi055-s04-caption-layout",
         "smoke_label": "wi055-s04-photo-transport-smoke",
     }
+
+
+def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_send(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi060", dry_run=True,
+        secret_mode="secret-manager", service="kis-portfolio-remote",
+    )
+    image = "registry.example/kis@sha256:test"
+    commands = []
+    captured = {}
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(
+        deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    def deploy_jobs(_args, **kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", deploy_jobs)
+
+    result = deploy_cloud_run._deploy_wi060(
+        args,
+        env={
+            "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
+            "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+            "KIS_REMOTE_AUTH_MODE": "oauth",
+        },
+        project="project",
+    )
+
+    assert result == 0
+    assert len(commands) == 1
+    assert commands[0][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
+    assert commands[0][commands[0].index("--image") + 1] == image
+    assert "send-telegram-photo-transport-smoke" not in " ".join(commands[0])
+    assert captured["image"] == image
+    assert captured["deploy_label"] == "wi060-resilient-partial"
+    assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
+    assert captured["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
 
 
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):

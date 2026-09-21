@@ -13,7 +13,7 @@
   - MCP 응답과 Telegram에 필드별 품질·시점·누락 범위를 표시하고, 행이 있다는 이유만으로 전체 `pass`를 만들지 않는다.
   - KIS 단일 환율 의존을 재검토하고, 환율 종류·게시 시각·권리·비용을 검증한 독립 source/fallback 계약을 설계한다.
   - 국내 전용·전체 현재값·전일 비교·ETF 룩스루의 실패 격리와 실제 Claude/Telegram 사용 시나리오를 회귀 테스트로 만든다.
-  - 설계/계약/격리 구현과 운영 전환을 분리한다. 관련 추적은 `docs/work-items/WI-060-resilient-partial-portfolio.md`가 소유한다.
+  - 설계/계약/격리 구현과 운영 전환을 분리하되, 승인된 WI-060 수정은 결손 재현·무전송 검증 후 한 번의 보호된 운영 배포로 반영한다. 새 환율 소스가 미승인/미준비라면 해결된 것으로 표시하지 않고 출시 범위를 다시 결정한다. 관련 추적은 `docs/work-items/WI-060-resilient-partial-portfolio.md`가 소유한다.
 - [x] KIS Portfolio Service 구조 전환을 구현한다.
   - Python package를 `kis_portfolio`로 rename하고 CLI를 `kis-portfolio-*`로 정리한다.
   - Claude 기본 MCP 설정은 `kis-portfolio` 단일 서버만 노출한다.

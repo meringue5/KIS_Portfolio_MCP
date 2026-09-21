@@ -10,7 +10,11 @@ from typing import Any, Mapping
 
 import duckdb
 
-from kis_portfolio.application.portfolio_quality import fx_watermark_is_current
+from kis_portfolio.application.portfolio_quality import (
+    PortfolioQualityComponent,
+    component_quality_reasons,
+    evaluate_portfolio_capabilities,
+)
 from kis_portfolio.common.values import rows_to_dicts
 from kis_portfolio.services.remote_read_surface import (
     V2_READ_TOOL_NAMES,
@@ -214,6 +218,7 @@ class WarehouseReadQueryPort:
         ).fetchone()[0] if evaluation_date else None
         earliest_fx_date = prior_open or evaluation_date
         missing: list[dict[str, Any]] = []
+        quality_components: list[PortfolioQualityComponent] = []
         for row in rows:
             currency = str(row.pop("_currency") or (
                 str(row["instrument_id"]).split("|", 1)[1]
@@ -222,21 +227,30 @@ class WarehouseReadQueryPort:
             )).upper()
             market = str(row.pop("_market") or "").upper()
             fx_date = row.pop("_fx_date")
-            row["_verified_krw_listed"] = (
-                row["aggregate_level"] == "position" and market == "KRX" and currency == "KRW"
-                and row["quality_status"] == "pass"
+            component = PortfolioQualityComponent(
+                account_ref=str(row["account_label"]),
+                aggregate_level=str(row["aggregate_level"]),
+                market=market,
+                currency=currency,
+                value_krw=Decimal(str(row["value_krw"] or 0)),
+                quality_status=str(row["quality_status"]),
+                fx_date=fx_date,
             )
-            if currency == "UNKNOWN":
+            if component.aggregate_level in {"position", "cash"}:
+                quality_components.append(component)
+            row_reasons = component_quality_reasons(
+                component,
+                evaluation_date=evaluation_date,
+                earliest_fx_date=earliest_fx_date,
+            ) if evaluation_date and earliest_fx_date else ("missing_evaluation_date",)
+            if row_reasons:
                 row["quality_status"] = "degraded"
-                missing.append({"dataset_id": "dataset.instrument-master", "reason": "unknown_currency"})
-            elif earliest_fx_date and not fx_watermark_is_current(
-                currency=currency, raw_fx_date=fx_date,
-                evaluation_date=evaluation_date, earliest_fx_date=earliest_fx_date,
-            ):
-                row["quality_status"] = "degraded"
-                missing.append({"dataset_id": "dataset.fx-rate-daily", "reason": "fx_input_stale"})
-            elif row["quality_status"] != "pass":
-                missing.append({"dataset_id": "dataset.portfolio-daily-state", "reason": "degraded_components"})
+                for reason in row_reasons:
+                    dataset_id = {
+                        "unknown_currency": "dataset.instrument-master",
+                        "fx_input_stale": "dataset.fx-rate-daily",
+                    }.get(reason, "dataset.portfolio-daily-state")
+                    missing.append({"dataset_id": dataset_id, "reason": reason})
             if row["quality_status"] != "pass":
                 for field in ("value_krw", "cost_krw", "unrealized_pnl_krw", "contribution_pct", "allocation_pct"):
                     row[field] = None
@@ -254,20 +268,25 @@ class WarehouseReadQueryPort:
         } if as_of else set()
         if observed_aliases != expected_aliases:
             missing.append({"dataset_id": "dataset.portfolio-daily-state", "reason": "account_coverage_gap"})
-        complete = bool(total_rows) and not missing
-        verified_krw_rows = [row for row in total_rows if row.pop("_verified_krw_listed")]
-        for row in rows:
-            row.pop("_verified_krw_listed", None)
+        capability = evaluate_portfolio_capabilities(
+            quality_components,
+            expected_accounts=expected_aliases,
+            evaluation_date=evaluation_date,
+            earliest_fx_date=earliest_fx_date,
+        ) if evaluation_date and earliest_fx_date else None
+        complete = bool(capability and capability.complete)
         summary = None
         if total_rows:
             summary = {
                 "evaluation_date": total_rows[0]["evaluation_date"],
                 "evaluation_slot": total_rows[0]["evaluation_slot"],
-                "total_value_krw": sum((row["value_krw"] for row in total_rows), Decimal("0")) if complete else None,
-                "verified_krw_listed_positions_krw": sum(
-                    (row["value_krw"] for row in verified_krw_rows), Decimal("0")
+                "total_value_krw": capability.complete_total_krw if capability else None,
+                "verified_krw_listed_positions_krw": (
+                    capability.verified_krw_listed_positions_krw if capability else Decimal("0")
                 ),
-                "verified_krw_listed_positions_count": len(verified_krw_rows),
+                "verified_krw_listed_positions_count": (
+                    capability.verified_krw_listed_positions_count if capability else 0
+                ),
                 "quality_status": "pass" if complete else "degraded",
                 "as_of": as_of,
             }
@@ -650,11 +669,21 @@ class WarehouseReadQueryPort:
             "dataset_id": dataset_id,
             "reason": "no_quality_evidence_in_window",
         }]
+        statuses = {str(row["status"]).lower() for row in rows}
+        if not rows:
+            quality_status = "partial"
+        elif statuses & {"fail", "failed", "error", "unavailable"}:
+            quality_status = "failed"
+        elif statuses == {"pass"}:
+            quality_status = "pass"
+        else:
+            quality_status = "partial"
         return self._envelope(
             data={"results": rows, "next_cursor": None}, items=rows,
             dataset_id="dataset.data-quality-evidence", as_of=_latest_datetime(rows, "evaluated_at"),
             lineage_ref="control.quality_results",
             missing_coverage=missing,
+            quality_status=quality_status,
         )
 
     def _get_pipeline_run(self, request: PipelineRunRequest) -> dict[str, Any]:
@@ -663,7 +692,12 @@ class WarehouseReadQueryPort:
             """
             SELECT s.run_id, s.pipeline_id, s.pipeline_version, s.logical_date, s.slot,
                    s.partition_key, s.status, s.source_calls, s.stage_count,
-                   s.succeeded_stage_count, s.started_at, s.finished_at
+                   s.succeeded_stage_count, s.started_at, s.finished_at,
+                   (SELECT count(*) FROM control.quality_results q WHERE q.run_id=s.run_id)
+                       AS quality_evidence_count,
+                   (SELECT count(*) FROM control.quality_results q
+                       WHERE q.run_id=s.run_id AND lower(q.status)<>'pass')
+                       AS failed_quality_evidence_count
             FROM control.pipeline_run_summary s
             JOIN control.pipeline_runs r ON r.run_id=s.run_id
             WHERE (? IS NULL OR s.run_id=? OR r.idempotency_key=?)
@@ -674,12 +708,36 @@ class WarehouseReadQueryPort:
             """,
             [request.run_id, request.run_id, request.run_id,
              pipeline_id, pipeline_id,
-             request.as_of, request.as_of, request.lookback_days, request.limit],
+            request.as_of, request.as_of, request.lookback_days, request.limit],
         )
+        missing: list[dict[str, Any]] = []
+        run_statuses = {str(row["status"]).lower() for row in rows}
+        if not rows:
+            quality_status = "partial"
+        elif run_statuses & {"failed", "error", "cancelled"} or any(
+            int(row["failed_quality_evidence_count"] or 0) > 0 for row in rows
+        ):
+            quality_status = "failed"
+        elif any(
+            row["pipeline_id"] == "pipeline.owned-portfolio-core-v2"
+            and int(row["quality_evidence_count"] or 0) == 0
+            for row in rows
+        ):
+            quality_status = "partial"
+            missing.append({
+                "dataset_id": "dataset.data-quality-evidence",
+                "reason": "quality_evidence_missing_for_run",
+            })
+        elif run_statuses == {"succeeded"}:
+            quality_status = "pass"
+        else:
+            quality_status = "partial"
         return self._envelope(
             data={"runs": rows, "next_cursor": None}, items=rows,
             dataset_id="dataset.pipeline-run-evidence", as_of=_latest_datetime(rows, "finished_at", "started_at"),
             lineage_ref="control.pipeline_run_summary",
+            missing_coverage=missing if rows else None,
+            quality_status=quality_status,
         )
 
     def _get_journal_review_queue(self, request: JournalReviewQueueRequest) -> dict[str, Any]:
