@@ -45,6 +45,8 @@ def test_workflow_dispatches_wi060_as_one_protected_remote_and_job_release():
     assert "- wi060" in workflow
     assert "github.event.inputs.target == 'wi060'" in workflow
     assert "scripts/deploy_cloud_run.py wi060" in workflow
+    assert '--rollback-manifest "${RUNNER_TEMP}/wi060-rollback-manifest.json"' in workflow
+    assert "wi060-rollback-manifest-${{ github.run_id }}" in workflow
     assert "environment: production" in workflow
 
 
@@ -575,19 +577,49 @@ def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_se
             "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
             "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
             "KIS_REMOTE_AUTH_MODE": "oauth",
+            "KIS_RESOURCE_SERVER_URL": "https://kis-portfolio-remote.example.test/mcp",
+            "KIS_AUTH_BASE_URL": "https://kis-portfolio-auth.example.test",
         },
         project="project",
     )
 
     assert result == 0
-    assert len(commands) == 1
+    assert len(commands) == 2
     assert commands[0][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
     assert commands[0][commands[0].index("--image") + 1] == image
+    assert "--no-traffic" in commands[0]
+    assert commands[1][0:4] == ["gcloud", "run", "services", "update-traffic"]
     assert "send-telegram-photo-transport-smoke" not in " ".join(commands[0])
     assert captured["image"] == image
     assert captured["deploy_label"] == "wi060-resilient-partial"
     assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
     assert captured["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
+
+
+def test_rollback_job_definitions_restore_exact_exports_in_reverse_order(monkeypatch):
+    commands = []
+    exports = []
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        exports.append(Path(command[4]).read_text())
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_run", run)
+
+    restored = deploy_cloud_run._rollback_job_definitions(
+        components=[
+            {"kind": "job", "name": "morning", "previous_export": "metadata:\n  name: morning\n"},
+            {"kind": "job", "name": "close", "previous_export": "metadata:\n  name: close\n"},
+        ],
+        job_names=["morning", "close"],
+        region="asia-northeast3",
+        project="project",
+    )
+
+    assert restored is True
+    assert all(command[0:4] == ["gcloud", "run", "jobs", "replace"] for command in commands)
+    assert exports == ["metadata:\n  name: close\n", "metadata:\n  name: morning\n"]
 
 
 def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
@@ -1657,6 +1689,13 @@ def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatc
 
     def capture(command, *, dry_run):
         name = command[4]
+        if "--format=export" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=f"apiVersion: run.googleapis.com/v1\nmetadata:\n  name: {name}\n",
+                stderr="",
+            )
         if command[2] == "services":
             payload = {
                 "metadata": {"name": name, "generation": 12},
@@ -1701,6 +1740,9 @@ def test_wi051_rollback_manifest_keeps_only_exact_restore_coordinates(monkeypatc
     assert all("previous_serving_revision" in item for item in services)
     assert all(item["previous_serving_revision"].endswith("-00010-stable") for item in services)
     assert all("update-traffic" in item["rollback_command"] for item in services)
+    jobs = [item for item in manifest["components"] if item["kind"] == "job"]
+    assert all("previous_export" in item for item in jobs)
+    assert all("replace" in item["rollback_command"] for item in jobs)
 
 
 def test_wi051_service_traffic_rollback_restores_actual_prior_serving_revisions(monkeypatch):

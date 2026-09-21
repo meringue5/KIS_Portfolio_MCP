@@ -93,9 +93,10 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
    and complete states. Implement isolated read-model and report slices; preserve exact totals as fail-closed.
 4. Review source rights, rate basis and operations for secondary FX; activate only after contract approval.
 5. Run quick/full gates, synthetic fault injection, no-send report previews and read-only production preflight.
-   Review the exact single-release diff and rollback image. The current workflow has no narrow target combining
-   Remote MCP and the owner-report Job; add and test such a target instead of deploying unrelated services with
-   `all` or treating two independent target runs as an atomic release.
+   Review the exact single-release diff and rollback image. Use the narrow `wi060` target combining Remote MCP
+   and the three fixed-slot owner-report Jobs instead of deploying unrelated services with `all` or treating two
+   independent target runs as one release. Stage and smoke Remote at zero traffic first, preserve rollback
+   coordinates, restore prior Job definitions on failure, and promote Remote only after all Job updates succeed.
 6. Merge once and deploy one immutable image through the protected production workflow. Verify Git SHA and image
    labels across both Remote MCP and the scheduled report job before enabling the changed consumer behavior.
 7. Verify real Claude/MCP output and an owner-visible Telegram report with source/coverage labels and receipt;
@@ -134,6 +135,12 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   source call or Telegram claim was created. The standalone fault matrix passed, the protected release command
   dry-run reused one immutable image for Remote MCP and all three fixed-slot Jobs, and the full repository gate
   passed with 749 collected tests and one pre-existing Authlib deprecation warning.
+- PR #121 CI run `35605547380` passed the Project OS full gate. The release target now writes a retained rollback
+  manifest, stages a tagged Remote candidate with zero traffic, probes health/discovery/auth boundary, updates all
+  three Jobs with the same digest, then promotes and probes the canonical Remote endpoint. Candidate, Job-update,
+  promotion or canonical-smoke failure leaves or restores the previous serving Remote revision and prior complete
+  Job exports. The post-change dry-run exercised this order without provider calls, Telegram sends or production
+  writes.
 
 ## Closeout
 

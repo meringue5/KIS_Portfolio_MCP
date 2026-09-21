@@ -35,6 +35,7 @@ DEFAULT_WI046_MIGRATION_JOB = "kis-portfolio-wi046-migration"
 DEFAULT_WI046_STATE_MIGRATION_JOB = "kis-portfolio-wi046-state-migration"
 DEFAULT_WI046_AUTH_TAG = "wi046-auth"
 DEFAULT_WI046_REMOTE_TAG = "wi046-v2"
+DEFAULT_WI060_REMOTE_TAG = "wi060"
 DEFAULT_WI046_AUTH_ROLLBACK_REVISION = "kis-portfolio-auth-00021-jkl"
 DEFAULT_WI046_AUTH_CANDIDATE_REVISION = "kis-portfolio-auth-00023-nor"
 DEFAULT_WI046_REMOTE_ROLLBACK_REVISION = "kis-portfolio-remote-00031-pbm"
@@ -882,6 +883,7 @@ def _capture_wi051_rollback_manifest(
     jobs: tuple[str, ...],
     release_image: str,
     output_path: Path,
+    work_item_id: str = "WI-051",
 ) -> bool:
     components: list[dict[str, object]] = []
     for kind, names in (("service", services), ("job", jobs)):
@@ -933,16 +935,26 @@ def _capture_wi051_rollback_manifest(
                     "--region", region, "--project", project,
                 ]
             else:
+                exported = _run_capture(
+                    [
+                        "gcloud", "run", "jobs", "describe", name,
+                        "--region", region, "--project", project, "--format=export",
+                    ],
+                    dry_run=False,
+                )
+                if exported.returncode != 0 or not exported.stdout.strip():
+                    print(f"Failed to capture exact rollback export for job {name}.")
+                    return False
+                component["previous_export"] = exported.stdout
                 component["rollback_command"] = [
-                    "gcloud", "run", "jobs", "update", name,
-                    "--image", image,
+                    "gcloud", "run", "jobs", "replace", "<captured-export>",
                     "--region", region, "--project", project,
                 ]
             components.append(component)
 
     manifest = {
         "schema_version": 1,
-        "work_item_id": "WI-051",
+        "work_item_id": work_item_id,
         "captured_at": datetime.now(UTC).isoformat(),
         "project": project,
         "region": region,
@@ -978,6 +990,39 @@ def _rollback_wi051_service_traffic(
         ]
         if _run(command, dry_run=False) != 0:
             restored = False
+    return restored
+
+
+def _rollback_job_definitions(
+    *,
+    components: list[dict[str, object]],
+    job_names: list[str],
+    region: str,
+    project: str,
+) -> bool:
+    """Restore every named Job from its exact pre-release Cloud Run export."""
+    by_name = {item["name"]: item for item in components if item.get("kind") == "job"}
+    restored = True
+    for name in reversed(job_names):
+        exported = by_name.get(name, {}).get("previous_export")
+        if not isinstance(exported, str) or not exported.strip():
+            print(f"Cannot restore Job {name}: previous export missing.")
+            restored = False
+            continue
+        handle = tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False)
+        try:
+            with handle:
+                handle.write(exported)
+            if _run([
+                "gcloud", "run", "jobs", "replace", handle.name,
+                "--region", region, "--project", project,
+            ], dry_run=False) != 0:
+                restored = False
+        finally:
+            try:
+                os.unlink(handle.name)
+            except FileNotFoundError:
+                pass
     return restored
 
 
@@ -1160,6 +1205,7 @@ def _deploy_tagged_service(
     service_account: str,
     tag: str,
     runtime_flags: list[str],
+    deploy_label: str = "wi046-stage",
 ) -> int:
     env_path = _write_env_yaml(payload)
     try:
@@ -1169,7 +1215,7 @@ def _deploy_tagged_service(
             "--no-traffic", "--tag", tag, "--env-vars-file", env_path,
             "--command", command_name, "--args", "", "--service-account", service_account,
             *runtime_flags, *_build_secret_flags(secret_refs),
-            *_build_label_flags("wi046-stage"), "--project", project,
+            *_build_label_flags(deploy_label), "--project", project,
         ], dry_run=args.dry_run)
     finally:
         try:
@@ -1199,6 +1245,25 @@ def _tagged_service_url(
         if isinstance(value, str) and value.startswith("https://"):
             return value
     return None
+
+
+def _anticipated_tagged_service_host(
+    *, project: str, region: str, service: str, tag: str, dry_run: bool,
+) -> str | None:
+    """Resolve the Cloud Run-owned host used by a tag before staging it."""
+    if dry_run:
+        return f"{tag}---{service}.example.test"
+    completed = _run_capture([
+        "gcloud", "run", "services", "describe", service,
+        "--region", region, "--project", project,
+        "--format=value(status.url)",
+    ], dry_run=False)
+    service_url = completed.stdout.strip() if completed.returncode == 0 else ""
+    host = service_url.split("//", 1)[-1].split("/", 1)[0]
+    if not host or "." not in host:
+        return None
+    service_prefix, domain = host.split(".", 1)
+    return f"{tag}---{service_prefix}.{domain}"
 
 
 def _service_traffic(
@@ -2205,7 +2270,7 @@ def _deploy_wi060(
     env: dict[str, str],
     project: str,
 ) -> int:
-    """Deploy one immutable resilience release to Remote MCP and owner-report Jobs."""
+    """Guard one immutable resilience release across Remote MCP and report Jobs."""
     for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
         if not env.get(key, "").strip().isdigit():
             print(f"Missing or non-numeric pinned secret version: {key}")
@@ -2222,6 +2287,29 @@ def _deploy_wi060(
         print("Failed to resolve the immutable WI-060 image digest.")
         return 1
 
+    remote_service = args.service or env.get("KIS_REMOTE_SERVICE_NAME") or DEFAULT_REMOTE_SERVICE
+    jobs = tuple(
+        env.get(f"KIS_V2_CORE_JOB_{slot.split('-', 1)[1]}", default_job)
+        for slot, default_job in DEFAULT_V2_CORE_JOBS.items()
+    )
+    rollback_manifest: dict[str, object] | None = None
+    if not args.dry_run:
+        rollback_path = getattr(args, "rollback_manifest", None)
+        if not rollback_path:
+            print("WI-060 production release requires --rollback-manifest.")
+            return 1
+        if not _capture_wi051_rollback_manifest(
+            project=project,
+            region=args.region,
+            services=(remote_service,),
+            jobs=jobs,
+            release_image=image,
+            output_path=Path(rollback_path),
+            work_item_id="WI-060",
+        ):
+            return 1
+        rollback_manifest = json.loads(Path(rollback_path).read_text(encoding="utf-8"))
+
     remote_payload, remote_secrets = _split_runtime_env(
         env=env,
         payload=_build_remote_env(env),
@@ -2229,38 +2317,54 @@ def _deploy_wi060(
         secret_mode=args.secret_mode,
         include_account_secrets=False,
     )
-    remote_env_path = _write_env_yaml(remote_payload)
-    remote_service = args.service or env.get("KIS_REMOTE_SERVICE_NAME") or DEFAULT_REMOTE_SERVICE
     remote_identity = f"kis-portfolio-remote@{project}.iam.gserviceaccount.com"
-    try:
-        if _run([
-            "gcloud", "run", "deploy", remote_service,
-            "--image", image, "--region", args.region,
-            "--allow-unauthenticated", "--env-vars-file", remote_env_path,
-            "--command", "kis-portfolio-remote", "--args", "",
-            "--service-account", remote_identity,
-            *_build_remote_runtime_flags(env),
-            *_build_secret_flags(remote_secrets),
-            *_build_label_flags("wi060-resilient-partial"),
-            "--project", project,
-        ], dry_run=args.dry_run) != 0:
-            return 1
-    finally:
-        try:
-            os.unlink(remote_env_path)
-        except FileNotFoundError:
-            pass
-
-    if not args.dry_run:
-        resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
-        remote_url = resource[:-4] if resource.endswith("/mcp") else resource
-        if not _smoke_wi046_remote(
-            auth_url=env["KIS_AUTH_BASE_URL"],
-            remote_url=remote_url,
-            expected_resource=resource,
-        ):
-            print("WI-060 Remote health/discovery/auth-boundary smoke failed; Jobs were not changed.")
-            return 1
+    resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
+    canonical_remote_url = resource[:-4] if resource.endswith("/mcp") else resource
+    candidate_host = _anticipated_tagged_service_host(
+        project=project,
+        region=args.region,
+        service=remote_service,
+        tag=DEFAULT_WI060_REMOTE_TAG,
+        dry_run=args.dry_run,
+    )
+    if not candidate_host:
+        print("Failed to resolve the WI-060 zero-traffic candidate host.")
+        return 1
+    existing_hosts = remote_payload.get("KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS", "")
+    remote_payload["KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS"] = ",".join(
+        dict.fromkeys(item for item in [*existing_hosts.split(","), candidate_host] if item)
+    )
+    if _deploy_tagged_service(
+        args=args,
+        project=project,
+        service=remote_service,
+        image=image,
+        command_name="kis-portfolio-remote",
+        payload=remote_payload,
+        secret_refs=remote_secrets,
+        service_account=remote_identity,
+        tag=DEFAULT_WI060_REMOTE_TAG,
+        runtime_flags=_build_remote_runtime_flags(env),
+        deploy_label="wi060-resilient-partial",
+    ) != 0:
+        return 1
+    candidate_url = _tagged_service_url(
+        project=project,
+        region=args.region,
+        service=remote_service,
+        tag=DEFAULT_WI060_REMOTE_TAG,
+        dry_run=args.dry_run,
+    )
+    if not candidate_url:
+        print("Failed to resolve the WI-060 zero-traffic candidate URL.")
+        return 1
+    if not args.dry_run and not _smoke_wi046_tagged_urls(
+        auth_url=env["KIS_AUTH_BASE_URL"].rstrip("/"),
+        remote_url=candidate_url.rstrip("/"),
+        expected_resource=resource,
+    ):
+        print("WI-060 candidate smoke failed; serving traffic and Jobs were not changed.")
+        return 1
 
     report_env = dict(env)
     report_env.update({
@@ -2279,6 +2383,62 @@ def _deploy_wi060(
         image=image,
         deploy_label="wi060-resilient-partial",
     ) != 0:
+        if rollback_manifest:
+            restored = _rollback_job_definitions(
+                components=rollback_manifest["components"],
+                job_names=list(jobs),
+                region=args.region,
+                project=project,
+            )
+            print(f"WI-060 Job update failed; prior Job definitions restored={restored}.")
+        return 1
+
+    traffic = [] if args.dry_run else (_service_traffic(
+        project=project, region=args.region, service=remote_service,
+    ) or [])
+    candidate_revision = next((
+        item.get("revisionName") for item in traffic
+        if item.get("tag") == DEFAULT_WI060_REMOTE_TAG
+    ), None)
+    if args.dry_run:
+        candidate_revision = f"{remote_service}-wi060-dry-run"
+    if not isinstance(candidate_revision, str) or not candidate_revision:
+        if rollback_manifest:
+            _rollback_job_definitions(
+                components=rollback_manifest["components"], job_names=list(jobs),
+                region=args.region, project=project,
+            )
+        print("WI-060 candidate revision was not found; prior Job definitions restored.")
+        return 1
+    if _run([
+        "gcloud", "run", "services", "update-traffic", remote_service,
+        "--to-revisions", f"{candidate_revision}=100",
+        "--region", args.region, "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        if rollback_manifest:
+            _rollback_job_definitions(
+                components=rollback_manifest["components"], job_names=list(jobs),
+                region=args.region, project=project,
+            )
+        return 1
+    if not args.dry_run and not _smoke_wi046_remote(
+        auth_url=env["KIS_AUTH_BASE_URL"],
+        remote_url=canonical_remote_url,
+        expected_resource=resource,
+    ):
+        components = rollback_manifest["components"] if rollback_manifest else []
+        service_restored = _rollback_wi051_service_traffic(
+            components=components, service_names=[remote_service],
+            region=args.region, project=project,
+        )
+        jobs_restored = _rollback_job_definitions(
+            components=components, job_names=list(jobs),
+            region=args.region, project=project,
+        )
+        print(
+            "WI-060 canonical smoke failed; "
+            f"prior service traffic restored={service_restored}, Job definitions restored={jobs_restored}."
+        )
         return 1
     print(f"WI-060 deployed one immutable image to Remote MCP and owner-report Jobs: {image}")
     return 0

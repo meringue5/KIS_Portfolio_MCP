@@ -405,7 +405,17 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --service "${KIS_REMOTE_SERVICE_NAME}" \
+            --rollback-manifest "${RUNNER_TEMP}/wi060-rollback-manifest.json" \
             --secret-mode secret-manager
+
+      - name: Preserve WI-060 rollback manifest
+        if: always() && github.event.inputs.target == 'wi060'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wi060-rollback-manifest-${{ github.run_id }}
+          path: ${{ runner.temp }}/wi060-rollback-manifest.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Stage WI-046 additive migration and zero-traffic V2 candidates
         if: github.event.inputs.target == 'wi046-stage'
