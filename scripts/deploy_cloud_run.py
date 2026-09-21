@@ -93,6 +93,7 @@ SECRET_ENV_EXACT_KEYS = {
     "KIS_OAUTH_GITHUB_CLIENT_SECRET",
     "KIS_TELEGRAM_BOT_TOKEN",
     "KIS_TELEGRAM_CHAT_ID",
+    "KOREA_EXIM_API_KEY",
 }
 SECRET_ENV_PREFIXES = (
     "KIS_APP_KEY_",
@@ -184,6 +185,8 @@ def _required_keys_for_batch(env: dict[str, str]) -> list[str]:
     ]
     if env.get("KIS_DB_MODE", "").lower() == "motherduck":
         keys.extend(["MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN"])
+    if env.get("KOREA_EXIM_FX_ENABLED", "").strip().lower() == "true":
+        keys.append("KOREA_EXIM_API_KEY")
     return keys
 
 
@@ -328,6 +331,8 @@ def _build_batch_env(env: dict[str, str]) -> dict[str, str]:
         "KIS_FIRESTORE_DATABASE",
         "KIS_GCS_BUCKET",
         "SEC_EDGAR_USER_AGENT",
+        "KOREA_EXIM_FX_ENABLED",
+        "KOREA_EXIM_API_KEY",
     }
     payload = {key: env[key] for key in keys if env.get(key, "") != ""}
     payload.update(_build_account_env(env))
@@ -2271,7 +2276,11 @@ def _deploy_wi060(
     project: str,
 ) -> int:
     """Guard one immutable resilience release across Remote MCP and report Jobs."""
-    for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
+    for key in (
+        "KIS_TELEGRAM_BOT_TOKEN_VERSION",
+        "KIS_TELEGRAM_CHAT_ID_VERSION",
+        "KOREA_EXIM_API_KEY_VERSION",
+    ):
         if not env.get(key, "").strip().isdigit():
             print(f"Missing or non-numeric pinned secret version: {key}")
             return 1
@@ -2375,7 +2384,21 @@ def _deploy_wi060(
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED": "true",
         "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED": "true",
         "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+        "KOREA_EXIM_FX_ENABLED": "true",
     })
+    pipeline_identity = report_env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    if _run([
+        "gcloud", "secrets", "add-iam-policy-binding",
+        _secret_id_for_env_key("KOREA_EXIM_API_KEY"),
+        "--member", f"serviceAccount:{pipeline_identity}",
+        "--role", "roles/secretmanager.secretAccessor",
+        "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        print("WI-060 could not grant the pipeline identity access to the exact FX secret.")
+        return 1
     if _deploy_v2_core_jobs(
         args,
         env=report_env,
@@ -2391,6 +2414,21 @@ def _deploy_wi060(
                 project=project,
             )
             print(f"WI-060 Job update failed; prior Job definitions restored={restored}.")
+        return 1
+
+    if _run([
+        "gcloud", "run", "jobs", "execute", jobs[0],
+        "--args", "validate-korea-exim-fx-source,--date,today",
+        "--region", args.region, "--wait", "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        if rollback_manifest:
+            restored = _rollback_job_definitions(
+                components=rollback_manifest["components"],
+                job_names=list(jobs),
+                region=args.region,
+                project=project,
+            )
+            print(f"WI-060 FX source preflight failed; prior Job definitions restored={restored}.")
         return 1
 
     traffic = [] if args.dry_run else (_service_traffic(

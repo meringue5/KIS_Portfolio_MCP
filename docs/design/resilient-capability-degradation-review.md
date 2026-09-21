@@ -1,6 +1,7 @@
 # Resilient capability degradation review (WI-060)
 
-> 2026-09-17 evidence-led review, approved as DEC-057/ADR-029. WI-060 remains isolated and no new FX source is
+> 2026-09-17 evidence-led review, approved as DEC-057/ADR-029. The 2026-09-22 owner approval activates the
+> bounded Korea Eximbank fallback contract only through the guarded WI-060 release; until that release, no new FX source is
 > production-active.
 
 ## Finding
@@ -60,10 +61,10 @@ times and lineage so Claude cannot mistake a morning stored view for live market
    datasets through unrelated feature gates.
 3. Version the owner report decision and layout to allow accurate partial/current-only presentation. Keep one
    owner-only provider operation, terminal idempotency, no auto-replay and no raw content logs.
-4. Evaluate official secondary FX data. `source.bok-ecos` is approved for macro observations, **not** automatically
-   approved as a valuation FX fallback. Establish whether its rate meaning and publication lag fit each slot;
-   otherwise compare another provider. Cross-source disagreement must quarantine conversion, not choose a convenient
-   rate. Version source/dataset/pipeline contracts and bound calls/cost before any production activation.
+4. Use the owner-approved Korea Eximbank source only for USD `deal_bas_r`, only when exact-date governed FX is
+   absent. Preserve it under its own source/rate type, require the requested date, compare it with a KIS reference no
+   older than seven days, and quarantine deviation over 3%. Empty or unpublished responses keep FX partial. The
+   guarded release runs the real-source preflight before Remote traffic promotion and never sends Telegram from it.
 5. Use synthetic fault-injection fixtures for every matrix row, then isolated Claude-equivalent MCP and Telegram
    renderer tests. Production release requires owner-reviewed presentation and approved contracts, but **not**
    MS-006 closure; that would recreate the failure coupling under review.
@@ -87,6 +88,7 @@ transport helper; callers with governed row quality must supply their composed s
 `uv run python scripts/check_resilient_portfolio_cases.py` immediately reproduces missing prior, stale FX, missing
 account, degraded row and missing-current cases without network, database, Telegram or scheduler time. The protected
 `wi060` target builds once and supplies the same immutable digest to Remote MCP and the report Jobs; it does not send
-a Telegram test payload. Korea Eximbank's official Open API is registered only as a proposed fallback-validation
-source. No adapter, credential, provider call or valuation use is authorized until its exact rate field and
-10:00/16:00 publication behavior are measured and approved.
+a Telegram test payload. Korea Eximbank is now an approved bounded fallback source with a pinned Secret Manager
+credential. A real-source, read-only preflight executes on the newly staged Job definition before Remote promotion;
+failure restores the prior Job definitions. Scheduled availability remains runtime quality evidence, not a reason to
+wait for a future slot before testing the failure matrix.

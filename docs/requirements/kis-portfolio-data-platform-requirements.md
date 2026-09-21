@@ -636,6 +636,11 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 외부 환율 fallback은 별도 source 권리, rate type/source date 의미, credential, 비용과 불일치 quarantine
   계약이 승인·활성화된 뒤에만 production 입력이 된다. adapter나 fixture가 있다는 사실만으로 단일 source
   의존이 해결됐다고 표시하지 않는다.
+- 2026-09-22 owner가 무료·공개 한국수출입은행 Open API의 활용신청과 전용 Secret Manager credential 준비를
+  완료해 USD `deal_bas_r` fallback을 승인했다. KIS exact-date `close`가 우선하며, 그것이 없을 때만 exact-date
+  후보를 조회한다. 최근 7일 이내 KIS 기준과 차이가 3%를 넘거나 날짜·shape·값이 맞지 않으면 격리하고
+  완전 총액을 만들지 않는다. release preflight는 메시지·포트폴리오 write 없이 실제 credential과 응답을
+  검증하고, 실패하면 기존 Job 정의를 복구한 뒤 Remote traffic을 승격하지 않는다.
 - owner acceptance로 WI-046과 MS-003을 닫고 MS-004/WI-047을 시작한다. 이후 안정화는 V1 병행관찰이 아니라
   V2 health, OAuth, managed run, Scheduler, 데이터 품질과 사용자-visible 결과를 직접 관찰한다.
 

@@ -16,7 +16,7 @@ rollback_of: none
 execution_scope: isolated
 production_effects: none
 architecture_impact: yes; separate capability quality, read-model and report boundaries without changing the V2 trust boundary
-data_impact: proposed versioned FX-source and partial-result contracts; no live source or physical DB mutation in this phase
+data_impact: approved additive FX source/observation/rate-type contracts; production activation remains pending
 security_impact: retain owner-only destination, masked accounts, no payload or secret logging
 cost_impact: assess bounded second FX source within the existing monthly ceiling before activation
 stabilization_window: none
@@ -43,8 +43,8 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - Architecture/change: current DEC-055 explicitly suppresses all amounts and chart if either state is incomplete.
   The owner's feedback requests a different product behavior, not a silent exception to that decision.
 - Defect: remote read-model quality aggregation and performance-history status literal disagree with persisted Gold.
-- Data-source change: `dataset.fx-rate-daily` currently names only `source.kis-open-api`. A second FX provider needs
-  source rights, rate-basis/time equivalence, new contract versions and architecture review before activation.
+- Data-source change: the approved Korea Eximbank source remains a separately typed `deal_bas_r` fallback and is
+  admitted only for the requested date after a bounded comparison with a recent governed KIS reference.
 - Detailed proposal and failure matrix: `docs/design/resilient-capability-degradation-review.md`.
 
 ## Scope and release unit
@@ -53,15 +53,15 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   deterministic failure fixtures and correct clear false-green/false-degraded read-model defects under review.
 - Approved isolated implementation: expose verified current KRW holdings and labeled partial reports independently
   of prior comparison and USD conversion; evaluate a secondary FX source without mixing unlike rate definitions.
-- Exclude: fabricated total assets, stale FX silently treated as current, manual replay of old Telegram sends,
-  provider signup/credential provisioning, production collection, public MCP change or deploy in this phase.
+- Exclude: fabricated total assets, stale FX silently treated as current, manual replay of old Telegram sends and
+  any unguarded production collection or public MCP change.
 - Ship the WI-060 user-visible correction as **one protected release candidate** after its contracts, fixtures,
   no-send production preflight and CI pass. Small reviewed commits and PR updates are allowed; do not activate a
   half-fixed MCP or Telegram surface in separate production deployments. This is a WI-060 boundary, not a promise
   to finish every unrelated historical TODO before release.
-- A secondary FX provider is part of the same candidate only if source rights, rate semantics, credentials,
-  cost and activation contracts are approved. If those prerequisites are unavailable, do not silently claim that
-  the single-source dependency was fixed; report the remaining gap and seek a release-scope decision before merge.
+- The approved Korea Eximbank credential is referenced by pinned Secret Manager version. Its source rights, typed
+  rate semantics, bounded cost and activation contracts are part of the same protected candidate; a read-only live
+  preflight must pass before Remote traffic promotion or the prior Job definitions are restored.
 
 ## Acceptance criteria
 
@@ -71,19 +71,21 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   verified components; every numeric subtotal is labeled by coverage, source time and valuation basis.
 - [x] MCP and Telegram fixtures reproduce user-visible complete, partial and unavailable cases without a clock wait.
 - [ ] Real Claude/MCP and owner-visible Telegram review accepts the presentation before production closeout.
-- [ ] Any secondary FX source has approved rights, cost, source-date/rate-type mapping and deterministic conflict
+- [x] Any secondary FX source has approved rights, cost, source-date/rate-type mapping and deterministic conflict
   handling; no production calls or credentials are added merely to pass tests.
 
 ## Change impact
 
 - Architecture: capability-oriented quality composition instead of one all-or-nothing report gate.
-- Data/schema/backup: no mutation in isolated phase; later source/dataset revisions may require additive lineage.
+- Data/schema/backup: additive governed Bronze observation and existing Silver FX table use; the fallback preserves
+  its distinct `deal_bas_r` type and source lineage, with no destructive migration.
 - Security/privacy: no change to OAuth or Telegram owner-only destination; partial output remains confidential.
 - MCP/API compatibility: prefer additive fields and explicit quality status; major version if existing field meaning
   must change. Preserve the 18-tool catalog unless separately approved.
 - Deployment/rollback: the independent MS-007 gate depends on already-closed MS-005, not WI-059/MS-006
   stabilization. Any later release still needs approved product/data contracts and protected immutable V2 delivery.
-- Cost/SLO: second source must fit the current bounded-call and monthly-cost contract.
+- Cost/SLO: the second source is free at the approved public contract and is called at most once per managed run,
+  only when the exact-date governed USD/KRW valuation rate is missing.
 
 ## Plan
 
@@ -128,8 +130,8 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - DEC-057/ADR-029 approve capability isolation. Shared quality composition, Telegram presentation `2.3.0`,
   data-quality/pipeline-run false-green correction and the one-image `wi060` protected target have focused
   deterministic coverage. `scripts/check_resilient_portfolio_cases.py` passes five immediate no-network/no-send
-  scenarios. Korea Eximbank source, collection, dataset and pipeline contracts remain proposed only; no credential,
-  provider call or production valuation fallback exists yet.
+  scenarios. Korea Eximbank source, collection, dataset and pipeline contracts are now approved for guarded
+  activation; the credential remains a pinned Secret Manager reference and no production fallback call has yet run.
 - Read-only MotherDuck previews with branch code require no Scheduler wait: 2026-09-18 `kr-1000` and `kr-1600`
   are both `ready_partial` with only `prior_fx_input_stale`; 2026-09-21 both slots are `ready`/`pass`. No run row,
   source call or Telegram claim was created. The standalone fault matrix passed, the protected release command
@@ -141,9 +143,17 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   promotion or canonical-smoke failure leaves or restores the previous serving Remote revision and prior complete
   Job exports. The post-change dry-run exercised this order without provider calls, Telegram sends or production
   writes.
+- The external FX slice has deterministic parser, source-date, stale-reference, cross-source disagreement and
+  empty-response coverage. `scripts/check_fx_fallback_cases.py` passes four immediate no-network/no-DB/no-send
+  cases. Focused client/service/pipeline/warehouse/release tests pass (96 tests). The WI-060 dry-run stages one
+  immutable Remote revision at zero traffic, grants only the pipeline identity access to the exact secret, updates
+  all three fixed-slot Jobs, executes the read-only source preflight, and promotes Remote only afterward. A failed
+  preflight restores all prior Job definitions; HTTP error causes that could embed the auth query are discarded.
+  The complete repository gate passes with 763 tests and one pre-existing Authlib deprecation warning.
 
 ## Closeout
 
 - Result: open.
-- Remaining risk: design and implementation not yet accepted or production-active.
+- Remaining risk: the new source has not yet passed the protected live preflight and the combined candidate is not
+  production-active or owner-accepted.
 - Follow-up Work Item: none yet.

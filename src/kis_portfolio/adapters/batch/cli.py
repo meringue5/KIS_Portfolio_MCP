@@ -22,6 +22,7 @@ from kis_portfolio.config import (
 from kis_portfolio.db.connection import get_connection
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
+from kis_portfolio.services.fx_fallback import validate_korea_exim_fx_source
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_classification_sync import sync_held_overseas_classifications
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
@@ -148,6 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
     managed.add_argument("--slot", required=True, choices=sorted(ALLOWED_SLOTS))
     managed.add_argument("--partition-key", default="all-accounts", choices=("all-accounts",))
     managed.add_argument("--requested-run-id", help=argparse.SUPPRESS)
+
+    fx_preflight = subparsers.add_parser(
+        "validate-korea-exim-fx-source",
+        help="Validate the official fallback source without portfolio writes or messages.",
+    )
+    fx_preflight.add_argument("--date", default="today", help="YYYYMMDD or today in Asia/Seoul")
 
     price_backfill = subparsers.add_parser(
         "backfill-held-price-history-v2",
@@ -381,6 +388,28 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
         )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"succeeded", "skipped", "in_progress"} else 1
+
+
+def _run_validate_korea_exim_fx_source(args: argparse.Namespace) -> int:
+    logical_date = (
+        datetime.now(ZoneInfo("Asia/Seoul")).date()
+        if args.date == "today" else datetime.strptime(args.date, "%Y%m%d").date()
+    )
+    try:
+        result = asyncio.run(validate_korea_exim_fx_source(
+            get_connection(),
+            logical_date=logical_date,
+            api_key=os.environ.get("KOREA_EXIM_API_KEY", ""),
+        ))
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "detail": "redacted; official FX source preflight did not pass",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] == "passed" else 1
 
 
 def _run_price_backfill(args: argparse.Namespace) -> int:
@@ -681,6 +710,8 @@ def main() -> None:
         raise SystemExit(_run_sync_market_calendar(args))
     if args.command == "collect-owned-portfolio-v2":
         raise SystemExit(_run_owned_portfolio_v2(args))
+    if args.command == "validate-korea-exim-fx-source":
+        raise SystemExit(_run_validate_korea_exim_fx_source(args))
     if args.command == "backfill-held-price-history-v2":
         raise SystemExit(_run_price_backfill(args))
     if args.command == "plan-trade-cash-backfill-v2":

@@ -576,6 +576,7 @@ def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_se
         env={
             "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
             "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+            "KOREA_EXIM_API_KEY_VERSION": "1",
             "KIS_REMOTE_AUTH_MODE": "oauth",
             "KIS_RESOURCE_SERVER_URL": "https://kis-portfolio-remote.example.test/mcp",
             "KIS_AUTH_BASE_URL": "https://kis-portfolio-auth.example.test",
@@ -584,16 +585,79 @@ def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_se
     )
 
     assert result == 0
-    assert len(commands) == 2
+    assert len(commands) == 4
     assert commands[0][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
     assert commands[0][commands[0].index("--image") + 1] == image
     assert "--no-traffic" in commands[0]
-    assert commands[1][0:4] == ["gcloud", "run", "services", "update-traffic"]
+    assert commands[1][0:3] == ["gcloud", "secrets", "add-iam-policy-binding"]
+    assert commands[1][3] == "kis-portfolio-korea-exim-api-key"
+    assert commands[2][0:4] == ["gcloud", "run", "jobs", "execute"]
+    assert "validate-korea-exim-fx-source,--date,today" in commands[2]
+    assert commands[3][0:4] == ["gcloud", "run", "services", "update-traffic"]
     assert "send-telegram-photo-transport-smoke" not in " ".join(commands[0])
     assert captured["image"] == image
     assert captured["deploy_label"] == "wi060-resilient-partial"
     assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
     assert captured["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
+    assert captured["env"]["KOREA_EXIM_FX_ENABLED"] == "true"
+
+
+def test_wi060_failed_fx_preflight_restores_all_prior_job_definitions(
+    monkeypatch, tmp_path,
+):
+    rollback_path = tmp_path / "rollback.json"
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi060", dry_run=False,
+        secret_mode="secret-manager", service="kis-portfolio-remote",
+        rollback_manifest=str(rollback_path),
+    )
+    image = "registry.example/kis@sha256:test"
+    rollback_components = [
+        {"kind": "job", "name": name, "previous_export": f"metadata:\n  name: {name}\n"}
+        for name in deploy_cloud_run.DEFAULT_V2_CORE_JOBS.values()
+    ]
+    restored = {}
+
+    def capture_manifest(**_kwargs):
+        rollback_path.write_text(json.dumps({"components": rollback_components}))
+        return True
+
+    def run(command, **_kwargs):
+        if command[0:4] == ["gcloud", "run", "jobs", "execute"]:
+            return 1
+        return 0
+
+    def restore(**kwargs):
+        restored.update(kwargs)
+        return True
+
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(deploy_cloud_run, "_capture_wi051_rollback_manifest", capture_manifest)
+    monkeypatch.setattr(deploy_cloud_run, "_anticipated_tagged_service_host", lambda **_kwargs: "candidate.example.test")
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_tagged_service", lambda **_kwargs: 0)
+    monkeypatch.setattr(deploy_cloud_run, "_tagged_service_url", lambda **_kwargs: "https://candidate.example.test")
+    monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_tagged_urls", lambda **_kwargs: True)
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_jobs", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(deploy_cloud_run, "_rollback_job_definitions", restore)
+    monkeypatch.setattr(deploy_cloud_run, "_run", run)
+
+    result = deploy_cloud_run._deploy_wi060(
+        args,
+        env={
+            "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
+            "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+            "KOREA_EXIM_API_KEY_VERSION": "1",
+            "KIS_REMOTE_AUTH_MODE": "oauth",
+            "KIS_RESOURCE_SERVER_URL": "https://kis-portfolio-remote.example.test/mcp",
+            "KIS_AUTH_BASE_URL": "https://kis-portfolio-auth.example.test",
+        },
+        project="project",
+    )
+
+    assert result == 1
+    assert restored["components"] == rollback_components
+    assert restored["job_names"] == list(deploy_cloud_run.DEFAULT_V2_CORE_JOBS.values())
 
 
 def test_rollback_job_definitions_restore_exact_exports_in_reverse_order(monkeypatch):

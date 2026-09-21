@@ -20,6 +20,12 @@ from kis_portfolio.adapters.outbound.gcs_object_store import GCSObjectStore
 from kis_portfolio.adapters.outbound.instrument_warehouse import InstrumentWarehouseRepository
 from kis_portfolio.adapters.outbound.v2_warehouse import V2WarehouseRepository
 from kis_portfolio.modules.exposure import canonical_instrument_id, resolve_instrument_classification
+from kis_portfolio.clients.korea_exim import (
+    KoreaEximError,
+    KoreaEximFxRate,
+    fetch_usd_krw_deal_bas_rate,
+)
+from kis_portfolio.services.fx_fallback import assess_fx_fallback, latest_kis_usd_krw_reference
 from kis_portfolio.platform.etf_source_profiles import load_etf_instrument_routes
 from kis_portfolio.platform.pipeline import (
     LineageEvidence,
@@ -39,8 +45,11 @@ from kis_portfolio.security.redaction import redact_nested
 
 SEOUL = ZoneInfo("Asia/Seoul")
 PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
-PIPELINE_VERSION = "1.0.0"
+PIPELINE_VERSION = "1.1.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
+FX_FALLBACK_SOURCE_ID = "source.korea-eximbank-open-api"
+FX_FALLBACK_DATASET_ID = "dataset.fx-rate-fallback-observation"
+FX_FALLBACK_RATE_TYPE = "deal_bas_r"
 
 
 def _decimal(value: Any, default: str = "0") -> Decimal:
@@ -101,16 +110,24 @@ def _current_official_overseas_classification(
     ))
 
 
-def _envelope(source_record_id: str, payload: dict[str, Any], observed_at: datetime) -> SourceEnvelope:
+def _envelope(
+    source_record_id: str,
+    payload: dict[str, Any],
+    observed_at: datetime,
+    *,
+    source_id: str = "source.kis-open-api",
+    fetched_at: datetime | None = None,
+    quality_status: str = "pass",
+) -> SourceEnvelope:
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
     return SourceEnvelope(
-        source_id="source.kis-open-api",
+        source_id=source_id,
         source_record_id=source_record_id,
         observed_at=observed_at,
-        fetched_at=datetime.now(UTC),
+        fetched_at=fetched_at or datetime.now(UTC),
         payload=payload,
         content_hash=hashlib.sha256(canonical.encode()).hexdigest(),
-        quality_status="pass",
+        quality_status=quality_status,
     )
 
 
@@ -124,7 +141,22 @@ def calendar_gate(connection: duckdb.DuckDBPyConnection, logical_date: date) -> 
     return (True, "market_open") if row[0] else (False, f"market_closed:{row[1] or 'declared'}")
 
 
-async def _collect_sources(slot: str) -> dict[str, Any]:
+def _has_exact_kis_fx(raw: dict[str, Any], logical_date: date) -> bool:
+    return any(
+        row["rate_date"] == logical_date
+        for row in _operational_fx_rows({
+            "base_currency": "USD", "quote_currency": "KRW",
+            "fetched_at": datetime.now(UTC), "raw": raw,
+        })
+    )
+
+
+async def _collect_sources(
+    slot: str,
+    logical_date: date | None = None,
+    *,
+    allow_fx_fallback: bool = False,
+) -> dict[str, Any]:
     accounts = load_account_registry()
     domestic = []
     calls = 0
@@ -144,6 +176,7 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
     overseas_deposit: dict[str, Any] = {}
     price_observations: list[dict[str, Any]] = []
     fx_observations: list[dict[str, Any]] = []
+    fx_fallback_observation: dict[str, Any] | None = None
     if slot == "kr-1000":
         brokerage = next(account for account in accounts if account.label == "brokerage")
         with scoped_account_env(brokerage):
@@ -195,6 +228,40 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
                 "fetched_at": datetime.now(UTC), "raw": fx_raw,
             })
             calls += 1
+    target_date = logical_date or datetime.now(SEOUL).date()
+    kis_exact = any(
+        _has_exact_kis_fx(item["raw"], target_date)
+        for item in fx_observations
+    )
+    fallback_enabled = os.environ.get(
+        "KOREA_EXIM_FX_ENABLED", "false"
+    ).strip().lower() == "true"
+    if allow_fx_fallback and fallback_enabled and not kis_exact:
+        calls += 1
+        try:
+            rate = await fetch_usd_krw_deal_bas_rate(
+                api_key=os.environ.get("KOREA_EXIM_API_KEY", ""),
+                requested_date=target_date,
+            )
+            fx_fallback_observation = {
+                "status": "pass",
+                "provider": rate.provider,
+                "requested_date": rate.requested_date,
+                "rate_date": rate.rate_date,
+                "fetched_at": rate.fetched_at,
+                "base_currency": rate.base_currency,
+                "quote_currency": rate.quote_currency,
+                "native_rate_field": rate.native_rate_field,
+                "rate": rate.rate,
+            }
+        except KoreaEximError:
+            fx_fallback_observation = {
+                "status": "missing",
+                "provider": "korea-eximbank",
+                "requested_date": target_date,
+                "reason": "provider_unavailable_or_unpublished",
+                "fetched_at": datetime.now(UTC),
+            }
     return {
         "domestic": domestic,
         "overseas": overseas,
@@ -204,6 +271,7 @@ async def _collect_sources(slot: str) -> dict[str, Any]:
         "overseas_symbols": overseas_symbols,
         "price_observations": price_observations,
         "fx_observations": fx_observations,
+        "fx_fallback_observation": fx_fallback_observation,
     }
 
 
@@ -275,9 +343,42 @@ def build_owned_portfolio_pipeline(
     instrument_repository = InstrumentWarehouseRepository(connection)
     etf_routes = load_etf_instrument_routes()
 
+    def needs_fx_fallback(logical_date: date) -> bool:
+        row = connection.execute(
+            """SELECT count(*) FROM silver.fx_rates_daily
+               WHERE base_currency='USD' AND quote_currency='KRW'
+                 AND rate_date=? AND quality_status='pass'
+                 AND rate_type IN ('close', ?)""",
+            [logical_date, FX_FALLBACK_RATE_TYPE],
+        ).fetchone()
+        return not row or int(row[0]) == 0
+
     def collect(context: StageContext) -> StageResult:
-        collected = asyncio.run(_collect_sources(context.slot))
+        collected = asyncio.run(_collect_sources(
+            context.slot,
+            context.logical_date,
+            allow_fx_fallback=needs_fx_fallback(context.logical_date),
+        ))
         context.state["collected"] = collected
+        fallback = collected.get("fx_fallback_observation")
+        fallback_observation_id = None
+        if fallback:
+            observed_at = datetime.combine(
+                fallback["requested_date"], datetime.min.time(), tzinfo=SEOUL,
+            ).astimezone(UTC)
+            fallback_observation_id = repository.record_observation(
+                FX_FALLBACK_DATASET_ID,
+                _envelope(
+                    f"{context.run_id}:fx-fallback:USD:{fallback['requested_date']}",
+                    fallback,
+                    observed_at,
+                    source_id=FX_FALLBACK_SOURCE_ID,
+                    fetched_at=fallback["fetched_at"],
+                    quality_status="pass" if fallback["status"] == "pass" else "missing",
+                ),
+                context.run_id,
+            )
+            context.state["fx_fallback_observation_id"] = fallback_observation_id
         safe_bundle = {
             "slot": context.slot,
             "logical_date": context.logical_date.isoformat(),
@@ -312,7 +413,18 @@ def build_owned_portfolio_pipeline(
             output_count=len(collected["domestic"]) + len(collected["overseas"]),
             source_calls=collected["source_calls"],
             evidence={"raw_object_hash": stored.content_hash, "raw_object_created": stored.created},
-            lineage=(LineageEvidence("source.kis-open-api", stored.uri, "kis-raw-bundle", "1.0.0"),),
+            lineage=(
+                LineageEvidence("source.kis-open-api", stored.uri, "kis-raw-bundle", "1.0.0"),
+                *(
+                    (LineageEvidence(
+                        FX_FALLBACK_SOURCE_ID,
+                        fallback_observation_id,
+                        "korea-exim-deal-bas-r",
+                        "1.0.0",
+                    ),)
+                    if fallback_observation_id else ()
+                ),
+            ),
         )
 
     def normalize(context: StageContext) -> StageResult:
@@ -346,11 +458,31 @@ def build_owned_portfolio_pipeline(
                 "source_calls": 0, "domestic_symbols": [], "overseas_symbols": [],
                 "price_observations": bundle.get("price_observations", []),
                 "fx_observations": bundle.get("fx_observations", []),
+                "fx_fallback_observation": None,
             }
             for item in collected["price_observations"]:
                 item["fetched_at"] = datetime.fromisoformat(item["fetched_at"])
             for item in collected["fx_observations"]:
                 item["fetched_at"] = datetime.fromisoformat(item["fetched_at"])
+            fallback_row = connection.execute(
+                """SELECT observation_id,payload FROM bronze.source_observations
+                   WHERE pipeline_run_id=? AND dataset_id=? AND source_id=?
+                   ORDER BY fetched_at DESC LIMIT 1""",
+                [context.run_id, FX_FALLBACK_DATASET_ID, FX_FALLBACK_SOURCE_ID],
+            ).fetchone()
+            if fallback_row:
+                fallback_payload = (
+                    json.loads(fallback_row[1]) if isinstance(fallback_row[1], str) else dict(fallback_row[1])
+                )
+                for key in ("requested_date", "rate_date"):
+                    if fallback_payload.get(key):
+                        fallback_payload[key] = date.fromisoformat(str(fallback_payload[key]))
+                if fallback_payload.get("fetched_at"):
+                    fallback_payload["fetched_at"] = datetime.fromisoformat(
+                        str(fallback_payload["fetched_at"])
+                    )
+                collected["fx_fallback_observation"] = fallback_payload
+                context.state["fx_fallback_observation_id"] = fallback_row[0]
             context.state["collected"] = collected
         normalized = 0
         for item in collected["domestic"]:
@@ -529,10 +661,69 @@ def build_owned_portfolio_pipeline(
                 repository.upsert_fx_rate(payload, obs)
                 normalized += 1
 
+        fallback = collected.get("fx_fallback_observation")
+        fallback_status = "not_needed" if not needs_fx_fallback(context.logical_date) else "missing"
+        fallback_details: dict[str, Any] = {"slot": context.slot}
+        if fallback and fallback.get("status") == "pass":
+            reference = latest_kis_usd_krw_reference(
+                connection, logical_date=context.logical_date,
+            )
+            candidate = KoreaEximFxRate(
+                requested_date=fallback["requested_date"],
+                rate_date=fallback["rate_date"],
+                fetched_at=fallback["fetched_at"],
+                base_currency=fallback["base_currency"],
+                quote_currency=fallback["quote_currency"],
+                native_rate_field=fallback["native_rate_field"],
+                rate=Decimal(str(fallback["rate"])),
+            )
+            assessment = assess_fx_fallback(
+                candidate,
+                logical_date=context.logical_date,
+                reference_date=reference[0] if reference else None,
+                reference_rate=reference[1] if reference else None,
+            )
+            fallback_details.update({
+                "provider": fallback["provider"],
+                "native_rate_field": fallback["native_rate_field"],
+                "rate_date": fallback["rate_date"].isoformat(),
+                "reference_date": (
+                    assessment.reference_date.isoformat() if assessment.reference_date else None
+                ),
+                "reference_age_days": assessment.reference_age_days,
+                "deviation_ratio": (
+                    str(assessment.deviation_ratio) if assessment.deviation_ratio is not None else None
+                ),
+                "assessment_reason": assessment.reason,
+            })
+            if assessment.eligible:
+                payload = {
+                    "base_currency": "USD",
+                    "quote_currency": "KRW",
+                    "rate_date": fallback["rate_date"],
+                    "rate_type": FX_FALLBACK_RATE_TYPE,
+                    "rate": candidate.rate,
+                    "quality_status": "pass",
+                }
+                observation_id = context.state.get("fx_fallback_observation_id")
+                if not observation_id:
+                    raise RuntimeError("FX fallback payload has no governed source observation")
+                repository.upsert_fx_rate(payload, observation_id)
+                normalized += 1
+                covered_fx_requests += 1
+                fallback_status = "pass"
+            else:
+                fallback_status = "quarantined"
+        elif fallback:
+            fallback_status = str(fallback.get("status") or "missing")
+            fallback_details["reason"] = fallback.get("reason")
+
         context.state["price_expected_count"] = len(collected.get("price_observations", []))
         context.state["price_observed_count"] = covered_price_requests
         context.state["fx_expected_count"] = len(collected.get("fx_observations", []))
         context.state["fx_observed_count"] = covered_fx_requests
+        context.state["fx_fallback_status"] = fallback_status
+        context.state["fx_fallback_details"] = fallback_details
 
         # Historical price and FX rows are already governed in silver.price_bars_daily
         # and silver.fx_rates_daily.  Re-reading V1 main here would turn an archive into a
@@ -555,6 +746,8 @@ def build_owned_portfolio_pipeline(
         price_status = "pass" if price_expected > 0 and price_observed == price_expected else "fail"
         if price_status == "fail":
             raise RuntimeError(f"price coverage failed: {price_observed}/{price_expected}")
+        fallback_status = str(context.state.get("fx_fallback_status") or "missing")
+        fx_quality_status = "pass" if fallback_status in {"pass", "not_needed"} else "partial"
         return StageResult(
             input_count=context.state.get("normalized_count", 0), output_count=account_count,
             quality=(
@@ -565,6 +758,13 @@ def build_owned_portfolio_pipeline(
                 QualityEvidence(
                     "dataset.price-bar-daily", "held-instrument-price-coverage", price_status,
                     str(price_observed), str(price_expected), {"slot": context.slot},
+                ),
+                QualityEvidence(
+                    "dataset.fx-rate-daily", "usd-krw-valuation-rate-coverage", fx_quality_status,
+                    "1" if fx_quality_status == "pass" else "0", "1",
+                    context.state.get("fx_fallback_details", {}) | {
+                        "fallback_status": fallback_status,
+                    },
                 ),
             ),
         )
@@ -590,7 +790,7 @@ def build_owned_portfolio_pipeline(
             PipelineStage("collect-land", collect), PipelineStage("normalize", normalize),
             PipelineStage("quality", quality), PipelineStage("publish", publish),
         ),
-        source_call_budget=64,
+        source_call_budget=65,
     )
 
 

@@ -333,6 +333,12 @@ Secret Manager secret id 규칙:
 
 - `KIS_APP_SECRET_RIA` → `kis-portfolio-kis-app-secret-ria`
 - `MOTHERDUCK_TOKEN` → `kis-portfolio-motherduck-token`
+- `KOREA_EXIM_API_KEY` → `kis-portfolio-korea-exim-api-key`; WI-060은 숫자 버전을 고정한다.
+
+`wi060` release는 zero-traffic Remote 후보를 검증하고 세 Job을 갱신한 뒤, 첫 Job을 인자 override로
+`validate-korea-exim-fx-source` 실행한다. 이 preflight는 메시지·포트폴리오 write 없이 exact-date
+`deal_bas_r`와 최근 KIS reference 편차만 확인한다. 실패하면 Job 전체 export를 복구하고 Remote traffic을
+승격하지 않는다.
 
 Secret Manager 동기화는 dry-run을 먼저 확인한 뒤 적용한다.
 
