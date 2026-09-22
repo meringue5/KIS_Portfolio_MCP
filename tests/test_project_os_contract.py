@@ -160,6 +160,7 @@ def _set_ms003_overlap_state(target: Path) -> None:
     for filename in (
         "WI-058-remote-mcp-identifier-and-coverage-correction.md",
         "WI-059-scheduled-core-telegram-recovery.md",
+        "WI-060-resilient-partial-portfolio.md",
     ):
         correction = target / "docs/work-items" / filename
         document = correction.read_text(encoding="utf-8")

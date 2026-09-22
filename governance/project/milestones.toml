@@ -164,7 +164,7 @@ work_item_ids = ["WI-059"]
 [[milestones]]
 id = "MS-007"
 title = "Resilient partial portfolio usability and data-source isolation"
-status = "in_progress"
+status = "stabilizing"
 depends_on = ["MS-005"]
 implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
@@ -719,7 +719,7 @@ status = "closed"
 id = "WI-060-S02"
 parent_id = "WI-060"
 title = "Make FX release preflight clock-independent and verify rollback prerequisites before mutation"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-059-S01"
