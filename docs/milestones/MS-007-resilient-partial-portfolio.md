@@ -1,6 +1,6 @@
 # MS-007 — Resilient partial portfolio usability
 
-> 상태: in_progress (production release authorized; protected workflow pending)
+> 상태: stabilizing (protected production release complete; real-use acceptance pending)
 > 선행 milestone: MS-005 closed; MS-006 is discovery context, not a prerequisite
 > machine registry: `governance/project/milestones.toml`
 
@@ -13,7 +13,7 @@ facts and scoped KRW subsets useful when comparison history, FX or optional anal
 
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
-| 1 | WI-060 capability-isolated portfolio usability | none; discovered from WI-059 | in_progress, production release authorized |
+| 1 | WI-060 capability-isolated portfolio usability | none; discovered from WI-059 | stabilizing; production active, owner acceptance pending |
 
 ## Gates
 
@@ -37,3 +37,4 @@ facts and scoped KRW subsets useful when comparison history, FX or optional anal
 | 2026-09-22.1 | 2026-09-22 | Owner provisioned the approved external FX credential; guarded fallback implementation and immediate fault cases completed | Production remains pending until full gate and protected live source preflight |
 | 2026-09-22.2 | 2026-09-22 | Protected run exposed same-day publication-time coupling and a disabled rollback prerequisite; exact prior Job exports were restored | WI-060-S01 closed; WI-060-S02 appended for latest-governed source validation and pre-mutation rollback readiness |
 | 2026-09-22.3 | 2026-09-22 | Pre-mutation run `35741804406` exposed canonical gcloud service-resource output instead of the mocked short name | No production mutation; WI-060-S02 fixture corrected to the real provider output shape |
+| 2026-09-22.4 | 2026-09-22 | PR #124 and protected run `35742953730` activated one immutable WI-060 image after clock-independent source preflight | MS-007/WI-060 move to stabilizing; real Claude output and owner-visible report acceptance remain exit gates |

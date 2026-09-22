@@ -1,7 +1,7 @@
 ---
 id: WI-060
 title: Isolate portfolio capability failures and provide accurate partial results
-status: in_progress
+status: stabilizing
 type: architecture
 owner: owner
 decision_refs: DEC-055, DEC-057, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029
@@ -16,7 +16,7 @@ rollback_of: none
 execution_scope: production
 production_effects: guarded Remote MCP and three fixed-slot owned-core Job deployment
 architecture_impact: yes; separate capability quality, read-model and report boundaries without changing the V2 trust boundary
-data_impact: approved additive FX source/observation/rate-type contracts; production activation remains pending
+data_impact: approved additive FX source/observation/rate-type contracts are production-active under guarded fallback
 security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; no payload or secret logging
 cost_impact: free official source; at most one fallback call per managed run and no new standing resource
 stabilization_window: protected source preflight plus immediate real MCP review and first owner-visible scheduled report after release
@@ -179,10 +179,18 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   `projects/.../services/cloudresourcemanager.googleapis.com` while the new guard compared it with the short service
   name. The parser now normalizes either form, its regression fixture uses the real output shape, and a missing
   rollback manifest after an intentional pre-mutation stop is a warning rather than a second workflow failure.
+- PR #124 merged as `26ccdb8`. Protected run `35742953730` passed the full gate and deployed immutable digest
+  `sha256:8d2c499a1efa4de5ec403f344ff9b6f5d42ab3526adf4e6f885dcb4fa6063907` to Remote revision
+  `kis-portfolio-remote-00065-ley` and all three fixed-slot Jobs. The new Remote serves 100% traffic; its `/health`
+  returns 200 and unauthenticated `/mcp` returns 401. Preflight execution
+  `kis-portfolio-owned-core-v2-1000-p857r` completed successfully without a Telegram send: source
+  `korea-eximbank`, requested/reference date 2026-09-22, native field `deal_bas_r`, deviation ratio
+  `0.01711976487876561351947097722`, reason `pass`. Release labels on Remote and all Jobs match merge SHA
+  `26ccdb8ca79d7b206d7de7093c947e228bfed811` and run `35742953730`.
 
 ## Closeout
 
-- Result: open.
-- Remaining risk: the corrected clock-independent source preflight has not yet passed the protected release and the
-  combined candidate is not production-active or owner-accepted.
+- Result: stabilizing; implementation and protected production activation are complete.
+- Remaining risk: real Claude MCP output and the first owner-visible scheduled partial/complete report presentation
+  have not yet been accepted. Do not close WI-060 or MS-007 on provider/API success alone.
 - Follow-up Work Item: none yet.
