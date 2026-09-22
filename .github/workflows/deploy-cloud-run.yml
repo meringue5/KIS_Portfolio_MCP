@@ -415,7 +415,8 @@ jobs:
         with:
           name: wi060-rollback-manifest-${{ github.run_id }}
           path: ${{ runner.temp }}/wi060-rollback-manifest.json
-          if-no-files-found: error
+          # An early pre-mutation guard failure intentionally has no rollback artifact.
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Stage WI-046 additive migration and zero-traffic V2 candidates

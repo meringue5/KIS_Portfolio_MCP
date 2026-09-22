@@ -174,6 +174,11 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   the most recent governed KIS business date. Explicit `today` remains available for runtime availability tests.
   Focused preflight/release tests pass (83 tests), both immediate fault scripts pass (4 FX cases and 5 portfolio
   capability cases), and the complete repository gate passes with 770 tests and one pre-existing Authlib warning.
+- Protected run `35741804406` stopped before image build, rollback capture or any production mutation. The rollback
+  API was enabled, but `gcloud services list --format=value(name)` returned the canonical resource name
+  `projects/.../services/cloudresourcemanager.googleapis.com` while the new guard compared it with the short service
+  name. The parser now normalizes either form, its regression fixture uses the real output shape, and a missing
+  rollback manifest after an intentional pre-mutation stop is a warning rather than a second workflow failure.
 
 ## Closeout
 
