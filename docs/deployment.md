@@ -177,7 +177,7 @@ auth 서버 필수 환경변수:
 - `KIS_OAUTH_GOOGLE_CLIENT_ID/SECRET`
 - `KIS_OAUTH_GITHUB_CLIENT_ID/SECRET`
 
-ChatGPT connector 호환 추가사항:
+ChatGPT/Codex connector 호환 추가사항:
 
 - auth server discovery에 `registration_endpoint` 포함
 - auth discovery에 `offline_access`를 광고해 refresh token 유지 경로를 연다
@@ -186,7 +186,24 @@ ChatGPT connector 호환 추가사항:
 - 기본 dynamic redirect 허용 prefix:
   - `https://chatgpt.com/connector/oauth/`
   - `https://chatgpt.com/connector_platform_oauth_redirect`
+  - `http://127.0.0.1:` — Codex native OAuth의 임의 포트 callback 전용. 구현은 hostname, port,
+    `/callback/<nonce>`, userinfo/query/fragment 부재를 구조적으로 재검증하며 일반 HTTP prefix로 취급하지 않는다.
 - 필요하면 `KIS_AUTH_DYNAMIC_CLIENT_REDIRECT_PREFIXES`로 override 가능
+
+Codex에서 canonical Remote를 등록하고 owner browser consent를 시작한다:
+
+```bash
+codex mcp add kis_portfolio \
+  --url https://<remote-host>/mcp \
+  --oauth-resource https://<remote-host>/mcp \
+  --oauth-client-registration dcr
+codex mcp login kis_portfolio \
+  --scopes mcp:read,offline_access \
+  --oauth-client-registration dcr
+```
+
+OAuth가 완료된 뒤 새 Codex task에서 실제 `tools/list`와 대표 read tool을 호출한다. 등록 성공이나 설정 목록만으로
+실사용 성공을 판정하지 않는다.
 
 ChatGPT connector 등록 시 app-level metadata 권장값:
 

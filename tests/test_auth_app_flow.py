@@ -311,3 +311,61 @@ def test_dynamic_client_registration_rejects_untrusted_redirect_uri(monkeypatch,
     assert response.status_code == 400
     assert response.json()["error"] == "invalid_redirect_uri"
     close_connection()
+
+
+def test_dynamic_client_registration_accepts_codex_loopback_callback(monkeypatch, tmp_path):
+    close_connection()
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
+    app = create_app(settings=_settings(), provider=_provider())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/register",
+            json={
+                "client_name": "Codex",
+                "redirect_uris": ["http://127.0.0.1:56803/callback/6vFxV-jIo30S"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "response_types": ["code"],
+                "token_endpoint_auth_method": "client_secret_post",
+                "scope": "mcp:read offline_access",
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["redirect_uris"] == [
+        "http://127.0.0.1:56803/callback/6vFxV-jIo30S"
+    ]
+    close_connection()
+
+
+def test_dynamic_client_registration_rejects_loopback_prefix_bypasses(monkeypatch, tmp_path):
+    close_connection()
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
+    app = create_app(settings=_settings(), provider=_provider())
+    invalid_redirects = (
+        "http://127.0.0.1:56803@evil.example.com/callback/nonce",
+        "http://127.0.0.1.evil.example.com:56803/callback/nonce",
+        "http://127.0.0.1:56803/not-a-callback/nonce",
+        "http://127.0.0.1:56803/callback/nonce/extra",
+        "http://127.0.0.1:56803/callback/nonce?next=https://evil.example.com",
+    )
+
+    with TestClient(app) as client:
+        for redirect_uri in invalid_redirects:
+            response = client.post(
+                "/register",
+                json={
+                    "client_name": "Codex",
+                    "redirect_uris": [redirect_uri],
+                    "grant_types": ["authorization_code", "refresh_token"],
+                    "response_types": ["code"],
+                    "token_endpoint_auth_method": "client_secret_post",
+                    "scope": "mcp:read offline_access",
+                },
+            )
+            assert response.status_code == 400, redirect_uri
+            assert response.json()["error"] == "invalid_redirect_uri"
+
+    close_connection()

@@ -348,7 +348,7 @@ entrypoint로 제공한다. 기존 fork의 `inquery-*` tool alias와 계좌별 M
 
 ### ADR-015: 원격 MCP connector 호환성은 클라이언트별 discovery/UI 차이를 별도 관리
 
-**결정**: Claude와 ChatGPT의 remote MCP 연결은 동일한 MCP/OAuth 서버를 사용하더라도
+**결정**: Claude, ChatGPT와 Codex의 remote MCP 연결은 동일한 MCP/OAuth 서버를 사용하더라도
 client-specific discovery와 대화 단위 attachment 상태를 별도 호환성 축으로 관리한다.
 운영 기준으로는 auth server가 `/.well-known/oauth-authorization-server`와
 `/.well-known/openid-configuration`을 함께 제공해야 하며, connector 재검증은
@@ -367,6 +367,9 @@ client-specific discovery와 대화 단위 attachment 상태를 별도 호환성
   정상 경로로 본다.
 - Claude는 일부 UI 흐름에서 tool drawer와 실제 대화 실행 경로가 다르게 보일 수 있으므로,
   설정 화면에 도구가 안 보여도 실제 대화 호출 로그로 별도 검증해야 한다.
+- Codex native OAuth는 DCR에서 임의 포트의 IPv4 loopback callback을 사용한다. 인증 서버는
+  `http://127.0.0.1:<port>/callback/<nonce>`를 URL 구성요소로 검증해 허용하고, 문자열 prefix만 일치하는
+  외부 host·userinfo·query·fragment 우회는 거절한다. 연결 뒤 실제 tool inventory는 새 task에서 검증한다.
 - 따라서 "도구 목록이 보인다/안 보인다"만으로 배포 회귀를 판단하지 않고,
   auth discovery, token 교환, `/mcp` initialize/list-tools 로그, 실제 대화 호출 성공 여부를 함께 확인한다.
 
@@ -374,6 +377,7 @@ client-specific discovery와 대화 단위 attachment 상태를 별도 호환성
 - auth discovery alias: `/.well-known/openid-configuration`
 - ChatGPT 재검증 절차: connector 재연결 후 `새 대화`에서 tool 호출 확인
 - Claude 재검증 절차: 설정 화면과 별개로 실제 대화에서 tool 호출 확인
+- Codex 재검증 절차: DCR·owner consent 뒤 새 task에서 tool 목록과 대표 read 호출 확인
 
 ---
 

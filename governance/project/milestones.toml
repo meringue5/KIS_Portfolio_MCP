@@ -722,6 +722,12 @@ title = "Make FX release preflight clock-independent and verify rollback prerequ
 status = "closed"
 
 [[subitems]]
+id = "WI-060-S03"
+parent_id = "WI-060"
+title = "Allow structurally validated Codex loopback OAuth callbacks and verify a direct MCP call"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-059-S01"
 parent_id = "WI-059"
 title = "Reproduce missing-prior report cascade and enforce FX/report readiness without waiting for a slot"

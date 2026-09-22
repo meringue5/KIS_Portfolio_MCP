@@ -19,7 +19,7 @@ Firestore/MotherDuck 데이터 경계를 가진 포트폴리오 서비스로 재
 - 국내 자산 + 해외 주식 + 해외 예수금까지 합친 canonical 총자산 계산
 - 국내 상장 해외 ETF/REIT를 `해외우회투자`로 분리 표시
 - MotherDuck/DuckDB에 스냅샷을 저장하고 총자산 이력/일간 변화/추세 분석
-- Claude web/Desktop/mobile에서 함께 쓰는 OAuth Remote MCP V2 단일 연결
+- Claude web/Desktop/mobile와 Codex에서 함께 쓰는 OAuth Remote MCP V2 단일 연결
 - 원격 MCP 배포를 위한 HTTP 엔트리포인트와 컨테이너 베이스라인 포함
 
 ## 이런 분에게 맞습니다
@@ -81,7 +81,7 @@ Claude Desktop 같은 MCP 클라이언트에서 아래처럼 물어볼 수 있�
 
 ### 준비물
 
-- Claude custom connector를 사용할 수 있는 계정
+- Claude custom connector를 사용할 수 있는 계정 또는 Codex CLI/Desktop
 - 운영 OAuth Remote MCP의 canonical HTTPS `/mcp` URL
 - 저장소 개발·운영 작업에는 Python 3.13+와 [uv](https://astral.sh/uv)
 
