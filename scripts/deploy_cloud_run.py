@@ -661,6 +661,21 @@ def _secret_has_accessor(
     )
 
 
+def _required_service_is_enabled(*, service: str, project: str, dry_run: bool) -> bool:
+    """Fail before mutation when an API required by rollback is unavailable."""
+    command = [
+        "gcloud", "services", "list", "--enabled",
+        f"--filter=name:{service}", "--format=value(name)",
+        "--project", project,
+    ]
+    if dry_run:
+        return _run(command, dry_run=True) == 0
+    completed = _run_capture(command, dry_run=False)
+    if completed.returncode != 0:
+        return False
+    return service in {line.strip() for line in completed.stdout.splitlines()}
+
+
 def _build_run_job_uri(*, project: str, region: str, job: str) -> str:
     return f"https://run.googleapis.com/v2/projects/{project}/locations/{region}/jobs/{job}:run"
 
@@ -2316,6 +2331,13 @@ def _deploy_wi060(
         for key in missing:
             print(f"- {key}")
         return 1
+    if not _required_service_is_enabled(
+        service="cloudresourcemanager.googleapis.com",
+        project=project,
+        dry_run=args.dry_run,
+    ):
+        print("WI-060 rollback prerequisite is unavailable: Cloud Resource Manager API.")
+        return 1
     image = _build_release_image(args, project=project)
     if not image or "@sha256:" not in image:
         print("Failed to resolve the immutable WI-060 image digest.")
@@ -2442,7 +2464,7 @@ def _deploy_wi060(
 
     if _run([
         "gcloud", "run", "jobs", "execute", jobs[0],
-        "--args", "validate-korea-exim-fx-source,--date,today",
+        "--args", "validate-korea-exim-fx-source,--date,latest-governed",
         "--region", args.region, "--wait", "--project", project,
     ], dry_run=args.dry_run) != 0:
         if rollback_manifest:

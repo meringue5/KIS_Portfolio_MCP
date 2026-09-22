@@ -14,6 +14,7 @@ import duckdb
 from dotenv import load_dotenv
 
 from kis_portfolio.account_registry import load_account_registry
+from kis_portfolio.clients.korea_exim import KoreaEximError
 from kis_portfolio.config import (
     get_db_mode,
     get_motherduck_database,
@@ -21,8 +22,11 @@ from kis_portfolio.config import (
 )
 from kis_portfolio.db.connection import get_connection
 from kis_portfolio.platform.migrations import MigrationRunner
+from kis_portfolio.services.fx_fallback import (
+    resolve_fx_preflight_date,
+    validate_korea_exim_fx_source,
+)
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
-from kis_portfolio.services.fx_fallback import validate_korea_exim_fx_source
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_classification_sync import sync_held_overseas_classifications
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
@@ -154,7 +158,11 @@ def build_parser() -> argparse.ArgumentParser:
         "validate-korea-exim-fx-source",
         help="Validate the official fallback source without portfolio writes or messages.",
     )
-    fx_preflight.add_argument("--date", default="today", help="YYYYMMDD or today in Asia/Seoul")
+    fx_preflight.add_argument(
+        "--date",
+        default="latest-governed",
+        help="YYYYMMDD, today, or latest-governed; release checks use latest-governed.",
+    )
 
     price_backfill = subparsers.add_parser(
         "backfill-held-price-history-v2",
@@ -391,20 +399,29 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
 
 
 def _run_validate_korea_exim_fx_source(args: argparse.Namespace) -> int:
-    logical_date = (
-        datetime.now(ZoneInfo("Asia/Seoul")).date()
-        if args.date == "today" else datetime.strptime(args.date, "%Y%m%d").date()
-    )
     try:
+        connection = get_connection()
+        logical_date = resolve_fx_preflight_date(
+            connection,
+            requested=args.date,
+            today=datetime.now(ZoneInfo("Asia/Seoul")).date(),
+        )
         result = asyncio.run(validate_korea_exim_fx_source(
-            get_connection(),
+            connection,
             logical_date=logical_date,
             api_key=os.environ.get("KOREA_EXIM_API_KEY", ""),
         ))
     except Exception as exc:
+        safe_reason = (
+            str(exc)
+            if isinstance(exc, KoreaEximError)
+            or str(exc) == "no governed KIS USD/KRW reference is available"
+            else "unexpected preflight failure"
+        )
         print(json.dumps({
             "status": "failed",
             "error_type": type(exc).__name__,
+            "safe_reason": safe_reason,
             "detail": "redacted; official FX source preflight did not pass",
         }))
         return 1

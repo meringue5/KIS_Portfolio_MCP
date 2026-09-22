@@ -713,6 +713,12 @@ sequence = 1
 id = "WI-060-S01"
 parent_id = "WI-060"
 title = "Pre-provision the exact FX secret accessor and keep release IAM verification read-only"
+status = "closed"
+
+[[subitems]]
+id = "WI-060-S02"
+parent_id = "WI-060"
+title = "Make FX release preflight clock-independent and verify rollback prerequisites before mutation"
 status = "in_progress"
 
 [[subitems]]

@@ -585,16 +585,18 @@ def test_wi060_reuses_one_image_for_remote_and_owner_report_jobs_without_test_se
     )
 
     assert result == 0
-    assert len(commands) == 4
-    assert commands[0][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
-    assert commands[0][commands[0].index("--image") + 1] == image
-    assert "--no-traffic" in commands[0]
-    assert commands[1][0:3] == ["gcloud", "secrets", "get-iam-policy"]
-    assert commands[1][3] == "kis-portfolio-korea-exim-api-key"
-    assert commands[2][0:4] == ["gcloud", "run", "jobs", "execute"]
-    assert "validate-korea-exim-fx-source,--date,today" in commands[2]
-    assert commands[3][0:4] == ["gcloud", "run", "services", "update-traffic"]
-    assert "send-telegram-photo-transport-smoke" not in " ".join(commands[0])
+    assert len(commands) == 5
+    assert commands[0][0:3] == ["gcloud", "services", "list"]
+    assert "cloudresourcemanager.googleapis.com" in commands[0][4]
+    assert commands[1][0:4] == ["gcloud", "run", "deploy", "kis-portfolio-remote"]
+    assert commands[1][commands[1].index("--image") + 1] == image
+    assert "--no-traffic" in commands[1]
+    assert commands[2][0:3] == ["gcloud", "secrets", "get-iam-policy"]
+    assert commands[2][3] == "kis-portfolio-korea-exim-api-key"
+    assert commands[3][0:4] == ["gcloud", "run", "jobs", "execute"]
+    assert "validate-korea-exim-fx-source,--date,latest-governed" in commands[3]
+    assert commands[4][0:4] == ["gcloud", "run", "services", "update-traffic"]
+    assert "send-telegram-photo-transport-smoke" not in " ".join(commands[1])
     assert captured["image"] == image
     assert captured["deploy_label"] == "wi060-resilient-partial"
     assert captured["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
@@ -632,6 +634,7 @@ def test_wi060_failed_fx_preflight_restores_all_prior_job_definitions(
         return True
 
     monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(deploy_cloud_run, "_required_service_is_enabled", lambda **_kwargs: True)
     monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
     monkeypatch.setattr(deploy_cloud_run, "_capture_wi051_rollback_manifest", capture_manifest)
     monkeypatch.setattr(deploy_cloud_run, "_anticipated_tagged_service_host", lambda **_kwargs: "candidate.example.test")
@@ -707,6 +710,75 @@ def test_secret_accessor_preflight_rejects_missing_member(monkeypatch):
         project="project",
         dry_run=False,
     ) is False
+
+
+def test_required_rollback_service_preflight_is_read_only(monkeypatch):
+    calls = []
+
+    def capture(command, **_kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="cloudresourcemanager.googleapis.com\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(deploy_cloud_run, "_run_capture", capture)
+
+    assert deploy_cloud_run._required_service_is_enabled(
+        service="cloudresourcemanager.googleapis.com",
+        project="project",
+        dry_run=False,
+    ) is True
+    assert calls[0][0:3] == ["gcloud", "services", "list"]
+
+
+def test_required_rollback_service_preflight_fails_before_release(monkeypatch):
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run_capture",
+        lambda command, **_kwargs: subprocess.CompletedProcess(
+            command, 0, stdout="", stderr="",
+        ),
+    )
+
+    assert deploy_cloud_run._required_service_is_enabled(
+        service="cloudresourcemanager.googleapis.com",
+        project="project",
+        dry_run=False,
+    ) is False
+
+
+def test_wi060_missing_rollback_service_stops_before_image_build(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi060", dry_run=False,
+        secret_mode="secret-manager", service="kis-portfolio-remote",
+        rollback_manifest="unused.json",
+    )
+    build_called = False
+
+    def build(*_args, **_kwargs):
+        nonlocal build_called
+        build_called = True
+        return "registry.example/kis@sha256:must-not-build"
+
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(deploy_cloud_run, "_required_service_is_enabled", lambda **_kwargs: False)
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", build)
+
+    result = deploy_cloud_run._deploy_wi060(
+        args,
+        env={
+            "KIS_TELEGRAM_BOT_TOKEN_VERSION": "1",
+            "KIS_TELEGRAM_CHAT_ID_VERSION": "1",
+            "KOREA_EXIM_API_KEY_VERSION": "1",
+        },
+        project="project",
+    )
+
+    assert result == 1
+    assert build_called is False
 
 
 def test_rollback_job_definitions_restore_exact_exports_in_reverse_order(monkeypatch):

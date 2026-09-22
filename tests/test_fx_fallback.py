@@ -7,7 +7,11 @@ from kis_portfolio.clients.korea_exim import KoreaEximFxRate
 from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.ports.source import SourceEnvelope
 from kis_portfolio.adapters.outbound.v2_warehouse import V2WarehouseRepository
-from kis_portfolio.services.fx_fallback import assess_fx_fallback, latest_kis_usd_krw_reference
+from kis_portfolio.services.fx_fallback import (
+    assess_fx_fallback,
+    latest_kis_usd_krw_reference,
+    resolve_fx_preflight_date,
+)
 
 
 def candidate(rate: str = "1400") -> KoreaEximFxRate:
@@ -76,4 +80,39 @@ def test_reference_query_excludes_fallback_from_its_own_cross_check() -> None:
     assert latest_kis_usd_krw_reference(
         con, logical_date=date(2026, 9, 22),
     ) == (date(2026, 9, 21), Decimal("1390.0000000000"))
+    assert resolve_fx_preflight_date(
+        con,
+        requested="latest-governed",
+        today=date(2026, 9, 22),
+    ) == date(2026, 9, 21)
     con.close()
+
+
+def test_preflight_date_keeps_explicit_today_for_runtime_availability_checks() -> None:
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+
+    assert resolve_fx_preflight_date(
+        con,
+        requested="today",
+        today=date(2026, 9, 22),
+    ) == date(2026, 9, 22)
+    con.close()
+
+
+def test_preflight_date_fails_closed_without_governed_reference() -> None:
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+
+    try:
+        resolve_fx_preflight_date(
+            con,
+            requested="latest-governed",
+            today=date(2026, 9, 22),
+        )
+    except ValueError as exc:
+        assert str(exc) == "no governed KIS USD/KRW reference is available"
+    else:
+        raise AssertionError("preflight must fail closed without a governed KIS reference")
+    finally:
+        con.close()

@@ -61,7 +61,9 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   to finish every unrelated historical TODO before release.
 - The approved Korea Eximbank credential is referenced by pinned Secret Manager version. Its source rights, typed
   rate semantics, bounded cost and activation contracts are part of the same protected candidate; a read-only live
-  preflight must pass before Remote traffic promotion or the prior Job definitions are restored.
+  preflight must pass before Remote traffic promotion or the prior Job definitions are restored. Release source
+  validation uses the latest governed KIS business date so its result is independent of the provider's same-day
+  publication time; runtime collection still requests its exact logical date and degrades explicitly when unpublished.
 
 ## Acceptance criteria
 
@@ -108,6 +110,8 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 
 - `WI-060-S01` — pre-provision the exact FX Secret accessor and keep the protected release's IAM check read-only;
   discovered from protected run `35663503027` before any Job or serving-traffic change.
+- `WI-060-S02` — validate the external source against the latest governed KIS date and verify the Cloud Resource
+  Manager rollback prerequisite before any release mutation; discovered from protected run `35664495921`.
 
 ## Stabilization plan
 
@@ -158,10 +162,22 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   infrastructure and performs an exact read-only accessor check instead of requesting Secret IAM mutation rights.
   The exact `kis-portfolio-pipeline` accessor binding was then provisioned once with an owner-authorized local
   administrative identity; no project-wide role and no GitHub Actions IAM-administration permission was added.
+- Protected run `35664495921` built merge `20334fd` and staged Remote revision
+  `kis-portfolio-remote-00064-buq` at 0% while `00048-77w` continued to serve 100%. It updated the three report Jobs,
+  but the source preflight execution `kis-portfolio-owned-core-v2-1000-dsx9x` ran at 07:51 KST before the official
+  same-day rate was published and failed with a redacted `KoreaEximError`. Automated Job restoration then found the
+  Cloud Resource Manager API disabled. After enabling that required API, the exact retained rollback exports were
+  restored manually and all three Jobs again referenced prior digest
+  `sha256:e02bf49aa13057287a323d368401dc4fc8eb41f633684a541b75f509bda762c3`; Remote `00048-77w` remained at 100%.
+  A direct client check for 2026-09-22 later passed, confirming publication-time coupling rather than a bad key.
+  `WI-060-S02` moves rollback-service readiness ahead of image build/deployment and makes release validation resolve
+  the most recent governed KIS business date. Explicit `today` remains available for runtime availability tests.
+  Focused preflight/release tests pass (83 tests), both immediate fault scripts pass (4 FX cases and 5 portfolio
+  capability cases), and the complete repository gate passes with 770 tests and one pre-existing Authlib warning.
 
 ## Closeout
 
 - Result: open.
-- Remaining risk: the new source has not yet passed the protected live preflight and the combined candidate is not
-  production-active or owner-accepted.
+- Remaining risk: the corrected clock-independent source preflight has not yet passed the protected release and the
+  combined candidate is not production-active or owner-accepted.
 - Follow-up Work Item: none yet.

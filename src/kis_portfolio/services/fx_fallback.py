@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -67,6 +67,23 @@ def latest_kis_usd_krw_reference(connection: Any, *, logical_date: date) -> tupl
         [logical_date],
     ).fetchone()
     return (row[0], Decimal(str(row[1]))) if row else None
+
+
+def resolve_fx_preflight_date(
+    connection: Any,
+    *,
+    requested: str,
+    today: date,
+) -> date:
+    """Resolve a source-check date without making release success depend on publication time."""
+    if requested == "today":
+        return today
+    if requested == "latest-governed":
+        reference = latest_kis_usd_krw_reference(connection, logical_date=today)
+        if reference is None:
+            raise ValueError("no governed KIS USD/KRW reference is available")
+        return reference[0]
+    return datetime.strptime(requested, "%Y%m%d").date()
 
 
 async def validate_korea_exim_fx_source(

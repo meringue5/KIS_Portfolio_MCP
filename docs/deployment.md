@@ -339,10 +339,14 @@ Secret Manager secret id 규칙:
 `roles/secretmanager.secretAccessor`를 별도로 한 번 부여해야 하며, release script는 그 exact binding을
 read-only로 확인한다. GitHub Actions 배포 계정에는 Secret IAM 관리자 권한을 추가하지 않는다.
 
-`wi060` release는 zero-traffic Remote 후보를 검증하고 세 Job을 갱신한 뒤, 첫 Job을 인자 override로
-`validate-korea-exim-fx-source` 실행한다. 이 preflight는 메시지·포트폴리오 write 없이 exact-date
-`deal_bas_r`와 최근 KIS reference 편차만 확인한다. 실패하면 Job 전체 export를 복구하고 Remote traffic을
-승격하지 않는다.
+`wi060` release는 어떤 image build나 배포보다 먼저 Cloud Resource Manager API가 활성 상태인지 read-only로
+확인한다. 이 API는 보존된 Job export를 정확히 복구하는 데 필요하므로 확인 실패 시 production mutation을
+시작하지 않는다. 이어 zero-traffic Remote 후보를 검증하고 세 Job을 갱신한 뒤, 첫 Job을 인자 override로
+`validate-korea-exim-fx-source --date latest-governed` 실행한다. 이 release preflight는 메시지·포트폴리오
+write 없이 저장된 최신 pass-quality KIS USD/KRW 기준일의 `deal_bas_r`와 최근 KIS reference 편차만 확인해
+당일 공식 환율 발행 시각에 의존하지 않는다. 실제 runtime 수집은 계속 정확한 logical date를 요청하고,
+그 날짜가 아직 발행되지 않았으면 partial로 남긴다. preflight 실패 시 Job 전체 export를 복구하고 Remote
+traffic을 승격하지 않는다.
 
 Secret Manager 동기화는 dry-run을 먼저 확인한 뒤 적용한다.
 

@@ -64,7 +64,9 @@ times and lineage so Claude cannot mistake a morning stored view for live market
 4. Use the owner-approved Korea Eximbank source only for USD `deal_bas_r`, only when exact-date governed FX is
    absent. Preserve it under its own source/rate type, require the requested date, compare it with a KIS reference no
    older than seven days, and quarantine deviation over 3%. Empty or unpublished responses keep FX partial. The
-   guarded release runs the real-source preflight before Remote traffic promotion and never sends Telegram from it.
+   guarded release runs the real-source preflight against the latest governed KIS business date before Remote
+   traffic promotion and never sends Telegram from it. This verifies credentials, parsing and the conflict gate
+   immediately without changing runtime's exact-date requirement or waiting for same-day provider publication.
 5. Use synthetic fault-injection fixtures for every matrix row, then isolated Claude-equivalent MCP and Telegram
    renderer tests. Production release requires owner-reviewed presentation and approved contracts, but **not**
    MS-006 closure; that would recreate the failure coupling under review.
@@ -90,5 +92,6 @@ account, degraded row and missing-current cases without network, database, Teleg
 `wi060` target builds once and supplies the same immutable digest to Remote MCP and the report Jobs; it does not send
 a Telegram test payload. Korea Eximbank is now an approved bounded fallback source with a pinned Secret Manager
 credential. A real-source, read-only preflight executes on the newly staged Job definition before Remote promotion;
-failure restores the prior Job definitions. Scheduled availability remains runtime quality evidence, not a reason to
-wait for a future slot before testing the failure matrix.
+failure restores the prior Job definitions. The release verifies rollback-service readiness before any mutation.
+Scheduled availability remains runtime quality evidence, not a reason to wait for a future slot before testing the
+failure matrix or the external-source contract.
