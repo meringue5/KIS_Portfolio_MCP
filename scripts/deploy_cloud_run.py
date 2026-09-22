@@ -673,7 +673,12 @@ def _required_service_is_enabled(*, service: str, project: str, dry_run: bool) -
     completed = _run_capture(command, dry_run=False)
     if completed.returncode != 0:
         return False
-    return service in {line.strip() for line in completed.stdout.splitlines()}
+    enabled_services = {
+        line.strip().rsplit("/", 1)[-1]
+        for line in completed.stdout.splitlines()
+        if line.strip()
+    }
+    return service in enabled_services
 
 
 def _build_run_job_uri(*, project: str, region: str, job: str) -> str:

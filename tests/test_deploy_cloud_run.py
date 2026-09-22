@@ -47,6 +47,7 @@ def test_workflow_dispatches_wi060_as_one_protected_remote_and_job_release():
     assert "scripts/deploy_cloud_run.py wi060" in workflow
     assert '--rollback-manifest "${RUNNER_TEMP}/wi060-rollback-manifest.json"' in workflow
     assert "wi060-rollback-manifest-${{ github.run_id }}" in workflow
+    assert "if-no-files-found: warn" in workflow
     assert "environment: production" in workflow
 
 
@@ -720,7 +721,10 @@ def test_required_rollback_service_preflight_is_read_only(monkeypatch):
         return subprocess.CompletedProcess(
             command,
             0,
-            stdout="cloudresourcemanager.googleapis.com\n",
+            stdout=(
+                "projects/702391660457/services/"
+                "cloudresourcemanager.googleapis.com\n"
+            ),
             stderr="",
         )
 
