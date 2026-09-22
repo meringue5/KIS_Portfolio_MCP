@@ -42,6 +42,7 @@ KIS_Portfolio_MCP/
 ## MCP 구성
 
 Claude web/Desktop/mobile에는 같은 public HTTPS `/mcp` URL을 custom connector `KIS Portfolio`로 등록한다.
+Codex에는 같은 URL을 DCR 방식으로 등록하고 owner browser consent를 거친 뒤 새 task에서 실제 tool 호출을 검증한다.
 계좌 credential은 클라이언트에 주입하지 않으며 운영 batch/secret boundary에만 둔다. 연결 절차와 V1 tool
 migration은 `docs/remote-mcp-v2-migration.md`가 소유한다.
 

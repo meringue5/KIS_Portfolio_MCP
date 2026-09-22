@@ -34,6 +34,7 @@ auth_repository = get_auth_repository()
 PENDING_AUTH_SESSION_KEY = "kis.oauth.pending"
 USER_SESSION_KEY = "kis.oauth.user_id"
 PROVIDER_SESSION_KEY = "kis.oauth.provider"
+CODEX_LOOPBACK_REDIRECT_PREFIX = "http://127.0.0.1:"
 
 
 def _hash_pkce_verifier(verifier: str) -> str:
@@ -183,16 +184,46 @@ def _validate_client_scope(client_record: dict[str, Any], requested_scope: str) 
         )
 
 
+def _is_allowed_dynamic_redirect(
+    settings: AuthServiceSettings,
+    redirect_text: str,
+) -> bool:
+    if redirect_text.startswith("http://"):
+        if CODEX_LOOPBACK_REDIRECT_PREFIX not in settings.dynamic_client_redirect_prefixes:
+            return False
+        try:
+            parsed = urlsplit(redirect_text)
+            port = parsed.port
+        except ValueError:
+            return False
+        callback_nonce = parsed.path.removeprefix("/callback/")
+        return (
+            parsed.scheme == "http"
+            and parsed.hostname == "127.0.0.1"
+            and parsed.username is None
+            and parsed.password is None
+            and port is not None
+            and parsed.query == ""
+            and parsed.fragment == ""
+            and callback_nonce != parsed.path
+            and bool(callback_nonce)
+            and "/" not in callback_nonce
+        )
+
+    return any(
+        prefix != CODEX_LOOPBACK_REDIRECT_PREFIX
+        and (redirect_text == prefix or redirect_text.startswith(prefix))
+        for prefix in settings.dynamic_client_redirect_prefixes
+    )
+
+
 def _validate_dynamic_client_metadata(
     settings: AuthServiceSettings,
     metadata: OAuthClientMetadata,
 ) -> None:
     for redirect_uri in metadata.redirect_uris:
         redirect_text = str(redirect_uri)
-        if not any(
-            redirect_text == prefix or redirect_text.startswith(prefix)
-            for prefix in settings.dynamic_client_redirect_prefixes
-        ):
+        if not _is_allowed_dynamic_redirect(settings, redirect_text):
             raise RegistrationError(
                 error="invalid_redirect_uri",
                 error_description="Dynamic client redirect URI is not allowlisted.",

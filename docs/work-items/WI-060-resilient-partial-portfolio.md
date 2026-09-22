@@ -4,7 +4,7 @@ title: Isolate portfolio capability failures and provide accurate partial result
 status: stabilizing
 type: architecture
 owner: owner
-decision_refs: DEC-055, DEC-057, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029
+decision_refs: DEC-055, DEC-057, ADR-015, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029
 requirement_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-055, DEC-057
 milestone_ref: MS-007
 delivery_refs: none
@@ -17,7 +17,7 @@ execution_scope: production
 production_effects: guarded Remote MCP and three fixed-slot owned-core Job deployment
 architecture_impact: yes; separate capability quality, read-model and report boundaries without changing the V2 trust boundary
 data_impact: approved additive FX source/observation/rate-type contracts are production-active under guarded fallback
-security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; no payload or secret logging
+security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; admit only structurally validated Codex IPv4 loopback OAuth callbacks; no payload or secret logging
 cost_impact: free official source; at most one fallback call per managed run and no new standing resource
 stabilization_window: protected source preflight plus immediate real MCP review and first owner-visible scheduled report after release
 stabilization_exit_refs: immutable release workflow, exact Job and Remote image labels, source preflight result, real Claude MCP output, redacted owner receipt
@@ -112,6 +112,9 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   discovered from protected run `35663503027` before any Job or serving-traffic change.
 - `WI-060-S02` — validate the external source against the latest governed KIS date and verify the Cloud Resource
   Manager rollback prerequisite before any release mutation; discovered from protected run `35664495921`.
+- `WI-060-S03` (`in_progress`) — admit Codex's native OAuth loopback callback without broadening redirects to
+  non-loopback HTTP hosts, then complete a real Codex login and direct MCP call; discovered during the real-client
+  acceptance gate when DCR returned `invalid_redirect_uri` before owner login could begin.
 
 ## Stabilization plan
 
@@ -187,6 +190,12 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   `korea-eximbank`, requested/reference date 2026-09-22, native field `deal_bas_r`, deviation ratio
   `0.01711976487876561351947097722`, reason `pass`. Release labels on Remote and all Jobs match merge SHA
   `26ccdb8ca79d7b206d7de7093c947e228bfed811` and run `35742953730`.
+- Codex CLI 0.155.1 DCR was reproduced against a local metadata server and registered
+  `http://127.0.0.1:<ephemeral>/callback/<nonce>`; production rejected it with `invalid_redirect_uri` before owner
+  login. `WI-060-S03` adds component-aware IPv4 loopback validation and rejects userinfo, lookalike hosts, wrong or
+  nested paths, query and fragment bypasses. Focused auth flow tests pass 10/10, the quick gate passes, and the full
+  repository gate passes with 772 tests and one pre-existing Authlib warning. The production auth service has no
+  `KIS_AUTH_DYNAMIC_CLIENT_REDIRECT_PREFIXES` override, so the reviewed default will be effective after auth deploy.
 
 ## Closeout
 

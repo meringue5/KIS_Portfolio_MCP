@@ -38,6 +38,11 @@ that Claude connects to Remote MCP from cloud infrastructure across claude.ai, C
 the iPhone does not connect to a Mac-local server. See
 [Get started with custom connectors using remote MCP](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
 
+For Codex, register the same URL with `codex mcp add` using DCR, then run `codex mcp login` with the required scopes.
+Codex native OAuth uses an ephemeral `http://127.0.0.1:<port>/callback/<nonce>` redirect. The auth server accepts
+only that structurally validated loopback shape; it does not admit arbitrary HTTP redirects. Start a new Codex task
+after authorization so its tool inventory includes the newly connected server.
+
 UI metadata and actual execution are separate evidence. Validate discovery, authorization, `tools/list`, and a
 representative tool call in a new conversation; do not declare success from a settings-screen tool count alone.
 
@@ -80,6 +85,7 @@ paste account numbers, credentials or bearer tokens into prompts or evidence.
 | --- | --- |
 | Claude web/Desktop | discovery or initialize; exactly 18 tools; portfolio overview; KR/US market snapshot; actual call log |
 | ChatGPT web | OAuth discovery and dynamic registration; exactly 18 tools in a new conversation; catalog and pipeline-status call |
+| Codex desktop/CLI | DCR and owner browser consent; exactly 18 tools in a new task; pipeline-status and portfolio overview call |
 | iPhone client | enable the existing Remote connector in a new conversation; portfolio read; owner-confirmed journal write with a fresh idempotency key |
 
 Negative checks are mandatory: a read-only token cannot collect or write; a collect token cannot journal; a token for
