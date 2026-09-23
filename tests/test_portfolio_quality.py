@@ -57,6 +57,18 @@ def test_stale_foreign_fx_suppresses_complete_total_but_preserves_krw_subset() -
     assert result.missing_reasons == ("fx_input_stale",)
 
 
+def test_mixed_warehouse_date_types_are_normalized_before_fx_comparison() -> None:
+    result = evaluate_portfolio_capabilities(
+        [_component("GOOG", market="NAS", currency="USD", value="300", fx_date="2026-09-16")],
+        expected_accounts=["brokerage"],
+        evaluation_date="2026-09-17",
+        earliest_fx_date=date(2026, 9, 16),
+    )
+
+    assert result.complete_total_krw == Decimal("300")
+    assert result.missing_reasons == ()
+
+
 def test_account_gap_and_degraded_row_do_not_create_false_complete_total() -> None:
     result = evaluate_portfolio_capabilities(
         [_component("005930", quality="degraded")],

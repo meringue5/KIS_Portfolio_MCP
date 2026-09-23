@@ -216,6 +216,13 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   Codex registers as a public PKCE client with `token_endpoint_auth_method=none`, while dynamic registration still
   required `client_secret_post`. `none` is now accepted only when every callback is the already validated IPv4
   loopback form; allowlisted HTTPS clients retain confidential-client authentication. Focused OAuth tests pass 38/38.
+- PR #130 merged as `be1b4a3`; protected auth run `35808882024` deployed revision
+  `kis-portfolio-auth-00034-qvj` at 100% traffic. Owner login completed and Codex stored the OAuth credential. The
+  first authenticated `get-portfolio-overview` call then failed inside the Remote with
+  `TypeError: '<=' not supported between instances of 'datetime.date' and 'str'`: MotherDuck returned the selected
+  `evaluation_date` as an ISO string while the market-calendar boundary was a `date`. The shared capability quality
+  function now normalizes ISO strings, `date` and `datetime` before FX watermark comparison; malformed dates degrade
+  to `fx_input_stale` instead of raising.
 
 ## Closeout
 
