@@ -196,6 +196,13 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   nested paths, query and fragment bypasses. Focused auth flow tests pass 10/10, the quick gate passes, and the full
   repository gate passes with 772 tests and one pre-existing Authlib warning. The production auth service has no
   `KIS_AUTH_DYNAMIC_CLIENT_REDIRECT_PREFIXES` override, so the reviewed default will be effective after auth deploy.
+- PR #126 merged as `9eec022`; protected auth run `35751002463` reported success, but post-deploy revision evidence
+  showed that only service labels changed. `latestReadyRevisionName`, revision Git/run labels and image digest still
+  pointed to the 2026-09-14 release. The generic `--source` path reused a mutable image reference without changing
+  the runtime template. `WI-060-S03` therefore remains open: GitHub source deploys now add a per-run/attempt release
+  marker, and acceptance requires a genuinely new revision/digest before owner login. Focused deploy tests pass
+  79/79, the quick gate passes, and the full repository gate passes with 773 tests and one pre-existing Authlib
+  warning.
 
 ## Closeout
 

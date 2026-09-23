@@ -1649,6 +1649,42 @@ def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):
     assert command[command.index("--args") + 1] == ""
 
 
+def test_github_source_deploy_adds_release_marker_to_force_new_revision(monkeypatch):
+    args = argparse.Namespace(region="asia-northeast3", target="auth", dry_run=True)
+    captured = {}
+
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+    monkeypatch.setenv("GITHUB_RUN_ID", "35751002463")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+
+    def capture_payload(payload):
+        captured["payload"] = payload
+        return "/tmp/env.yaml"
+
+    monkeypatch.setattr(deploy_cloud_run, "_write_env_yaml", capture_payload)
+    monkeypatch.setattr(deploy_cloud_run, "_run", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(deploy_cloud_run.os, "unlink", lambda _path: None)
+
+    result = deploy_cloud_run._deploy_service_or_job(
+        args=args,
+        project="kis-portfolio-prod",
+        payload={"KIS_STATE_BACKEND": "firestore"},
+        secret_refs={},
+        runtime_flags=[],
+        target_name="kis-portfolio-auth",
+        command="kis-portfolio-auth",
+        command_args="",
+        is_job=False,
+    )
+
+    assert result == 0
+    assert captured["payload"] == {
+        "KIS_STATE_BACKEND": "firestore",
+        "KIS_DEPLOY_RELEASE_ID": "abcdef123456-35751002463-2",
+    }
+
+
 def test_cloud_run_job_deploy_uses_batch_console_script(monkeypatch):
     args = argparse.Namespace(region="asia-northeast3", target="batch", dry_run=True)
     captured = {}
