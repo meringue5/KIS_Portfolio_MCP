@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Iterable
 
@@ -37,24 +37,36 @@ class PortfolioCapabilityQuality:
         return self.complete_total_krw is not None
 
 
+def _normalize_date(value: object) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
 def fx_watermark_is_current(
-    *, currency: str, raw_fx_date: object, evaluation_date: date, earliest_fx_date: date,
+    *, currency: str, raw_fx_date: object, evaluation_date: object, earliest_fx_date: object,
 ) -> bool:
     """A foreign KRW valuation requires a dated rate in the approved session window."""
     if currency.upper() == "KRW":
         return True
-    try:
-        fx_date = date.fromisoformat(str(raw_fx_date))
-    except (TypeError, ValueError):
+    fx_date = _normalize_date(raw_fx_date)
+    normalized_evaluation_date = _normalize_date(evaluation_date)
+    normalized_earliest_fx_date = _normalize_date(earliest_fx_date)
+    if not fx_date or not normalized_evaluation_date or not normalized_earliest_fx_date:
         return False
-    return earliest_fx_date <= fx_date <= evaluation_date
+    return normalized_earliest_fx_date <= fx_date <= normalized_evaluation_date
 
 
 def component_quality_reasons(
     component: PortfolioQualityComponent,
     *,
-    evaluation_date: date,
-    earliest_fx_date: date,
+    evaluation_date: object,
+    earliest_fx_date: object,
 ) -> tuple[str, ...]:
     """Return bounded reasons that prevent this component from complete KRW valuation."""
     reasons: list[str] = []
@@ -77,8 +89,8 @@ def evaluate_portfolio_capabilities(
     components: Iterable[PortfolioQualityComponent],
     *,
     expected_accounts: Iterable[str],
-    evaluation_date: date,
-    earliest_fx_date: date,
+    evaluation_date: object,
+    earliest_fx_date: object,
 ) -> PortfolioCapabilityQuality:
     """Compose complete and partial current-value capabilities without cross-feature poisoning."""
     items = tuple(components)
