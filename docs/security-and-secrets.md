@@ -26,6 +26,17 @@ DB 객체의 전체 목록, logical layer, grain과 sensitivity 등급은 `docs/
   Federation credential과 비시크릿 vars만 둔다.
 - GitHub Environment secret `KIS_DEPLOY_ENV`는 deprecated migration artifact다. 새 workflow에서는 사용하지 않는다.
 
+### Owner-debug MCP 오류 경계
+
+- 현재 인증된 단일 owner용 Remote MCP는 예상 가능한 오류의 안정 code, exception type, `request_id`를
+  클라이언트에 표시한다. 예기치 않은 오류도 `internal_error`, redaction된 bounded detail과 같은 request ID를
+  반환해 서버 로그와 연결한다.
+- bearer/token/secret/API key와 전체 계좌번호는 오류 문자열에서도 각각 제거·마스킹한다. 원문 provider
+  payload, SQL parameter와 로컬 변수는 client 또는 새 diagnostic 로그에 포함하지 않는다.
+- unexpected 오류 로그는 request ID, 예외 종류, redaction된 detail과 file/line/function frame만 보존한다.
+- 공개·다중 사용자 전환 시 외부용 제한 오류 profile을 별도 보안 검토와 DEC/ADR로 추가한다. 현재 profile을
+  조용히 제한해 owner 진단성을 떨어뜨리지 않는다.
+
 ## 현재 V2 운영 기준선
 
 현재 production runtime은 OAuth user/client/grant/code/token digest, encrypted KIS token cache, lease와 run

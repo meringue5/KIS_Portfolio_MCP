@@ -1,8 +1,10 @@
 import asyncio
+import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
+from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
 
 from kis_portfolio.adapters.mcp import v2 as v2_adapter
@@ -167,6 +169,69 @@ def test_command_scopes_are_not_interchangeable_and_resource_fails_closed():
         asyncio.run(application.execute("upsert-trade-journal", journal, collect_only))
     with pytest.raises(RemoteCommandError, match="invalid_resource"):
         asyncio.run(application.execute("run-managed-pipeline", collect, wrong_resource))
+
+
+def test_command_tool_uses_same_owner_debug_error_contract():
+    application, _managed, _revisions = _command_application()
+    read_only_actor = CommandActor(
+        READ_ACTOR.actor_id,
+        READ_ACTOR.client_id,
+        READ_ACTOR.scopes,
+        READ_ACTOR.resource,
+        "request-command-debug",
+    )
+    server = build_v2_server(
+        _read_application(),
+        application,
+        read_actor_provider=lambda: READ_ACTOR,
+        command_actor_provider=lambda: read_only_actor,
+    )
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "run-managed-pipeline")
+
+    with pytest.raises(ToolError) as captured:
+        asyncio.run(tool.fn(
+            logical_date=date(2026, 9, 11),
+            slot="kr-1000",
+            idempotency_key="collect-debug-0001",
+        ))
+
+    payload = json.loads(str(captured.value))
+    assert payload == {
+        "error": {
+            "code": "insufficient_scope",
+            "detail": "insufficient_scope",
+            "exception_type": "RemoteCommandError",
+            "request_id": "request-command-debug",
+            "visibility": "owner_debug",
+        }
+    }
+
+
+def test_command_validation_error_does_not_echo_owner_payload():
+    application, _managed, _revisions = _command_application()
+    server = build_v2_server(
+        _read_application(),
+        application,
+        read_actor_provider=lambda: READ_ACTOR,
+        command_actor_provider=lambda: COMMAND_ACTOR,
+    )
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "upsert-trade-journal")
+
+    with pytest.raises(ToolError) as captured:
+        asyncio.run(tool.fn(
+            journal_id="journal-debug",
+            thread_id="thread-debug",
+            body="private owner thesis must not be echoed",
+            authored_at=datetime(2026, 9, 11, 1),
+            expected_revision=0,
+            idempotency_key="journal-debug-0001",
+        ))
+
+    payload = json.loads(str(captured.value))
+    assert payload["error"]["code"] == "invalid_request"
+    assert payload["error"]["request_id"] == "request-command-1"
+    assert "authored_at" in payload["error"]["detail"]
+    assert "private owner thesis" not in payload["error"]["detail"]
 
 
 def test_managed_pipeline_accepts_only_fixed_alias_and_slots_and_returns_run_id():

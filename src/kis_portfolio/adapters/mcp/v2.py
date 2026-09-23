@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -12,8 +13,13 @@ from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
-from pydantic import Field
+from pydantic import Field, ValidationError
 
+from kis_portfolio.adapters.mcp.error_visibility import (
+    log_unexpected_owner_error,
+    owner_debug_tool_error,
+    validation_error_detail,
+)
 from kis_portfolio.services.remote_read_surface import (
     MAX_RESPONSE_BYTES,
     DataCatalogRequest,
@@ -31,6 +37,7 @@ from kis_portfolio.services.remote_read_surface import (
     ReadActor,
     ReadResponseEnvelope,
     RemoteReadApplication,
+    RemoteReadError,
     SignalStatusRequest,
     TradeLedgerRequest,
     TradeThreadRequest,
@@ -40,6 +47,7 @@ from kis_portfolio.services.remote_commands import (
     CommandResponse,
     ManagedPipelineRequest,
     RemoteCommandApplication,
+    RemoteCommandError,
     ReviseTradeThreadRequest,
     ThreadChange,
     UpsertTradeJournalRequest,
@@ -48,6 +56,7 @@ from kis_portfolio.services.remote_commands import (
 
 
 MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024
+logger = logging.getLogger(__name__)
 READ_ONLY_TOOL = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
 NON_DESTRUCTIVE_WRITE_TOOL = ToolAnnotations(
     read_only_hint=False,
@@ -188,9 +197,28 @@ def register_v2_read_tools(
     *,
     actor_provider: ActorProvider = actor_from_auth_context,
 ) -> None:
-    async def invoke(name: str, request: object) -> ReadResponseEnvelope:
-        result = await application.execute(name, request, actor_provider())
-        return ReadResponseEnvelope.model_validate(result)
+    async def invoke(name: str, request_factory: Callable[[], object]) -> ReadResponseEnvelope:
+        request_id = uuid.uuid4().hex
+        try:
+            actor = actor_provider()
+            request_id = actor.request_id or request_id
+            request = request_factory()
+            result = await application.execute(name, request, actor)
+            return ReadResponseEnvelope.model_validate(result)
+        except RemoteReadError as exc:
+            raise owner_debug_tool_error(exc, request_id=request_id) from exc
+        except ValidationError as exc:
+            raise owner_debug_tool_error(
+                exc,
+                request_id=request_id,
+                code="invalid_request",
+                detail=validation_error_detail(exc),
+            ) from exc
+        except Exception as exc:
+            log_unexpected_owner_error(
+                logger, tool_name=name, request_id=request_id, exc=exc,
+            )
+            raise owner_debug_tool_error(exc, request_id=request_id) from exc
 
     def add(name: str, function: Callable) -> None:
         contract = _CONTRACT_BY_NAME[name]
@@ -204,49 +232,49 @@ def register_v2_read_tools(
         )
 
     async def portfolio_overview(account_alias: AccountAlias | None = None, as_of: datetime | None = None, freshness_policy: Literal["stored", "cached", "bounded-live"] = "stored", include_holdings: bool = True) -> ReadResponseEnvelope:
-        return await invoke("get-portfolio-overview", PortfolioOverviewRequest(account_alias=account_alias, as_of=as_of, freshness_policy=freshness_policy, include_holdings=include_holdings))
+        return await invoke("get-portfolio-overview", lambda: PortfolioOverviewRequest(account_alias=account_alias, as_of=as_of, freshness_policy=freshness_policy, include_holdings=include_holdings))
 
     async def position_analysis(instrument_id: InstrumentId | None = None, account_alias: AccountAlias | None = None, as_of: datetime | None = None, limit: Limit200 = 50) -> ReadResponseEnvelope:
-        return await invoke("get-position-analysis", PositionAnalysisRequest(instrument_id=instrument_id, account_alias=account_alias, as_of=as_of, limit=limit))
+        return await invoke("get-position-analysis", lambda: PositionAnalysisRequest(instrument_id=instrument_id, account_alias=account_alias, as_of=as_of, limit=limit))
 
     async def performance_history(start_date: date, end_date: date, account_alias: AccountAlias | None = None, grain: Literal["daily", "weekly", "monthly"] = "daily", limit: Limit1000 = 250) -> ReadResponseEnvelope:
-        return await invoke("get-performance-history", PerformanceHistoryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, grain=grain, limit=limit))
+        return await invoke("get-performance-history", lambda: PerformanceHistoryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, grain=grain, limit=limit))
 
     async def market_snapshot(instrument_id: InstrumentId, market: Literal["KR", "US", "FX"], freshness_policy: Literal["stored", "cached", "bounded-live"] = "cached") -> ReadResponseEnvelope:
-        return await invoke("get-market-snapshot", MarketSnapshotRequest(instrument_id=instrument_id, market=market, freshness_policy=freshness_policy))
+        return await invoke("get-market-snapshot", lambda: MarketSnapshotRequest(instrument_id=instrument_id, market=market, freshness_policy=freshness_policy))
 
     async def market_history(instrument_id: InstrumentId, market: Literal["KR", "US", "FX"], start_date: date, end_date: date, adjusted: bool = True, limit: Limit1000 = 250) -> ReadResponseEnvelope:
-        return await invoke("get-market-history", MarketHistoryRequest(instrument_id=instrument_id, market=market, start_date=start_date, end_date=end_date, adjusted=adjusted, limit=limit))
+        return await invoke("get-market-history", lambda: MarketHistoryRequest(instrument_id=instrument_id, market=market, start_date=start_date, end_date=end_date, adjusted=adjusted, limit=limit))
 
     async def trade_ledger(start_date: date, end_date: date, account_alias: AccountAlias | None = None, instrument_id: InstrumentId | None = None, cursor: Cursor | None = None, limit: Limit200 = 100) -> ReadResponseEnvelope:
-        return await invoke("get-trade-ledger", TradeLedgerRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, instrument_id=instrument_id, cursor=cursor, limit=limit))
+        return await invoke("get-trade-ledger", lambda: TradeLedgerRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, instrument_id=instrument_id, cursor=cursor, limit=limit))
 
     async def trade_thread(thread_id: OpaqueId | None = None, instrument_id: InstrumentId | None = None, account_alias: AccountAlias | None = None, as_of: datetime | None = None, cursor: Cursor | None = None, limit: Limit100 = 50) -> ReadResponseEnvelope:
-        return await invoke("get-trade-thread", TradeThreadRequest(thread_id=thread_id, instrument_id=instrument_id, account_alias=account_alias, as_of=as_of, cursor=cursor, limit=limit))
+        return await invoke("get-trade-thread", lambda: TradeThreadRequest(thread_id=thread_id, instrument_id=instrument_id, account_alias=account_alias, as_of=as_of, cursor=cursor, limit=limit))
 
     async def dividend_summary(start_date: date, end_date: date, account_alias: AccountAlias | None = None, instrument_id: InstrumentId | None = None, currency: Annotated[str, Field(min_length=3, max_length=3)] | None = None) -> ReadResponseEnvelope:
-        return await invoke("get-dividend-summary", DividendSummaryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, instrument_id=instrument_id, currency=currency))
+        return await invoke("get-dividend-summary", lambda: DividendSummaryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, instrument_id=instrument_id, currency=currency))
 
     async def fundamental_outlook(instrument_id: InstrumentId, as_of: datetime | None = None, scenario: Literal["bear", "base", "bull", "all"] = "all") -> ReadResponseEnvelope:
-        return await invoke("get-fundamental-outlook", FundamentalOutlookRequest(instrument_id=instrument_id, as_of=as_of, scenario=scenario))
+        return await invoke("get-fundamental-outlook", lambda: FundamentalOutlookRequest(instrument_id=instrument_id, as_of=as_of, scenario=scenario))
 
     async def exposure_analysis(account_alias: AccountAlias | None = None, as_of: datetime | None = None, include_macro: bool = True) -> ReadResponseEnvelope:
-        return await invoke("get-exposure-analysis", ExposureAnalysisRequest(account_alias=account_alias, as_of=as_of, include_macro=include_macro))
+        return await invoke("get-exposure-analysis", lambda: ExposureAnalysisRequest(account_alias=account_alias, as_of=as_of, include_macro=include_macro))
 
     async def signal_status(signal_id: OpaqueId | None = None, instrument_id: InstrumentId | None = None, as_of: datetime | None = None, cursor: Cursor | None = None, limit: Limit100 = 50) -> ReadResponseEnvelope:
-        return await invoke("get-signal-status", SignalStatusRequest(signal_id=signal_id, instrument_id=instrument_id, as_of=as_of, cursor=cursor, limit=limit))
+        return await invoke("get-signal-status", lambda: SignalStatusRequest(signal_id=signal_id, instrument_id=instrument_id, as_of=as_of, cursor=cursor, limit=limit))
 
     async def data_catalog(kind: Literal["source", "dataset", "metric", "pipeline", "macro_series", "object"], item_id: OpaqueId | None = None, cursor: Cursor | None = None, limit: Limit50 = 25) -> ReadResponseEnvelope:
-        return await invoke("get-data-catalog", DataCatalogRequest(kind=kind, item_id=item_id, cursor=cursor, limit=limit))
+        return await invoke("get-data-catalog", lambda: DataCatalogRequest(kind=kind, item_id=item_id, cursor=cursor, limit=limit))
 
     async def data_quality(dataset_id: OpaqueId, run_id: OpaqueId | None = None, as_of: datetime | None = None, lookback_days: LookbackDays = 7, cursor: Cursor | None = None, limit: Limit200 = 50) -> ReadResponseEnvelope:
-        return await invoke("get-data-quality", DataQualityRequest(dataset_id=dataset_id, run_id=run_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
+        return await invoke("get-data-quality", lambda: DataQualityRequest(dataset_id=dataset_id, run_id=run_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
 
     async def pipeline_run(run_id: OpaqueId | None = None, pipeline_id: OpaqueId | None = None, as_of: datetime | None = None, lookback_days: LookbackDays = 7, cursor: Cursor | None = None, limit: Limit50 = 20) -> ReadResponseEnvelope:
-        return await invoke("get-pipeline-run", PipelineRunRequest(run_id=run_id, pipeline_id=pipeline_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
+        return await invoke("get-pipeline-run", lambda: PipelineRunRequest(run_id=run_id, pipeline_id=pipeline_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
 
     async def journal_review_queue(status: Literal["open", "answered", "all"] = "open", account_alias: AccountAlias | None = None, cursor: Cursor | None = None, limit: Limit100 = 25) -> ReadResponseEnvelope:
-        return await invoke("get-journal-review-queue", JournalReviewQueueRequest(status=status, account_alias=account_alias, cursor=cursor, limit=limit))
+        return await invoke("get-journal-review-queue", lambda: JournalReviewQueueRequest(status=status, account_alias=account_alias, cursor=cursor, limit=limit))
 
     for name, function in (
         ("get-portfolio-overview", portfolio_overview),
@@ -284,9 +312,28 @@ def register_v2_command_tools(
     *,
     actor_provider: CommandActorProvider = command_actor_from_auth_context,
 ) -> None:
-    async def invoke(name: str, request: object) -> CommandResponse:
-        result = await application.execute(name, request, actor_provider())
-        return CommandResponse.model_validate(result)
+    async def invoke(name: str, request_factory: Callable[[], object]) -> CommandResponse:
+        request_id = uuid.uuid4().hex
+        try:
+            actor = actor_provider()
+            request_id = actor.request_id or request_id
+            request = request_factory()
+            result = await application.execute(name, request, actor)
+            return CommandResponse.model_validate(result)
+        except RemoteCommandError as exc:
+            raise owner_debug_tool_error(exc, request_id=request_id) from exc
+        except ValidationError as exc:
+            raise owner_debug_tool_error(
+                exc,
+                request_id=request_id,
+                code="invalid_request",
+                detail=validation_error_detail(exc),
+            ) from exc
+        except Exception as exc:
+            log_unexpected_owner_error(
+                logger, tool_name=name, request_id=request_id, exc=exc,
+            )
+            raise owner_debug_tool_error(exc, request_id=request_id) from exc
 
     def add(name: str, function: Callable) -> None:
         contract = _COMMAND_CONTRACT_BY_NAME[name]
@@ -307,7 +354,7 @@ def register_v2_command_tools(
     ) -> CommandResponse:
         return await invoke(
             "run-managed-pipeline",
-            ManagedPipelineRequest(
+            lambda: ManagedPipelineRequest(
                 pipeline=pipeline,
                 logical_date=logical_date,
                 slot=slot,
@@ -326,7 +373,7 @@ def register_v2_command_tools(
     ) -> CommandResponse:
         return await invoke(
             "upsert-trade-journal",
-            UpsertTradeJournalRequest(
+            lambda: UpsertTradeJournalRequest(
                 journal_id=journal_id,
                 thread_id=thread_id,
                 trade_event_id=trade_event_id,
@@ -346,7 +393,7 @@ def register_v2_command_tools(
     ) -> CommandResponse:
         return await invoke(
             "revise-trade-thread",
-            ReviseTradeThreadRequest(
+            lambda: ReviseTradeThreadRequest(
                 thread_id=thread_id,
                 change=change,
                 authored_at=authored_at,

@@ -82,6 +82,9 @@ KIS_Portfolio_MCP/
   남기고 현재 operational source of truth로 사용하지 않는다.
 - V1 내부 주문 stub은 역사로만 보존하고 V2 public catalog에는 주문 tool을 등록하지 않는다.
 - remote MCP는 `kis-portfolio-remote`가 제공한다.
+- 현재 Remote MCP는 인증된 단일 owner용 `owner_debug` 오류 profile을 사용한다. MCP adapter가 application의
+  안정 오류를 `ToolError`로 변환해 code/type/request ID와 redaction된 원인을 보존하며, service/core는 MCP
+  예외 타입을 import하지 않는다. 공개·다중 사용자용 제한 profile은 별도 승인 전까지 존재하지 않는다.
 - batch CLI는 `kis-portfolio-batch`가 제공한다.
 - OAuth auth server는 `kis-portfolio-auth`가 제공한다.
 - V2 schema 변경은 runtime startup이 아니라 administrative `kis-portfolio-migrate`가 checksum migration으로 수행한다.
