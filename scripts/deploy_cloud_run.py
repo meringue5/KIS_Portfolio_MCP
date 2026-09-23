@@ -889,7 +889,6 @@ def _deploy_service_or_job(
                 "--region",
                 args.region,
                 "--allow-unauthenticated",
-                "--to-latest",
                 "--env-vars-file",
                 env_yaml_path,
                 "--command",
@@ -901,7 +900,23 @@ def _deploy_service_or_job(
         command.extend(_build_label_flags(args.target))
         if project:
             command.extend(["--project", project])
-        return _run(command, dry_run=args.dry_run)
+        result = _run(command, dry_run=args.dry_run)
+        if result != 0 or is_job:
+            return result
+
+        traffic_command = [
+            "gcloud",
+            "run",
+            "services",
+            "update-traffic",
+            target_name,
+            "--region",
+            args.region,
+            "--to-latest",
+        ]
+        if project:
+            traffic_command.extend(["--project", project])
+        return _run(traffic_command, dry_run=args.dry_run)
     finally:
         try:
             os.unlink(env_yaml_path)
