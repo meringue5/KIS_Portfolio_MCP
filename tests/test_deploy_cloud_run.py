@@ -1647,6 +1647,7 @@ def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):
     assert command[command.index("--command") + 1] == "kis-portfolio-remote"
     assert "uv" not in command
     assert command[command.index("--args") + 1] == ""
+    assert "--to-latest" in command
 
 
 def test_github_source_deploy_adds_release_marker_to_force_new_revision(monkeypatch):
@@ -1713,6 +1714,7 @@ def test_cloud_run_job_deploy_uses_batch_console_script(monkeypatch):
     assert command[command.index("--command") + 1] == "kis-portfolio-batch"
     assert command[command.index("--args") + 1] == "collect-domestic-order-history,--date,today"
     assert "uv" not in command
+    assert "--to-latest" not in command
 
 
 def test_scheduler_service_account_defaults_to_project_compute_account():

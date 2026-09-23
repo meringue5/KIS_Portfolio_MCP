@@ -203,6 +203,11 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   marker, and acceptance requires a genuinely new revision/digest before owner login. Focused deploy tests pass
   79/79, the quick gate passes, and the full repository gate passes with 773 tests and one pre-existing Authlib
   warning.
+- PR #127 merged as `55af304`; protected auth run `35806435798` created revision
+  `kis-portfolio-auth-00032-2bp` with matching Git/run labels and a new digest, but the service retained a historical
+  explicit traffic pin to the 2026-09-14 revision. Cloud Run retired the unserved new revision while the workflow
+  still succeeded. Generic service deploys now add `--to-latest`; the next protected run must show the new revision
+  both ready and at 100% traffic before Codex OAuth begins.
 
 ## Closeout
 
