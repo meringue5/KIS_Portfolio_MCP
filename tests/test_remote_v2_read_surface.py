@@ -1,7 +1,9 @@
 import asyncio
+import json
 from datetime import UTC, date, datetime
 
 import pytest
+from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
 from starlette.testclient import TestClient
 
@@ -187,6 +189,98 @@ def test_response_size_is_bounded_to_256_kib():
 
     with pytest.raises(RemoteReadError, match="response_too_large"):
         asyncio.run(_application(handler).execute("get-portfolio-overview", {}, ACTOR))
+
+
+def test_owner_debug_domain_error_is_visible_through_transport():
+    def handler(_request, _actor):
+        raise RemoteReadError("instrument_market_mismatch")
+
+    app = create_v2_stateless_transport(
+        _application(handler), resource_server_url=RESOURCE, actor_provider=lambda: ACTOR,
+    )
+    request = {
+        "jsonrpc": "2.0",
+        "id": "owner-debug-domain",
+        "method": "tools/call",
+        "params": {
+            "name": "get-market-snapshot",
+            "arguments": {
+                "instrument_id": "US:AAPL",
+                "market": "KR",
+                "freshness_policy": "stored",
+            },
+        },
+    }
+    headers = {"Accept": "application/json, text/event-stream", "Origin": "https://claude.com"}
+
+    with TestClient(app, base_url="https://resource.example.com") as client:
+        response = client.post("/mcp", json=request, headers=headers)
+
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    payload = json.loads(result["content"][0]["text"].split(": ", 1)[1])
+    assert payload == {
+        "error": {
+            "code": "instrument_market_mismatch",
+            "detail": "instrument_market_mismatch",
+            "exception_type": "RemoteReadError",
+            "request_id": "request-42",
+            "visibility": "owner_debug",
+        }
+    }
+
+
+def test_owner_debug_unexpected_error_redacts_secret_and_account_details(caplog):
+    def handler(_request, _actor):
+        raise RuntimeError(
+            "upstream rejected authorization=Bearer owner-secret "
+            "'api_key':'private-key' 'account_number':'12345678'"
+        )
+
+    server = build_v2_read_server(_application(handler), actor_provider=lambda: ACTOR)
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-portfolio-overview")
+
+    with pytest.raises(ToolError) as captured:
+        asyncio.run(tool.fn())
+
+    payload = json.loads(str(captured.value))
+    assert payload["error"]["code"] == "internal_error"
+    assert payload["error"]["exception_type"] == "RuntimeError"
+    assert payload["error"]["request_id"] == "request-42"
+    assert payload["error"]["visibility"] == "owner_debug"
+    assert "owner-secret" not in payload["error"]["detail"]
+    assert "private-key" not in payload["error"]["detail"]
+    assert "12345678" not in payload["error"]["detail"]
+    assert "<redacted>" in payload["error"]["detail"]
+    assert "12****78" in payload["error"]["detail"]
+    log_text = caplog.text
+    assert "owner_debug_tool_failure" in log_text
+    assert "request-42" in log_text
+    assert "RuntimeError" in log_text
+    assert "test_remote_v2_read_surface.py" in log_text
+    assert "owner-secret" not in log_text
+    assert "private-key" not in log_text
+    assert "12345678" not in log_text
+
+
+def test_owner_debug_wraps_cross_field_request_construction_errors():
+    server = build_v2_read_server(_application(), actor_provider=lambda: ACTOR)
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-market-history")
+
+    with pytest.raises(ToolError) as captured:
+        asyncio.run(tool.fn(
+            instrument_id="000660",
+            market="KR",
+            start_date=date(2026, 9, 23),
+            end_date=date(2026, 9, 15),
+        ))
+
+    payload = json.loads(str(captured.value))
+    assert payload["error"]["code"] == "invalid_request"
+    assert payload["error"]["request_id"] == "request-42"
+    assert "start_date" in payload["error"]["detail"]
+    assert "input_value" not in payload["error"]["detail"]
 
 
 def test_official_transport_is_stateless_json_and_has_no_public_activation():

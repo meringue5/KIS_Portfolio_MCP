@@ -644,6 +644,21 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - owner acceptance로 WI-046과 MS-003을 닫고 MS-004/WI-047을 시작한다. 이후 안정화는 V1 병행관찰이 아니라
   V2 health, OAuth, managed run, Scheduler, 데이터 품질과 사용자-visible 결과를 직접 관찰한다.
 
+### DEC-058: owner-only 운영에서는 MCP 오류를 디버깅 가능한 형태로 직접 노출한다
+
+- 현재 KIS Portfolio는 인증된 단일 owner가 사용하는 제품이다. 예상 가능한 MCP 도메인 오류는 안정적인
+  `code`, 예외 종류와 `request_id`를 tool error 본문에 직접 반환해 클라이언트가 입력을 고치고 운영 로그와
+  즉시 연결할 수 있게 한다.
+- 예상하지 못한 예외도 `internal_error`, 예외 종류, redaction된 짧은 원인과 `request_id`를 반환한다. 서버는
+  같은 식별자와 로컬 변수 없는 stack frame 위치를 남긴다. 일반 `Error executing tool`만 반환하는 동작은
+  owner-only 운영의 인수 기준을 만족하지 않는다.
+- bearer/token/secret/API key, 전체 계좌번호, 원문 provider payload와 SQL parameter는 owner-only라도 반환하거나
+  새 로그에 기록하지 않는다. 오류 문자열 redaction과 길이 제한은 모든 read/command tool에 공통 적용한다.
+- 공개·다중 사용자 프로젝트로 전환할 때는 별도 승인으로 외부 오류 profile을 추가하고 내부 detail을
+  감싼다. 그 전까지 공개 전환을 가정해 현재 owner의 진단 정보를 선제적으로 지우지 않는다.
+- 실제 MCP transport 음성 호출로 안정 코드와 `request_id`가 Codex/Claude에 보이는지 검증한다. Python
+  application 단위 테스트만으로 인수를 대신하지 않는다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.

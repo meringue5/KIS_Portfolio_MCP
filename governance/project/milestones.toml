@@ -728,6 +728,12 @@ title = "Allow structurally validated Codex loopback OAuth callbacks and verify 
 status = "closed"
 
 [[subitems]]
+id = "WI-060-S04"
+parent_id = "WI-060"
+title = "Expose redacted owner-debug MCP errors with request correlation"
+status = "in_progress"
+
+[[subitems]]
 id = "WI-059-S01"
 parent_id = "WI-059"
 title = "Reproduce missing-prior report cascade and enforce FX/report readiness without waiting for a slot"

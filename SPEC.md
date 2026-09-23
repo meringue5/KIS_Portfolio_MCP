@@ -829,6 +829,25 @@ Telegram adapter는 동일 판정을 표현한다.
 - 운영 변경은 하나의 immutable image를 Remote MCP와 owner-report Job에 반영하는 좁은 보호된 release target을
   사용한다. 별도 서비스나 always-on fallback worker는 추가하지 않는다.
 
+### ADR-030: owner MCP adapter는 안전한 진단 오류를 ToolError로 변환한다
+
+**결정**: owner-only Remote MCP adapter는 application의 안정 도메인 오류를 MCP `ToolError`로 변환해
+`code`, `exception_type`, `request_id`, `visibility=owner_debug`를 클라이언트에 보존한다. 예상하지 못한 예외는
+`internal_error`와 redaction된 bounded detail을 같은 형태로 반환하고, 서버에는 request ID와 안전한 stack
+frame을 남긴다. application/service는 MCP 예외 타입을 import하지 않는다.
+
+**상태**: 2026-09-23 owner가 현재 단일-user 운영에서 디버깅 가시성을 우선하고 공개 전환 때 외부용
+wrapper를 도입하도록 승인했다. 제품 계약은 DEC-058, 실행 추적은 WI-060-S04가 소유한다.
+
+**경계**:
+
+- adapter가 application의 `RemoteReadError`/`RemoteCommandError`를 번역하며 core service의 MCP 비종속성을
+  유지한다.
+- credential, 전체 계좌번호, 원문 payload와 SQL parameter는 debug detail에서도 금지한다.
+- 공개·다중 사용자 profile은 후속 DEC/ADR 없이는 활성화하지 않는다.
+- read와 command tool에 같은 formatter를 적용하고 실제 Streamable HTTP client fixture와 운영 Codex 음성
+  호출을 인수 증거로 사용한다.
+
 ---
 
 ## Retained V1 implementation appendix

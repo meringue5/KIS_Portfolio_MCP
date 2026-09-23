@@ -4,8 +4,8 @@ title: Isolate portfolio capability failures and provide accurate partial result
 status: stabilizing
 type: architecture
 owner: owner
-decision_refs: DEC-055, DEC-057, ADR-015, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029
-requirement_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-055, DEC-057
+decision_refs: DEC-055, DEC-057, DEC-058, ADR-015, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029, ADR-030
+requirement_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-055, DEC-057, DEC-058
 milestone_ref: MS-007
 delivery_refs: none
 parent_work_item: none
@@ -17,7 +17,7 @@ execution_scope: production
 production_effects: guarded Remote MCP and three fixed-slot owned-core Job deployment
 architecture_impact: yes; separate capability quality, read-model and report boundaries without changing the V2 trust boundary
 data_impact: approved additive FX source/observation/rate-type contracts are production-active under guarded fallback
-security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; admit only structurally validated Codex IPv4 loopback OAuth callbacks; no payload or secret logging
+security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; admit only structurally validated Codex IPv4 loopback OAuth callbacks; expose bounded redacted owner-debug errors but no credentials, full account numbers, raw payloads or SQL parameters
 cost_impact: free official source; at most one fallback call per managed run and no new standing resource
 stabilization_window: protected source preflight plus immediate real MCP review and first owner-visible scheduled report after release
 stabilization_exit_refs: immutable release workflow, exact Job and Remote image labels, source preflight result, real Claude MCP output, redacted owner receipt
@@ -75,6 +75,7 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - [ ] Real Claude/MCP and owner-visible Telegram review accepts the presentation before production closeout.
 - [x] Any secondary FX source has approved rights, cost, source-date/rate-type mapping and deterministic conflict
   handling; no production calls or credentials are added merely to pass tests.
+- [ ] Owner-debug MCP errors preserve stable code, redacted detail and request correlation in real Codex calls.
 
 ## Change impact
 
@@ -115,6 +116,9 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - `WI-060-S03` (`closed`) — admit Codex's native OAuth loopback callback without broadening redirects to
   non-loopback HTTP hosts, then complete a real Codex login and direct MCP call; discovered during the real-client
   acceptance gate when DCR returned `invalid_redirect_uri` before owner login could begin.
+- `WI-060-S04` (`in_progress`) — translate safe application failures into diagnostic MCP `ToolError` responses for
+  the current owner-only product, retain request correlation for unexpected failures, and defer restrictive external
+  wrapping until an approved public/multi-user conversion; discovered by immediate Codex negative-boundary tests.
 
 ## Stabilization plan
 
@@ -229,6 +233,12 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   replay called `get-portfolio-overview` successfully and returned evaluation date `2026-09-23`, total value
   `731197565.53` KRW, freshness `available`, quality `pass`, and 32 rows. `WI-060-S03` is therefore closed; this
   evidence uses the public MCP response and does not expose account identifiers or credentials.
+- `WI-060-S04` local implementation translates both read and command domain failures to deliberate MCP
+  `ToolError` results carrying a stable code, exception type and request ID. Request-construction validation errors
+  expose field-only diagnostics, while unexpected exceptions retain redacted bounded detail and safe stack-frame
+  locations without locals. Focused transport, command, compatibility and security tests pass 52/52; the complete
+  repository gate passes 781 tests with one pre-existing Authlib warning. Production deployment and direct Codex
+  negative-boundary replay remain required before closing the sub-item.
 
 ## Closeout
 
