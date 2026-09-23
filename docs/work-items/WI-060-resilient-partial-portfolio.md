@@ -75,7 +75,7 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - [ ] Real Claude/MCP and owner-visible Telegram review accepts the presentation before production closeout.
 - [x] Any secondary FX source has approved rights, cost, source-date/rate-type mapping and deterministic conflict
   handling; no production calls or credentials are added merely to pass tests.
-- [ ] Owner-debug MCP errors preserve stable code, redacted detail and request correlation in real Codex calls.
+- [x] Owner-debug MCP errors preserve stable code, redacted detail and request correlation in real Codex calls.
 
 ## Change impact
 
@@ -116,7 +116,7 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - `WI-060-S03` (`closed`) — admit Codex's native OAuth loopback callback without broadening redirects to
   non-loopback HTTP hosts, then complete a real Codex login and direct MCP call; discovered during the real-client
   acceptance gate when DCR returned `invalid_redirect_uri` before owner login could begin.
-- `WI-060-S04` (`in_progress`) — translate safe application failures into diagnostic MCP `ToolError` responses for
+- `WI-060-S04` (`closed`) — translate safe application failures into diagnostic MCP `ToolError` responses for
   the current owner-only product, retain request correlation for unexpected failures, and defer restrictive external
   wrapping until an approved public/multi-user conversion; discovered by immediate Codex negative-boundary tests.
 
@@ -239,6 +239,12 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   locations without locals. Focused transport, command, compatibility and security tests pass 52/52; the complete
   repository gate passes 781 tests with one pre-existing Authlib warning. Production deployment and direct Codex
   negative-boundary replay remain required before closing the sub-item.
+- PR #133 merged as `b537eb7`; protected Remote run `35838679947` passed the full gate and deployed revision
+  `kis-portfolio-remote-00053-rtz` at 100% traffic with matching Git SHA/run labels. An immediate authenticated
+  Codex replay returned freshness `available`, quality `pass` and 32 rows for the positive overview, then exposed
+  `instrument_market_mismatch`, `unknown_dataset_reference` and `unknown_pipeline_reference` for the three fixed
+  negative cases. Each client-visible error included `RemoteReadError`, `visibility=owner_debug` and a distinct
+  request ID; no credential or account identifier was returned. `WI-060-S04` is therefore closed.
 
 ## Closeout
 

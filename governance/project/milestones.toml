@@ -731,7 +731,7 @@ status = "closed"
 id = "WI-060-S04"
 parent_id = "WI-060"
 title = "Expose redacted owner-debug MCP errors with request correlation"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-059-S01"
