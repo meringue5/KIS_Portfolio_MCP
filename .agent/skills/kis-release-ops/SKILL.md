@@ -29,11 +29,8 @@ Use this skill before any production deployment, CI/CD change, Secret Manager mi
 2. Run release verification:
 
    ```bash
-   uv run pytest
-   uv run python .agent/skills/kis-architecture-audit/scripts/check_architecture_contracts.py
-   uv run python .agent/skills/kis-mcp-surface-audit/scripts/inspect_mcp_surface.py
+   bash scripts/check.sh full
    bash -n scripts/setup.sh
-   python3 -m json.tool docs/examples/claude_desktop_config.example.json >/dev/null
    git diff --check
    ```
 
@@ -55,7 +52,9 @@ Use this skill before any production deployment, CI/CD change, Secret Manager mi
 ## Notes
 
 - `scripts/deploy_cloud_run.py` defaults to `--secret-mode secret-manager`.
-- A local dry-run is safe and useful:
+- A local dry-run is safe and useful when the same required non-secret deployment variables as the GitHub production
+  environment are present. Missing local variables do not prove the workflow environment is incomplete; the workflow
+  configuration gate remains authoritative.
 
   ```bash
   uv run python scripts/deploy_cloud_run.py remote --dry-run

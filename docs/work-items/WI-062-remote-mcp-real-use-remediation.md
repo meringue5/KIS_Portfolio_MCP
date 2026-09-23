@@ -24,7 +24,7 @@ stabilization_exit_refs: immutable release workflow serving revision direct MCP 
 rollback_plan: restore the prior serving Remote revision if positive reads regress sensitive fields expand or response contracts fail
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: pending
+real_use_evidence_refs: PR #135, deploy run 35868121973, Remote revision kis-portfolio-remote-00054-fh9, Codex OAuth thread 01a0ce7e-82d1-7c82-8b53-964060843fd3
 ---
 
 # WI-062 — Remediate capability gaps found by direct Remote MCP use
@@ -63,7 +63,7 @@ position rows despite `include_holdings=false`, and pipeline alias resolution wa
   owned incremental correction in WI-063.
 - [x] Fundamental, macro and ETF gaps are either separately approved for activation or explicitly represented as
   unsupported/inactive rather than appearing as mysteriously broken features.
-- [ ] Actual Codex OAuth MCP positive, partial and error scenarios pass after deployment.
+- [x] Actual Codex OAuth MCP positive, partial and error scenarios pass after deployment.
 
 ## Change impact
 
@@ -103,7 +103,8 @@ position rows despite `include_holdings=false`, and pipeline alias resolution wa
 - Client/transport: owner-authenticated Codex over the canonical OAuth Streamable HTTP `/mcp` endpoint.
 - Immediate scenarios: portfolio summary without holdings, pipeline alias projection, trade-ledger unavailable/usable
   boundary, accurate partial performance/exposure and diagnostic error response.
-- Initial evidence: 2026-09-23 ten-tool direct suite; post-change evidence remains `pending` until protected deployment.
+- Initial evidence: 2026-09-23 ten-tool direct suite. Post-change evidence: PR #135, deploy run `35868121973`, Remote
+  revision `kis-portfolio-remote-00054-fh9` and Codex OAuth thread `01a0ce7e-82d1-7c82-8b53-964060843fd3`.
 
 ## Evidence
 
@@ -116,9 +117,19 @@ position rows despite `include_holdings=false`, and pipeline alias resolution wa
   fundamental approved-inactive and macro approved-inactive; five focused tests pass.
 - Shared quick gate passes: Project OS, data governance, architecture, warehouse, MCP surface and V2 documentation.
 - Final repository gate before release: 786 passed with one pre-existing Authlib deprecation warning.
+- PR #135 merged as `2305c32`; production workflow `35868121973` deployed only Remote revision
+  `kis-portfolio-remote-00054-fh9`, serving 100%. Labels match Git SHA, run ID, target `remote` and source
+  `github-actions`; health returned 200 and unauthenticated `/mcp` returned 401.
+- Direct Codex OAuth replay called six tools once each without retry: overview `pass/32` with zero positions and a
+  present summary; pipeline alias `pass/3` with requested/resolved metadata; trade ledger `partial/0` with
+  `collection_watermark_before_query_end`; exposure `partial/26` with approved-inactive macro and unsupported ETF;
+  fundamental `partial/0` with both inputs approved-inactive; deliberate market snapshot failure exposed
+  `unknown_instrument_reference`, `RemoteReadError`, owner-debug visibility and a request ID in the raw MCP result.
+- The Codex summarizer emitted null diagnostic fields for the deliberate error even though its immediately preceding
+  raw MCP result contained all four fields. Acceptance uses the raw transport result, not the lossy summary.
 
 ## Closeout
 
-- Result: stabilizing after local implementation verification; protected deployment and direct Codex replay remain.
+- Result: stabilizing after protected deployment and direct Codex replay; owner acceptance remains before closeout.
 - Remaining risk: public tools can remain technically callable but not useful.
 - Follow-up Work Item: WI-063.
