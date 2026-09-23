@@ -210,6 +210,12 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   `35807135080` failed before mutation because that subcommand does not support the option. Generic service deploys
   now run the supported `gcloud run services update-traffic --to-latest` only after a successful revision deploy;
   the next protected run must show the new revision both ready and at 100% traffic before Codex OAuth begins.
+- PR #129 merged as `667f3f3`; protected auth run `35807966171` deployed revision
+  `kis-portfolio-auth-00033-9hz` with matching SHA/run labels and digest `sha256:8779af00...efd29`, and moved 100%
+  traffic to it. The first real Codex retry passed redirect validation and then exposed a second compatibility gap:
+  Codex registers as a public PKCE client with `token_endpoint_auth_method=none`, while dynamic registration still
+  required `client_secret_post`. `none` is now accepted only when every callback is the already validated IPv4
+  loopback form; allowlisted HTTPS clients retain confidential-client authentication. Focused OAuth tests pass 38/38.
 
 ## Closeout
 

@@ -154,7 +154,7 @@ def _build_discovery_document(settings: AuthServiceSettings) -> dict[str, Any]:
         "scopes_supported": list(settings.allowed_scopes),
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code", "refresh_token"],
-        "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+        "token_endpoint_auth_methods_supported": ["none", "client_secret_basic", "client_secret_post"],
         "revocation_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
         "code_challenge_methods_supported": ["S256"],
     }
@@ -184,6 +184,29 @@ def _validate_client_scope(client_record: dict[str, Any], requested_scope: str) 
         )
 
 
+def _is_codex_loopback_redirect(redirect_text: str) -> bool:
+    if not redirect_text.startswith("http://"):
+        return False
+    try:
+        parsed = urlsplit(redirect_text)
+        port = parsed.port
+    except ValueError:
+        return False
+    callback_nonce = parsed.path.removeprefix("/callback/")
+    return (
+        parsed.scheme == "http"
+        and parsed.hostname == "127.0.0.1"
+        and parsed.username is None
+        and parsed.password is None
+        and port is not None
+        and parsed.query == ""
+        and parsed.fragment == ""
+        and callback_nonce != parsed.path
+        and bool(callback_nonce)
+        and "/" not in callback_nonce
+    )
+
+
 def _is_allowed_dynamic_redirect(
     settings: AuthServiceSettings,
     redirect_text: str,
@@ -191,24 +214,7 @@ def _is_allowed_dynamic_redirect(
     if redirect_text.startswith("http://"):
         if CODEX_LOOPBACK_REDIRECT_PREFIX not in settings.dynamic_client_redirect_prefixes:
             return False
-        try:
-            parsed = urlsplit(redirect_text)
-            port = parsed.port
-        except ValueError:
-            return False
-        callback_nonce = parsed.path.removeprefix("/callback/")
-        return (
-            parsed.scheme == "http"
-            and parsed.hostname == "127.0.0.1"
-            and parsed.username is None
-            and parsed.password is None
-            and port is not None
-            and parsed.query == ""
-            and parsed.fragment == ""
-            and callback_nonce != parsed.path
-            and bool(callback_nonce)
-            and "/" not in callback_nonce
-        )
+        return _is_codex_loopback_redirect(redirect_text)
 
     return any(
         prefix != CODEX_LOOPBACK_REDIRECT_PREFIX
@@ -221,6 +227,15 @@ def _validate_dynamic_client_metadata(
     settings: AuthServiceSettings,
     metadata: OAuthClientMetadata,
 ) -> None:
+    if metadata.token_endpoint_auth_method == "none" and not all(
+        _is_codex_loopback_redirect(str(redirect_uri))
+        for redirect_uri in metadata.redirect_uris
+    ):
+        raise RegistrationError(
+            error="invalid_client_metadata",
+            error_description="Public dynamic clients require validated IPv4 loopback callbacks.",
+        )
+
     for redirect_uri in metadata.redirect_uris:
         redirect_text = str(redirect_uri)
         if not _is_allowed_dynamic_redirect(settings, redirect_text):

@@ -327,15 +327,54 @@ def test_dynamic_client_registration_accepts_codex_loopback_callback(monkeypatch
                 "redirect_uris": ["http://127.0.0.1:56803/callback/6vFxV-jIo30S"],
                 "grant_types": ["authorization_code", "refresh_token"],
                 "response_types": ["code"],
-                "token_endpoint_auth_method": "client_secret_post",
+                "token_endpoint_auth_method": "none",
                 "scope": "mcp:read offline_access",
+            },
+        )
+        token_response = client.post(
+            "/token",
+            data={
+                "grant_type": "authorization_code",
+                "client_id": response.json().get("client_id", ""),
+                "code": "unknown-code",
+                "redirect_uri": "http://127.0.0.1:56803/callback/6vFxV-jIo30S",
+                "code_verifier": "verifier",
             },
         )
 
     assert response.status_code == 201
-    assert response.json()["redirect_uris"] == [
+    payload = response.json()
+    assert payload["redirect_uris"] == [
         "http://127.0.0.1:56803/callback/6vFxV-jIo30S"
     ]
+    assert payload["token_endpoint_auth_method"] == "none"
+    assert "client_secret" not in payload
+    assert token_response.status_code == 400
+    assert token_response.json()["error"] == "invalid_grant"
+    close_connection()
+
+
+def test_public_dynamic_client_rejects_non_loopback_callback(monkeypatch, tmp_path):
+    close_connection()
+    monkeypatch.setenv("KIS_DB_MODE", "local")
+    monkeypatch.setenv("KIS_DATA_DIR", str(tmp_path / "var"))
+    app = create_app(settings=_settings(), provider=_provider())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/register",
+            json={
+                "client_name": "Public web client",
+                "redirect_uris": ["https://claude.ai/api/mcp/auth_callback"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "response_types": ["code"],
+                "token_endpoint_auth_method": "none",
+                "scope": "mcp:read",
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_client_metadata"
     close_connection()
 
 

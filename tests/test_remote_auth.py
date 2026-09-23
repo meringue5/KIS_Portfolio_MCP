@@ -310,6 +310,7 @@ def test_remote_oauth_mode_exposes_discovery_and_authorize_redirect(monkeypatch)
         assert metadata["registration_endpoint"] == "https://auth.example.com/register"
         assert metadata["scopes_supported"] == ["mcp:read", "offline_access"]
         assert metadata["token_endpoint_auth_methods_supported"] == [
+            "none",
             "client_secret_basic",
             "client_secret_post",
         ]
