@@ -616,6 +616,22 @@ def _write_env_yaml(payload: dict[str, str]) -> str:
     return handle.name
 
 
+def _with_github_release_marker(payload: dict[str, str]) -> dict[str, str]:
+    if not _is_github_actions():
+        return payload
+
+    git_sha = os.environ.get("GITHUB_SHA", "").strip()
+    run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
+    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1").strip() or "1"
+    if not git_sha or not run_id:
+        raise RuntimeError("GitHub Actions deploy requires GITHUB_SHA and GITHUB_RUN_ID.")
+
+    return {
+        **payload,
+        "KIS_DEPLOY_RELEASE_ID": f"{git_sha[:12]}-{run_id}-{run_attempt}",
+    }
+
+
 def _run(command: list[str], *, dry_run: bool) -> int:
     print("$", " ".join(command))
     if dry_run:
@@ -843,7 +859,7 @@ def _deploy_service_or_job(
     command_args: str,
     is_job: bool,
 ) -> int:
-    env_yaml_path = _write_env_yaml(payload)
+    env_yaml_path = _write_env_yaml(_with_github_release_marker(payload))
     try:
         if is_job:
             command = [
