@@ -867,6 +867,23 @@ wrapper를 도입하도록 승인했다. 제품 계약은 DEC-058, 실행 추적
 - 기존 `runs`와 `next_cursor` 필드는 유지하는 additive-compatible 변경이다.
 - 정상 빈 조회창, 수집 watermark 공백과 실제 dataset 부재를 서로 다른 상태로 유지한다.
 
+### ADR-032: 거래 증분 수집은 독립 logical pipeline으로 격리한다
+
+**결정**: `pipeline.trade-incremental-v2`를 scale-to-zero Cloud Run Job으로 실행하고, 총자산 코어와 별도
+run identity, source-call budget, quality evidence와 coverage watermark를 가진다. 구현은 기존 shared image,
+managed runner, KIS trade source adapter, normalization repository와 MotherDuck을 재사용한다.
+
+**상태**: 2026-09-24 owner가 WI-062 결과를 인수하고 WI-063의 다음 작업을 승인했다. 제품 요구는
+DEC-060, 실행 추적은 WI-063이 소유한다.
+
+**경계**:
+
+- trade source failure는 portfolio overview, price, FX와 total-asset publish를 실패시키지 않는다.
+- current-date account/market partition만 bounded 호출하며 arbitrary Remote date/account source call은 금지한다.
+- successful quality/publish 뒤에만 per-partition contiguous watermark를 전진시킨다.
+- approved source gap과 unsupported partition은 partial로 남기고 holdings delta에서 거래를 만들지 않는다.
+- separate repository, always-on worker와 새 provider는 추가하지 않는다.
+
 ---
 
 ## Retained V1 implementation appendix

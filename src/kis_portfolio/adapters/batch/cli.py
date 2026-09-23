@@ -52,6 +52,7 @@ from kis_portfolio.services.trade_cash_backfill import (
 from kis_portfolio.services.trade_cash_backfill_pipeline import build_trade_cash_partition_handler
 from kis_portfolio.services.trade_cash_backfill_runtime import execute_trade_cash_backfill
 from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfillSource
+from kis_portfolio.services.trade_incremental import run_trade_incremental
 from kis_portfolio.services.token_warmup import warm_token_cache
 from kis_portfolio.services.total_asset_digest import (
     OwnerPortfolioReportConfig,
@@ -238,6 +239,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--apply",
         action="store_true",
         help="Perform guarded KIS reads and MotherDuck writes after all immutable preconditions match.",
+    )
+
+    trade_incremental = subparsers.add_parser(
+        "collect-trade-incremental-v2",
+        help="Run the independent bounded incremental trade/cash producer.",
+    )
+    trade_incremental.add_argument(
+        "--date", default="today", help="Coverage end in YYYYMMDD, today, or new-york-today",
+    )
+    trade_incremental.add_argument("--scope", choices=("domestic", "overseas", "all"), default="all")
+    trade_incremental.add_argument(
+        "--start-date",
+        help="Optional reviewed recovery start in YYYYMMDD; omitted means next contiguous date.",
     )
 
     wi021_s06 = subparsers.add_parser(
@@ -555,6 +569,31 @@ def _run_trade_cash_backfill(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_trade_incremental(args: argparse.Namespace) -> int:
+    today = datetime.now(ZoneInfo("Asia/Seoul")).date()
+    end_date = (
+        today if args.date == "today"
+        else datetime.now(ZoneInfo("America/New_York")).date()
+        if args.date == "new-york-today"
+        else datetime.strptime(args.date, "%Y%m%d").date()
+    )
+    if end_date > today:
+        raise ValueError("incremental trade collection date cannot be in the future")
+    start_date = (
+        datetime.strptime(args.start_date, "%Y%m%d").date()
+        if args.start_date else None
+    )
+    result = run_trade_incremental(
+        get_connection(),
+        load_account_registry(),
+        end_date=end_date,
+        start_date=start_date,
+        scope=args.scope,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] == "succeeded" else 1
+
+
 def _run_wi021_s06(args: argparse.Namespace) -> int:
     try:
         as_of_date = args.as_of_date or args.end_date
@@ -735,6 +774,8 @@ def main() -> None:
         raise SystemExit(_run_trade_cash_backfill_plan(args))
     if args.command == "backfill-trade-cash-history-v2":
         raise SystemExit(_run_trade_cash_backfill(args))
+    if args.command == "collect-trade-incremental-v2":
+        raise SystemExit(_run_trade_incremental(args))
     if args.command == "run-wi021-s06":
         raise SystemExit(_run_wi021_s06(args))
     if args.command == "plan-position-reconstruction-v2":

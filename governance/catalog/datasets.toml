@@ -26,11 +26,11 @@ consumer_ids = ["portfolio reconciliation", "asset overview", "owned-instrument 
 
 [[contracts]]
 id = "dataset.trade-event"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
 description = "국내·IRP·해외 주문체결을 정규화한 immutable buy/sell 사건과 reconciliation 상태."
-decision_refs = ["DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014"]
+decision_refs = ["DEC-009", "DEC-010", "DEC-011", "DEC-012", "DEC-013", "DEC-014", "DEC-060", "ADR-032"]
 layer = "silver"
 source_ids = ["source.kis-open-api", "source.portfolio-owner"]
 input_dataset_ids = []
@@ -45,16 +45,16 @@ retention_policy = "canonical facts retained; initial three-year backfill and no
 backup_policy = "parquet"
 freshness_slo = "domestic by the post-close run, overseas by the Korean-morning run, IRP gaps reconciled when the delayed source becomes available"
 quality_rules = ["source order identity unique within account and market", "executed quantity and price are never inferred from current average cost", "provisional, actual and reconciliation_exception states are explicit"]
-producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2", "pipeline.trade-cash-backfill-v2"]
+producer_pipeline_ids = ["pipeline.trade-cash-backfill-v2", "pipeline.trade-incremental-v2"]
 consumer_ids = ["purchase lots", "trade threads", "trade journal review", "realized performance"]
 
 [[contracts]]
 id = "dataset.cash-transaction-event"
-version = "1.1.0"
+version = "1.2.0"
 status = "approved"
 owner = "owner"
 description = "입출금·수수료·세금·환전·배당 실수령 등 계좌 현금 사건의 정규화 원장."
-decision_refs = ["ADR-026", "DEC-013", "DEC-023"]
+decision_refs = ["ADR-026", "ADR-032", "DEC-013", "DEC-023", "DEC-060"]
 layer = "silver"
 source_ids = ["source.kis-open-api", "source.portfolio-owner"]
 input_dataset_ids = []
@@ -69,7 +69,7 @@ retention_policy = "canonical facts retained; initial three-year backfill and no
 backup_policy = "parquet"
 freshness_slo = "by the next scheduled account-history run; manual gaps remain explicit until reconciled"
 quality_rules = ["amount and currency present", "balance deltas never create inferred cash events", "manual records carry provenance and never overwrite broker rows", "candidate trade and dividend links remain reversible", "gross tax and net components are never invented", "classification knowledge time never moves backwards"]
-producer_pipeline_ids = ["pipeline.trade-cash-backfill-v2", "pipeline.dividend-ledger-v1"]
+producer_pipeline_ids = ["pipeline.trade-cash-backfill-v2", "pipeline.trade-incremental-v2", "pipeline.dividend-ledger-v1"]
 consumer_ids = ["cash-flow analysis", "dividend ledger", "portfolio reconciliation"]
 
 [[contracts]]

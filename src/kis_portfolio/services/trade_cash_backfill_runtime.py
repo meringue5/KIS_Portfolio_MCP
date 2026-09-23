@@ -40,6 +40,7 @@ WATERMARK_TYPE = "source_end_date_v1"
 PartitionHandler = Callable[
     [BackfillPartition, "CheckpointingCallBudget", StageContext], StageResult
 ]
+WatermarkKey = Callable[[BackfillPartition], str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,9 +118,16 @@ class _WatermarkStore:
         self,
         connection: duckdb.DuckDBPyConnection,
         stream_starts: dict[str, date],
+        *,
+        pipeline_id: str,
+        watermark_type: str,
+        predecessor_pipeline_id: str | None = None,
     ) -> None:
         self.connection = connection
         self.stream_starts = stream_starts
+        self.pipeline_id = pipeline_id
+        self.watermark_type = watermark_type
+        self.predecessor_pipeline_id = predecessor_pipeline_id
 
     def advance(self, partition: BackfillPartition, run_id: str) -> str:
         stream_key = watermark_partition_key(partition)
@@ -129,8 +137,17 @@ class _WatermarkStore:
             FROM control.watermarks
             WHERE pipeline_id=? AND partition_key=? AND watermark_type=?
             """,
-            [PIPELINE_ID, stream_key, WATERMARK_TYPE],
+            [self.pipeline_id, stream_key, self.watermark_type],
         ).fetchone()
+        if row is None and self.predecessor_pipeline_id:
+            row = self.connection.execute(
+                """
+                SELECT watermark_value
+                FROM control.watermarks
+                WHERE pipeline_id=? AND partition_key=? AND watermark_type=?
+                """,
+                [self.predecessor_pipeline_id, stream_key, self.watermark_type],
+            ).fetchone()
         current = None if row is None else date.fromisoformat(row[0])
         if current is None:
             expected_start = self.stream_starts[stream_key]
@@ -155,7 +172,7 @@ class _WatermarkStore:
                 run_id=excluded.run_id,
                 updated_at=excluded.updated_at
             """,
-            [PIPELINE_ID, stream_key, WATERMARK_TYPE, next_value.isoformat(), run_id],
+            [self.pipeline_id, stream_key, self.watermark_type, next_value.isoformat(), run_id],
         )
         return next_value.isoformat()
 
@@ -163,6 +180,10 @@ class _WatermarkStore:
 def _restore_usage(
     connection: duckdb.DuckDBPyConnection,
     plan: BudgetedTradeCashBackfillPlan,
+    *,
+    pipeline_id: str = PIPELINE_ID,
+    pipeline_version: str = PIPELINE_VERSION,
+    slot: str = BACKFILL_SLOT,
 ) -> dict[str, int]:
     restored: dict[str, int] = {}
     for partition in plan.source_plan.callable_partitions:
@@ -176,10 +197,10 @@ def _restore_usage(
               AND s.stage_name='collect-land-normalize'
             """,
             [
-                PIPELINE_ID,
-                PIPELINE_VERSION,
+                pipeline_id,
+                pipeline_version,
                 plan.source_plan.end_date,
-                BACKFILL_SLOT,
+                slot,
                 partition.key,
             ],
         ).fetchone()
@@ -200,15 +221,33 @@ def execute_trade_cash_backfill(
     connection: duckdb.DuckDBPyConnection,
     plan: BudgetedTradeCashBackfillPlan,
     partition_handler: PartitionHandler,
+    *,
+    pipeline_id: str = PIPELINE_ID,
+    pipeline_version: str = PIPELINE_VERSION,
+    slot: str = BACKFILL_SLOT,
+    watermark_type: str = WATERMARK_TYPE,
+    predecessor_pipeline_id: str | None = None,
 ) -> BackfillExecutionOutcome:
     """Execute callable partitions with durable resume and publish watermarks."""
 
     MigrationRunner(connection).require("0001")
     runner = ManagedPipelineRunner(connection)
     shared_gate = BackfillCallBudget(plan)
-    restored = _restore_usage(connection, plan)
+    restored = _restore_usage(
+        connection,
+        plan,
+        pipeline_id=pipeline_id,
+        pipeline_version=pipeline_version,
+        slot=slot,
+    )
     shared_gate.restore(restored)
-    watermark_store = _WatermarkStore(connection, _stream_starts(plan))
+    watermark_store = _WatermarkStore(
+        connection,
+        _stream_starts(plan),
+        pipeline_id=pipeline_id,
+        watermark_type=watermark_type,
+        predecessor_pipeline_id=predecessor_pipeline_id,
+    )
     outcomes: list[PipelineRunOutcome] = []
 
     for partition in plan.source_plan.callable_partitions:
@@ -253,14 +292,14 @@ def execute_trade_cash_backfill(
             return StageResult(
                 evidence={
                     "partition_key": current.key,
-                    "watermark_type": WATERMARK_TYPE,
+                    "watermark_type": watermark_type,
                     "watermark_value": value,
                 }
             )
 
         definition = PipelineDefinition(
-            pipeline_id=PIPELINE_ID,
-            version=PIPELINE_VERSION,
+            pipeline_id=pipeline_id,
+            version=pipeline_version,
             stages=(
                 PipelineStage("collect-land-normalize", collect),
                 PipelineStage("quality", quality),
@@ -272,7 +311,7 @@ def execute_trade_cash_backfill(
             runner.run(
                 definition,
                 logical_date=plan.source_plan.end_date,
-                slot=BACKFILL_SLOT,
+                slot=slot,
                 partition_key=partition.key,
                 state={"plan_hash": plan.source_plan.plan_hash, "budget_hash": plan.budget_hash},
             )

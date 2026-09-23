@@ -646,6 +646,8 @@ def plan_trade_cash_backfill(
     as_of_date: date,
     start_date: date | None = None,
     partition_days: int = DEFAULT_PARTITION_DAYS,
+    include_domestic: bool = True,
+    include_overseas: bool = True,
 ) -> TradeCashBackfillPlan:
     """Build a stable three-year source plan without performing any side effect."""
 
@@ -665,26 +667,30 @@ def plan_trade_cash_backfill(
         raise ValueError("account labels must be unique")
     if not normalized:
         raise ValueError("at least one account scope is required")
+    if not include_domestic and not include_overseas:
+        raise ValueError("at least one trade history scope is required")
 
     partitions: list[BackfillPartition] = []
     for scope in sorted(normalized, key=lambda item: item.label):
-        partitions.extend(
-            _domestic_partitions(
-                scope,
-                start_date=resolved_start,
-                end_date=end_date,
-                as_of_date=as_of_date,
-                partition_days=partition_days,
+        if include_domestic:
+            partitions.extend(
+                _domestic_partitions(
+                    scope,
+                    start_date=resolved_start,
+                    end_date=end_date,
+                    as_of_date=as_of_date,
+                    partition_days=partition_days,
+                )
             )
-        )
-        partitions.extend(
-            _overseas_partitions(
-                scope,
-                start_date=resolved_start,
-                end_date=end_date,
-                partition_days=partition_days,
+        if include_overseas:
+            partitions.extend(
+                _overseas_partitions(
+                    scope,
+                    start_date=resolved_start,
+                    end_date=end_date,
+                    partition_days=partition_days,
+                )
             )
-        )
 
     ordered = tuple(sorted(partitions, key=lambda item: item.key))
     public_partitions = [item.public_dict() for item in ordered]
@@ -695,6 +701,8 @@ def plan_trade_cash_backfill(
         "end_date": end_date.isoformat(),
         "as_of_date": as_of_date.isoformat(),
         "partition_days": partition_days,
+        "include_domestic": include_domestic,
+        "include_overseas": include_overseas,
         "partitions": public_partitions,
     }
     canonical = json.dumps(digest_input, sort_keys=True, separators=(",", ":"))

@@ -447,13 +447,43 @@ class WarehouseReadQueryPort:
             """SELECT count(*) AS row_count, max(knowledge_at) AS latest_knowledge_at
                FROM silver.trade_events_current"""
         )[0]
-        coverage_state = self._rows(
-            """SELECT min(try_cast(watermark_value AS DATE)) AS coverage_through,
-                      max(updated_at) AS updated_at
+        incremental_watermarks = self._rows(
+            """SELECT partition_key, try_cast(watermark_value AS DATE) AS coverage_through,
+                      updated_at
                FROM control.watermarks
-               WHERE pipeline_id='pipeline.trade-cash-backfill-v2'
-                 AND watermark_type='source_end_date_v1'"""
-        )[0]
+               WHERE pipeline_id='pipeline.trade-incremental-v2'
+                 AND watermark_type='trade_query_coverage_v1'"""
+        )
+        if incremental_watermarks:
+            expected_key = (
+                f"account:{request.account_alias}"
+                if request.account_alias is not None else "all-accounts"
+            )
+            exact = [row for row in incremental_watermarks if row["partition_key"] == expected_key]
+            informative = exact or [
+                row for row in incremental_watermarks
+                if str(row["partition_key"]).startswith("account:")
+            ]
+            coverage_state = {
+                "coverage_through": min(
+                    (row["coverage_through"] for row in informative if row["coverage_through"] is not None),
+                    default=None,
+                ),
+                "updated_at": max(
+                    (row["updated_at"] for row in informative if row["updated_at"] is not None),
+                    default=None,
+                ),
+                "exact_scope": bool(exact),
+            }
+        else:
+            coverage_state = self._rows(
+                """SELECT min(try_cast(watermark_value AS DATE)) AS coverage_through,
+                          max(updated_at) AS updated_at
+                   FROM control.watermarks
+                   WHERE pipeline_id='pipeline.trade-cash-backfill-v2'
+                     AND watermark_type='source_end_date_v1'"""
+            )[0]
+            coverage_state["exact_scope"] = True
         dataset_has_rows = int(dataset_state["row_count"] or 0) > 0
         coverage_through = coverage_state["coverage_through"]
         coverage_date = (
@@ -462,7 +492,9 @@ class WarehouseReadQueryPort:
             else coverage_through
         )
         coverage_complete = bool(
-            coverage_date is not None and coverage_date >= request.end_date
+            coverage_state["exact_scope"]
+            and coverage_date is not None
+            and coverage_date >= request.end_date
         )
         result_status = (
             "matched" if rows and coverage_complete else

@@ -554,6 +554,46 @@ async def test_trade_ledger_distinguishes_empty_window_from_absent_dataset():
 
 
 @pytest.mark.anyio
+async def test_trade_ledger_uses_incremental_account_coverage_without_overclaiming_global_scope():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','brokerage','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.execute(
+        """INSERT INTO control.watermarks VALUES (
+            'pipeline.trade-incremental-v2','account:brokerage',
+            'trade_query_coverage_v1','2026-09-24','run-1',?
+        )""",
+        [NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    scoped = await application.execute(
+        "get-trade-ledger",
+        TradeLedgerRequest(
+            start_date=date(2026, 9, 24),
+            end_date=date(2026, 9, 24),
+            account_alias="brokerage",
+        ),
+        ACTOR,
+    )
+    global_result = await application.execute(
+        "get-trade-ledger",
+        TradeLedgerRequest(start_date=date(2026, 9, 24), end_date=date(2026, 9, 24)),
+        ACTOR,
+    )
+
+    assert scoped["data"]["query"]["result_status"] == "no_events_in_query_window"
+    assert scoped["quality"] == {"status": "pass", "row_count": 0}
+    assert global_result["data"]["query"]["result_status"] == "collection_coverage_gap"
+    assert global_result["quality"] == {"status": "partial", "row_count": 0}
+
+
+@pytest.mark.anyio
 async def test_fundamental_outlook_reports_approved_inactive_inputs_explicitly(application):
     result = await application.execute(
         "get-fundamental-outlook", FundamentalOutlookRequest(instrument_id="US:AAPL"), ACTOR

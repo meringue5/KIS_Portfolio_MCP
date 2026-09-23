@@ -24,6 +24,10 @@ DEFAULT_BATCH_JOB = "kis-portfolio-domestic-order-history"
 DEFAULT_BATCH_SCHEDULER = "kis-portfolio-domestic-order-history-1535"
 DEFAULT_OVERSEAS_BATCH_JOB = "kis-portfolio-overseas-transaction-history"
 DEFAULT_OVERSEAS_BATCH_SCHEDULER = "kis-portfolio-overseas-transaction-history-0735"
+DEFAULT_TRADE_INCREMENTAL_DOMESTIC_JOB = "kis-portfolio-trade-incremental-domestic"
+DEFAULT_TRADE_INCREMENTAL_OVERSEAS_JOB = "kis-portfolio-trade-incremental-overseas"
+DEFAULT_TRADE_INCREMENTAL_DOMESTIC_SCHEDULER = "kis-portfolio-trade-incremental-domestic-1610"
+DEFAULT_TRADE_INCREMENTAL_OVERSEAS_SCHEDULER = "kis-portfolio-trade-incremental-overseas-0735"
 DEFAULT_TOKEN_WARMUP_JOB = "kis-portfolio-token-warmup-dry-run"
 DEFAULT_TOKEN_WARMUP_SCHEDULER = "kis-portfolio-token-warmup-0830"
 DEFAULT_WI021_S06_JOB = "kis-portfolio-wi021-s06"
@@ -66,6 +70,8 @@ DEFAULT_BATCH_SCHEDULE = "35 15 * * 1-5"
 DEFAULT_BATCH_TIME_ZONE = "Asia/Seoul"
 DEFAULT_OVERSEAS_BATCH_SCHEDULE = "35 7 * * 1-5"
 DEFAULT_OVERSEAS_BATCH_TIME_ZONE = "Asia/Seoul"
+DEFAULT_TRADE_INCREMENTAL_DOMESTIC_SCHEDULE = "10 16 * * 1-5"
+DEFAULT_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE = "35 7 * * 1-5"
 DEFAULT_OVERSEAS_ACCOUNT_LABEL = "brokerage"
 DEFAULT_OVERSEAS_EXCHANGE = "NAS"
 DEFAULT_TOKEN_WARMUP_SCHEDULE = "30 8 * * 1-5"
@@ -1117,6 +1123,16 @@ def _deploy_wi051_final_audit(
     """Converge every canonical runtime on one immutable image without changing config."""
     auth_service = env.get("KIS_AUTH_SERVICE_NAME", DEFAULT_AUTH_SERVICE)
     remote_service = env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    previous_traffic = [] if args.dry_run else (_service_traffic(
+        project=project,
+        region=args.region,
+        service=remote_service,
+    ) or [])
+    previous_revision = next((
+        item.get("revisionName")
+        for item in previous_traffic
+        if int(item.get("percent") or 0) == 100
+    ), None)
     jobs = (
         env.get("KIS_BATCH_JOB_NAME", DEFAULT_BATCH_JOB),
         env.get("KIS_OVERSEAS_BATCH_JOB_NAME", DEFAULT_OVERSEAS_BATCH_JOB),
@@ -2694,6 +2710,134 @@ def _deploy_v2_core_schedulers(
     return 0
 
 
+def _deploy_wi063(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Deploy one tested image to two isolated trade Jobs and Remote read projection."""
+
+    required = _required_keys_for_batch(env)
+    payload, secret_refs = _split_runtime_env(
+        env=env,
+        payload=_build_batch_env(env),
+        required=required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=True,
+    )
+    missing = _validate_required(env, required, secret_mode=args.secret_mode)
+    if missing:
+        print("Missing required environment variables:")
+        for key in missing:
+            print(f"- {key}")
+        return 1
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-063 image digest.")
+        return 1
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    jobs = {
+        "domestic": env.get(
+            "KIS_TRADE_INCREMENTAL_DOMESTIC_JOB",
+            DEFAULT_TRADE_INCREMENTAL_DOMESTIC_JOB,
+        ),
+        "overseas": env.get(
+            "KIS_TRADE_INCREMENTAL_OVERSEAS_JOB",
+            DEFAULT_TRADE_INCREMENTAL_OVERSEAS_JOB,
+        ),
+    }
+    commands = {
+        "domestic": "collect-trade-incremental-v2,--date,today,--scope,domestic",
+        "overseas": "collect-trade-incremental-v2,--date,new-york-today,--scope,overseas",
+    }
+    env_path = _write_env_yaml(_with_github_release_marker(payload))
+    try:
+        for scope, job in jobs.items():
+            if _run([
+                "gcloud", "run", "jobs", "deploy", job,
+                "--image", image, "--region", args.region,
+                "--env-vars-file", env_path,
+                "--command", "kis-portfolio-batch",
+                "--args", commands[scope],
+                "--tasks", "1", "--parallelism", "1",
+                "--task-timeout", env.get(
+                    "KIS_CLOUD_RUN_BATCH_TASK_TIMEOUT", DEFAULT_BATCH_TASK_TIMEOUT,
+                ),
+                "--max-retries", "0", "--service-account", service_account,
+                *_build_secret_flags(secret_refs), *_build_label_flags("wi063"),
+                "--project", project,
+            ], dry_run=args.dry_run) != 0:
+                return 1
+    finally:
+        try:
+            os.unlink(env_path)
+        except FileNotFoundError:
+            pass
+
+    remote_service = env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    if _run([
+        "gcloud", "run", "services", "update", remote_service,
+        "--image", image, "--region", args.region,
+        *_build_label_flags("wi063"), "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        return 1
+    if _run([
+        "gcloud", "run", "services", "update-traffic", remote_service,
+        "--to-latest", "--region", args.region, "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        return 1
+    if not args.dry_run:
+        resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
+        remote_url = resource[:-4] if resource.endswith("/mcp") else resource
+        if not _smoke_wi046_remote(
+            auth_url=env["KIS_AUTH_BASE_URL"],
+            remote_url=remote_url,
+            expected_resource=resource,
+        ):
+            if isinstance(previous_revision, str) and previous_revision:
+                _run([
+                    "gcloud", "run", "services", "update-traffic", remote_service,
+                    "--to-revisions", f"{previous_revision}=100",
+                    "--region", args.region, "--project", project,
+                ], dry_run=False)
+            print("WI-063 Remote smoke failed; prior serving revision was restored.")
+            return 1
+
+    scheduler_sa = env.get(
+        "KIS_V2_SCHEDULER_INVOKER_SERVICE_ACCOUNT",
+        f"kis-portfolio-scheduler@{project}.iam.gserviceaccount.com",
+    )
+    schedules = {
+        "domestic": (
+            env.get("KIS_TRADE_INCREMENTAL_DOMESTIC_SCHEDULER", DEFAULT_TRADE_INCREMENTAL_DOMESTIC_SCHEDULER),
+            env.get("KIS_TRADE_INCREMENTAL_DOMESTIC_SCHEDULE", DEFAULT_TRADE_INCREMENTAL_DOMESTIC_SCHEDULE),
+        ),
+        "overseas": (
+            env.get("KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULER", DEFAULT_TRADE_INCREMENTAL_OVERSEAS_SCHEDULER),
+            env.get("KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE", DEFAULT_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE),
+        ),
+    }
+    for scope, job in jobs.items():
+        scheduler, schedule = schedules[scope]
+        if _deploy_scheduler_target(
+            args=args,
+            env={**env, "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT": scheduler_sa},
+            project=project,
+            job=job,
+            scheduler=scheduler,
+            scheduler_region=args.scheduler_region or args.region,
+            schedule=schedule,
+            time_zone="Asia/Seoul",
+        ) != 0:
+            return 1
+    print(f"WI-063 deployed two isolated trade Jobs and Remote from one image: {image}")
+    return 0
+
+
 def _deploy_wi021_s06_job(
     args: argparse.Namespace,
     *,
@@ -2967,6 +3111,7 @@ def main() -> int:
             "wi055-s03",
             "wi055-s04",
             "wi060",
+            "wi063",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -3206,6 +3351,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi060(args, env=env, project=project)
+
+    if args.target == "wi063":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi063(args, env=env, project=project)
 
     if args.target == "wi046-stage":
         if not project:
