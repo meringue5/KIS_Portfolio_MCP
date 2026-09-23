@@ -725,7 +725,7 @@ status = "closed"
 id = "WI-060-S03"
 parent_id = "WI-060"
 title = "Allow structurally validated Codex loopback OAuth callbacks and verify a direct MCP call"
-status = "in_progress"
+status = "closed"
 
 [[subitems]]
 id = "WI-059-S01"
