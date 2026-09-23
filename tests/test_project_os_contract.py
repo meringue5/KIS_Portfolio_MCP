@@ -70,11 +70,18 @@ def test_project_os_rejects_closed_user_visible_work_without_real_use_evidence(t
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
     path = target / "docs/work-items/WI-062-remote-mcp-real-use-remediation.md"
+    content = path.read_text(encoding="utf-8")
+    content = re.sub(
+        r"(?m)^real_use_evidence_refs: .+$",
+        "real_use_evidence_refs: pending",
+        content,
+        count=1,
+    )
     path.write_text(
         re.sub(
             r"(?m)^status: [a-z_]+$",
             "status: closed",
-            path.read_text(encoding="utf-8"),
+            content,
             count=1,
         ),
         encoding="utf-8",
