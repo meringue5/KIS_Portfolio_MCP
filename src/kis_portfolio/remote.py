@@ -93,7 +93,7 @@ def _auth_server_metadata(issuer_url: str, scopes: list[str]) -> dict[str, objec
         "scopes_supported": scopes,
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code", "refresh_token"],
-        "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+        "token_endpoint_auth_methods_supported": ["none", "client_secret_basic", "client_secret_post"],
         "revocation_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
         "code_challenge_methods_supported": ["S256"],
     }

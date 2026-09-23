@@ -207,18 +207,23 @@ class KisOAuthProvider:
         self,
         metadata: OAuthClientMetadata,
     ) -> OAuthClientInformationFull:
-        if metadata.token_endpoint_auth_method != "client_secret_post":
+        if metadata.token_endpoint_auth_method not in {"none", "client_secret_post"}:
             raise RegistrationError(
                 error="invalid_client_metadata",
-                error_description="Only client_secret_post is supported for dynamic clients.",
+                error_description="Dynamic clients must use none or client_secret_post authentication.",
             )
 
         client_id = f"kis-chatgpt-{generate_token(18)}"
-        client_secret = generate_token(32)
+        client_secret = (
+            generate_token(32)
+            if metadata.token_endpoint_auth_method == "client_secret_post"
+            else None
+        )
+        stored_secret = client_secret or generate_token(32)
         issued_at = _utcnow()
         record = auth_repository.upsert_oauth_client(
             client_id=client_id,
-            client_secret_hash=hash_client_secret(client_secret),
+            client_secret_hash=hash_client_secret(stored_secret),
             redirect_uris=[str(item) for item in metadata.redirect_uris],
             grant_types=list(metadata.grant_types),
             response_types=list(metadata.response_types),
