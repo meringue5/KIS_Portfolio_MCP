@@ -659,6 +659,23 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 실제 MCP transport 음성 호출로 안정 코드와 `request_id`가 Codex/Claude에 보이는지 검증한다. Python
   application 단위 테스트만으로 인수를 대신하지 않는다.
 
+### DEC-059: user-visible 완료는 실제 MCP 사용과 발견사항 소유를 요구한다
+
+- user-visible Work Item은 저장소 gate와 배포 성공만으로 닫지 않는다. 실제 승인된 MCP client/transport에서
+  정상 경로와 적용 가능한 partial/error 경로를 실행하고, 사용 가능·제한 사용·사용 불가를 구분한 증거를 남긴다.
+- 실제 사용에서 발견한 사항은 defect, contract clarification, data/operations gap, approved-inactive scope,
+  accurate degraded behavior로 분류한다. defect와 contract clarification은 같은 Work Item 또는 명시적으로
+  연결된 후속 Work Item이 소유하기 전에는 완료로 간주하지 않는다.
+- 예약 slot을 기다리는 것은 유일한 인수 방법이 될 수 없다. 합성 fixture, replay, dry-run 또는 무전송 preview로
+  즉시 재현 가능한 경로를 함께 제공한다.
+- `include_holdings=false`는 summary의 품질·freshness·row count를 유지하면서 `positions` payload 전체를 생략한다.
+  public pipeline alias를 사용한 조회는 요청값, canonical 해석값과 alias 적용 여부를 응답에 표시한다.
+- query window에 일치하는 거래가 없더라도 governed 거래 원장과 요청 종료일까지의 수집 watermark가 존재하면
+  데이터셋 부재로 보고하지 않는다. 이 경우에만 `no_events_in_query_window`, `quality=pass`, `row_count=0`과
+  빈 events로 표현한다. watermark가 조회 종료일보다 이르면 `collection_coverage_gap`과 partial을 반환한다.
+- 계약은 승인됐지만 production source/pipeline이 활성화되지 않은 fundamental·macro 입력은
+  `approved_inactive`로 표시한다. 이를 `no_governed_rows`나 일시적 수집 실패와 혼동하지 않는다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.

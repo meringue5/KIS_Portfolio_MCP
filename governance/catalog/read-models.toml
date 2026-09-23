@@ -44,18 +44,18 @@ max_lookback_days = 31
 
 [[contracts]]
 id = "read_model.pipeline-run-v1"
-version = "1.0.0"
+version = "1.1.0"
 status = "approved"
 owner = "owner"
 description = "logical pipeline run과 stage, quality, watermark, resume 상태를 bounded safe fields로 구성한 운영 projection."
-decision_refs = ["DEC-031", "DEC-032", "DEC-038"]
+decision_refs = ["DEC-031", "DEC-032", "DEC-038", "DEC-059", "ADR-031"]
 input_dataset_ids = ["dataset.pipeline-run-evidence", "dataset.pipeline-stage-evidence", "dataset.data-quality-evidence", "dataset.data-lineage-evidence", "dataset.pipeline-watermark-state"]
 registry_input_kinds = ["pipeline", "dataset"]
 consumer_scope = "mcp-read"
 response_schema_ref = "read-model-envelope-v1/pipeline-run-v1"
-allowed_fields = ["schema_version", "as_of", "source", "freshness", "quality", "missing_coverage", "lineage_ref", "request_id", "data", "run_id", "pipeline_id", "pipeline_version", "definition_hash", "logical_date", "slot", "partition_ref", "execution_state", "overall_status", "source_calls_used", "source_call_budget", "stage_name", "stage_status", "first_failed_stage", "resumable_stage", "watermark_type", "watermark_status", "retry_eligible", "resume_eligible", "error_code"]
+allowed_fields = ["schema_version", "as_of", "source", "freshness", "quality", "missing_coverage", "lineage_ref", "request_id", "data", "query", "requested_pipeline_id", "resolved_pipeline_id", "alias_applied", "run_id", "pipeline_id", "pipeline_version", "definition_hash", "logical_date", "slot", "partition_ref", "execution_state", "overall_status", "source_calls_used", "source_call_budget", "stage_name", "stage_status", "first_failed_stage", "resumable_stage", "watermark_type", "watermark_status", "retry_eligible", "resume_eligible", "error_code"]
 suppressed_fields = ["raw_json", "details", "stage_evidence", "error_message", "exception_text", "partition_key", "input_ref", "output_ref", "object_uri", "secret_profile", "auth_class", "cost_budget"]
-query_policy = "exact run_id or exact pipeline_id list, mutually exclusive; list lookback default 7 maximum 31 days; limit default 20 maximum 50; stable started_at,run_id ordering"
+query_policy = "exact run_id or exact pipeline_id list, mutually exclusive; public pipeline aliases resolve to canonical ids and the response reports requested_pipeline_id, resolved_pipeline_id, and alias_applied; list lookback default 7 maximum 31 days; limit default 20 maximum 50; stable started_at,run_id ordering"
 status_policy = "unavailable > failed > partial > stale > not_assessed > pass; succeeded run or compatibility summary alone never proves overall pass"
 unavailable_policy = "Control query/session failure returns unavailable and no cached or empty green; unknown stages and error codes are redacted and prevent pass"
 activation_state = "inactive"

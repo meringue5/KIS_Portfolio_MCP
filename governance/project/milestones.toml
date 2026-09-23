@@ -174,6 +174,17 @@ stabilization_exit_work_item_ids = ["WI-060"]
 rollback_policy = "append_only_feedback"
 work_item_ids = ["WI-060"]
 
+[[milestones]]
+id = "MS-008"
+title = "Real-use MCP acceptance and capability remediation"
+status = "in_progress"
+depends_on = ["MS-005"]
+implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
+production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
+overlap_work_item_ids = []
+overlap_mode = "none"
+work_item_ids = ["WI-061", "WI-062", "WI-063"]
+
 [[work_items]]
 id = "WI-009"
 identity = "canonical-portfolio-ledger"
@@ -708,6 +719,45 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 1
+
+[[work_items]]
+id = "WI-061"
+identity = "real-use-acceptance-gate"
+title = "Require real-use acceptance for user-visible completion"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = []
+discovered_from = ["WI-060"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 1
+
+[[work_items]]
+id = "WI-062"
+identity = "remote-mcp-real-use-remediation"
+title = "Remediate capability gaps found by direct Remote MCP use"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-061"]
+discovered_from = ["WI-060", "WI-061"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 2
+
+[[work_items]]
+id = "WI-063"
+identity = "incremental-trade-event-collection"
+title = "Restore governed incremental trade-event collection and coverage evidence"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-062"]
+discovered_from = ["WI-062"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 3
 
 [[subitems]]
 id = "WI-060-S01"

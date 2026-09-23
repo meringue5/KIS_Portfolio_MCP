@@ -73,6 +73,8 @@ repository를 변경하거나 비사소한 버그·요구·incident를 분류하
 3. 변경을 defect/clarification/change/architecture/incident/maintenance/governance로 분류한다.
 4. 동시에 하나의 구현 Work Item만 `in_progress`로 둔다.
 5. 작업 중 `bash scripts/check.sh quick`, 종료 전 `bash scripts/check.sh full`을 실행한다.
+6. 사용자 노출 변경은 실제 승인 client/transport의 즉시 재현 가능한 positive·partial·error 시나리오를
+   실행하고, 발견사항을 소유 Work Item에 연결한 뒤에만 완료한다. CI·배포·health smoke만으로 완료하지 않는다.
 
 운영 증거를 모으는 항목은 `stabilizing`으로 표시한다. milestone dependency는 DAG로 유지하되 rollback과
 보정은 이력을 되감지 않고 `discovered_from`/`rollback_of`/`supersedes` 관계의 새 sub-item 또는 Work Item으로

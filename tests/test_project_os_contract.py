@@ -65,6 +65,43 @@ def test_current_repository_satisfies_project_os_contract():
     assert checker.check(REPO_ROOT) == []
 
 
+def test_project_os_rejects_closed_user_visible_work_without_real_use_evidence(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "docs/work-items/WI-062-remote-mcp-real-use-remediation.md"
+    path.write_text(
+        re.sub(
+            r"(?m)^status: [a-z_]+$",
+            "status: closed",
+            path.read_text(encoding="utf-8"),
+            count=1,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("closed user-visible work requires concrete real_use_evidence_refs" in error for error in errors)
+
+
+def test_project_os_rejects_user_visible_real_use_opt_out(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    path = target / "docs/work-items/WI-062-remote-mcp-real-use-remediation.md"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "real_use_acceptance: required", "real_use_acceptance: not_applicable", 1,
+        ),
+        encoding="utf-8",
+    )
+
+    errors = checker.check(target)
+
+    assert any("user-visible work requires real_use_acceptance" in error for error in errors)
+
+
 def test_current_milestone_baseline_has_completed_v2_canonicalization():
     registry = tomllib.loads(
         (REPO_ROOT / "governance/project/milestones.toml").read_text(encoding="utf-8")
@@ -157,10 +194,13 @@ def _set_ms003_overlap_state(target: Path) -> None:
     _set_milestone_status(target, "MS-005", "proposed")
     _set_milestone_status(target, "MS-006", "proposed")
     _set_milestone_status(target, "MS-007", "proposed")
+    _set_milestone_status(target, "MS-008", "proposed")
     for filename in (
         "WI-058-remote-mcp-identifier-and-coverage-correction.md",
         "WI-059-scheduled-core-telegram-recovery.md",
         "WI-060-resilient-partial-portfolio.md",
+        "WI-061-real-use-acceptance-gate.md",
+        "WI-062-remote-mcp-real-use-remediation.md",
     ):
         correction = target / "docs/work-items" / filename
         document = correction.read_text(encoding="utf-8")
