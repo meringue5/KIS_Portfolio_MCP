@@ -396,6 +396,19 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 - Cloud Run Job task timeout: `1800s`
 - Cloud Run Job max retries: `0`
 
+WI-063의 `wi063` target은 동일 immutable image를 독립 거래 수집 Job 두 개와 Remote read projection에
+배포한다. 새 service나 always-on worker는 만들지 않는다.
+
+- Domestic Job: `kis-portfolio-trade-incremental-domestic`
+- Domestic schedule: 평일 `16:10` KST, `--scope domestic --date today`
+- Overseas Job: `kis-portfolio-trade-incremental-overseas`
+- Overseas schedule: 평일 `07:35` KST, `--scope overseas --date new-york-today`
+- Runtime identity: 기존 `kis-portfolio-pipeline@PROJECT.iam.gserviceaccount.com`
+- Initial replay: 운영 aggregate watermark를 읽어 누락 시작일을 확정한 뒤 두 Job을 같은 start date로 각각
+  override 실행한다. 120일 또는 48-call ceiling을 넘으면 자동 실행하지 않고 recovery plan을 분할 검토한다.
+- Rollback: Remote smoke 실패 시 이전 100% serving revision으로 되돌린다. Job/Scheduler는 이전 image/definition을
+  보존해 복구하며 ledger row를 삭제하지 않는다.
+
 V2 owned-portfolio pipeline은 기존 배치와 별도의 최소권한 identity를 사용한다.
 
 - Job names: `kis-portfolio-owned-core-v2-{1000,1430,1600}`
@@ -495,6 +508,9 @@ Deploy workflow:
 - `wi048-s02`도 `all`에 포함되지 않는 수동 production transition target이다. private pre/post backup과
   fresh restore, additive `0019`, reference reconciliation이 성공한 뒤에만 동일 digest를 기존 V2 core Job
   3개와 stable Remote에 배포한다. V1 삭제, Scheduler/IAM/Secret 변경, source 호출과 Telegram 발송은 없다.
+- `wi063`은 `all`에 포함되지 않는 수동 protected target이다. 두 scale-to-zero Job과 Scheduler를 만든 뒤
+  같은 image로 Remote를 갱신하고 health/discovery/auth-boundary smoke를 통과해야 한다. source replay는 별도
+  명시적 실행으로 남겨 배포와 데이터 mutation 증거를 구분한다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.

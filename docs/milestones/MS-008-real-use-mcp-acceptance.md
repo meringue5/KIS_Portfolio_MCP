@@ -15,8 +15,8 @@ gaps found there must be classified and routed to an owned follow-up.
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
 | 1 | WI-061 real-use completion gate | none | closed |
-| 2 | WI-062 direct Remote MCP remediation | WI-061 | stabilizing |
-| 3 | WI-063 incremental trade-event collection | WI-062 | proposed |
+| 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
+| 3 | WI-063 incremental trade-event collection | WI-062 | in_progress |
 
 ## Gates
 
@@ -37,3 +37,4 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-09-23.2 | 2026-09-23 | WI-061 checker regression and full 783-test gate passed; WI-062 declares the new real-use fields | Close WI-061 and start WI-062 as the sole implementation Work Item |
 | 2026-09-23.3 | 2026-09-23 | Production rows ended 2026-08-25 and backfill watermark ended 2026-08-28 while current core runs omit trade collection | Register WI-063; keep WI-062 response correction active and do not claim September no-trade coverage |
 | 2026-09-23.4 | 2026-09-23 | PR #135, deploy run 35868121973 and six-call direct Codex OAuth replay passed the corrected positive, partial and error contracts | Keep WI-062 stabilizing until owner acceptance; WI-063 remains proposed for collection restoration |
+| 2026-09-24.1 | 2026-09-24 | Owner accepted the WI-062 replay and approved the next work; independent incremental trade collection was selected to prevent trade-source failure from blocking portfolio capabilities | Close WI-062 and start WI-063 as the sole implementation Work Item |

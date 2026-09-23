@@ -45,7 +45,7 @@ from kis_portfolio.security.redaction import redact_nested
 
 SEOUL = ZoneInfo("Asia/Seoul")
 PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
-PIPELINE_VERSION = "1.1.0"
+PIPELINE_VERSION = "1.2.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
 FX_FALLBACK_SOURCE_ID = "source.korea-eximbank-open-api"
 FX_FALLBACK_DATASET_ID = "dataset.fx-rate-fallback-observation"

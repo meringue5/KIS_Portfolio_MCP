@@ -1,7 +1,7 @@
 ---
 id: WI-062
 title: Remediate capability gaps found by direct Remote MCP use
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-057, DEC-058, DEC-059, ADR-029, ADR-030, ADR-031
@@ -130,6 +130,6 @@ position rows despite `include_holdings=false`, and pipeline alias resolution wa
 
 ## Closeout
 
-- Result: stabilizing after protected deployment and direct Codex replay; owner acceptance remains before closeout.
+- Result: closed after protected deployment, direct Codex replay and owner acceptance on 2026-09-24.
 - Remaining risk: public tools can remain technically callable but not useful.
 - Follow-up Work Item: WI-063.

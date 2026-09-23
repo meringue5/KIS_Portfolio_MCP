@@ -51,6 +51,64 @@ def test_workflow_dispatches_wi060_as_one_protected_remote_and_job_release():
     assert "environment: production" in workflow
 
 
+def test_workflow_dispatches_wi063_isolated_trade_release():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi063" in workflow
+    assert "github.event.inputs.target == 'wi063'" in workflow
+    assert "scripts/deploy_cloud_run.py wi063" in workflow
+    assert "KIS_TRADE_INCREMENTAL_DOMESTIC_JOB" in workflow
+    assert "KIS_TRADE_INCREMENTAL_OVERSEAS_JOB" in workflow
+    assert "environment: production" in workflow
+
+
+def test_wi063_reuses_one_image_for_two_jobs_and_remote(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3",
+        scheduler_region="asia-northeast3",
+        target="wi063",
+        dry_run=True,
+        secret_mode="secret-manager",
+    )
+    image = "image@sha256:test"
+    commands = []
+    schedulers = []
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_batch", lambda _env: [])
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_split_runtime_env",
+        lambda **_kwargs: ({"KIS_DB_MODE": "motherduck"}, {}),
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *_args, **_kwargs: image)
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda command, **_kwargs: commands.append(command) or 0,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_deploy_scheduler_target",
+        lambda **kwargs: schedulers.append(kwargs) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi063(
+        args,
+        env={
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
+        },
+        project="project-1",
+    )
+
+    assert result == 0
+    job_commands = [command for command in commands if command[:4] == ["gcloud", "run", "jobs", "deploy"]]
+    assert len(job_commands) == 2
+    assert all(image in command for command in job_commands)
+    assert any("--scope,domestic" in " ".join(command) for command in job_commands)
+    assert any("--scope,overseas" in " ".join(command) for command in job_commands)
+    assert any(command[:4] == ["gcloud", "run", "services", "update"] for command in commands)
+    assert len(schedulers) == 2
+
+
 def test_workflow_dispatches_wi046_zero_traffic_stage_target():
     workflow = WORKFLOW_PATH.read_text()
     assert "github.event.inputs.target == 'wi046-stage'" in workflow

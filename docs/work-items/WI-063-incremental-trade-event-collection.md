@@ -1,11 +1,11 @@
 ---
 id: WI-063
 title: Restore governed incremental trade-event collection and coverage evidence
-status: proposed
+status: in_progress
 type: defect
 owner: owner
-decision_refs: DEC-009, DEC-010, DEC-015, DEC-030, DEC-044, DEC-059
-requirement_refs: DEC-009, DEC-010, DEC-059
+decision_refs: DEC-009, DEC-010, DEC-015, DEC-030, DEC-044, DEC-059, DEC-060, ADR-032
+requirement_refs: DEC-009, DEC-010, DEC-059, DEC-060
 milestone_ref: MS-008
 delivery_refs: none
 parent_work_item: none
@@ -13,9 +13,9 @@ depends_on: WI-062
 discovered_from: WI-062
 supersedes: none
 rollback_of: none
-execution_scope: planning
-production_effects: none
-architecture_impact: restore a bounded incremental producer without coupling trade availability to unrelated portfolio capabilities
+execution_scope: repository implementation and production release
+production_effects: guarded independent scale-to-zero Job activation after verified implementation
+architecture_impact: ADR-032 restores a bounded independent logical producer while reusing the managed runtime image repositories and warehouse
 data_impact: future append-only trade observations revisions quality evidence and per-partition coverage watermarks
 security_impact: preserve account aliases only in public responses and existing confidential ledger controls
 cost_impact: bounded KIS order-history calls must be measured before activation
@@ -39,6 +39,9 @@ FX rather than order history and does not advance a trade source coverage waterm
 - Classification: defect and architecture correction discovered from actual MCP use.
 - Contract: approved trade-event facts remain append-only and source-derived; no trade may be inferred from holdings.
 - Immediate containment: WI-062 exposes `collection_watermark_before_query_end` instead of false empty-window pass.
+- Approved correction: DEC-060/ADR-032 select an independent scale-to-zero incremental producer. It reuses the
+  existing source adapter, normalization repository, image and warehouse while isolating its run, watermark and
+  failure state from the owned-portfolio core pipeline.
 
 ## Scope
 

@@ -113,6 +113,15 @@ WI-021-S05는 같은 pipeline에 실제 KIS page adapter를 연결한다. 공통
 Bronze에 보존한 뒤 publish를 차단한다. 운영 명령은 기본 preflight이며 exact date·plan hash·budget hash,
 MotherDuck mode, 영향 테이블을 포함한 pre-backup manifest와 `--apply`가 모두 맞아야 source/DB를 연다.
 
+WI-063은 초도 `pipeline.trade-cash-backfill-v2` 이후 멈춘 coverage를
+`pipeline.trade-incremental-v2`로 복구한다. 이 producer는 총자산 코어와 run·budget·watermark·failure를
+공유하지 않지만 같은 image, managed runner, KIS page adapter, Bronze/Silver repository와 MotherDuck을
+재사용한다. 국내 close와 한국 오전의 해외 completed-session 범위를 별도 fixed Job으로 실행하며, 각
+account/market partition의 pagination과 reconciliation이 pass한 뒤에만 query coverage watermark를 발행한다.
+IRP recent처럼 승인된 source gap은 account coverage를 만들지 않는다. 따라서 거래 수집 실패나 gap은 거래
+기능만 partial로 만들고 portfolio overview, 가격, 환율과 총자산 pipeline을 막지 않는다. initial gap recovery와
+fixture replay는 최대 120일/48 physical call로 제한하며 position delta에서 거래를 추정하지 않는다.
+
 WI-017의 instrument 분류는 `silver.instruments`의 current compatibility 값과 별도로
 `silver.instrument_versions`에 knowledge/effective 시점별 version을 남긴다. 분류 precedence는 reason과
 유효기간이 있는 owner override, KIS master group code, exact ETF route, unknown 순서다. 경제적 노출은

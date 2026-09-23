@@ -30,6 +30,7 @@ on:
           - wi055-s03
           - wi055-s04
           - wi060
+          - wi063
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -69,6 +70,10 @@ jobs:
       KIS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_BATCH_SCHEDULER_NAME || 'kis-portfolio-domestic-order-history-1535' }}
       KIS_OVERSEAS_BATCH_JOB_NAME: ${{ vars.KIS_OVERSEAS_BATCH_JOB_NAME || 'kis-portfolio-overseas-transaction-history' }}
       KIS_OVERSEAS_BATCH_SCHEDULER_NAME: ${{ vars.KIS_OVERSEAS_BATCH_SCHEDULER_NAME || 'kis-portfolio-overseas-transaction-history-0735' }}
+      KIS_TRADE_INCREMENTAL_DOMESTIC_JOB: ${{ vars.KIS_TRADE_INCREMENTAL_DOMESTIC_JOB || 'kis-portfolio-trade-incremental-domestic' }}
+      KIS_TRADE_INCREMENTAL_OVERSEAS_JOB: ${{ vars.KIS_TRADE_INCREMENTAL_OVERSEAS_JOB || 'kis-portfolio-trade-incremental-overseas' }}
+      KIS_TRADE_INCREMENTAL_DOMESTIC_SCHEDULER: ${{ vars.KIS_TRADE_INCREMENTAL_DOMESTIC_SCHEDULER || 'kis-portfolio-trade-incremental-domestic-1610' }}
+      KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULER: ${{ vars.KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULER || 'kis-portfolio-trade-incremental-overseas-0735' }}
       KIS_TOKEN_WARMUP_JOB_NAME: ${{ vars.KIS_TOKEN_WARMUP_JOB_NAME || 'kis-portfolio-token-warmup-dry-run' }}
       KIS_TOKEN_WARMUP_SCHEDULER_NAME: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULER_NAME || 'kis-portfolio-token-warmup-0830' }}
       KIS_CLOUD_SCHEDULER_REGION: ${{ vars.KIS_CLOUD_SCHEDULER_REGION || 'asia-northeast3' }}
@@ -110,6 +115,8 @@ jobs:
       KIS_BATCH_ORDER_HISTORY_TIME_ZONE: ${{ vars.KIS_BATCH_ORDER_HISTORY_TIME_ZONE || 'Asia/Seoul' }}
       KIS_OVERSEAS_TRANSACTION_HISTORY_SCHEDULE: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_SCHEDULE || '35 7 * * 1-5' }}
       KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_TIME_ZONE || 'Asia/Seoul' }}
+      KIS_TRADE_INCREMENTAL_DOMESTIC_SCHEDULE: ${{ vars.KIS_TRADE_INCREMENTAL_DOMESTIC_SCHEDULE || '10 16 * * 1-5' }}
+      KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE: ${{ vars.KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE || '35 7 * * 1-5' }}
       KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_ACCOUNT_LABEL || 'brokerage' }}
       KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE: ${{ vars.KIS_OVERSEAS_TRANSACTION_HISTORY_EXCHANGE || 'NAS' }}
       KIS_TOKEN_WARMUP_SCHEDULE: ${{ vars.KIS_TOKEN_WARMUP_SCHEDULE || '30 8 * * 1-5' }}
@@ -162,6 +169,10 @@ jobs:
           fi
           if [ "${target}" = "all" ] || [ "${target}" = "remote" ] || [ "${target}" = "wi046-stage" ] || [ "${target}" = "wi046-candidate-resume" ] || [ "${target}" = "wi046-promote-remote" ] || [ "${target}" = "wi048-s02" ] || [ "${target}" = "wi051-final-audit" ] || [ "${target}" = "wi060" ]; then
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
+            test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
+          fi
+          if [ "${target}" = "wi063" ]; then
+            test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
           if [ "${target}" = "wi048-s02" ]; then
@@ -285,6 +296,15 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}"
+
+      - name: Deploy WI-063 isolated trade collection and Remote projection
+        if: github.event.inputs.target == 'wi063'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi063 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}" \
+            --secret-mode secret-manager
 
       - name: Deploy WI-021-S06 migration and recovery jobs
         if: github.event.inputs.target == 'wi021-s06'

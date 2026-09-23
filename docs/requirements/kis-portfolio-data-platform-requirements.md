@@ -676,6 +676,20 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - 계약은 승인됐지만 production source/pipeline이 활성화되지 않은 fundamental·macro 입력은
   `approved_inactive`로 표시한다. 이를 `no_governed_rows`나 일시적 수집 실패와 혼동하지 않는다.
 
+### DEC-060: 거래 증분 수집은 총자산 코어와 독립된 scale-to-zero producer로 복구한다
+
+- 거래 원장의 증분 수집은 `pipeline.trade-incremental-v2`가 소유한다. 총자산 코어 pipeline은 거래·현금
+  dataset을 output으로 주장하지 않으며, 거래 source 실패가 portfolio overview, 가격, 환율 또는 총자산
+  publish를 막지 않는다.
+- 새 producer는 별도 service나 always-on worker를 만들지 않는다. 기존 application image, managed runner,
+  KIS source adapter, Bronze/Silver repository, MotherDuck와 Secret Manager 경계를 재사용한다.
+- current-date 실행은 account/market source partition별 bounded page budget을 가진다. pagination, normalize,
+  quality와 publish가 모두 성공한 partition만 contiguous coverage watermark를 전진시킨다.
+- 조회창의 정상 빈 결과는 요청 범위에 필요한 모든 지원 partition이 종료일까지 covered일 때만 `pass`다.
+  승인된 source gap은 명시적 partial로 유지하며 position delta로 거래를 추정하지 않는다.
+- fixture/manual current-date replay를 제공해 다음 scheduler slot을 기다리지 않고 positive, partial, error와
+  unrelated portfolio-read isolation을 검증한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1238,6 +1252,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-09-24 | 거래 증분 수집 복구 승인 | DEC-060으로 총자산 코어와 독립된 scale-to-zero producer, per-partition coverage, bounded current-date replay와 실패 격리를 승인함 |
 | 2026-09-13 | V2-only production 전환 승인 | DEC-056으로 오동작하던 V1을 운영 fallback과 WI-046 완료조건에서 제외하고, 검증된 V2 immutable release와 보존된 Firestore/MotherDuck를 이용한 forward recovery를 정본으로 확정함; WI-046/MS-003 close와 MS-004/WI-047 시작을 승인하되 파괴적 cleanup은 WI-049에 유지함 |
 | 2026-09-10 | 총자산 리포트 caption 정돈 승인 | 첫 v2.1 실사용의 정보 내용과 chart는 owner가 인수하고, 동일 계산·privacy 경계 안에서 텍스트를 구획·고정폭 표 형태로 정돈하도록 WI-055-S04를 승인함 |
 | 2026-09-09 | 총자산 변동 Top 5 infographic 보강 | DEC-055의 주요 변화 기여를 보유종목 절대 원화 영향 Top 5, signed 금액·총자산 `%p`, 양방향 chart로 명확화; 계산·저장·식별자 비노출 경계는 유지함 |
