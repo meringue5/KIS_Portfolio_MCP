@@ -206,8 +206,10 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - PR #127 merged as `55af304`; protected auth run `35806435798` created revision
   `kis-portfolio-auth-00032-2bp` with matching Git/run labels and a new digest, but the service retained a historical
   explicit traffic pin to the 2026-09-14 revision. Cloud Run retired the unserved new revision while the workflow
-  still succeeded. Generic service deploys now add `--to-latest`; the next protected run must show the new revision
-  both ready and at 100% traffic before Codex OAuth begins.
+  still succeeded. PR #128 attempted to add `--to-latest` directly to `gcloud run deploy`, but protected run
+  `35807135080` failed before mutation because that subcommand does not support the option. Generic service deploys
+  now run the supported `gcloud run services update-traffic --to-latest` only after a successful revision deploy;
+  the next protected run must show the new revision both ready and at 100% traffic before Codex OAuth begins.
 
 ## Closeout
 

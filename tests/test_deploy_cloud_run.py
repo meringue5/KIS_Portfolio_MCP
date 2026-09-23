@@ -1619,11 +1619,10 @@ def test_remote_runtime_flags_support_min_instance_override():
 
 def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):
     args = argparse.Namespace(region="asia-northeast3", target="remote", dry_run=True)
-    captured = {}
+    captured = []
 
     def fake_run(command, dry_run=False):
-        captured["command"] = command
-        captured["dry_run"] = dry_run
+        captured.append((command, dry_run))
         return 0
 
     monkeypatch.setattr(deploy_cloud_run, "_run", fake_run)
@@ -1640,14 +1639,29 @@ def test_cloud_run_deploy_uses_installed_console_script(monkeypatch):
         is_job=False,
     )
 
-    command = captured["command"]
+    command = captured[0][0]
     assert result == 0
-    assert captured["dry_run"] is True
+    assert captured[0][1] is True
     assert "--command" in command
     assert command[command.index("--command") + 1] == "kis-portfolio-remote"
     assert "uv" not in command
     assert command[command.index("--args") + 1] == ""
-    assert "--to-latest" in command
+    assert "--to-latest" not in command
+    assert captured[1] == (
+        [
+            "gcloud",
+            "run",
+            "services",
+            "update-traffic",
+            "kis-portfolio-remote",
+            "--region",
+            "asia-northeast3",
+            "--to-latest",
+            "--project",
+            "kis-portfolio-prod",
+        ],
+        True,
+    )
 
 
 def test_github_source_deploy_adds_release_marker_to_force_new_revision(monkeypatch):
@@ -1684,6 +1698,33 @@ def test_github_source_deploy_adds_release_marker_to_force_new_revision(monkeypa
         "KIS_STATE_BACKEND": "firestore",
         "KIS_DEPLOY_RELEASE_ID": "abcdef123456-35751002463-2",
     }
+
+
+def test_cloud_run_service_deploy_does_not_move_traffic_after_failed_deploy(monkeypatch):
+    args = argparse.Namespace(region="asia-northeast3", target="auth", dry_run=False)
+    commands = []
+
+    def fake_run(command, dry_run=False):
+        commands.append(command)
+        return 1
+
+    monkeypatch.setattr(deploy_cloud_run, "_run", fake_run)
+
+    result = deploy_cloud_run._deploy_service_or_job(
+        args=args,
+        project="kis-portfolio-prod",
+        payload={},
+        secret_refs={},
+        runtime_flags=[],
+        target_name="kis-portfolio-auth",
+        command="kis-portfolio-auth",
+        command_args="",
+        is_job=False,
+    )
+
+    assert result == 1
+    assert len(commands) == 1
+    assert commands[0][0:3] == ["gcloud", "run", "deploy"]
 
 
 def test_cloud_run_job_deploy_uses_batch_console_script(monkeypatch):
