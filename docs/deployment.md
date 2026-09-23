@@ -502,7 +502,9 @@ Deploy workflow:
 - Cloud Run service/job에는 `git-sha`, `github-run-id`, `deploy-target`, `deploy-source` labels가 붙는다.
 - 일반 `--source` GitHub Actions 배포는 `KIS_DEPLOY_RELEASE_ID=<sha12>-<run-id>-<attempt>`를 runtime
   template에 추가한다. 같은 mutable source image 참조가 재사용되어도 매 승인 run이 새 revision을 만들게 하며,
-  배포 뒤에는 service label뿐 아니라 `latestReadyRevisionName`과 revision image digest를 함께 검증한다.
+  service 배포에는 `--to-latest`를 명시해 과거 수동 traffic pin이 있어도 새 ready revision으로 100%를
+  전환한다. 배포 뒤에는 service label뿐 아니라 `latestReadyRevisionName`, 실제 100% traffic revision과
+  revision image digest를 함께 검증한다.
 
 권장 GitHub 설정:
 

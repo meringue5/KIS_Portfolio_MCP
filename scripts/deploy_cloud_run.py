@@ -889,6 +889,7 @@ def _deploy_service_or_job(
                 "--region",
                 args.region,
                 "--allow-unauthenticated",
+                "--to-latest",
                 "--env-vars-file",
                 env_yaml_path,
                 "--command",
