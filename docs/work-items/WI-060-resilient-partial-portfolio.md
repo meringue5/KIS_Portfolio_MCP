@@ -112,7 +112,7 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   discovered from protected run `35663503027` before any Job or serving-traffic change.
 - `WI-060-S02` — validate the external source against the latest governed KIS date and verify the Cloud Resource
   Manager rollback prerequisite before any release mutation; discovered from protected run `35664495921`.
-- `WI-060-S03` (`in_progress`) — admit Codex's native OAuth loopback callback without broadening redirects to
+- `WI-060-S03` (`closed`) — admit Codex's native OAuth loopback callback without broadening redirects to
   non-loopback HTTP hosts, then complete a real Codex login and direct MCP call; discovered during the real-client
   acceptance gate when DCR returned `invalid_redirect_uri` before owner login could begin.
 
@@ -223,10 +223,16 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   `evaluation_date` as an ISO string while the market-calendar boundary was a `date`. The shared capability quality
   function now normalizes ISO strings, `date` and `datetime` before FX watermark comparison; malformed dates degrade
   to `fx_input_stale` instead of raising.
+- PR #131 merged as `2ddf1ee`; protected Remote run `35810401697` deployed revision
+  `kis-portfolio-remote-00052-7bl` at 100% traffic. The focused quality suite passed 40 tests and the complete
+  repository gate passed 776 tests with one pre-existing Authlib warning. An immediate authenticated Codex 0.155.1
+  replay called `get-portfolio-overview` successfully and returned evaluation date `2026-09-23`, total value
+  `731197565.53` KRW, freshness `available`, quality `pass`, and 32 rows. `WI-060-S03` is therefore closed; this
+  evidence uses the public MCP response and does not expose account identifiers or credentials.
 
 ## Closeout
 
 - Result: stabilizing; implementation and protected production activation are complete.
-- Remaining risk: real Claude MCP output and the first owner-visible scheduled partial/complete report presentation
-  have not yet been accepted. Do not close WI-060 or MS-007 on provider/API success alone.
+- Remaining risk: the first owner-visible scheduled partial/complete report presentation has not yet been accepted.
+  Do not close WI-060 or MS-007 on provider/API success alone.
 - Follow-up Work Item: none yet.
