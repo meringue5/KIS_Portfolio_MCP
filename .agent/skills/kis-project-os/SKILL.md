@@ -33,6 +33,9 @@ Also read:
 7. If live or elapsed evidence is required, move verified work to `stabilizing`, keep its observation/rollback/exit
    contract current, and mark it closed only after exit evidence and owner acceptance.
 8. Record actual evidence, remaining risk and follow-up work.
+9. For a user-visible Work Item, execute immediate positive and applicable partial/error scenarios through the actual
+   approved client and transport. CI, deployment and health smoke are not substitutes; route every finding to an
+   owned defect, clarification, data/operations gap, approved-inactive scope or accepted degraded behavior.
 
 ## Constraints
 

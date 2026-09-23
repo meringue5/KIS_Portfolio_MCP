@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Mapping
@@ -290,16 +290,16 @@ class WarehouseReadQueryPort:
                 "quality_status": "pass" if complete else "degraded",
                 "as_of": as_of,
             }
-        if not request.include_holdings:
-            rows = [row for row in rows if row.get("aggregate_level") != "instrument"]
+        quality_rows = rows
+        response_rows = rows if request.include_holdings else []
         missing = list({(item["dataset_id"], item["reason"]): item for item in missing}.values())
         return self._envelope(
-            data={"summary": summary, "positions": rows},
-            items=rows,
+            data={"summary": summary, "positions": response_rows},
+            items=quality_rows,
             dataset_id="dataset.portfolio-daily-state",
             as_of=as_of,
             lineage_ref="gold.portfolio_daily_state",
-            missing_coverage=missing if rows else None,
+            missing_coverage=missing if quality_rows else None,
             quality_status="pass" if complete else "partial",
         )
 
@@ -443,11 +443,69 @@ class WarehouseReadQueryPort:
             [request.start_date, request.end_date, request.account_alias, request.account_alias,
              request.instrument_id, request.instrument_id, request.limit],
         )
-        return self._envelope(
-            data={"events": rows, "next_cursor": None}, items=rows,
-            dataset_id="dataset.trade-event", as_of=_latest_datetime(rows, "knowledge_at"),
-            lineage_ref="silver.trade_events_current",
+        dataset_state = self._rows(
+            """SELECT count(*) AS row_count, max(knowledge_at) AS latest_knowledge_at
+               FROM silver.trade_events_current"""
+        )[0]
+        coverage_state = self._rows(
+            """SELECT min(try_cast(watermark_value AS DATE)) AS coverage_through,
+                      max(updated_at) AS updated_at
+               FROM control.watermarks
+               WHERE pipeline_id='pipeline.trade-cash-backfill-v2'
+                 AND watermark_type='source_end_date_v1'"""
+        )[0]
+        dataset_has_rows = int(dataset_state["row_count"] or 0) > 0
+        coverage_through = coverage_state["coverage_through"]
+        coverage_date = (
+            date.fromisoformat(coverage_through)
+            if isinstance(coverage_through, str)
+            else coverage_through
         )
+        coverage_complete = bool(
+            coverage_date is not None and coverage_date >= request.end_date
+        )
+        result_status = (
+            "matched" if rows and coverage_complete else
+            "matched_with_coverage_gap" if rows else
+            "no_events_in_query_window" if coverage_complete else
+            "collection_coverage_gap" if dataset_has_rows or coverage_through else
+            "no_governed_rows"
+        )
+        missing: list[dict[str, Any]] = []
+        if not coverage_complete:
+            missing.append({
+                "dataset_id": "dataset.trade-event",
+                "reason": (
+                    "collection_watermark_before_query_end"
+                    if coverage_through is not None
+                    else "collection_watermark_missing"
+                ),
+            })
+        result = self._envelope(
+            data={
+                "query": {
+                    "start_date": request.start_date,
+                    "end_date": request.end_date,
+                    "result_status": result_status,
+                    "coverage_through": coverage_through,
+                },
+                "events": rows,
+                "next_cursor": None,
+            },
+            items=rows,
+            dataset_id="dataset.trade-event",
+            as_of=(
+                _latest_datetime(rows, "knowledge_at")
+                or dataset_state["latest_knowledge_at"]
+                or coverage_state["updated_at"]
+            ),
+            lineage_ref="silver.trade_events_current",
+            missing_coverage=missing,
+            quality_status="pass" if coverage_complete else "partial",
+        )
+        if dataset_has_rows or coverage_through is not None:
+            result["freshness"]["status"] = "available"
+        return result
 
     def _get_trade_thread(self, request: TradeThreadRequest) -> dict[str, Any]:
         if request.cursor is not None:
@@ -531,11 +589,38 @@ class WarehouseReadQueryPort:
             [request.instrument_id, request.as_of, request.as_of],
         )
         items = actuals + forecasts
+        dataset_counts = self._rows(
+            """SELECT
+                   (SELECT count(*) FROM silver.financial_fact_revisions_current) AS actual_count,
+                   (SELECT count(*) FROM silver.alpha_vantage_consensus_forward_latest) AS forecast_count
+            """
+        )[0]
+        missing: list[dict[str, Any]] = []
+        if not actuals:
+            missing.append({
+                "dataset_id": "dataset.financial-fact",
+                "reason": (
+                    "no_rows_for_instrument"
+                    if int(dataset_counts["actual_count"] or 0) > 0
+                    else "approved_inactive"
+                ),
+            })
+        if not forecasts:
+            missing.append({
+                "dataset_id": "dataset.alpha-vantage-consensus-forward-snapshot",
+                "reason": (
+                    "no_rows_for_instrument"
+                    if int(dataset_counts["forecast_count"] or 0) > 0
+                    else "approved_inactive"
+                ),
+            })
         return self._envelope(
             data={"scenario": request.scenario, "actuals": actuals, "consensus": forecasts},
             items=items, dataset_id="dataset.fundamental-outlook",
             as_of=_latest_datetime(items, "knowledge_at", "fetched_at"),
             lineage_ref="silver.financial_fact_revisions_current|silver.alpha_vantage_consensus_forward_latest",
+            missing_coverage=missing,
+            quality_status="partial" if missing else "pass",
         )
 
     def _get_exposure_analysis(self, request: ExposureAnalysisRequest) -> dict[str, Any]:
@@ -571,9 +656,21 @@ class WarehouseReadQueryPort:
                    WHERE (? IS NULL OR evaluation_at<=?) ORDER BY evaluation_at DESC LIMIT 1""",
                 [request.as_of, request.as_of],
             )
+        macro_dataset_count = 0
+        if request.include_macro and not macro:
+            macro_dataset_count = int(self.connection.execute(
+                "SELECT count(*) FROM gold.macro_profile_snapshots"
+            ).fetchone()[0])
         missing = [] if rows else [{"dataset_id": "dataset.portfolio-daily-state", "reason": "no_governed_rows"}]
         if request.include_macro and not macro:
-            missing.append({"dataset_id": "dataset.macro-profile-snapshot", "reason": "no_governed_rows"})
+            missing.append({
+                "dataset_id": "dataset.macro-profile-snapshot",
+                "reason": (
+                    "no_rows_at_or_before_cutoff"
+                    if macro_dataset_count > 0
+                    else "approved_inactive"
+                ),
+            })
         missing.append({
             "dataset_id": "dataset.etf-constituent-snapshot",
             "reason": "unsupported_initial_v2",
@@ -733,7 +830,18 @@ class WarehouseReadQueryPort:
         else:
             quality_status = "partial"
         return self._envelope(
-            data={"runs": rows, "next_cursor": None}, items=rows,
+            data={
+                "query": {
+                    "requested_pipeline_id": request.pipeline_id,
+                    "resolved_pipeline_id": pipeline_id,
+                    "alias_applied": bool(
+                        request.pipeline_id is not None and request.pipeline_id != pipeline_id
+                    ),
+                },
+                "runs": rows,
+                "next_cursor": None,
+            },
+            items=rows,
             dataset_id="dataset.pipeline-run-evidence", as_of=_latest_datetime(rows, "finished_at", "started_at"),
             lineage_ref="control.pipeline_run_summary",
             missing_coverage=missing if rows else None,

@@ -19,6 +19,9 @@ architecture_impact: unknown
 data_impact: unknown
 security_impact: unknown
 cost_impact: unknown
+user_visible_impact: yes / no
+real_use_acceptance: required / not_applicable
+real_use_evidence_refs: pending / not_applicable / concrete run or evidence refs
 # stabilizing일 때 아래 세 필드를 실제 값으로 채운다.
 stabilization_window: none
 stabilization_exit_refs: none
@@ -76,6 +79,14 @@ rollback_plan: none
 
 운영 증거가 필요 없는 작업은 `not applicable`로 표시한다. 운영 중 발견된 결함은 기존 증거를 지우거나
 상태를 되감지 않고 새 sub-item/Work Item을 append해 `discovered_from`, `rollback_of`, `supersedes`로 연결한다.
+
+## Real-use acceptance
+
+- 사용자 노출 여부와 판정 근거:
+- 실제 승인 client/transport:
+- 즉시 재현할 positive/partial/error 시나리오:
+- 발견사항과 소유 Work Item 또는 승인된 비목표:
+- `not_applicable`이면 그 이유:
 
 ## Evidence
 

@@ -848,6 +848,25 @@ wrapper를 도입하도록 승인했다. 제품 계약은 DEC-058, 실행 추적
 - read와 command tool에 같은 formatter를 적용하고 실제 Streamable HTTP client fixture와 운영 Codex 음성
   호출을 인수 증거로 사용한다.
 
+### ADR-031: Remote read projection은 payload 선택과 관측 품질을 분리하고 alias 해석을 표시한다
+
+**결정**: `include_holdings=false`는 조회·합계·품질 판정에 사용한 governed rows를 버리지 않고 응답의
+`positions` projection만 빈 배열로 만든다. envelope의 freshness와 quality row count는 실제 판정 입력을
+계속 반영한다. `get-pipeline-run`이 public alias를 canonical pipeline id로 해석하면 `data.query`에 요청값,
+해석값과 alias 적용 여부를 additive metadata로 반환한다. 거래 원장과 수집 watermark가 조회 종료일까지
+덮는데 사건이 없을 때만 정상적인 빈 결과로 판정하고, 승인됐지만 production 비활성인 fundamental·macro
+입력은 `approved_inactive`로 표현한다.
+
+**상태**: 2026-09-23 실제 Codex MCP 호출에서 두 계약 불일치를 재현한 뒤 owner가 조치를 승인했다.
+제품 요구는 DEC-059, 실행 추적은 WI-062가 소유한다.
+
+**경계**:
+
+- payload suppression은 품질 근거를 삭제하거나 빈 응답을 `unavailable`로 바꾸지 않는다.
+- alias metadata는 credential, SQL parameter 또는 내부 partition detail을 노출하지 않는다.
+- 기존 `runs`와 `next_cursor` 필드는 유지하는 additive-compatible 변경이다.
+- 정상 빈 조회창, 수집 watermark 공백과 실제 dataset 부재를 서로 다른 상태로 유지한다.
+
 ---
 
 ## Retained V1 implementation appendix

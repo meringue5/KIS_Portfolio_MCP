@@ -28,11 +28,13 @@
 
 - [ ] `bash scripts/check.sh full`
 - [ ] 관련 migration·restore·remote smoke 또는 운영 증거
+- [ ] 사용자 노출 변경이면 실제 승인 client/transport의 positive·partial·error 시나리오와 발견사항 소유권
 - [ ] traceability와 owning documents 갱신
 - [ ] secret, raw token, 전체 계좌번호가 diff·로그·본문에 없음
 
 ## Acceptance and rollback
 
 - Acceptance evidence:
+- Real-use evidence refs or not-applicable reason:
 - Remaining risk:
 - Rollback:

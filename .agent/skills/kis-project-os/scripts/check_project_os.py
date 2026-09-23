@@ -82,6 +82,11 @@ FEEDBACK_RELATIONSHIP_FIELDS = {
 VALID_GATE_STATUSES = {"stabilizing", "closed"}
 VALID_OVERLAP_MODES = {"none", "continuous_isolated"}
 IMPLEMENTATION_DEPENDENCY_STATUSES = {"verified", "stabilizing", "closed"}
+REAL_USE_FIELDS = {
+    "user_visible_impact",
+    "real_use_acceptance",
+    "real_use_evidence_refs",
+}
 
 
 def parse_frontmatter(path: Path) -> tuple[dict[str, str], str]:
@@ -743,6 +748,46 @@ def check(root: Path) -> list[str]:
                     errors.append(f"duplicate Work Item file for {item_id}")
                 work_item_fields[item_id] = fields
                 work_item_texts[item_id] = text
+            item_number = int(item_id.split("-")[1]) if re.fullmatch(r"WI-\d{3,}", item_id) else 0
+            if item_number >= 61:
+                missing_real_use = sorted(REAL_USE_FIELDS - fields.keys())
+                if missing_real_use:
+                    errors.append(
+                        f"{path.relative_to(root)}: missing real-use fields "
+                        + ", ".join(missing_real_use)
+                    )
+                visible = fields.get("user_visible_impact")
+                acceptance = fields.get("real_use_acceptance")
+                evidence_refs = fields.get("real_use_evidence_refs", "").lower()
+                if visible not in {"yes", "no"}:
+                    errors.append(
+                        f"{path.relative_to(root)}: user_visible_impact must be yes or no"
+                    )
+                if acceptance not in {"required", "not_applicable"}:
+                    errors.append(
+                        f"{path.relative_to(root)}: real_use_acceptance must be required or "
+                        "not_applicable"
+                    )
+                if visible == "yes" and acceptance != "required":
+                    errors.append(
+                        f"{path.relative_to(root)}: user-visible work requires real_use_acceptance"
+                    )
+                if visible == "no" and acceptance == "not_applicable" and evidence_refs != "not_applicable":
+                    errors.append(
+                        f"{path.relative_to(root)}: not-applicable real-use work requires "
+                        "real_use_evidence_refs=not_applicable"
+                    )
+                if acceptance == "required" and status == "closed" and evidence_refs in {
+                    "", "none", "pending", "not_applicable",
+                }:
+                    errors.append(
+                        f"{path.relative_to(root)}: closed user-visible work requires concrete "
+                        "real_use_evidence_refs"
+                    )
+                if "## Real-use acceptance" not in text:
+                    errors.append(
+                        f"{path.relative_to(root)}: missing heading ## Real-use acceptance"
+                    )
             item_type = fields.get("type", "")
             if item_type not in VALID_TYPES:
                 errors.append(f"{path.relative_to(root)}: invalid type {item_type!r}")

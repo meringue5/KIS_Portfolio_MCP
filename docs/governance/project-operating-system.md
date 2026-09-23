@@ -47,6 +47,10 @@ Project OS는 제품의 자동 주문 권한, 운영 secret 접근 또는 배포
    증거와 사용자 인수를 요구한다.
 7. **Project OS도 자신을 우회할 수 없다.** 이 문서, Skill, hook 또는 검사 변경도 Work Item과 검증을
    거친다.
+8. **사용자 노출 기능은 실제 사용으로 인수한다.** unit/integration test, CI, 배포 성공과 HTTP smoke는
+   필요조건이지 정보가치의 완료 증거가 아니다. 실제 승인 client와 transport로 즉시 재현 가능한
+   positive, partial, error 시나리오를 실행하고 발견된 결함·데이터 공백·미지원 범위를 소유 작업에
+   연결해야 한다.
 
 ## 3. 권한과 Source of Truth
 
@@ -130,6 +134,9 @@ Work Item 허용 상태는 `proposed`, `ready`, `in_progress`, `verified`, `stab
 - 긴 조사와 구현을 분리할 때 조사 결과는 evidence로 연결하고, 구현만 WIP 제한에 포함한다.
 - blocked 항목은 blocking condition과 재개 조건을 기록한다.
 - closed 항목은 acceptance, 테스트, 운영 증거와 남은 후속 작업을 명시한다.
+- `user_visible_impact: yes`인 신규 Work Item은 `real_use_acceptance: required`와 실제 client/transport 증거
+  참조를 가져야 `closed`가 될 수 있다. 자동 테스트, deployment run 또는 health check만으로 대체할 수
+  없으며, 미래 scheduler slot을 기다리는 것이 유일한 인수 방법이어서는 안 된다.
 - 큰 작업은 `docs/work-items/WI-NNN-*.md`, 일반 작업은 GitHub Issue를 canonical tracker로 쓴다.
 - `WI-NNN`은 한 번 할당하면 완료 여부와 무관하게 삭제·재사용·재번호화하지 않는다. 다음 번호는 현재
   최댓값 다음 번호이며 빈 번호를 메우지 않는다.
@@ -236,6 +243,26 @@ pipeline 또는 DB 변경은 `docs/governance/data-governance-harness.md`를 먼
 - CI는 별도 명령을 복제하지 않고 `bash scripts/check.sh full`을 실행한다.
 - hook은 로컬 조기 피드백이며 우회 가능하다. CI와 release approval이 최종 gate다.
 - live inventory, migration, restore, remote smoke와 비용 검증은 release Work Item이 요구할 때 별도 실행한다.
+
+### 8.1 Real-use acceptance gate
+
+신규 Work Item은 `user_visible_impact`, `real_use_acceptance`, `real_use_evidence_refs`를 선언한다. 역사적으로
+닫힌 Work Item을 소급 개작하지 않고 WI-061 이후 항목부터 checker가 다음을 강제한다.
+
+- public MCP, Telegram, report, dashboard, CLI output처럼 사용자가 결과를 직접 소비하면
+  `user_visible_impact: yes`, `real_use_acceptance: required`다.
+- 실제 승인 client와 production 또는 production-equivalent transport로 최소 positive와 해당 기능에
+  가능한 partial/error 경계를 즉시 호출한다. fixture는 clock/source 결손을 재현하고, live call은 adapter,
+  인증, 직렬화와 실제 데이터 가용성을 함께 검증한다.
+- 실사용 결과는 `usable`, `degraded_but_usable`, `unavailable`을 구분하며, unavailable 도구를 transport
+  성공만으로 완료 처리하지 않는다.
+- 발견 항목은 `defect`, `clarification`, `data/operations gap`, `approved-inactive scope`, `accurate degraded
+  behavior`로 분류한다. 해결하지 않는 항목도 명시적 후속 Work Item·sub-item·승인된 비목표 중 하나를
+  소유자로 가져야 한다.
+- user-visible Work Item은 `real_use_evidence_refs`가 `pending` 또는 `none`인 채 `closed`가 될 수 없다.
+  사용자 노출이 없으면 `not_applicable` 사유를 Work Item의 `## Real-use acceptance`에 기록한다.
+- scheduled behavior도 deterministic no-send/fixture/manual trigger를 먼저 제공한다. 실제 시간축 수신 증거가
+  추가로 필요할 수는 있지만 “다음 슬롯까지 대기”만을 테스트 계획으로 삼지 않는다.
 
 ## 9. Agent/Skill 계약
 

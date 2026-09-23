@@ -7,6 +7,12 @@
 
 ## High Priority
 
+- [ ] WI-061/WI-062/WI-063: user-visible 완료에 실제 MCP 사용 검증을 의무화하고, 2026-09-23 직접 호출에서 발견한 응답 옵션·별칭·거래 증분수집 공백을 조치한다.
+  - 자동 테스트와 배포 성공만으로 완료하지 않고 실제 OAuth client의 positive/partial/error 시나리오를 증거로 남긴다.
+  - `include_holdings=false` 결함과 pipeline alias 투명성을 우선 교정한다.
+  - 거래원장은 producer/run/watermark를 조사하고, fundamental·macro·ETF는 비활성 계약을 버그 수정처럼 우회 활성화하지 않는다.
+  - 거래 증분수집이 backfill 종료 뒤 이어지지 않는 계약-구현 gap은 WI-063에서 독립 producer와 per-partition watermark로 복구한다.
+  - 미래 scheduler slot을 기다리는 것을 유일한 인수 테스트로 삼지 않는다.
 - [ ] WI-060: V2 사용성·장애 전파 아키텍처를 재검토하고, 기능별로 정확한 부분 결과를 제공한다.
   - 전일 동일 슬롯 결손은 증감·기여도만 제한하고, 검증된 현재 보유·국내 상장 원화 평가액은 독립 조회한다.
   - 환율 지연은 외화 원화환산·전체 총자산만 제한한다. 국내 원화 현황까지 차단하거나 불완전 합계를 총자산으로 표시하지 않는다.

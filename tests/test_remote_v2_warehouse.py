@@ -138,6 +138,46 @@ async def test_portfolio_overview_summary_respects_account_alias():
 
 
 @pytest.mark.anyio
+async def test_portfolio_overview_can_omit_holdings_without_erasing_summary_quality():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.execute(
+        "INSERT INTO silver.instruments VALUES "
+        "('KR:AAA','KRX','AAA','Alpha','stock','KRW',NULL,?,NULL,'official','{}')",
+        [NOW],
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date, evaluation_slot, account_id, instrument_id, aggregate_level,
+            quantity, value_krw, cost_krw, unrealized_pnl_krw, contribution_pct,
+            allocation_pct, as_of, input_watermarks, quality_status, lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a',?,?,NULL,?,NULL,NULL,NULL,NULL,?,'{}','pass',?)
+        """,
+        [
+            ("KR:AAA", "position", "100", NOW, "lineage-position"),
+            ("cash|KRW", "cash", "25", NOW, "lineage-cash"),
+        ],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    result = await application.execute(
+        "get-portfolio-overview", PortfolioOverviewRequest(include_holdings=False), ACTOR
+    )
+
+    assert result["data"]["positions"] == []
+    assert result["data"]["summary"]["total_value_krw"] == "125.00"
+    assert result["quality"] == {"status": "pass", "row_count": 2}
+    assert result["freshness"]["status"] == "available"
+
+
+@pytest.mark.anyio
 async def test_portfolio_overview_does_not_claim_complete_total_from_degraded_rows():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
@@ -303,6 +343,11 @@ async def test_pipeline_run_accepts_public_portfolio_refresh_name():
     )
 
     assert result["data"]["runs"][0]["pipeline_id"] == "pipeline.owned-portfolio-core-v2"
+    assert result["data"]["query"] == {
+        "requested_pipeline_id": "portfolio-refresh",
+        "resolved_pipeline_id": "pipeline.owned-portfolio-core-v2",
+        "alias_applied": True,
+    }
     assert result["source"]["dataset_id"] == "dataset.pipeline-run-evidence"
     assert result["quality"]["status"] == "partial"
     assert result["missing_coverage"] == [{
@@ -436,8 +481,92 @@ async def test_exposure_analysis_returns_direct_positions_and_explicit_optional_
     assert result["data"]["direct"][0]["value_krw"] == "199320000.00"
     assert result["quality"]["status"] == "partial"
     assert result["missing_coverage"] == [
-        {"dataset_id": "dataset.macro-profile-snapshot", "reason": "no_governed_rows"},
+        {"dataset_id": "dataset.macro-profile-snapshot", "reason": "approved_inactive"},
         {"dataset_id": "dataset.etf-constituent-snapshot", "reason": "unsupported_initial_v2"},
+    ]
+
+
+@pytest.mark.anyio
+async def test_trade_ledger_distinguishes_empty_window_from_absent_dataset():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.execute(
+        """INSERT INTO control.watermarks VALUES (
+            'pipeline.trade-cash-backfill-v2','all-accounts',
+            'source_end_date_v1','2026-08-28','run-1',?
+        )""",
+        [NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO silver.trade_event_revisions(
+            trade_event_revision_id, source_trade_event_id, account_id, market,
+            product_code, instrument_id, broker_order_id, executed_at,
+            execution_sequence, revision, side, quantity, price, currency,
+            knowledge_at, source_observation_id, correction_reason, quality_status, metadata
+        ) VALUES (
+            'revision-1','source-event-1','acct-a','KRX','01','v1|KRX|000660',
+            'order-1','2026-08-25T07:00:00Z','1',1,'buy',1,100,'KRW',?,
+            'observation-1','source_import','pass','{}'
+        )
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+
+    gap_result = await application.execute(
+        "get-trade-ledger",
+        TradeLedgerRequest(start_date=date(2026, 9, 1), end_date=date(2026, 9, 11)),
+        ACTOR,
+    )
+
+    assert gap_result["data"]["events"] == []
+    assert gap_result["data"]["query"]["result_status"] == "collection_coverage_gap"
+    assert gap_result["data"]["query"]["coverage_through"] == "2026-08-28"
+    assert gap_result["quality"] == {"status": "partial", "row_count": 0}
+    assert gap_result["missing_coverage"] == [{
+        "dataset_id": "dataset.trade-event",
+        "reason": "collection_watermark_before_query_end",
+    }]
+
+    connection.execute(
+        """UPDATE control.watermarks SET watermark_value='2026-09-11', updated_at=?
+           WHERE pipeline_id='pipeline.trade-cash-backfill-v2'""",
+        [NOW],
+    )
+    result = await application.execute(
+        "get-trade-ledger",
+        TradeLedgerRequest(start_date=date(2026, 9, 1), end_date=date(2026, 9, 11)),
+        ACTOR,
+    )
+
+    assert result["data"]["events"] == []
+    assert result["data"]["query"]["result_status"] == "no_events_in_query_window"
+    assert result["freshness"]["status"] == "available"
+    assert result["quality"] == {"status": "pass", "row_count": 0}
+    assert result["missing_coverage"] == []
+
+
+@pytest.mark.anyio
+async def test_fundamental_outlook_reports_approved_inactive_inputs_explicitly(application):
+    result = await application.execute(
+        "get-fundamental-outlook", FundamentalOutlookRequest(instrument_id="US:AAPL"), ACTOR
+    )
+
+    assert result["data"]["actuals"] == []
+    assert result["data"]["consensus"] == []
+    assert result["missing_coverage"] == [
+        {"dataset_id": "dataset.financial-fact", "reason": "approved_inactive"},
+        {
+            "dataset_id": "dataset.alpha-vantage-consensus-forward-snapshot",
+            "reason": "approved_inactive",
+        },
     ]
 
 
