@@ -31,6 +31,7 @@ on:
           - wi055-s04
           - wi060
           - wi063
+          - wi065
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -171,7 +172,7 @@ jobs:
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
-          if [ "${target}" = "wi063" ]; then
+          if [ "${target}" = "wi063" ] || [ "${target}" = "wi065" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -304,6 +305,14 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-065 Claude Remote compatibility recovery
+        if: github.event.inputs.target == 'wi065'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi065 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
             --secret-mode secret-manager
 
       - name: Deploy WI-021-S06 migration and recovery jobs

@@ -72,6 +72,7 @@ def test_v2_catalog_is_exactly_fifteen_read_tools_with_owned_contracts():
         "KR", "US", "FX",
     ]
     assert by_name["get-position-analysis"].parameters["properties"]["limit"]["maximum"] == 200
+    assert "omit both selectors" in by_name["get-pipeline-run"].description
     assert by_name["get-portfolio-overview"].output_schema["additionalProperties"] is False
     assert set(by_name["get-portfolio-overview"].output_schema["required"]) == {
         "schema_version", "as_of", "source", "freshness", "quality",
@@ -95,6 +96,36 @@ def test_tool_handler_delegates_a_typed_request_and_binds_request_id():
     assert result.data == {"account_alias": "brokerage"}
     assert captured["request"].model_dump()["include_holdings"] is False
     assert captured["actor"] == ACTOR
+
+
+def test_pipeline_run_without_selectors_defaults_to_portfolio_refresh():
+    captured = {}
+
+    async def handler(request, _actor):
+        captured["request"] = request
+        return _envelope(data={"runs": []})
+
+    server = build_v2_read_server(_application(handler), actor_provider=lambda: ACTOR)
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-pipeline-run")
+
+    result = asyncio.run(tool.fn())
+
+    assert result.data == {"runs": []}
+    assert captured["request"].run_id is None
+    assert captured["request"].pipeline_id == "portfolio-refresh"
+
+
+def test_pipeline_run_with_conflicting_selectors_remains_diagnosable():
+    server = build_v2_read_server(_application(), actor_provider=lambda: ACTOR)
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-pipeline-run")
+
+    with pytest.raises(ToolError) as captured:
+        asyncio.run(tool.fn(run_id="run-1", pipeline_id="portfolio-refresh"))
+
+    payload = json.loads(str(captured.value))
+    assert payload["error"]["code"] == "invalid_request"
+    assert payload["error"]["visibility"] == "owner_debug"
+    assert "exactly one" in payload["error"]["detail"]
 
 
 @pytest.mark.parametrize(

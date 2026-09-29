@@ -415,6 +415,12 @@ WI-063의 `wi063` target은 동일 immutable image를 독립 거래 수집 Job �
   보존한다. 신규 schedule cutover 실패 시 신규 둘을 pause하고 기존 schedule을 resume하며 ledger row를
   삭제하지 않는다.
 
+WI-065의 `wi065` target은 Claude 실사용에서 발견된 stale compatibility route를 정정하는 Remote-only 보호
+릴리즈다. 새 immutable Remote revision을 만든 뒤 stable traffic과 기존 `wi046-v2` compatibility tag를 같은
+latest revision으로 이동하고, canonical URL과 tagged URL 각각에서 health, protected-resource metadata와
+unauthenticated MCP 401을 검사한다. 어느 smoke라도 실패하면 직전 100% serving revision과 직전 tag revision을
+함께 복원한다. Job, Scheduler, DB와 source 호출은 변경하지 않는다.
+
 V2 owned-portfolio pipeline은 기존 배치와 별도의 최소권한 identity를 사용한다.
 
 - Job names: `kis-portfolio-owned-core-v2-{1000,1430,1600}`

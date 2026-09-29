@@ -80,7 +80,7 @@ def component_quality_reasons(
         earliest_fx_date=earliest_fx_date,
     ):
         reasons.append("fx_input_stale")
-    if component.quality_status != "pass":
+    if component.quality_status.strip().lower() not in {"pass", "passed"}:
         reasons.append("degraded_components")
     return tuple(dict.fromkeys(reasons))
 

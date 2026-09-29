@@ -61,6 +61,122 @@ def test_workflow_dispatches_wi063_isolated_trade_release():
     assert "environment: production" in workflow
 
 
+def test_workflow_dispatches_wi065_remote_compatibility_recovery():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi065" in workflow
+    assert "github.event.inputs.target == 'wi065'" in workflow
+    assert "scripts/deploy_cloud_run.py wi065" in workflow
+    assert "environment: production" in workflow
+
+
+def test_wi065_moves_stable_and_claude_compatibility_routes_together(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3",
+        target="wi065",
+        dry_run=True,
+        secret_mode="secret-manager",
+    )
+    commands = []
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_remote", lambda _env: [])
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_split_runtime_env",
+        lambda **_kwargs: ({"KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp"}, {}),
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_build_release_image",
+        lambda *_args, **_kwargs: "image@sha256:test",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    result = deploy_cloud_run._deploy_wi065(
+        args,
+        env={
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
+        },
+        project="project-1",
+    )
+
+    assert result == 0
+    assert any(
+        command[:4] == ["gcloud", "run", "services", "update"]
+        and "image@sha256:test" in command
+        for command in commands
+    )
+    assert any(
+        command[:4] == ["gcloud", "run", "services", "update-traffic"]
+        and ["--update-tags", "wi046-v2=LATEST"] == command[
+            command.index("--update-tags"):command.index("--update-tags") + 2
+        ]
+        and "--to-latest" in command
+        for command in commands
+    )
+
+
+def test_wi065_smoke_failure_restores_stable_and_compatibility_routes(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3",
+        target="wi065",
+        dry_run=False,
+        secret_mode="secret-manager",
+    )
+    commands = []
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_service_traffic",
+        lambda **_kwargs: [
+            {"revisionName": "remote-stable-before", "percent": 100},
+            {"revisionName": "remote-claude-before", "tag": "wi046-v2"},
+        ],
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_build_release_image",
+        lambda *_args, **_kwargs: "image@sha256:test",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda command, **_kwargs: commands.append(command) or 0,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_tagged_service_url",
+        lambda **_kwargs: "https://wi046-v2---remote.example.test",
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_remote", lambda **_kwargs: True)
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_smoke_wi046_tagged_urls",
+        lambda **_kwargs: False,
+    )
+
+    result = deploy_cloud_run._deploy_wi065(
+        args,
+        env={
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
+        },
+        project="project-1",
+    )
+
+    assert result == 1
+    rollback = commands[-1]
+    assert rollback[:4] == ["gcloud", "run", "services", "update-traffic"]
+    assert ["--update-tags", "wi046-v2=remote-claude-before"] == rollback[
+        rollback.index("--update-tags"):rollback.index("--update-tags") + 2
+    ]
+    assert ["--to-revisions", "remote-stable-before=100"] == rollback[
+        rollback.index("--to-revisions"):rollback.index("--to-revisions") + 2
+    ]
+
+
 def test_wi063_reuses_one_image_for_two_jobs_and_remote(monkeypatch):
     args = argparse.Namespace(
         region="asia-northeast3",

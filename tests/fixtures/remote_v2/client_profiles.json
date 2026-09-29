@@ -9,6 +9,7 @@
       "origin": "https://claude.ai",
       "calls": [
         {"name": "get-portfolio-overview", "arguments": {}},
+        {"name": "get-pipeline-run", "arguments": {}},
         {"name": "get-market-snapshot", "arguments": {"instrument_id": "KRX:005930", "market": "KR"}}
       ]
     },

@@ -742,6 +742,41 @@ async def test_performance_history_respects_account_alias():
 
 
 @pytest.mark.anyio
+async def test_performance_history_normalizes_current_and_retained_success_statuses():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            quantity,value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,
+            allocation_pct,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a',?,'position',1,?,
+                  NULL,NULL,NULL,NULL,?,'{}',?,?)
+        """,
+        [
+            ("v1|KRX|000660", "100", NOW, "pass", "lineage-current"),
+            ("v1|KRX|005930", "200", NOW, "passed", "lineage-retained"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-performance-history",
+        PerformanceHistoryRequest(start_date=date(2026, 9, 11), end_date=date(2026, 9, 11)),
+        ACTOR,
+    )
+
+    assert result["quality"]["status"] == "pass"
+    assert result["data"]["history"][0]["quality_status"] == "pass"
+    assert result["data"]["history"][0]["total_value_krw"] == "300.00"
+
+
+@pytest.mark.anyio
 async def test_performance_history_does_not_sum_degraded_rows_as_complete_total():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
