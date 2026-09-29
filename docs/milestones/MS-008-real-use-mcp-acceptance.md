@@ -16,7 +16,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | ---: | --- | --- | --- |
 | 1 | WI-061 real-use completion gate | none | closed |
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
-| 3 | WI-063 incremental trade-event collection | WI-062 | in_progress |
+| 3 | WI-063 incremental trade-event collection | WI-062 | stabilizing |
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | proposed |
 
 ## Gates
@@ -42,3 +42,4 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-09-23.4 | 2026-09-23 | PR #135, deploy run 35868121973 and six-call direct Codex OAuth replay passed the corrected positive, partial and error contracts | Keep WI-062 stabilizing until owner acceptance; WI-063 remains proposed for collection restoration |
 | 2026-09-24.1 | 2026-09-24 | Owner accepted the WI-062 replay and approved the next work; independent incremental trade collection was selected to prevent trade-source failure from blocking portfolio capabilities | Close WI-062 and start WI-063 as the sole implementation Work Item |
 | 2026-09-30.1 | 2026-09-30 | Initial replay and direct Codex OAuth positive/partial/error calls passed, but stabilization found four consecutive overseas schedule failures caused by legacy and new jobs refreshing the same KIS credential at 07:35 through separate state stores | Keep WI-063 in progress; open WI-063-S01, pause both legacy trade schedulers as recoverable containment, and verify durable cutover plus immediate/recurring overseas recovery |
+| 2026-09-30.2 | 2026-09-30 | PR #138 and protected run 36595665194 made scheduler cutover fail-closed; only the two new schedules are enabled, immediate overseas execution `...-vnmvk` succeeded, and direct Codex OAuth positive/partial/error plus unaffected-overview scenarios passed | Move WI-063 and WI-063-S01 to stabilizing; retain the pre-cutover failed pipeline row as honest history and await bounded recurring evidence plus owner acceptance |

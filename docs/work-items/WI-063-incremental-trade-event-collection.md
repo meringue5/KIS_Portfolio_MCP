@@ -1,7 +1,7 @@
 ---
 id: WI-063
 title: Restore governed incremental trade-event collection and coverage evidence
-status: in_progress
+status: stabilizing
 type: defect
 owner: owner
 decision_refs: DEC-009, DEC-010, DEC-015, DEC-030, DEC-044, DEC-059, DEC-060, ADR-032
@@ -21,7 +21,10 @@ security_impact: preserve account aliases only in public responses and existing 
 cost_impact: bounded KIS order-history calls must be measured before activation
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: pending
+real_use_evidence_refs: PR #137 and #138, protected deploy runs 35900350370 and 36595665194, immediate executions and direct Codex OAuth MCP replay recorded below
+stabilization_window: immediate post-cutover scheduler execution plus bounded recurring-run and owner acceptance review
+stabilization_exit_refs: immutable release evidence, four scheduler states, successful overseas execution, direct MCP positive/partial/error outputs and owner acceptance
+rollback_plan: pause both new schedulers and resume only the preserved legacy schedulers through the protected release rollback path; never delete ledger observations
 ---
 
 # WI-063 — Restore governed incremental trade-event collection and coverage evidence
@@ -53,11 +56,11 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 ## Acceptance criteria
 
-- [ ] The reviewed producer collects every approved current account/market partition within a bounded call budget.
-- [ ] A successful partition advances an explicit contiguous source coverage watermark only after quality/publish.
-- [ ] Empty-window trade-ledger pass is possible only when every requested partition covers the query end date.
-- [ ] Source failure degrades trade features without blocking portfolio overview, market data or verified partials.
-- [ ] Immediate replay and actual Codex OAuth MCP positive/partial/error scenarios pass after guarded deployment.
+- [x] The reviewed producer collects every approved current account/market partition within a bounded call budget.
+- [x] A successful partition advances an explicit contiguous source coverage watermark only after quality/publish.
+- [x] Empty-window trade-ledger pass is possible only when every requested partition covers the query end date.
+- [x] Source failure degrades trade features without blocking portfolio overview, market data or verified partials.
+- [x] Immediate replay and actual Codex OAuth MCP positive/partial/error scenarios pass after guarded deployment.
 
 ## Change impact
 
@@ -77,7 +80,7 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 ## Sub-items
 
-- `WI-063-S01` (`in_progress`) — correct the production cutover after stabilization showed that the legacy overseas
+- `WI-063-S01` (`stabilizing`) — correct the production cutover after stabilization showed that the legacy overseas
   transaction scheduler and the new incremental overseas scheduler both ran at 07:35 KST. The legacy Job refreshed
   a separate token cache while the incremental Job was using its prior token, producing four consecutive
   `http_status=403` failures. Preserve both legacy Jobs for rollback, pause both legacy trade schedulers, keep only the
@@ -111,9 +114,24 @@ FX rather than order history and does not advance a trade source coverage waterm
 - After containment, immediate overseas execution `kis-portfolio-trade-incremental-overseas-bj9sn` succeeded. Its
   four source requests reused the same cached token and returned HTTP 200 without a refresh or 403. The scheduler
   cutover regression tests and the full repository gate passed (`793 passed`, one pre-existing Authlib warning).
+- PR #138 merged as `3903f16275892a6e2eed50998aaa247abac7c34a`; protected release run `36595665194`
+  deployed both incremental Jobs from digest
+  `sha256:d200e39a5cea2d192c551a19ff77d0bcba579efde00bc05125ec9a303b3757dd`. Post-release state has
+  only `kis-portfolio-trade-incremental-domestic-1610` and `kis-portfolio-trade-incremental-overseas-0735`
+  enabled; both legacy trade schedulers are paused. Scheduler-triggered overseas execution
+  `kis-portfolio-trade-incremental-overseas-vnmvk` succeeded in 22.3 seconds from the released image.
+- Direct Codex OAuth MCP replay after release proved: a covered brokerage empty window returns pass with coverage
+  through 2026-09-29; a global 2026-09-30 query returns an explicit `collection_coverage_gap`; an inverted date range
+  returns diagnosable `invalid_request`; and the unaffected portfolio overview remains available/pass with 32 rows.
+  `get-pipeline-run` resolved the exact producer and returned 18 runs. The latest overseas run is successful, while
+  aggregate quality remains `failed` because the one-day evidence window correctly retains the pre-cutover failed
+  run; this historical failure is not suppressed or rewritten.
 
 ## Closeout
 
-- Result: proposed; no production mutation or source call is authorized by registration.
-- Remaining risk: the trade ledger is historical-only beyond its coverage watermark.
-- Follow-up Work Item: none.
+- Result: implementation, guarded production cutover and immediate real-use acceptance scenarios are complete;
+  WI-063 is stabilizing pending bounded recurring evidence and owner acceptance.
+- Remaining risk: the one-day pipeline evidence window retains the pre-cutover overseas failure until it ages out;
+  future source failures must remain isolated and visible. Historical duplicate current rows are a separate issue.
+- Follow-up Work Item: proposed WI-064 owns source-grounded current-ledger business-key deduplication without
+  changing WI-063 acceptance or erasing append-only observations.

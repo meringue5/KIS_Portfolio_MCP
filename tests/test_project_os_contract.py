@@ -453,9 +453,12 @@ def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None
         if candidate.name == filename:
             continue
         document = candidate.read_text(encoding="utf-8")
-        if re.search(r"(?m)^status: in_progress$", document):
+        if re.search(r"(?m)^status: (?:in_progress|stabilizing)$", document):
             document = re.sub(
-                r"(?m)^status: in_progress$", "status: proposed", document, count=1
+                r"(?m)^status: (?:in_progress|stabilizing)$",
+                "status: proposed",
+                document,
+                count=1,
             )
             document = re.sub(
                 r"(?m)^execution_scope: .+$", "execution_scope: isolated", document, count=1
