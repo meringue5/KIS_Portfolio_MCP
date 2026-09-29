@@ -77,7 +77,11 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 ## Sub-items
 
-- None yet; append only after architecture review.
+- `WI-063-S01` (`in_progress`) — correct the production cutover after stabilization showed that the legacy overseas
+  transaction scheduler and the new incremental overseas scheduler both ran at 07:35 KST. The legacy Job refreshed
+  a separate token cache while the incremental Job was using its prior token, producing four consecutive
+  `http_status=403` failures. Preserve both legacy Jobs for rollback, pause both legacy trade schedulers, keep only the
+  new domestic/overseas schedules active, and verify an immediate overseas execution plus recurring evidence.
 
 ## Stabilization plan
 
@@ -93,7 +97,20 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 ## Evidence
 
-- Initial evidence is the read-only MotherDuck aggregate recorded by WI-062; implementation evidence pending.
+- Initial evidence is the read-only MotherDuck aggregate recorded by WI-062.
+- PR #137 merged commit `684e081`; protected deploy run `35900350370` passed and deployed immutable digest
+  `sha256:fd9d87b4...` to both incremental Jobs and Remote.
+- Immediate controlled replay succeeded: domestic execution `...-m8qcg` produced 13 successful partition runs and
+  overseas execution `...-fq9bz` produced four; all 34 quality checks passed. Direct Codex OAuth MCP calls proved a
+  covered empty ISA window, a populated RIA window, explicit IRP/global partial coverage, owner-debug invalid-date
+  error handling, an unaffected portfolio overview, and 17/17 successful pipeline-run rows.
+- Stabilization on 2026-09-30 found domestic recurring executions successful but all four recurring overseas
+  executions failed. Cloud Logging correlated the 07:35 legacy `kis-portfolio-overseas-transaction-history` token
+  refresh with the new Job's cache miss and KIS token issuance 403. Both legacy trade schedulers were paused as
+  recoverable containment; WI-063-S01 owns the durable cutover correction and replay.
+- After containment, immediate overseas execution `kis-portfolio-trade-incremental-overseas-bj9sn` succeeded. Its
+  four source requests reused the same cached token and returned HTTP 200 without a refresh or 403. The scheduler
+  cutover regression tests and the full repository gate passed (`793 passed`, one pre-existing Authlib warning).
 
 ## Closeout
 

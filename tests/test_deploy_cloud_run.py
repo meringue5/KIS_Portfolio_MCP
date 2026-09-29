@@ -107,6 +107,77 @@ def test_wi063_reuses_one_image_for_two_jobs_and_remote(monkeypatch):
     assert any("--scope,overseas" in " ".join(command) for command in job_commands)
     assert any(command[:4] == ["gcloud", "run", "services", "update"] for command in commands)
     assert len(schedulers) == 2
+    pauses = [
+        command for command in commands
+        if command[:4] == ["gcloud", "scheduler", "jobs", "pause"]
+    ]
+    assert [command[4] for command in pauses] == [
+        "kis-portfolio-domestic-order-history-1535",
+        "kis-portfolio-overseas-transaction-history-0735",
+    ]
+
+
+def test_wi063_scheduler_cutover_rolls_back_without_dual_activation(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3",
+        scheduler_region="asia-northeast3",
+        target="wi063",
+        dry_run=True,
+        secret_mode="secret-manager",
+    )
+    commands = []
+    scheduler_calls = []
+    monkeypatch.setattr(deploy_cloud_run, "_required_keys_for_batch", lambda _env: [])
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_split_runtime_env",
+        lambda **_kwargs: ({"KIS_DB_MODE": "motherduck"}, {}),
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_build_release_image",
+        lambda *_args, **_kwargs: "image@sha256:test",
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_run",
+        lambda command, **_kwargs: commands.append(command) or 0,
+    )
+
+    def deploy_scheduler(**kwargs):
+        scheduler_calls.append(kwargs["scheduler"])
+        return 0 if len(scheduler_calls) == 1 else 1
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_scheduler_target", deploy_scheduler)
+
+    result = deploy_cloud_run._deploy_wi063(
+        args,
+        env={
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
+        },
+        project="project-1",
+    )
+
+    assert result == 1
+    assert scheduler_calls == [
+        "kis-portfolio-trade-incremental-domestic-1610",
+        "kis-portfolio-trade-incremental-overseas-0735",
+    ]
+    transitions = [
+        (command[3], command[4])
+        for command in commands
+        if command[:3] == ["gcloud", "scheduler", "jobs"]
+        and command[3] in {"pause", "resume"}
+    ]
+    assert transitions == [
+        ("pause", "kis-portfolio-domestic-order-history-1535"),
+        ("pause", "kis-portfolio-overseas-transaction-history-0735"),
+        ("pause", "kis-portfolio-trade-incremental-domestic-1610"),
+        ("pause", "kis-portfolio-trade-incremental-overseas-0735"),
+        ("resume", "kis-portfolio-overseas-transaction-history-0735"),
+        ("resume", "kis-portfolio-domestic-order-history-1535"),
+    ]
 
 
 def test_workflow_dispatches_wi046_zero_traffic_stage_target():

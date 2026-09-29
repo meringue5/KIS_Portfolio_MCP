@@ -183,7 +183,7 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-061", "WI-062", "WI-063"]
+work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064"]
 
 [[work_items]]
 id = "WI-009"
@@ -759,6 +759,19 @@ rollback_of = []
 parent_id = ""
 sequence = 3
 
+[[work_items]]
+id = "WI-064"
+identity = "trade-event-business-key-deduplication"
+title = "Eliminate duplicate current trade events without erasing source history"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-063"]
+discovered_from = ["WI-063"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 4
+
 [[subitems]]
 id = "WI-060-S01"
 parent_id = "WI-060"
@@ -1166,3 +1179,9 @@ id = "WI-049-S03"
 parent_id = "WI-049"
 title = "Review and execute separately approved artifact image cleanup"
 status = "closed"
+
+[[subitems]]
+id = "WI-063-S01"
+parent_id = "WI-063"
+title = "Eliminate legacy/new trade scheduler overlap and verify recurring overseas recovery"
+status = "in_progress"
