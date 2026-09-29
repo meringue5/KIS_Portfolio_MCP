@@ -336,9 +336,9 @@ class WarehouseReadQueryPort:
         rows = self._rows(
             """
             SELECT p.evaluation_date, p.evaluation_slot,
-                   CASE WHEN count_if(p.quality_status <> 'pass') > 0
+                   CASE WHEN count_if(lower(trim(p.quality_status)) NOT IN ('pass', 'passed')) > 0
                         THEN NULL ELSE sum(p.value_krw) END AS total_value_krw,
-                   CASE WHEN count_if(p.quality_status <> 'pass') > 0
+                   CASE WHEN count_if(lower(trim(p.quality_status)) NOT IN ('pass', 'passed')) > 0
                         THEN 'degraded' ELSE 'pass' END AS quality_status,
                    max(p.as_of) AS as_of
             FROM gold.portfolio_daily_state p

@@ -183,7 +183,7 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064"]
+work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065"]
 
 [[work_items]]
 id = "WI-009"
@@ -771,6 +771,19 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 4
+
+[[work_items]]
+id = "WI-065"
+identity = "claude-asset-change-mcp-recovery"
+title = "Restore the Claude recent-asset-change MCP workflow on the current Remote revision"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-063"]
+discovered_from = ["WI-063"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 5
 
 [[subitems]]
 id = "WI-060-S01"

@@ -113,7 +113,7 @@ TOOL_CONTRACTS = (
     ToolContract("get-signal-status", "signal-status.v2", "stored", "Return versioned signal state, inputs and quality."),
     ToolContract("get-data-catalog", "data-catalog.v1", "packaged", "Return the governed source, dataset, metric, pipeline or object catalog."),
     ToolContract("get-data-quality", "data-quality.v1", "control-read", "Return bounded freshness, completeness, reconciliation and known-gap evidence."),
-    ToolContract("get-pipeline-run", "pipeline-run.v1", "control-read", "Return bounded pipeline run, stage, watermark and safe failure evidence."),
+    ToolContract("get-pipeline-run", "pipeline-run.v1", "control-read", "Return bounded pipeline run, stage, watermark and safe failure evidence; omit both selectors for the current portfolio-refresh pipeline."),
     ToolContract("get-journal-review-queue", "journal-review-queue.v2", "stored", "Return bounded owner-review questions without mutating journal state."),
 )
 _CONTRACT_BY_NAME = {item.name: item for item in TOOL_CONTRACTS}
@@ -271,7 +271,8 @@ def register_v2_read_tools(
         return await invoke("get-data-quality", lambda: DataQualityRequest(dataset_id=dataset_id, run_id=run_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
 
     async def pipeline_run(run_id: OpaqueId | None = None, pipeline_id: OpaqueId | None = None, as_of: datetime | None = None, lookback_days: LookbackDays = 7, cursor: Cursor | None = None, limit: Limit50 = 20) -> ReadResponseEnvelope:
-        return await invoke("get-pipeline-run", lambda: PipelineRunRequest(run_id=run_id, pipeline_id=pipeline_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
+        selected_pipeline_id = "portfolio-refresh" if run_id is None and pipeline_id is None else pipeline_id
+        return await invoke("get-pipeline-run", lambda: PipelineRunRequest(run_id=run_id, pipeline_id=selected_pipeline_id, as_of=as_of, lookback_days=lookback_days, cursor=cursor, limit=limit))
 
     async def journal_review_queue(status: Literal["open", "answered", "all"] = "open", account_alias: AccountAlias | None = None, cursor: Cursor | None = None, limit: Limit100 = 25) -> ReadResponseEnvelope:
         return await invoke("get-journal-review-queue", lambda: JournalReviewQueueRequest(status=status, account_alias=account_alias, cursor=cursor, limit=limit))

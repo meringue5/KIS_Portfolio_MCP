@@ -37,6 +37,9 @@ For Claude, add the same Remote MCP URL as a custom connector and enable it for 
 that Claude connects to Remote MCP from cloud infrastructure across claude.ai, Claude Desktop and mobile clients, so
 the iPhone does not connect to a Mac-local server. See
 [Get started with custom connectors using remote MCP](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
+The canonical stable URL remains the owner-facing configuration. The retained `wi046-v2` tagged URL exists only for
+compatibility with an already-installed Claude connector and must move to the same verified revision during every
+approved compatibility release; it is not an immutable product version.
 
 For Codex, register the same URL with `codex mcp add` using DCR, then run `codex mcp login` with the required scopes.
 Codex native OAuth uses an ephemeral `http://127.0.0.1:<port>/callback/<nonce>` redirect. The auth server accepts
