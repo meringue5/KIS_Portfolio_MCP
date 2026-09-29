@@ -853,6 +853,57 @@ def _scheduler_exists(
     raise RuntimeError("Failed to check existing Cloud Scheduler job state.")
 
 
+def _scheduler_state(
+    *,
+    scheduler: str,
+    scheduler_region: str,
+    project: str,
+    dry_run: bool,
+) -> str:
+    """Return the exact scheduler state before a guarded cutover mutation."""
+
+    command = [
+        "gcloud", "scheduler", "jobs", "describe", scheduler,
+        "--location", scheduler_region,
+        "--project", project,
+        "--format=value(state)",
+    ]
+    if dry_run:
+        _run(command, dry_run=True)
+        return "ENABLED"
+    completed = _run_capture(command, dry_run=False)
+    if completed.returncode != 0:
+        if completed.stdout.strip():
+            print(completed.stdout, file=sys.stderr, end="")
+        if completed.stderr.strip():
+            print(completed.stderr, file=sys.stderr, end="")
+        raise RuntimeError(f"failed to read scheduler state: {scheduler}")
+    state = completed.stdout.strip().upper()
+    if not state:
+        raise RuntimeError(f"scheduler state is empty: {scheduler}")
+    return state
+
+
+def _set_scheduler_state(
+    *,
+    action: str,
+    scheduler: str,
+    scheduler_region: str,
+    project: str,
+    dry_run: bool,
+) -> int:
+    if action not in {"pause", "resume"}:
+        raise ValueError(f"unsupported scheduler action: {action}")
+    return _run(
+        [
+            "gcloud", "scheduler", "jobs", action, scheduler,
+            "--location", scheduler_region,
+            "--project", project,
+        ],
+        dry_run=dry_run,
+    )
+
+
 def _deploy_service_or_job(
     *,
     args: argparse.Namespace,
@@ -2821,20 +2872,71 @@ def _deploy_wi063(
             env.get("KIS_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE", DEFAULT_TRADE_INCREMENTAL_OVERSEAS_SCHEDULE),
         ),
     }
-    for scope, job in jobs.items():
-        scheduler, schedule = schedules[scope]
-        if _deploy_scheduler_target(
-            args=args,
-            env={**env, "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT": scheduler_sa},
-            project=project,
-            job=job,
-            scheduler=scheduler,
-            scheduler_region=args.scheduler_region or args.region,
-            schedule=schedule,
-            time_zone="Asia/Seoul",
-        ) != 0:
-            return 1
-    print(f"WI-063 deployed two isolated trade Jobs and Remote from one image: {image}")
+    legacy_schedulers = (
+        env.get("KIS_BATCH_SCHEDULER_NAME", DEFAULT_BATCH_SCHEDULER),
+        env.get("KIS_OVERSEAS_BATCH_SCHEDULER_NAME", DEFAULT_OVERSEAS_BATCH_SCHEDULER),
+    )
+    paused_legacy: list[str] = []
+    scheduler_region = args.scheduler_region or args.region
+    try:
+        for scheduler in legacy_schedulers:
+            state = _scheduler_state(
+                scheduler=scheduler,
+                scheduler_region=scheduler_region,
+                project=project,
+                dry_run=args.dry_run,
+            )
+            if state == "ENABLED":
+                if _set_scheduler_state(
+                    action="pause",
+                    scheduler=scheduler,
+                    scheduler_region=scheduler_region,
+                    project=project,
+                    dry_run=args.dry_run,
+                ) != 0:
+                    raise RuntimeError(f"failed to pause legacy trade scheduler: {scheduler}")
+                paused_legacy.append(scheduler)
+            elif state != "PAUSED":
+                raise RuntimeError(
+                    f"legacy trade scheduler has unsupported state {state!r}: {scheduler}"
+                )
+
+        for scope, job in jobs.items():
+            scheduler, schedule = schedules[scope]
+            if _deploy_scheduler_target(
+                args=args,
+                env={**env, "KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT": scheduler_sa},
+                project=project,
+                job=job,
+                scheduler=scheduler,
+                scheduler_region=scheduler_region,
+                schedule=schedule,
+                time_zone="Asia/Seoul",
+            ) != 0:
+                raise RuntimeError(f"failed to deploy WI-063 scheduler: {scheduler}")
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        for scheduler, _schedule in schedules.values():
+            _set_scheduler_state(
+                action="pause",
+                scheduler=scheduler,
+                scheduler_region=scheduler_region,
+                project=project,
+                dry_run=args.dry_run,
+            )
+        for scheduler in reversed(paused_legacy):
+            _set_scheduler_state(
+                action="resume",
+                scheduler=scheduler,
+                scheduler_region=scheduler_region,
+                project=project,
+                dry_run=args.dry_run,
+            )
+        return 1
+    print(
+        "WI-063 paused legacy trade schedulers and deployed two isolated trade Jobs "
+        f"and Remote from one image: {image}"
+    )
     return 0
 
 

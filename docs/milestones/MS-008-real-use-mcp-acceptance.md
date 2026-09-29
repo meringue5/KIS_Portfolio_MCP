@@ -17,6 +17,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 1 | WI-061 real-use completion gate | none | closed |
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
 | 3 | WI-063 incremental trade-event collection | WI-062 | in_progress |
+| 4 | WI-064 trade-event business-key deduplication | WI-063 | proposed |
 
 ## Gates
 
@@ -26,6 +27,8 @@ gaps found there must be classified and routed to an owned follow-up.
   backfill or public-catalog removal is implied by registering the Work Item.
 - WI-063 owns the newly proven contract/implementation gap: the recurring core pipeline declares trade-event output
   but does not increment the trade ledger or its source coverage watermark after the one-time backfill.
+- WI-064 preserves a separate correctness finding from WI-063 real-use evidence: the current trade view contains
+  repeated business-key groups that require source-grounded identity analysis before any deduplication.
 - Completion requires immediate reproducible client calls; waiting for a future scheduler slot cannot be the only
   acceptance method.
 
@@ -38,3 +41,4 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-09-23.3 | 2026-09-23 | Production rows ended 2026-08-25 and backfill watermark ended 2026-08-28 while current core runs omit trade collection | Register WI-063; keep WI-062 response correction active and do not claim September no-trade coverage |
 | 2026-09-23.4 | 2026-09-23 | PR #135, deploy run 35868121973 and six-call direct Codex OAuth replay passed the corrected positive, partial and error contracts | Keep WI-062 stabilizing until owner acceptance; WI-063 remains proposed for collection restoration |
 | 2026-09-24.1 | 2026-09-24 | Owner accepted the WI-062 replay and approved the next work; independent incremental trade collection was selected to prevent trade-source failure from blocking portfolio capabilities | Close WI-062 and start WI-063 as the sole implementation Work Item |
+| 2026-09-30.1 | 2026-09-30 | Initial replay and direct Codex OAuth positive/partial/error calls passed, but stabilization found four consecutive overseas schedule failures caused by legacy and new jobs refreshing the same KIS credential at 07:35 through separate state stores | Keep WI-063 in progress; open WI-063-S01, pause both legacy trade schedulers as recoverable containment, and verify durable cutover plus immediate/recurring overseas recovery |

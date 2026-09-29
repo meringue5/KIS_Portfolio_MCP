@@ -386,9 +386,11 @@ uv run python scripts/sync_secret_manager.py --project grand-forge-279904 --appl
 - Job name: `kis-portfolio-domestic-order-history`
 - Scheduler name: `kis-portfolio-domestic-order-history-1535`
 - Schedule: 평일 `15:35` KST (`35 15 * * 1-5`)
+- Steady-state status after WI-063 cutover: `PAUSED` (Job retained for rollback only)
 - Overseas Job name: `kis-portfolio-overseas-transaction-history`
 - Overseas Scheduler name: `kis-portfolio-overseas-transaction-history-0735`
 - Overseas Schedule: 평일 `07:35` KST (`35 7 * * 1-5`)
+- Steady-state status after WI-063 cutover: `PAUSED` (Job retained for rollback only)
 - Token warm-up Job name: `kis-portfolio-token-warmup-dry-run`
 - Token warm-up Scheduler name: `kis-portfolio-token-warmup-0830`
 - Token warm-up Schedule: 평일 `08:30` KST (`30 8 * * 1-5`)
@@ -403,11 +405,15 @@ WI-063의 `wi063` target은 동일 immutable image를 독립 거래 수집 Job �
 - Domestic schedule: 평일 `16:10` KST, `--scope domestic --date today`
 - Overseas Job: `kis-portfolio-trade-incremental-overseas`
 - Overseas schedule: 평일 `07:35` KST, `--scope overseas --date new-york-today`
+- Cutover: 두 신규 schedule을 활성화하기 전에 기존 domestic/overseas trade scheduler의 현재 상태를 읽고
+  둘 다 pause한다. 신규 schedule 배포가 하나라도 실패하면 신규 둘을 pause하고 이번 실행에서 pause한 기존
+  schedule만 resume해 구·신 동시 실행을 만들지 않는다.
 - Runtime identity: 기존 `kis-portfolio-pipeline@PROJECT.iam.gserviceaccount.com`
 - Initial replay: 운영 aggregate watermark를 읽어 누락 시작일을 확정한 뒤 두 Job을 같은 start date로 각각
   override 실행한다. 120일 또는 48-call ceiling을 넘으면 자동 실행하지 않고 recovery plan을 분할 검토한다.
 - Rollback: Remote smoke 실패 시 이전 100% serving revision으로 되돌린다. Job/Scheduler는 이전 image/definition을
-  보존해 복구하며 ledger row를 삭제하지 않는다.
+  보존한다. 신규 schedule cutover 실패 시 신규 둘을 pause하고 기존 schedule을 resume하며 ledger row를
+  삭제하지 않는다.
 
 V2 owned-portfolio pipeline은 기존 배치와 별도의 최소권한 identity를 사용한다.
 
