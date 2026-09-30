@@ -1,7 +1,7 @@
 ---
 id: WI-065
 title: Restore the Claude recent-asset-change MCP workflow on the current Remote revision
-status: verified
+status: stabilizing
 type: incident
 owner: owner
 decision_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-057, DEC-058, ADR-015, ADR-028, ADR-029, ADR-030
@@ -21,7 +21,10 @@ security_impact: retain owner-debug redaction OAuth resource binding and exact H
 cost_impact: zero source calls and no standing resource change
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: owner Claude asset-change session and redacted Cloud Run logs at 2026-09-29T23:19Z
+real_use_evidence_refs: owner Claude asset-change session, PRs #140/#141, deploy run 36664435767, Remote revision 00057-52l and direct Codex OAuth replay on 2026-09-30
+stabilization_window: immediate owner replay of the original Claude recent-asset-change prompt after Remote revision 00057-52l
+stabilization_exit_refs: protected run 36664435767, stable/tag routing evidence, direct Codex OAuth positive/partial/error outputs and owner Claude acceptance
+rollback_plan: restore the captured pre-release stable revision 00056 and wi046-v2 tag revision 00048 through the protected rollback path without rewriting data
 ---
 
 # WI-065 — Restore the Claude recent-asset-change MCP workflow on the current Remote revision
@@ -82,8 +85,8 @@ success spellings rather than reverse which half is falsely degraded.
 - Data/schema/backup: read-only normalization; no migration, write or backup change.
 - Security/privacy: no new response fields or identifiers; existing redaction remains mandatory.
 - MCP/API compatibility: additive no-argument default and correction of false quality labels.
-- Deployment/rollback: current phase is repository-only. A later protected Remote release must record exact SHA,
-  revision, image and stable/tag routing; rollback restores the prior stable revision without data changes.
+- Deployment/rollback: protected run `36664435767` moved stable traffic and `wi046-v2` together to revision
+  `00057-52l`; the guarded rollback restores both prior routes without data changes.
 - Cost/SLO: DB-only bounded reads; no source-call or instance-cost increase.
 
 ## Plan
@@ -127,9 +130,21 @@ success spellings rather than reverse which half is falsely degraded.
   returned 66 date-slot rows, of which 60 were pass and six genuinely degraded with six suppressed totals.
 - Quick gate and full repository gate passed; the full suite now contains 799 tests. WI-065 deploy dry-run changes only
   the Remote image, stable latest traffic and `wi046-v2=LATEST` tag mapping.
+- PR #141 merged as master `485dac066412892039dfb66a8a016f8cd221405c`; protected run `36664435767`
+  deployed immutable image digest `5df34febe4a1...f6ea2947` as Remote revision `00057-52l`. Read-only Cloud Run
+  inspection confirmed `deploy-target=wi065`, the matching SHA/run labels, stable traffic at 100%, and `wi046-v2`
+  on the same latest revision. Built-in canonical and compatibility-route smoke passed.
+- Direct Codex OAuth on the released revision returned no-selector pipeline quality `pass` with nine runs; the
+  2026-07-24 through 2026-09-29 history returned 66 rows with 60 `pass` and six honest `degraded`/suppressed totals.
+  The 2026-09-17 partial probe retained one pass row plus two degraded rows, conflicting selectors returned a
+  structured owner-debug `invalid_request`, and unaffected overview/data-quality reads both remained `pass`.
+- Redacted post-release logs on revision `00057-52l` recorded the Codex MCP traffic and the exact owner-debug error
+  probe. No data write, source call, Telegram send, batch or scheduler mutation occurred.
 
 ## Closeout
 
-- Result: repository implementation verified; protected production release and actual-client replay remain pending.
-- Remaining risk: Claude continues to use an old tagged revision until an approved release/configuration correction.
+- Result: repository implementation, protected Remote release and direct Codex OAuth replay passed; WI-065 is
+  stabilizing while the owner repeats the original Claude prompt through the updated compatibility route.
+- Remaining risk: post-release Claude client behavior is not yet owner-confirmed even though its retained route now
+  maps to the verified current revision.
 - Follow-up Work Item: WI-064 remains independently proposed for trade-event business-key deduplication.

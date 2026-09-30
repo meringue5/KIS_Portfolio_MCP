@@ -18,7 +18,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
 | 3 | WI-063 incremental trade-event collection | WI-062 | stabilizing |
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | proposed |
-| 5 | WI-065 Claude asset-change MCP recovery | WI-063 | verified |
+| 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
 
 ## Gates
 
@@ -50,3 +50,4 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-09-30.3 | 2026-09-30 | Owner Claude asset-change use found no-argument pipeline status failing generically and all history falsely degraded; logs proved the first is an unhandled selector validation error and the second is served by stale `wi046-v2` revision `00048` with reversed `passed` versus current `pass` semantics | Start WI-065 test-first as the sole implementation item; keep WI-064 proposed and do not mutate production until the tested release is approved |
 | 2026-09-30.4 | 2026-09-30 | Five exact regressions failed before implementation; no-selector default, mixed `pass`/`passed` normalization and stable/tag atomic release guard then passed 158 focused and 799 full tests, plus a patched-code production read returned 60 pass and six honestly degraded history groups | Move WI-065 to verified; request a protected Remote-only release before stabilizing and actual Claude/Codex replay |
 | 2026-09-30.5 | 2026-09-30 | The owner approved the protected WI-065 production release after PR #140 merged with green CI | Permit only the Remote image, stable traffic and retained `wi046-v2` compatibility tag to move together; require immediate actual-client replay and rollback on smoke failure |
+| 2026-09-30.6 | 2026-09-30 | PR #141/master `485dac0` and protected run `36664435767` deployed Remote `00057-52l`; stable traffic and `wi046-v2` now share the revision, smoke passed, and direct Codex OAuth positive/partial/error plus unaffected reads passed | Move WI-065 to stabilizing; await owner replay of the original Claude prompt before acceptance and closure |
