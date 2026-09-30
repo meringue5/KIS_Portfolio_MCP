@@ -13,8 +13,8 @@ depends_on: WI-063
 discovered_from: WI-063
 supersedes: none
 rollback_of: none
-execution_scope: repository implementation and production-equivalent Remote verification
-production_effects: none
+execution_scope: protected production Remote release and immediate actual-client verification
+production_effects: update the kis-portfolio-remote image, stable traffic and wi046-v2 compatibility tag together
 architecture_impact: none; repair the approved read contract and canonical Remote release path without changing tools scopes or trust boundaries
 data_impact: read-only quality vocabulary normalization over existing append-only daily states; no schema write migration or source activation
 security_impact: retain owner-debug redaction OAuth resource binding and exact Host validation
@@ -50,8 +50,8 @@ success spellings rather than reverse which half is falsely degraded.
   own quality honestly; Claude uses the canonical current Remote connection rather than an immutable candidate tag.
 - Contract result: implementation and serving configuration are below the approved behavior. No new capability,
   provider, dataset, schema, scope or architecture decision is required.
-- Authorization: the owner requested test-first remediation on 2026-09-30. Production traffic or connector mutation
-  remains outside the current `production_effects: none` phase until the tested release is separately authorized.
+- Authorization: after PR #140 merged with green CI, the owner explicitly authorized the protected WI-065 Remote
+  release on 2026-09-30. The release may update only the Remote image, stable traffic and `wi046-v2` compatibility tag.
 
 ## Scope
 

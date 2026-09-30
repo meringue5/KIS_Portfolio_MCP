@@ -466,7 +466,13 @@ def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None
             document = re.sub(
                 r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
             )
-            candidate.write_text(document, encoding="utf-8")
+        # This fixture intentionally rewinds an older milestone gate. Keep
+        # unrelated verified release phases from leaking into that synthetic
+        # history and invalidating the scenario under test.
+        document = re.sub(
+            r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
+        )
+        candidate.write_text(document, encoding="utf-8")
     registry = target / "governance/project/milestones.toml"
     registry.write_text(
         registry.read_text(encoding="utf-8").replace(
