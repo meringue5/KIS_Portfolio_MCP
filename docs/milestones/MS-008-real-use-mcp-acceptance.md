@@ -19,7 +19,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 3 | WI-063 incremental trade-event collection | WI-062 | stabilizing |
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | proposed |
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
-| 6 | WI-066 legacy total-asset history quality recovery | WI-065 | in_progress |
+| 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
 
 ## Gates
 
@@ -59,4 +59,5 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-10-07.1 | 2026-10-07 | The owner approved proceeding with the separated data-defect Work Item | Start WI-066 as the sole `in_progress` implementation item; limit the phase to deterministic fixtures, fail-closed read behavior and read-only production profiling, with no production data mutation or deployment |
 | 2026-10-07.2 | 2026-10-07 | View-only migration 0020, the matching Remote projection and future-backfill labels passed immediate MCP positive/partial/error fixtures, quick gates and 803 full tests; a direct production Codex baseline still returned the 6/20 legacy total as `pass` because no release occurred | Keep WI-066 in progress; request separate production migration/release approval, then require post-release Codex and owner-Claude replay before stabilization |
 | 2026-10-08.1 | 2026-10-08 | The owner explicitly approved the complete WI-066 PR, private backup/restore, view-only migration, Remote release and immediate MCP validation process | Add one protected `wi066` target; require migration and both restore checks before moving stable and `wi046-v2`, preserve source rows and keep source replay outside the approval |
-| 2026-10-08.2 | 2026-10-08 | Protected run 37643171197 exhausted the platform-default 512Mi transition-Job memory before migration or Remote update; repository gates and image build passed, and serving routes remained on the captured WI-065 revision | Keep WI-066 in progress, set an explicit bounded 2Gi Job memory limit with regression coverage, and repeat the same protected target rather than waiting for a scheduled slot |
+| 2026-10-08.2 | 2026-10-08 | Protected run 37643171197 created and restored its pre-backup and applied view-only 0020, then exhausted the platform-default 512Mi transition-Job memory during later recovery work before Remote update; original rows and serving routes remained unchanged | Keep WI-066 in progress, set an explicit bounded 2Gi Job memory limit with regression coverage, and repeat the resumable protected target rather than waiting for a scheduled slot |
+| 2026-10-08.3 | 2026-10-08 | PR #145 and protected run 37693993263 succeeded at master f472a24: both 79-object backups restored, 3273 rows were fingerprint-preserved, all 27 legacy groups were quarantined, all 75 native groups validated, Remote 00058-5qk serves stable plus wi046-v2, and immediate Codex positive/partial/error plus overview/pipeline calls passed | Move WI-066 to stabilizing; require the owner to repeat the original longitudinal prompt in Claude before closure |
