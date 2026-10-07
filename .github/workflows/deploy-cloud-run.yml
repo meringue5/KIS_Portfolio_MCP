@@ -32,6 +32,7 @@ on:
           - wi060
           - wi063
           - wi065
+          - wi066
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -135,6 +136,7 @@ jobs:
       KIS_WI030_S02_JOB_NAME: ${{ vars.KIS_WI030_S02_JOB_NAME || 'kis-portfolio-wi030-s02' }}
       KIS_WI030_S03_JOB_NAME: ${{ vars.KIS_WI030_S03_JOB_NAME || 'kis-portfolio-wi030-s03' }}
       KIS_WI048_S02_JOB_NAME: ${{ vars.KIS_WI048_S02_JOB_NAME || 'kis-portfolio-wi048-s02' }}
+      KIS_WI066_JOB_NAME: ${{ vars.KIS_WI066_JOB_NAME || 'kis-portfolio-wi066' }}
       KIS_TELEGRAM_BOT_TOKEN_VERSION: ${{ vars.KIS_TELEGRAM_BOT_TOKEN_VERSION }}
       KIS_TELEGRAM_CHAT_ID_VERSION: ${{ vars.KIS_TELEGRAM_CHAT_ID_VERSION }}
       KOREA_EXIM_API_KEY_VERSION: ${{ vars.KOREA_EXIM_API_KEY_VERSION || '1' }}
@@ -172,9 +174,13 @@ jobs:
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
-          if [ "${target}" = "wi063" ] || [ "${target}" = "wi065" ]; then
+          if [ "${target}" = "wi063" ] || [ "${target}" = "wi065" ] || [ "${target}" = "wi066" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
+          fi
+          if [ "${target}" = "wi066" ]; then
+            test -n "${KIS_GCS_BUCKET}" || { echo "KIS_GCS_BUCKET var is required."; exit 1; }
+            test "${KIS_DB_MODE}" = "motherduck" || { echo "WI-066 requires KIS_DB_MODE=motherduck."; exit 1; }
           fi
           if [ "${target}" = "wi048-s02" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
@@ -313,6 +319,16 @@ jobs:
           uv run python scripts/deploy_cloud_run.py wi065 \
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
+            --secret-mode secret-manager
+
+      - name: Apply WI-066 history quarantine and deploy Remote routes
+        if: github.event.inputs.target == 'wi066'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi066 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --service "${KIS_REMOTE_SERVICE_NAME}" \
+            --job "${KIS_WI066_JOB_NAME}" \
             --secret-mode secret-manager
 
       - name: Deploy WI-021-S06 migration and recovery jobs

@@ -37,10 +37,12 @@ version을 pin한다. bundle 재구성은 별도 security Work Item 없이는 �
 `wi048-s02` target으로 수행했다. 최종 런타임 digest 수렴은 `wi051-final-audit` target이 담당하며, WI-046
 stage/promotion target은 당시 전환 이력과 제한적 복구 도구로만 남긴다.
 
-WI-066 코드가 포함된 revision은 Remote 또는 core를 갱신하기 전에 additive migration `0020`을 적용하고
+WI-066 코드가 포함된 revision은 Remote를 갱신하기 전에 additive migration `0020`을 적용하고
 `gold.portfolio_daily_summary`의 legacy/current/degraded fixture 및 fresh restore를 검증해야 한다. Remote
-runtime은 `0020`이 없으면 시작하지 않는다. 2026-10-07 현재 운영 DB는 `0019`이므로 WI-066 production
-migration과 배포는 아직 실행되지 않았다.
+runtime은 `0020`이 없으면 시작하지 않는다. 보호된 `wi066` target은 한 immutable image로 private pre-backup
+restore, view-only `0020`, 멱등성·원본 row fingerprint·legacy/native projection 검증, private post-backup restore를
+먼저 끝낸 뒤에만 stable과 `wi046-v2` Remote route를 같은 새 revision으로 이동한다. 실패 시 이전 두 route를
+복원하며 core Job, Scheduler, IAM, Secret, source 호출과 저장 row는 변경하지 않는다.
 
 Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
 contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply
@@ -528,6 +530,10 @@ Deploy workflow:
 - `wi063`은 `all`에 포함되지 않는 수동 protected target이다. 두 scale-to-zero Job과 Scheduler를 만든 뒤
   같은 image로 Remote를 갱신하고 health/discovery/auth-boundary smoke를 통과해야 한다. source replay는 별도
   명시적 실행으로 남겨 배포와 데이터 mutation 증거를 구분한다.
+- `wi066`도 `all`에 포함되지 않는 수동 protected target이다. private pre/post backup과 각각의 fresh restore,
+  view-only `0020`, 원본 row fingerprint 및 legacy/native projection 검증을 통과한 동일 digest만 Remote에
+  배포하고 stable과 `wi046-v2`를 함께 이동한다. core Job, Scheduler, IAM, Secret, source 호출과 row rewrite는
+  없으며 Remote smoke 실패 시 캡처한 이전 두 route로 되돌린다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.
