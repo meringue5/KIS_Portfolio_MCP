@@ -13,18 +13,18 @@ depends_on: WI-065
 discovered_from: WI-065
 supersedes: none
 rollback_of: none
-execution_scope: isolated implementation and read-only production profiling complete; production migration and release pending approval
-production_effects: none
+execution_scope: protected production migration and Remote release authorized; execution and actual-client acceptance in progress
+production_effects: private pre/post backup and fresh restore, view-only migration 0020, then one Remote revision with stable and wi046-v2 route update; no source calls or row rewrite
 architecture_impact: none; enforce the approved legacy quality contract without changing SSOT, grain, public tools or trust boundaries
 data_impact: repository migration 0020 and read projection quarantine retained v1-latest totals without rewriting source rows; no production write has occurred
 security_impact: none; retain confidential portfolio-data handling and aggregate-only evidence
-cost_impact: read-only warehouse inspection and deterministic fixtures only until a separately approved production correction
+cost_impact: one bounded Cloud Build, one single-task Cloud Run migration Job, one Remote revision and two private backups capped at 10 GiB each
 user_visible_impact: yes
 real_use_acceptance: required
 real_use_evidence_refs: pending Codex and owner-Claude longitudinal-history replay after an approved correction
-stabilization_window: none
-stabilization_exit_refs: none
-rollback_plan: before production no-op; after an approved release use a successor migration to restore the prior view while retaining migration history and all original V1/V2 rows
+stabilization_window: immediate Codex positive, partial and error replay followed by owner-Claude longitudinal replay
+stabilization_exit_refs: protected production run, pre/post backup and fresh-restore evidence, migration 0020, exact Remote labels/routes, Codex replay and owner-Claude acceptance
+rollback_plan: restore stable and wi046-v2 traffic to the captured prior revisions on Remote smoke failure; use a successor migration for a read-model rollback while retaining migration history and all original V1/V2 rows
 ---
 
 # WI-066 — Quarantine incomplete legacy total-asset history and restore truthful longitudinal analysis
@@ -57,9 +57,9 @@ labels are `pass` or `passed`.
   `legacy_unassessed`/incomplete rather than inferred `pass`.
 - Contract result: physical preservation succeeded, but quality migration and downstream usability are below the
   approved contract. This is not evidence that the historical portfolio actually lost the omitted overseas amount.
-- Approval boundary: the owner approved WI-066 implementation on 2026-10-07. The current phase remains isolated and
-  read-only against production; production migration, backfill, rewrite, deployment or source calls require a reviewed
-  plan and explicit authorization.
+- Approval boundary: the owner approved isolated implementation on 2026-10-07 and explicitly approved the complete
+  protected backup, restore, migration, PR, deployment and immediate MCP validation process on 2026-10-08. This does
+  not authorize source replay, historical row rewriting, destructive cleanup or a new provider.
 
 ## Scope
 
@@ -103,10 +103,10 @@ labels are `pass` or `passed`.
   account numbers, credentials or raw provider payloads.
 - MCP/API compatibility: response envelope stays compatible, but previously false `pass` history may become explicit
   partial/unavailable with a specific missing-coverage reason.
-- Deployment/rollback: not yet authorized. A future release must capture the current read model and preserve original
-  rows so rollback does not erase evidence.
-- Cost/SLO: initial investigation is DB-only. Any source replay or production backfill requires a separate bounded
-  call/cost plan.
+- Deployment/rollback: authorized through the protected `wi066` target. It captures both current routes before change,
+  migrates and restores before serving, and restores the prior stable and `wi046-v2` routes on Remote smoke failure.
+- Cost/SLO: the release is bounded to one build, one no-retry single-task Job, one Remote revision, one hour and two
+  private backups of at most 10 GiB each. Source replay or production backfill remains separately gated.
 
 ## Implemented isolated correction
 
@@ -122,8 +122,7 @@ labels are `pass` or `passed`.
 
 ## Plan
 
-1. Obtain explicit owner approval for a protected production migration/release; code implementation approval alone
-   did not authorize this effect.
+1. Record the owner's 2026-10-08 authorization for the complete protected production migration/release process.
 2. Capture a private pre-migration backup and verify fresh restore at migration `0019`.
 3. Apply view-only migration `0020`, verify the view fixture against production counts, then capture and fresh-restore
    the post-migration backup. Do not update or delete retained rows.
@@ -139,8 +138,8 @@ labels are `pass` or `passed`.
 
 ## Stabilization plan
 
-- Observation period/sample: to be defined before `stabilizing`; must include representative verified legacy,
-  incomplete legacy and current V2-native dates.
+- Observation period/sample: immediate Codex positive/current, partial/legacy and error/unsupported-grain calls, then
+  the owner's original longitudinal question through Claude.
 - Signals: component coverage, legacy disposition, reconciled totals, suppressed false totals, unaffected current
   overview and actual-client interpretation.
 - Rollback trigger and safe state: any current-state regression, fabricated completeness, loss of retained evidence or
@@ -181,14 +180,21 @@ labels are `pass` or `passed`.
 - Actual Codex production baseline on 2026-10-07: 2026-06-20 `v1-latest` still returned KRW 927,743,316 as `pass`,
   while 2026-07-24 returned `NULL`/`degraded`. This confirms production remains on the pre-fix behavior and is not
   post-release acceptance.
+- Production preflight on 2026-10-08: protected `master` was the merged WI-066 implementation SHA, MotherDuck was
+  exactly at migration `0019`, the four observed inventory differences matched registered preservation drift with no
+  blocker, and stable plus `wi046-v2` both resolved to the captured pre-release Remote revision.
+- Release-path red regression initially failed because the WI-066 release service did not exist. The implemented
+  tests now require private backup/download/fresh restore on both sides of `0020`, no state-row mutation, idempotency,
+  migration-before-route ordering, one immutable image and no Scheduler or IAM change.
 - `bash scripts/check.sh quick`: passed. `bash scripts/check.sh full`: 803 passed, one pre-existing Authlib
   deprecation warning.
 - No production write, source call, deployment, external notification or destructive operation occurred during intake.
 
 ## Closeout
 
-- Result: isolated implementation and immediate MCP boundary verification are complete; the item remains the sole
-  `in_progress` Work Item because production migration/release and owner-Claude acceptance are not authorized or done.
+- Result: isolated implementation and immediate MCP boundary verification are complete; the protected production
+  process is authorized and in progress. The item remains the sole `in_progress` Work Item until release and Codex
+  replay succeed, then remains `stabilizing` until owner-Claude acceptance.
 - Remaining risk: production clients can still misinterpret some migrated legacy totals as actual loss/recovery until
   migration `0020` and the matching Remote revision are released.
 - Follow-up Work Item: none yet; allocate one only if recovery requires an independent source/backfill outcome.

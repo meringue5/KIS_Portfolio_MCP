@@ -46,6 +46,8 @@ DEFAULT_WI046_REMOTE_ROLLBACK_REVISION = "kis-portfolio-remote-00031-pbm"
 DEFAULT_WI046_REMOTE_CANDIDATE_REVISION = "kis-portfolio-remote-00036-tej"
 DEFAULT_WI048_S02_JOB = "kis-portfolio-wi048-s02"
 DEFAULT_WI048_S02_TASK_TIMEOUT = "3600s"
+DEFAULT_WI066_JOB = "kis-portfolio-wi066"
+DEFAULT_WI066_TASK_TIMEOUT = "3600s"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -3042,6 +3044,171 @@ def _deploy_wi065(
     return 1
 
 
+def _deploy_wi066(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Back up and apply 0020 before atomically moving both Remote routes."""
+    transition_required = ["KIS_DB_MODE", "MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN", "KIS_GCS_BUCKET"]
+    required = list(dict.fromkeys([
+        *transition_required,
+        "KIS_AUTH_BASE_URL",
+        "KIS_RESOURCE_SERVER_URL",
+    ]))
+    missing = _validate_required(env, required, secret_mode=args.secret_mode)
+    if env.get("KIS_DB_MODE", "").strip().lower() != "motherduck":
+        missing.append("KIS_DB_MODE=motherduck")
+    if missing:
+        print("Missing or invalid WI-066 release inputs:")
+        for key in dict.fromkeys(missing):
+            print(f"- {key}")
+        return 1
+
+    service = args.service or env.get("KIS_REMOTE_SERVICE_NAME") or DEFAULT_REMOTE_SERVICE
+    previous_traffic = [] if args.dry_run else _service_traffic(
+        project=project, region=args.region, service=service,
+    )
+    if previous_traffic is None:
+        print("Failed to inspect Remote traffic before WI-066 release.")
+        return 1
+    previous_serving_revision = next((
+        item.get("revisionName")
+        for item in previous_traffic
+        if int(item.get("percent") or 0) == 100
+    ), None)
+    previous_compatibility_revision = next((
+        item.get("revisionName")
+        for item in previous_traffic
+        if item.get("tag") == DEFAULT_WI046_REMOTE_TAG
+    ), None)
+    if not args.dry_run and (
+        not isinstance(previous_serving_revision, str)
+        or not previous_serving_revision
+        or not isinstance(previous_compatibility_revision, str)
+        or not previous_compatibility_revision
+    ):
+        print("WI-066 rollback precondition failed; serving or compatibility revision is missing.")
+        return 1
+
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-066 image digest.")
+        return 1
+    image_digest = image.rsplit("@", 1)[1]
+    git_sha = os.environ.get("GITHUB_SHA", "").strip() or (_git_stdout(["rev-parse", "HEAD"]) or "")
+    if len(git_sha) < 7:
+        print("Failed to resolve WI-066 Git SHA provenance.")
+        return 1
+
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    transition_job = args.job or env.get("KIS_WI066_JOB_NAME") or DEFAULT_WI066_JOB
+    transition_payload = {
+        "KIS_DB_MODE": "motherduck",
+        "MOTHERDUCK_DATABASE": env["MOTHERDUCK_DATABASE"],
+        "KIS_GCP_PROJECT": project,
+        "KIS_GCS_BUCKET": env["KIS_GCS_BUCKET"],
+        "KIS_RELEASE_IMAGE_DIGEST": image_digest,
+        "KIS_RELEASE_GIT_SHA": git_sha,
+    }
+    transition_plain, transition_secrets = _split_runtime_env(
+        env=env,
+        payload=transition_payload,
+        required=transition_required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    transition_env_path = _write_env_yaml(transition_plain)
+    try:
+        if _run([
+            "gcloud", "run", "jobs", "deploy", transition_job,
+            "--image", image, "--region", args.region,
+            "--env-vars-file", transition_env_path,
+            "--command", "kis-portfolio-batch",
+            "--args", f"run-wi066-release,--project,{project},--bucket,{env['KIS_GCS_BUCKET']}",
+            "--tasks", "1", "--parallelism", "1",
+            "--task-timeout", DEFAULT_WI066_TASK_TIMEOUT,
+            "--max-retries", "0", "--service-account", service_account,
+            *_build_secret_flags(transition_secrets),
+            *_build_label_flags("wi066-migration"),
+            "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+        if _run([
+            "gcloud", "run", "jobs", "execute", transition_job,
+            "--region", args.region, "--wait", "--project", project,
+        ], dry_run=args.dry_run) != 0:
+            return 1
+    finally:
+        try:
+            os.unlink(transition_env_path)
+        except FileNotFoundError:
+            pass
+
+    if _run([
+        "gcloud", "run", "services", "update", service,
+        "--image", image, "--region", args.region,
+        "--no-traffic",
+        *_build_label_flags("wi066"), "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        return 1
+
+    promote_code = _run([
+        "gcloud", "run", "services", "update-traffic", service,
+        "--update-tags", f"{DEFAULT_WI046_REMOTE_TAG}=LATEST",
+        "--to-latest", "--region", args.region, "--project", project,
+    ], dry_run=args.dry_run)
+    if promote_code != 0:
+        if not args.dry_run:
+            restored = _run([
+                "gcloud", "run", "services", "update-traffic", service,
+                "--update-tags", f"{DEFAULT_WI046_REMOTE_TAG}={previous_compatibility_revision}",
+                "--to-revisions", f"{previous_serving_revision}=100",
+                "--region", args.region, "--project", project,
+            ], dry_run=False) == 0
+            print(f"WI-066 promotion failed; prior stable/tag routes restored={restored}.")
+        return 1
+    if args.dry_run:
+        return 0
+
+    resource = env["KIS_RESOURCE_SERVER_URL"].rstrip("/")
+    canonical_url = resource[:-4] if resource.endswith("/mcp") else resource
+    compatibility_url = _tagged_service_url(
+        project=project,
+        region=args.region,
+        service=service,
+        tag=DEFAULT_WI046_REMOTE_TAG,
+        dry_run=False,
+    )
+    canonical_ok = _smoke_wi046_remote(
+        auth_url=env["KIS_AUTH_BASE_URL"],
+        remote_url=canonical_url,
+        expected_resource=resource,
+    )
+    compatibility_ok = bool(compatibility_url) and _smoke_wi046_tagged_urls(
+        auth_url=env["KIS_AUTH_BASE_URL"].rstrip("/"),
+        remote_url=str(compatibility_url).rstrip("/"),
+        expected_resource=resource,
+    )
+    if canonical_ok and compatibility_ok:
+        print(f"WI-066 migration, recovery, and Remote routes verified: {image}")
+        return 0
+
+    rollback_command = [
+        "gcloud", "run", "services", "update-traffic", service,
+        "--update-tags", f"{DEFAULT_WI046_REMOTE_TAG}={previous_compatibility_revision}",
+        "--to-revisions", f"{previous_serving_revision}=100",
+        "--region", args.region, "--project", project,
+    ]
+    restored = _run(rollback_command, dry_run=False) == 0
+    print(f"WI-066 Remote smoke failed; prior stable/tag routes restored={restored}.")
+    return 1
+
+
 def _deploy_wi021_s06_job(
     args: argparse.Namespace,
     *,
@@ -3317,6 +3484,7 @@ def main() -> int:
             "wi060",
             "wi063",
             "wi065",
+            "wi066",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -3568,6 +3736,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi065(args, env=env, project=project)
+
+    if args.target == "wi066":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi066(args, env=env, project=project)
 
     if args.target == "wi046-stage":
         if not project:
