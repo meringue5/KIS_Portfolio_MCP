@@ -127,6 +127,7 @@ def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatc
     assert "--no-traffic" in commands[2]
     assert commands[3][:4] == ["gcloud", "run", "services", "update-traffic"]
     assert commands[0][commands[0].index("--image") + 1] == image
+    assert commands[0][commands[0].index("--memory") + 1] == "2Gi"
     assert commands[2][commands[2].index("--image") + 1] == image
     assert ["--update-tags", "wi046-v2=LATEST"] == commands[3][
         commands[3].index("--update-tags"):commands[3].index("--update-tags") + 2
@@ -134,6 +135,41 @@ def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatc
     assert "--to-latest" in commands[3]
     assert not any(command[:2] == ["gcloud", "scheduler"] for command in commands)
     assert not any("iam-policy-binding" in command for command in commands)
+
+
+def test_wi066_uses_explicit_bounded_job_memory(monkeypatch):
+    args = argparse.Namespace(
+        region="asia-northeast3", target="wi066", dry_run=True,
+        secret_mode="secret-manager", job=None, service=None,
+    )
+    commands = []
+    monkeypatch.setenv("GITHUB_SHA", "b" * 40)
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_build_release_image",
+        lambda *_args, **_kwargs: "image@sha256:" + "a" * 64,
+    )
+    monkeypatch.setattr(
+        deploy_cloud_run, "_split_runtime_env", lambda **_kwargs: ({"KIS_DB_MODE": "motherduck"}, {}),
+    )
+    monkeypatch.setattr(deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0)
+
+    result = deploy_cloud_run._deploy_wi066(
+        args,
+        env={
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio",
+            "KIS_GCS_BUCKET": "project-private",
+            "KIS_AUTH_BASE_URL": "https://auth.example.test",
+            "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
+            "KIS_CLOUD_RUN_WI066_MEMORY": "4Gi",
+        },
+        project="project-1",
+    )
+
+    assert result == 0
+    deploy_job = commands[0]
+    assert deploy_job[deploy_job.index("--memory") + 1] == "4Gi"
 
 
 def test_wi066_job_failure_never_updates_remote(monkeypatch):
