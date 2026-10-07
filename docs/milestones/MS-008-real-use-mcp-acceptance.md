@@ -19,6 +19,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 3 | WI-063 incremental trade-event collection | WI-062 | stabilizing |
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | proposed |
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
+| 6 | WI-066 legacy total-asset history quality recovery | WI-065 | in_progress |
 
 ## Gates
 
@@ -33,6 +34,9 @@ gaps found there must be classified and routed to an owned follow-up.
 - WI-065 owns the next owner-Claude workflow finding: no-argument pipeline status raises before the owner-debug
   boundary, and the retained Claude tag still serves a pre-fix revision whose quality vocabulary reverses current
   `pass` rows into false `degraded` history.
+- WI-066 owns the independent longitudinal-data finding discovered after WI-065: retained V1 aggregate rows preserve
+  an overseas-feeder-zero interval, while the migration can infer `pass` from non-null remaining holdings and expose
+  the incomplete total as an apparent drawdown.
 - Completion requires immediate reproducible client calls; waiting for a future scheduler slot cannot be the only
   acceptance method.
 
@@ -51,3 +55,6 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-09-30.4 | 2026-09-30 | Five exact regressions failed before implementation; no-selector default, mixed `pass`/`passed` normalization and stable/tag atomic release guard then passed 158 focused and 799 full tests, plus a patched-code production read returned 60 pass and six honestly degraded history groups | Move WI-065 to verified; request a protected Remote-only release before stabilizing and actual Claude/Codex replay |
 | 2026-09-30.5 | 2026-09-30 | The owner approved the protected WI-065 production release after PR #140 merged with green CI | Permit only the Remote image, stable traffic and retained `wi046-v2` compatibility tag to move together; require immediate actual-client replay and rollback on smoke failure |
 | 2026-09-30.6 | 2026-09-30 | PR #141/master `485dac0` and protected run `36664435767` deployed Remote `00057-52l`; stable traffic and `wi046-v2` now share the revision, smoke passed, and direct Codex OAuth positive/partial/error plus unaffected reads passed | Move WI-065 to stabilizing; await owner replay of the original Claude prompt before acceptance and closure |
+| 2026-10-05.1 | 2026-10-05 | Ecological longitudinal use and read-only MotherDuck inspection proved that retained V1 totals from 2026-07-24 through 2026-09-04 omit overseas assets, while physical backfill reconciliation and row-level null checks can still produce false `pass` history | Register independent WI-066 discovered from WI-065; preserve all source rows, start no production correction, and require source-grounded fail-closed recovery plus actual-client acceptance |
+| 2026-10-07.1 | 2026-10-07 | The owner approved proceeding with the separated data-defect Work Item | Start WI-066 as the sole `in_progress` implementation item; limit the phase to deterministic fixtures, fail-closed read behavior and read-only production profiling, with no production data mutation or deployment |
+| 2026-10-07.2 | 2026-10-07 | View-only migration 0020, the matching Remote projection and future-backfill labels passed immediate MCP positive/partial/error fixtures, quick gates and 803 full tests; a direct production Codex baseline still returned the 6/20 legacy total as `pass` because no release occurred | Keep WI-066 in progress; request separate production migration/release approval, then require post-release Codex and owner-Claude replay before stabilization |

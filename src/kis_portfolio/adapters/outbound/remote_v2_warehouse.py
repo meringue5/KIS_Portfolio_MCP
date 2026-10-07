@@ -336,10 +336,15 @@ class WarehouseReadQueryPort:
         rows = self._rows(
             """
             SELECT p.evaluation_date, p.evaluation_slot,
-                   CASE WHEN count_if(lower(trim(p.quality_status)) NOT IN ('pass', 'passed')) > 0
+                   CASE WHEN p.evaluation_slot = 'v1-latest' THEN NULL
+                        WHEN count_if(coalesce(lower(trim(p.quality_status)), '') NOT IN ('pass', 'passed')) > 0
                         THEN NULL ELSE sum(p.value_krw) END AS total_value_krw,
-                   CASE WHEN count_if(lower(trim(p.quality_status)) NOT IN ('pass', 'passed')) > 0
+                   CASE WHEN p.evaluation_slot = 'v1-latest' THEN 'legacy_unassessed'
+                        WHEN count_if(coalesce(lower(trim(p.quality_status)), '') NOT IN ('pass', 'passed')) > 0
                         THEN 'degraded' ELSE 'pass' END AS quality_status,
+                   CASE WHEN p.evaluation_slot = 'v1-latest' THEN 'legacy_history_unassessed'
+                        WHEN count_if(coalesce(lower(trim(p.quality_status)), '') NOT IN ('pass', 'passed')) > 0
+                        THEN 'degraded_history_rows' ELSE NULL END AS _quality_reason,
                    max(p.as_of) AS as_of
             FROM gold.portfolio_daily_state p
             JOIN silver.accounts a ON a.account_id=p.account_id
@@ -352,9 +357,11 @@ class WarehouseReadQueryPort:
             [request.start_date, request.end_date, request.account_alias,
              request.account_alias, request.limit],
         )
+        reasons = sorted({row.pop("_quality_reason") for row in rows if row["_quality_reason"]})
         missing = [
-            {"dataset_id": "dataset.portfolio-daily-state", "reason": "degraded_history_rows"}
-        ] if any(row["quality_status"] != "pass" for row in rows) else None
+            {"dataset_id": "dataset.portfolio-daily-state", "reason": reason}
+            for reason in reasons
+        ]
         return self._envelope(
             data={"grain": request.grain, "history": rows}, items=rows,
             dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),

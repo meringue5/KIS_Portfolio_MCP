@@ -37,6 +37,11 @@ version을 pin한다. bundle 재구성은 별도 security Work Item 없이는 �
 `wi048-s02` target으로 수행했다. 최종 런타임 digest 수렴은 `wi051-final-audit` target이 담당하며, WI-046
 stage/promotion target은 당시 전환 이력과 제한적 복구 도구로만 남긴다.
 
+WI-066 코드가 포함된 revision은 Remote 또는 core를 갱신하기 전에 additive migration `0020`을 적용하고
+`gold.portfolio_daily_summary`의 legacy/current/degraded fixture 및 fresh restore를 검증해야 한다. Remote
+runtime은 `0020`이 없으면 시작하지 않는다. 2026-10-07 현재 운영 DB는 `0019`이므로 WI-066 production
+migration과 배포는 아직 실행되지 않았다.
+
 Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
 contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply
 path; cleanup activation remains a separately approved production action.

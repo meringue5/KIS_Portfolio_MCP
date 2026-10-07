@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import duckdb
@@ -13,7 +14,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner = MigrationRunner(con)
     assert runner.apply() == [
         "0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-        "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019",
+        "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020",
     ]
     assert runner.apply() == []
     runner.require("0006")
@@ -29,9 +30,43 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner.require("0016")
     runner.require("0018")
     runner.require("0019")
+    runner.require("0020")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 19
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 20
+    con.close()
+
+
+def test_daily_summary_quarantines_legacy_and_unknown_quality(tmp_path: Path) -> None:
+    con = duckdb.connect(str(tmp_path / "summary-quality.duckdb"))
+    MigrationRunner(con).apply()
+    con.execute(
+        "INSERT INTO silver.accounts VALUES ('acct','alpha','brokerage','KRW',current_timestamp,NULL,'{}')"
+    )
+    con.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            value_krw,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES (?,?,?,?,?,100,current_timestamp,'{}',?,?)
+        """,
+        [
+            ("2026-07-24", "v1-latest", "acct", "cash|KRW", "cash", "passed", "legacy"),
+            ("2026-09-11", "kr-1000", "acct", "cash|KRW", "cash", "passed", "current-pass"),
+            ("2026-09-12", "kr-1000", "acct", "cash|KRW", "cash", "unknown", "current-unknown"),
+        ],
+    )
+
+    rows = con.execute(
+        "SELECT evaluation_date,total_value_krw,quality_status "
+        "FROM gold.portfolio_daily_summary ORDER BY evaluation_date"
+    ).fetchall()
+
+    assert rows == [
+        (date(2026, 7, 24), None, "legacy_unassessed"),
+        (date(2026, 9, 11), 100, "pass"),
+        (date(2026, 9, 12), None, "degraded"),
+    ]
     con.close()
 
 
