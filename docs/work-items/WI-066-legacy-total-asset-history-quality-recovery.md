@@ -18,7 +18,7 @@ production_effects: private pre/post backup and fresh restore, view-only migrati
 architecture_impact: none; enforce the approved legacy quality contract without changing SSOT, grain, public tools or trust boundaries
 data_impact: repository migration 0020 and read projection quarantine retained v1-latest totals without rewriting source rows; no production write has occurred
 security_impact: none; retain confidential portfolio-data handling and aggregate-only evidence
-cost_impact: one bounded Cloud Build, one single-task Cloud Run migration Job, one Remote revision and two private backups capped at 10 GiB each
+cost_impact: bounded Cloud Builds, one single-task Cloud Run migration Job at an explicit 2 GiB memory limit, one Remote revision and two private backups capped at 10 GiB each
 user_visible_impact: yes
 real_use_acceptance: required
 real_use_evidence_refs: pending Codex and owner-Claude longitudinal-history replay after an approved correction
@@ -186,6 +186,10 @@ labels are `pass` or `passed`.
 - Release-path red regression initially failed because the WI-066 release service did not exist. The implemented
   tests now require private backup/download/fresh restore on both sides of `0020`, no state-row mutation, idempotency,
   migration-before-route ordering, one immutable image and no Scheduler or IAM change.
+- Protected run `37643171197` on 2026-10-08 passed repository gates and built the immutable image, then the transition
+  Job failed at the Cloud Run default `512Mi` memory limit before migration or Remote update. Production Remote labels
+  and both routes remained on the captured WI-065 revision. The corrective release sets an explicit bounded `2Gi`
+  Job limit and adds a regression that proves the deploy command cannot silently return to the platform default.
 - `bash scripts/check.sh quick`: passed. `bash scripts/check.sh full`: 803 passed, one pre-existing Authlib
   deprecation warning.
 - No production write, source call, deployment, external notification or destructive operation occurred during intake.

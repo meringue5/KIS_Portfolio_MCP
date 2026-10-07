@@ -43,6 +43,9 @@ runtime은 `0020`이 없으면 시작하지 않는다. 보호된 `wi066` target�
 restore, view-only `0020`, 멱등성·원본 row fingerprint·legacy/native projection 검증, private post-backup restore를
 먼저 끝낸 뒤에만 stable과 `wi046-v2` Remote route를 같은 새 revision으로 이동한다. 실패 시 이전 두 route를
 복원하며 core Job, Scheduler, IAM, Secret, source 호출과 저장 row는 변경하지 않는다.
+Transition Job은 backup/export와 fresh restore를 위해 `KIS_CLOUD_RUN_WI066_MEMORY`를 사용하며 기본값은
+`2Gi`다. 2026-10-08 최초 운영 시도에서 Cloud Run 기본 `512Mi` 한도가 먼저 소진되어 migration과 Remote
+update 전에 fail closed한 결과를 반영한 명시적 상한이다.
 
 Production resource inventory, cost snapshot, release/rollback manifest and Artifact Registry cleanup dry-run
 contracts are documented in `docs/operations/production-cost-release-guardrails.md`. That review-only CLI has no apply

@@ -48,6 +48,7 @@ DEFAULT_WI048_S02_JOB = "kis-portfolio-wi048-s02"
 DEFAULT_WI048_S02_TASK_TIMEOUT = "3600s"
 DEFAULT_WI066_JOB = "kis-portfolio-wi066"
 DEFAULT_WI066_TASK_TIMEOUT = "3600s"
+DEFAULT_WI066_MEMORY = "2Gi"
 DEFAULT_V2_CORE_JOBS = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
@@ -3132,6 +3133,7 @@ def _deploy_wi066(
             "--args", f"run-wi066-release,--project,{project},--bucket,{env['KIS_GCS_BUCKET']}",
             "--tasks", "1", "--parallelism", "1",
             "--task-timeout", DEFAULT_WI066_TASK_TIMEOUT,
+            "--memory", env.get("KIS_CLOUD_RUN_WI066_MEMORY", DEFAULT_WI066_MEMORY),
             "--max-retries", "0", "--service-account", service_account,
             *_build_secret_flags(transition_secrets),
             *_build_label_flags("wi066-migration"),
