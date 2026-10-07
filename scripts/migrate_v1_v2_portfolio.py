@@ -81,7 +81,7 @@ def apply(con: duckdb.DuckDBPyConnection, backup: Path, run_id: str) -> dict:
             INSERT OR IGNORE INTO silver.position_snapshots
             SELECT sha256('v1-account|' || account_label), 'v1|' || market || '|' || symbol,
                    timezone('Asia/Seoul', overview_at), sum(quantity), NULL, max(currency),
-                   'v1-holding-group-' || sha256(group_key), 'passed'
+                   'v1-holding-group-' || sha256(group_key), 'legacy_unassessed'
             FROM (
                 SELECT overview_snapshot_id || '|' || account_label || '|' ||
                        CASE WHEN market='NASD' THEN 'NAS' ELSE market END || '|' || symbol || '|' || currency || '|position' group_key,
@@ -94,7 +94,7 @@ def apply(con: duckdb.DuckDBPyConnection, backup: Path, run_id: str) -> dict:
         con.execute(f"""
             INSERT OR IGNORE INTO silver.cash_snapshots
             SELECT sha256('v1-account|' || account_label), currency, timezone('Asia/Seoul', overview_at),
-                   sum(value_krw), 'v1-holding-group-' || sha256(group_key), 'passed'
+                   sum(value_krw), 'v1-holding-group-' || sha256(group_key), 'legacy_unassessed'
             FROM (
                 SELECT h.overview_snapshot_id || '|' || h.account_label || '|' || h.currency || '|cash' group_key,
                        h.account_label, h.currency, o.snapshot_at overview_at, h.value_krw
@@ -122,7 +122,7 @@ def apply(con: duckdb.DuckDBPyConnection, backup: Path, run_id: str) -> dict:
                    aggregate_level, CASE WHEN aggregate_level='position' THEN quantity ELSE NULL END,
                    coalesce(value_krw, 0), NULL, NULL, NULL,
                    round(coalesce(value_krw,0) * 100.0 / nullif(l.total_eval_amt_krw,0), 8), timezone('Asia/Seoul', g.snapshot_at),
-                   json_object('v1_overview_id', l.id), CASE WHEN value_krw IS NULL THEN 'degraded' ELSE 'passed' END,
+                   json_object('v1_overview_id', l.id), 'legacy_unassessed',
                    sha256(l.id || '|' || g.account_label || '|' || instrument_id || '|' || g.currency)
             FROM grouped g JOIN latest l ON l.id=g.overview_snapshot_id AND l.rn=1
         """)

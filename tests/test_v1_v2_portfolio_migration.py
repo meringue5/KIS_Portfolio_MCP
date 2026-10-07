@@ -45,5 +45,12 @@ def test_portfolio_migration_aggregates_cash_and_reconciles(tmp_path: Path) -> N
     assert first == second
     assert first["target_rows"] == {"accounts": 1, "positions": 1, "cash": 1, "daily_state": 2}
     assert first["reconciliation"] == {"days": 1, "max_abs_difference_krw": 0.0, "failed_days": 0}
-    assert target.execute("select total_value_krw from gold.portfolio_daily_summary").fetchone()[0] == 150
+    assert target.execute(
+        "select distinct quality_status from gold.portfolio_daily_state "
+        "where evaluation_slot='v1-latest'"
+    ).fetchall() == [("legacy_unassessed",)]
+    summary = target.execute(
+        "select total_value_krw,quality_status from gold.portfolio_daily_summary"
+    ).fetchone()
+    assert summary == (None, "legacy_unassessed")
     target.close()

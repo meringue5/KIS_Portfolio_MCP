@@ -183,7 +183,7 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065"]
+work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066"]
 
 [[work_items]]
 id = "WI-009"
@@ -784,6 +784,19 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 5
+
+[[work_items]]
+id = "WI-066"
+identity = "legacy-total-asset-history-quality-recovery"
+title = "Quarantine incomplete legacy total-asset history and restore truthful longitudinal analysis"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-065"]
+discovered_from = ["WI-065"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 6
 
 [[subitems]]
 id = "WI-060-S01"

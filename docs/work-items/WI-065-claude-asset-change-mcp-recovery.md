@@ -147,4 +147,6 @@ success spellings rather than reverse which half is falsely degraded.
   stabilizing while the owner repeats the original Claude prompt through the updated compatibility route.
 - Remaining risk: post-release Claude client behavior is not yet owner-confirmed even though its retained route now
   maps to the verified current revision.
-- Follow-up Work Item: WI-064 remains independently proposed for trade-event business-key deduplication.
+- Follow-up Work Items: WI-064 remains independently proposed for trade-event business-key deduplication. WI-066 is
+  separately active for the legacy total-asset completeness defect discovered by longitudinal real-use testing;
+  it does not reopen or expand WI-065's Remote read and release outcome.

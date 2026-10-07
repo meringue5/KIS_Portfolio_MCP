@@ -3,6 +3,7 @@ import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import duckdb
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
@@ -18,6 +19,8 @@ from kis_portfolio.adapters.outbound.memory_commands import (
     InMemoryManagedPipelineCommands,
 )
 from kis_portfolio.adapters.outbound.memory_state import InMemoryStateStore
+from kis_portfolio.adapters.outbound.remote_v2_warehouse import WarehouseReadQueryPort
+from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.remote_commands import (
     CommandActor,
     ManagedPipelineRequest,
@@ -232,6 +235,64 @@ def test_command_validation_error_does_not_echo_owner_payload():
     assert payload["error"]["request_id"] == "request-command-1"
     assert "authored_at" in payload["error"]["detail"]
     assert "private owner thesis" not in payload["error"]["detail"]
+
+
+def test_performance_history_mcp_tool_reproduces_positive_partial_and_error_paths():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            value_krw,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES (?,?,?,?,?,100,?,'{}',?,?)
+        """,
+        [
+            (date(2026, 7, 24), "v1-latest", "acct-a", "cash|KRW", "cash", NOW, "passed", "legacy"),
+            (date(2026, 9, 11), "kr-1000", "acct-a", "cash|KRW", "cash", NOW, "pass", "current"),
+        ],
+    )
+    read_application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE,
+    )
+    command_application, _managed, _revisions = _command_application()
+    server = build_v2_server(
+        read_application,
+        command_application,
+        read_actor_provider=lambda: READ_ACTOR,
+        command_actor_provider=lambda: COMMAND_ACTOR,
+    )
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-performance-history")
+
+    positive = asyncio.run(tool.fn(
+        start_date=date(2026, 9, 11), end_date=date(2026, 9, 11), grain="daily", limit=10,
+    )).model_dump(mode="json")
+    partial = asyncio.run(tool.fn(
+        start_date=date(2026, 7, 24), end_date=date(2026, 7, 24), grain="daily", limit=10,
+    )).model_dump(mode="json")
+
+    assert positive["quality"] == {"status": "pass", "row_count": 1}
+    assert positive["data"]["history"][0]["total_value_krw"] == "100.00"
+    assert partial["quality"] == {"status": "partial", "row_count": 1}
+    assert partial["data"]["history"][0]["total_value_krw"] is None
+    assert partial["data"]["history"][0]["quality_status"] == "legacy_unassessed"
+    assert partial["missing_coverage"] == [{
+        "dataset_id": "dataset.portfolio-daily-state",
+        "reason": "legacy_history_unassessed",
+    }]
+
+    with pytest.raises(ToolError) as captured:
+        asyncio.run(tool.fn(
+            start_date=date(2026, 9, 11), end_date=date(2026, 9, 11), grain="weekly", limit=10,
+        ))
+    error = json.loads(str(captured.value))["error"]
+    assert error["code"] == "unsupported_performance_grain"
+    assert error["visibility"] == "owner_debug"
+    connection.close()
 
 
 def test_managed_pipeline_accepts_only_fixed_alias_and_slots_and_returns_run_id():

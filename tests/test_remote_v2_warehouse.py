@@ -777,6 +777,47 @@ async def test_performance_history_normalizes_current_and_retained_success_statu
 
 
 @pytest.mark.anyio
+async def test_performance_history_quarantines_unassessed_v1_latest_total():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.executemany(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            quantity,value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,
+            allocation_pct,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES ('2026-07-24','v1-latest','acct-a',?,'position',1,?,
+                  NULL,NULL,NULL,NULL,?,'{}',?,?)
+        """,
+        [
+            ("v1|KRX|000660", "480", NOW, "pass", "legacy-domestic"),
+            ("v1|NAS|AAPL", "0", NOW, "passed", "legacy-overseas-zero"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-performance-history",
+        PerformanceHistoryRequest(start_date=date(2026, 7, 24), end_date=date(2026, 7, 24)),
+        ACTOR,
+    )
+
+    row = result["data"]["history"][0]
+    assert row["evaluation_slot"] == "v1-latest"
+    assert row["quality_status"] == "legacy_unassessed"
+    assert row["total_value_krw"] is None
+    assert result["quality"] == {"status": "partial", "row_count": 1}
+    assert result["missing_coverage"] == [{
+        "dataset_id": "dataset.portfolio-daily-state",
+        "reason": "legacy_history_unassessed",
+    }]
+
+
+@pytest.mark.anyio
 async def test_performance_history_does_not_sum_degraded_rows_as_complete_total():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
@@ -809,6 +850,42 @@ async def test_performance_history_does_not_sum_degraded_rows_as_complete_total(
     assert result["quality"]["status"] == "partial"
     assert result["data"]["history"][0]["quality_status"] == "degraded"
     assert result["data"]["history"][0]["total_value_krw"] is None
+
+
+@pytest.mark.anyio
+async def test_performance_history_treats_unknown_quality_as_degraded():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        [NOW],
+    )
+    connection.execute(
+        """
+        INSERT INTO gold.portfolio_daily_state(
+            evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,
+            quantity,value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,
+            allocation_pct,as_of,input_watermarks,quality_status,lineage_hash
+        ) VALUES ('2026-09-11','kr-1000','acct-a','cash|KRW','cash',NULL,100,
+                  NULL,NULL,NULL,NULL,?,'{}','unknown','lineage-unknown-quality')
+        """,
+        [NOW],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-performance-history",
+        PerformanceHistoryRequest(start_date=date(2026, 9, 11), end_date=date(2026, 9, 11)),
+        ACTOR,
+    )
+
+    assert result["quality"]["status"] == "partial"
+    assert result["data"]["history"][0]["quality_status"] == "degraded"
+    assert result["data"]["history"][0]["total_value_krw"] is None
+    assert result["missing_coverage"] == [{
+        "dataset_id": "dataset.portfolio-daily-state",
+        "reason": "degraded_history_rows",
+    }]
 
 
 @pytest.mark.anyio

@@ -35,10 +35,10 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
-registry의 **79 tables + 27 views = 106 objects**를 관리한다. 운영 V2는 checksum migration `0019`까지의
-`bronze/silver/gold/control` physical schema를 사용하며, active operational Security state는 Seoul의
-Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된 네 live-drift fingerprint는 migration/history
-호환을 위해 보존되며 V2 분석 SSOT가 아니다.
+registry의 **79 tables + 27 views = 106 objects**를 관리한다. repository migration ceiling은 `0020`이며,
+운영 V2는 아직 checksum migration `0019`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
+active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
+네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
 
 ## Layer Model
 
@@ -57,8 +57,9 @@ Bronze를 임의로 직접 조인해 새로운 공식 지표를 만들지 않는
 ## Canonical V2 Physical Catalog
 
 DEC-045에 따라 기존 `main` 객체를 그대로 보존하면서 V2를 explicit checksum migration
-`src/kis_portfolio/platform/sql/0001_v2_foundation.sql`부터 `0019_v2_reference_control_plane.sql`까지
-additive 생성했다. V2 runtime registry는 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다.
+`src/kis_portfolio/platform/sql/0001_v2_foundation.sql`부터
+`0020_legacy_history_quality_quarantine.sql`까지 additive 생성한다. V2 runtime registry는
+`src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다.
 Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며 production startup도 DDL을 실행하지
 않는다.
 
@@ -112,7 +113,7 @@ Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며
 | `gold.portfolio_daily_state` | evaluation date/slot/account/instrument/aggregate level materialization | Parquet / confidential |
 | `gold.metric_values` | metric/version/subject/evaluation-at point-in-time value, quality and lineage; approved definitions include portfolio value, Modified Dietz return/component contribution/residual, chain-linked wealth/drawdown, instrument-level KRW valuation-change contribution, lot MFE/MAE, position-episode high/drawdown, owner-stop thread/instrument planned loss and risk ratio, SMA20/50/120, volume SMA/ratio20, Wilder RSI14, Bollinger 20/2 context and Wilder ATR20 | Parquet / confidential |
 | `gold.alert_candidates` | rule/version/opaque subject/session/slot point-in-time state, severity, quality, lineage and allowlisted redacted context; presence alone is not slot-completion evidence | Parquet / confidential |
-| `gold.portfolio_daily_summary` | date/slot portfolio read model | rebuild view / confidential |
+| `gold.portfolio_daily_summary` | date/slot portfolio read model; `v1-latest`는 completeness evidence가 없어 total을 `NULL`, quality를 `legacy_unassessed`로 fail closed | rebuild view / confidential |
 | `gold.dividend_monthly_native`, `gold.dividend_monthly_krw` | linked received cash의 month/account/instrument/currency 합계와 별도 labeled governed-FX projection; component/receipt gap은 partial 유지 | rebuild views / confidential |
 | `gold.macro_profile_snapshots` | profile/version/evaluation cutoff/metric-set의 PIT metric, coverage, rights, attribution과 revision lineage | Parquet rebuildable materialization / internal |
 | `control.schema_migrations` | version/name/checksum migration ledger | excluded / internal |
