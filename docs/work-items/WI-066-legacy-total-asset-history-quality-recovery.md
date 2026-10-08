@@ -13,7 +13,7 @@ depends_on: WI-065
 discovered_from: WI-065
 supersedes: none
 rollback_of: none
-execution_scope: protected production migration complete; WI-066-S01 corrects the advertised grain contract and repeats ecological actual-client acceptance after the externally owned billing outage is cleared
+execution_scope: protected production migration and WI-066-S01 schema release complete; Codex ecological acceptance passed after billing recovery and owner-Claude replay remains the stabilization exit
 production_effects: private pre/post backup and fresh restore, view-only migration 0020, and one Remote revision serving stable plus wi046-v2; no source calls or row rewrite
 architecture_impact: none; enforce the approved legacy quality contract without changing SSOT, grain, public tools or trust boundaries
 data_impact: production migration 0020 replaced only the derived read view; all 3273 portfolio state rows were fingerprint-preserved and retained v1-latest totals remain stored but quarantined
@@ -21,7 +21,7 @@ security_impact: none; retain confidential portfolio-data handling and aggregate
 cost_impact: bounded Cloud Builds, one single-task Cloud Run migration Job at an explicit 2 GiB memory limit, one Remote revision and two private backups capped at 10 GiB each
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: run 37693993263; initial Codex data-boundary calls passed, but unsupported-grain was incorrectly accepted despite being advertised; Claude replay exposed a billing outage and the schema mismatch
+real_use_evidence_refs: runs 37693993263 and 37842065536; Remote 00059-d7z; Codex ecological replay passed positive/partial/error behavior after billing recovery; owner-Claude replay pending
 stabilization_window: WI-066-S01 schema correction followed by the same owner question through authenticated Codex and Claude after billing recovery
 stabilization_exit_refs: protected production run, pre/post backup and fresh-restore evidence, migration 0020, exact Remote labels/routes, Codex replay and owner-Claude acceptance
 rollback_plan: restore stable and wi046-v2 traffic to the captured prior revisions on Remote smoke failure; use a successor migration for a read-model rollback while retaining migration history and all original V1/V2 rows
@@ -130,18 +130,16 @@ labels are `pass` or `passed`.
    positive/current, partial/legacy and error/unsupported-grain calls.
 5. Ask the owner to repeat the longitudinal question in Claude. Keep the item `stabilizing` until Claude no longer
    interprets the legacy gap as an observed drawdown.
-6. [in progress] Under `WI-066-S01`, remove unimplemented weekly/monthly grains from the advertised schema, correct
+6. [done] Under `WI-066-S01`, remove unimplemented weekly/monthly grains from the advertised schema, correct
    the misleading cash-flow-adjusted description, and repeat the owner's full recovery/high-water-mark question in
-   both actual clients after the external billing account is reopened.
+   Codex after the external billing account is reopened. Owner-Claude replay remains the stabilization exit.
 
 ## Sub-items
 
-- `WI-066-S01` (`in_progress`): Claude selected `weekly` because the public MCP schema advertised it even though the
+- `WI-066-S01` (`stabilizing`): Claude selected `weekly` because the public MCP schema advertised it even though the
   warehouse implemented daily reads only. Make the planning contract truthful and require the same natural-language
-  owner question, not isolated tool calls, as acceptance. The simultaneous platform outage is externally owned:
-  Cloud Run request logs report billing disabled, the linked billing account is closed, and no open replacement
-  account is available. Repository work may proceed, but deployment and actual-client acceptance remain blocked
-  until the owner or billing administrator reopens billing.
+  owner question, not isolated tool calls, as acceptance. The owner restored the expired-card billing account on
+  2026-10-09. The protected release and Codex ecological replay then passed; owner-Claude replay is still required.
 
 ## Stabilization plan
 
@@ -217,15 +215,31 @@ labels are `pass` or `passed`.
   and explicitly says they are valuation levels, not a cash-flow-adjusted return series.
 - `bash scripts/check.sh quick`: passed. `bash scripts/check.sh full`: 809 passed, one pre-existing Authlib
   deprecation warning.
+- The owner restored project billing on 2026-10-09 after identifying an expired payment card. Initial release
+  attempts during Cloud Run billing recovery failed at the platform boundary with `Unknown error` and no container
+  logs; the same protected run was retried after service health recovered instead of changing application code.
+- PR #147 merged as master `cb83958`. Protected run `37842065536` attempt 2 passed the full repository gate, executed
+  migration/recovery Job `kis-portfolio-wi066-wqrjl` successfully in 2m4.76s, and deployed immutable digest
+  `71e7bcdc...dcfbf` to Remote revision `00059-d7z`. Stable and `wi046-v2` both resolve to that ready revision;
+  canonical and tagged health returned 200, while service labels match the master SHA and workflow run.
+- Direct Codex OAuth ecological replay used the owner's original recovery/high-water-mark question. It selected
+  `get-performance-history` with the now-advertised `grain=daily`, returned 89 stored rows with the legacy interval
+  suppressed as `NULL`/`legacy_unassessed`, and combined current overview, pipeline, catalog, quality and trade reads
+  into a bounded conclusion that no breakout signal is visible. `get-pipeline-run` returned 12 successful runs rather
+  than the former generic error. The latest overview remained pass/32 at KRW 687,621,024.11.
+- The same replay exercised partial and error behavior without a clock wait. History disclosed
+  `degraded_history_rows` and `legacy_history_unassessed`; trade coverage ended before the query end; two client calls
+  exceeded already-advertised numeric bounds and received specific validation errors before self-correcting to valid
+  values. No fabricated July high-water mark or cash-flow-adjusted return was claimed.
 - No source call, stored-row mutation, deletion, external notification or destructive operation occurred during the
   release. Only migration history/read view, private recovery objects and the approved Remote revision/routes changed.
 
 ## Closeout
 
-- Result: the legacy quarantine is released, but end-to-end acceptance is not complete. WI-066 remains `stabilizing`
-  and correction `WI-066-S01` remains `in_progress` until billing is restored, the truthful schema is deployed, and
-  Codex plus owner-Claude answer the same longitudinal question without fabricating continuity across the legacy gap.
-- Remaining risk: the deployed revision still advertises unsupported weekly/monthly grains, and the billing-disabled
-  platform currently prevents any actual-client replay.
+- Result: the legacy quarantine and truthful daily-only schema are released. WI-066 and correction `WI-066-S01`
+  remain `stabilizing`: Codex answered the ecological question without fabricating continuity across the legacy gap,
+  while owner-Claude confirmation remains outstanding.
+- Remaining risk: Claude may plan or render the same deployed contract differently from Codex; that actual owner
+  client behavior is not inferred from the successful Codex replay.
 - Follow-up Work Item: `WI-066-S01` owns this same-outcome correction. Any independent source/backfill outcome still
   requires a separate Work Item.
