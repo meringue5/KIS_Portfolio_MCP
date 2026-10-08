@@ -78,7 +78,7 @@ class PositionAnalysisRequest(_Request):
 
 class PerformanceHistoryRequest(_DateRangeRequest):
     account_alias: str | None = Field(default=None, min_length=1, max_length=64)
-    grain: Literal["daily", "weekly", "monthly"] = "daily"
+    grain: Literal["daily"] = "daily"
     limit: int = Field(default=250, ge=1, le=1_000)
 
 

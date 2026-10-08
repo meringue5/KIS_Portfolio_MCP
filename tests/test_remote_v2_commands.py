@@ -237,7 +237,7 @@ def test_command_validation_error_does_not_echo_owner_payload():
     assert "private owner thesis" not in payload["error"]["detail"]
 
 
-def test_performance_history_mcp_tool_reproduces_positive_partial_and_error_paths():
+def test_performance_history_mcp_tool_reproduces_positive_partial_and_truthful_schema():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
     connection.execute(
@@ -285,12 +285,13 @@ def test_performance_history_mcp_tool_reproduces_positive_partial_and_error_path
         "reason": "legacy_history_unassessed",
     }]
 
+    assert tool.parameters["properties"]["grain"]["const"] == "daily"
     with pytest.raises(ToolError) as captured:
         asyncio.run(tool.fn(
             start_date=date(2026, 9, 11), end_date=date(2026, 9, 11), grain="weekly", limit=10,
         ))
     error = json.loads(str(captured.value))["error"]
-    assert error["code"] == "unsupported_performance_grain"
+    assert error["code"] == "invalid_request"
     assert error["visibility"] == "owner_debug"
     connection.close()
 

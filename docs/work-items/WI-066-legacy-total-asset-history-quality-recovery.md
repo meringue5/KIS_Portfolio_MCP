@@ -13,7 +13,7 @@ depends_on: WI-065
 discovered_from: WI-065
 supersedes: none
 rollback_of: none
-execution_scope: protected production migration, Remote release and Codex actual-client acceptance complete; owner-Claude replay pending
+execution_scope: protected production migration complete; WI-066-S01 corrects the advertised grain contract and repeats ecological actual-client acceptance after the externally owned billing outage is cleared
 production_effects: private pre/post backup and fresh restore, view-only migration 0020, and one Remote revision serving stable plus wi046-v2; no source calls or row rewrite
 architecture_impact: none; enforce the approved legacy quality contract without changing SSOT, grain, public tools or trust boundaries
 data_impact: production migration 0020 replaced only the derived read view; all 3273 portfolio state rows were fingerprint-preserved and retained v1-latest totals remain stored but quarantined
@@ -21,8 +21,8 @@ security_impact: none; retain confidential portfolio-data handling and aggregate
 cost_impact: bounded Cloud Builds, one single-task Cloud Run migration Job at an explicit 2 GiB memory limit, one Remote revision and two private backups capped at 10 GiB each
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: run 37693993263; Codex current, legacy, unsupported-grain, overview and pipeline calls passed; owner-Claude longitudinal replay pending
-stabilization_window: immediate Codex positive, partial and error replay followed by owner-Claude longitudinal replay
+real_use_evidence_refs: run 37693993263; initial Codex data-boundary calls passed, but unsupported-grain was incorrectly accepted despite being advertised; Claude replay exposed a billing outage and the schema mismatch
+stabilization_window: WI-066-S01 schema correction followed by the same owner question through authenticated Codex and Claude after billing recovery
 stabilization_exit_refs: protected production run, pre/post backup and fresh-restore evidence, migration 0020, exact Remote labels/routes, Codex replay and owner-Claude acceptance
 rollback_plan: restore stable and wi046-v2 traffic to the captured prior revisions on Remote smoke failure; use a successor migration for a read-model rollback while retaining migration history and all original V1/V2 rows
 ---
@@ -130,16 +130,24 @@ labels are `pass` or `passed`.
    positive/current, partial/legacy and error/unsupported-grain calls.
 5. Ask the owner to repeat the longitudinal question in Claude. Keep the item `stabilizing` until Claude no longer
    interprets the legacy gap as an observed drawdown.
+6. [in progress] Under `WI-066-S01`, remove unimplemented weekly/monthly grains from the advertised schema, correct
+   the misleading cash-flow-adjusted description, and repeat the owner's full recovery/high-water-mark question in
+   both actual clients after the external billing account is reopened.
 
 ## Sub-items
 
-- `none` at intake. Separate a destructive migration, new source activation or materially independent reconstruction
-  outcome rather than silently expanding this Work Item.
+- `WI-066-S01` (`in_progress`): Claude selected `weekly` because the public MCP schema advertised it even though the
+  warehouse implemented daily reads only. Make the planning contract truthful and require the same natural-language
+  owner question, not isolated tool calls, as acceptance. The simultaneous platform outage is externally owned:
+  Cloud Run request logs report billing disabled, the linked billing account is closed, and no open replacement
+  account is available. Repository work may proceed, but deployment and actual-client acceptance remain blocked
+  until the owner or billing administrator reopens billing.
 
 ## Stabilization plan
 
-- Observation period/sample: immediate Codex positive/current, partial/legacy and error/unsupported-grain calls, then
-  the owner's original longitudinal question through Claude.
+- Observation period/sample: the owner's original longitudinal question through both Codex and Claude, using only
+  parameters advertised by the deployed schema. Isolated positive/partial/error tool calls are necessary diagnostics,
+  not sufficient ecological acceptance.
 - Signals: component coverage, legacy disposition, reconciled totals, suppressed false totals, unaffected current
   overview and actual-client interpretation.
 - Rollback trigger and safe state: any current-state regression, fabricated completeness, loss of retained evidence or
@@ -194,11 +202,19 @@ labels are `pass` or `passed`.
   `00058-5qk` succeeded. The resumable Job observed `0020` already applied, proved a no-op replay, restored both the
   pre and post snapshots with 79 governed objects each, preserved all 3,273 source rows exactly, quarantined all 27
   legacy groups, validated all 75 native groups, and recorded zero source calls, row mutations or deletions.
-- Direct Codex production MCP acceptance on the released revision passed immediately: 2026-06-20 returned one
+- Direct Codex production MCP data-boundary checks on the released revision passed immediately: 2026-06-20 returned one
   `NULL`/`legacy_unassessed` partial row with `legacy_history_unassessed`; 2026-10-01 through 2026-10-07 returned 12
-  numeric `pass` rows with no missing coverage; weekly grain returned owner-debug
-  `unsupported_performance_grain`; unaffected overview returned pass/32 and no-selector pipeline returned pass/3 with
-  all runs `succeeded`.
+  numeric `pass` rows with no missing coverage; unaffected overview returned pass/32 and no-selector pipeline returned
+  pass/3 with all runs `succeeded`. The weekly owner-debug error was not valid acceptance: the public schema advertised
+  weekly/monthly while the warehouse supported daily only, so a normal client could plan an impossible call.
+- Owner-Claude ecological replay on 2026-10-08 failed before tool discovery with a 503. Production request logs for
+  both the Remote `/mcp` request and Auth `/token` request report that billing is disabled. The project remains linked,
+  but the linked billing account reports `open=false`, and the owner has no other open billing account available.
+  This is an external operational blocker, not evidence that the MCP workflow passed.
+- `WI-066-S01` red regression produced three failures: the MCP schema lacked a daily-only constraint, the typed request
+  accepted weekly, and the direct tool boundary still expected the internal unsupported-grain error. After the narrow
+  correction, 86 focused Remote MCP, command and warehouse tests passed. The tool now advertises only daily observations
+  and explicitly says they are valuation levels, not a cash-flow-adjusted return series.
 - `bash scripts/check.sh quick`: passed. `bash scripts/check.sh full`: 809 passed, one pre-existing Authlib
   deprecation warning.
 - No source call, stored-row mutation, deletion, external notification or destructive operation occurred during the
@@ -206,8 +222,10 @@ labels are `pass` or `passed`.
 
 ## Closeout
 
-- Result: implementation, protected production release and immediate Codex MCP acceptance are complete. WI-066 is
-  `stabilizing` until the owner repeats the original longitudinal question through Claude.
-- Remaining risk: the owner-Claude connector has not yet proved that its natural-language synthesis respects the new
-  explicit legacy gap, although the shared released MCP contract now returns the correct partial evidence.
-- Follow-up Work Item: none yet; allocate one only if recovery requires an independent source/backfill outcome.
+- Result: the legacy quarantine is released, but end-to-end acceptance is not complete. WI-066 remains `stabilizing`
+  and correction `WI-066-S01` remains `in_progress` until billing is restored, the truthful schema is deployed, and
+  Codex plus owner-Claude answer the same longitudinal question without fabricating continuity across the legacy gap.
+- Remaining risk: the deployed revision still advertises unsupported weekly/monthly grains, and the billing-disabled
+  platform currently prevents any actual-client replay.
+- Follow-up Work Item: `WI-066-S01` owns this same-outcome correction. Any independent source/backfill outcome still
+  requires a separate Work Item.

@@ -102,7 +102,14 @@ class ToolContract:
 TOOL_CONTRACTS = (
     ToolContract("get-portfolio-overview", "portfolio-overview.v2", "stored-or-bounded-read-through", "Return canonical total assets, allocation, holdings and valuation-change quality."),
     ToolContract("get-position-analysis", "position-analysis.v2", "stored", "Return bounded position, lot, thread, drawdown and risk analysis."),
-    ToolContract("get-performance-history", "performance-history.v2", "stored", "Return cash-flow-adjusted performance and separately labelled KRW valuation-change contribution."),
+    ToolContract(
+        "get-performance-history",
+        "performance-history.v2",
+        "stored",
+        "Return stored daily total-asset valuation observations with explicit quality gaps. "
+        "This is not a cash-flow-adjusted return series; use the daily observations to assess "
+        "only periods whose totals pass quality checks.",
+    ),
     ToolContract("get-market-snapshot", "market-snapshot.v2", "cached-or-bounded-read-through", "Return a bounded current price, quote or FX snapshot with freshness."),
     ToolContract("get-market-history", "market-history.v2", "stored", "Return governed price or FX history with versioned technical context."),
     ToolContract("get-trade-ledger", "trade-ledger.v2", "stored", "Return canonical order, execution, transaction, settlement and cash-flow evidence."),
@@ -237,7 +244,7 @@ def register_v2_read_tools(
     async def position_analysis(instrument_id: InstrumentId | None = None, account_alias: AccountAlias | None = None, as_of: datetime | None = None, limit: Limit200 = 50) -> ReadResponseEnvelope:
         return await invoke("get-position-analysis", lambda: PositionAnalysisRequest(instrument_id=instrument_id, account_alias=account_alias, as_of=as_of, limit=limit))
 
-    async def performance_history(start_date: date, end_date: date, account_alias: AccountAlias | None = None, grain: Literal["daily", "weekly", "monthly"] = "daily", limit: Limit1000 = 250) -> ReadResponseEnvelope:
+    async def performance_history(start_date: date, end_date: date, account_alias: AccountAlias | None = None, grain: Literal["daily"] = "daily", limit: Limit1000 = 250) -> ReadResponseEnvelope:
         return await invoke("get-performance-history", lambda: PerformanceHistoryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, grain=grain, limit=limit))
 
     async def market_snapshot(instrument_id: InstrumentId, market: Literal["KR", "US", "FX"], freshness_policy: Literal["stored", "cached", "bounded-live"] = "cached") -> ReadResponseEnvelope:

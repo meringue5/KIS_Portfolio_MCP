@@ -893,13 +893,6 @@ async def test_performance_history_treats_unknown_quality_as_degraded():
     ("tool_name", "request_model", "code"),
     [
         (
-            "get-performance-history",
-            PerformanceHistoryRequest(
-                start_date=date(2026, 9, 1), end_date=date(2026, 9, 11), grain="weekly"
-            ),
-            "unsupported_performance_grain",
-        ),
-        (
             "get-trade-ledger",
             TradeLedgerRequest(
                 start_date=date(2026, 9, 1), end_date=date(2026, 9, 11), cursor="opaque"
