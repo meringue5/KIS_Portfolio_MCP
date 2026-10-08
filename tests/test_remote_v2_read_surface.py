@@ -19,6 +19,7 @@ from kis_portfolio.services.remote_read_surface import (
     V2_READ_TOOL_NAMES,
     MappingReadQueryPort,
     MarketHistoryRequest,
+    PerformanceHistoryRequest,
     ReadActor,
     RemoteReadApplication,
     RemoteReadError,
@@ -72,12 +73,24 @@ def test_v2_catalog_is_exactly_fifteen_read_tools_with_owned_contracts():
         "KR", "US", "FX",
     ]
     assert by_name["get-position-analysis"].parameters["properties"]["limit"]["maximum"] == 200
+    performance = by_name["get-performance-history"]
+    assert performance.parameters["properties"]["grain"]["const"] == "daily"
+    assert "not a cash-flow-adjusted return series" in performance.description
     assert "omit both selectors" in by_name["get-pipeline-run"].description
     assert by_name["get-portfolio-overview"].output_schema["additionalProperties"] is False
     assert set(by_name["get-portfolio-overview"].output_schema["required"]) == {
         "schema_version", "as_of", "source", "freshness", "quality",
         "missing_coverage", "lineage_ref", "request_id", "data",
     }
+
+
+def test_performance_history_request_rejects_unimplemented_aggregate_grains():
+    with pytest.raises(ValidationError):
+        PerformanceHistoryRequest(
+            start_date="2026-05-01",
+            end_date="2026-10-08",
+            grain="weekly",
+        )
 
 
 def test_tool_handler_delegates_a_typed_request_and_binds_request_id():

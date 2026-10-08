@@ -1211,3 +1211,9 @@ id = "WI-063-S01"
 parent_id = "WI-063"
 title = "Eliminate legacy/new trade scheduler overlap and verify recurring overseas recovery"
 status = "stabilizing"
+
+[[subitems]]
+id = "WI-066-S01"
+parent_id = "WI-066"
+title = "Make longitudinal MCP planning truthful and repeat the owner recovery question in actual clients"
+status = "in_progress"
