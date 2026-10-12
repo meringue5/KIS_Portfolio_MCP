@@ -120,7 +120,14 @@ TOOL_CONTRACTS = (
     ToolContract("get-signal-status", "signal-status.v2", "stored", "Return versioned signal state, inputs and quality."),
     ToolContract("get-data-catalog", "data-catalog.v1", "packaged", "Return the governed source, dataset, metric, pipeline or object catalog."),
     ToolContract("get-data-quality", "data-quality.v1", "control-read", "Return bounded freshness, completeness, reconciliation and known-gap evidence."),
-    ToolContract("get-pipeline-run", "pipeline-run.v1", "control-read", "Return bounded pipeline run, stage, watermark and safe failure evidence; omit both selectors for the current portfolio-refresh pipeline."),
+    ToolContract(
+        "get-pipeline-run",
+        "pipeline-run.v1",
+        "control-read",
+        "Return bounded pipeline run, stage, watermark and safe failure evidence; omit both selectors for the "
+        "current portfolio-refresh pipeline. Empty portfolio windows distinguish governed no-runs-expected from "
+        "missing scheduled slots and unavailable calendar evidence.",
+    ),
     ToolContract("get-journal-review-queue", "journal-review-queue.v2", "stored", "Return bounded owner-review questions without mutating journal state."),
 )
 _CONTRACT_BY_NAME = {item.name: item for item in TOOL_CONTRACTS}

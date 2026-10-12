@@ -853,7 +853,10 @@ wrapper를 도입하도록 승인했다. 제품 계약은 DEC-058, 실행 추적
 **결정**: `include_holdings=false`는 조회·합계·품질 판정에 사용한 governed rows를 버리지 않고 응답의
 `positions` projection만 빈 배열로 만든다. envelope의 freshness와 quality row count는 실제 판정 입력을
 계속 반영한다. `get-pipeline-run`이 public alias를 canonical pipeline id로 해석하면 `data.query`에 요청값,
-해석값과 alias 적용 여부를 additive metadata로 반환한다. 거래 원장과 수집 watermark가 조회 종료일까지
+해석값과 alias 적용 여부를 additive metadata로 반환한다. portfolio-refresh의 빈 조회창은 complete governed
+market calendar가 조회 cutoff까지 예정된 고정 슬롯이 0개였음을 증명할 때만 `no_runs_expected` pass로
+판정하고, 예정 슬롯의 run evidence가 없으면 `scheduled_run_missing`, calendar coverage가 불완전하면
+`calendar_evidence_unavailable`로 fail closed한다. 거래 원장과 수집 watermark가 조회 종료일까지
 덮는데 사건이 없을 때만 정상적인 빈 결과로 판정하고, 승인됐지만 production 비활성인 fundamental·macro
 입력은 `approved_inactive`로 표현한다.
 

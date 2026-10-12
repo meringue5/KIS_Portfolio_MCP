@@ -2,6 +2,7 @@ import asyncio
 import json
 from datetime import UTC, date, datetime
 
+import duckdb
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
@@ -14,6 +15,8 @@ from kis_portfolio.adapters.mcp.v2 import (
     create_v2_stateless_transport,
 )
 from kis_portfolio.adapters.mcp import v2 as v2_adapter
+from kis_portfolio.adapters.outbound.remote_v2_warehouse import WarehouseReadQueryPort
+from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.remote_read_surface import (
     MAX_RESPONSE_BYTES,
     V2_READ_TOOL_NAMES,
@@ -139,6 +142,69 @@ def test_pipeline_run_with_conflicting_selectors_remains_diagnosable():
     assert payload["error"]["code"] == "invalid_request"
     assert payload["error"]["visibility"] == "owner_debug"
     assert "exactly one" in payload["error"]["detail"]
+
+
+def test_pipeline_run_tool_boundary_reports_closed_window_as_expected_quiet():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX',?,?,?)",
+        [
+            (date(2026, 10, 9), False, "holiday"),
+            (date(2026, 10, 10), False, "weekend"),
+            (date(2026, 10, 11), False, "weekend"),
+            (date(2026, 10, 12), True, "open"),
+        ],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+    server = build_v2_read_server(application, actor_provider=lambda: ACTOR)
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-pipeline-run")
+
+    result = asyncio.run(tool.fn(
+        pipeline_id="portfolio-refresh",
+        as_of=datetime(2026, 10, 11, 15, 49, tzinfo=UTC),
+        lookback_days=3,
+    ))
+
+    assert result.data["window"]["window_status"] == "no_runs_expected"
+    assert result.freshness["status"] == "available"
+    assert result.quality == {"status": "pass", "row_count": 0}
+    assert result.missing_coverage == []
+
+
+def test_pipeline_run_tool_boundary_keeps_missing_due_slot_partial():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX',?,?,?)",
+        [
+            (date(2026, 9, 10), False, "closed fixture boundary"),
+            (date(2026, 9, 11), True, "open"),
+        ],
+    )
+    application = RemoteReadApplication(
+        WarehouseReadQueryPort(connection), expected_resource=RESOURCE
+    )
+    server = build_v2_read_server(application, actor_provider=lambda: ACTOR)
+    tool = next(item for item in server._tool_manager.list_tools() if item.name == "get-pipeline-run")
+
+    result = asyncio.run(tool.fn(
+        pipeline_id="portfolio-refresh",
+        as_of=datetime(2026, 9, 11, 8, 0, tzinfo=UTC),
+        lookback_days=1,
+    ))
+
+    assert result.data["window"]["window_status"] == "scheduled_runs_missing"
+    assert result.data["window"]["missing_run_count"] == 3
+    assert result.quality == {"status": "partial", "row_count": 0}
+    assert result.missing_coverage == [{
+        "dataset_id": "dataset.pipeline-run-evidence",
+        "reason": "scheduled_run_missing",
+    }]
 
 
 @pytest.mark.parametrize(
