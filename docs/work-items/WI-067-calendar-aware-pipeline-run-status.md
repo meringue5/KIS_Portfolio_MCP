@@ -21,7 +21,7 @@ security_impact: none; no new identifiers, credentials or raw provider payloads 
 cost_impact: one bounded calendar query per portfolio pipeline-status read
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic MCP tool-boundary no-runs-expected positive, scheduled-run-missing partial and invalid-selector error passed; post-release Codex and owner-Claude replay pending
+real_use_evidence_refs: deterministic MCP tool-boundary no-runs-expected positive, scheduled-run-missing partial and invalid-selector error passed; PR #149 initial CI run 38191885891 passed; post-release Codex and owner-Claude replay pending
 stabilization_window: post-release immediate Codex and owner-Claude replay across a closed-only window and a window containing scheduled runs
 stabilization_exit_refs: protected release evidence plus actual-client positive, partial and error behavior
 rollback_plan: restore the prior Remote revision if current run visibility regresses; no data rollback is required because the change is read-only
@@ -124,6 +124,7 @@ or data failure and invites false incident diagnosis.
   orchestrator/order/account safety tests passed.
 - `bash scripts/check.sh quick`: passed with the repository Python 3.13 and uv paths explicitly selected.
 - `bash scripts/check.sh full`: 815 passed with one pre-existing Authlib deprecation warning.
+- PR #149 initial CI run `38191885891`: passed on commit `860ee4d`.
 - Production evidence: pending protected release and actual-client replay.
 
 ## Closeout
