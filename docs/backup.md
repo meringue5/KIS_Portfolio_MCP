@@ -206,3 +206,11 @@ FROM read_parquet('var/backup/parquet/20260419_130000/portfolio_snapshots.parque
 CREATE TABLE portfolio_snapshots AS
 SELECT * FROM read_parquet('var/backup/parquet/20260419_130000/portfolio_snapshots.parquet');
 ```
+
+## WI-068 reference recovery
+
+Migration `0021` adds `silver.portfolio_legacy_total_reference` to the private Parquet allowlist.
+The protected `wi068` release pins the owner-reviewed input SHA, performs pre/post export, private upload and fresh
+restore, checks append-only replay and unchanged native state/WI-066 quarantine. Older `0020` backups restore their
+exact migration prefix without inventing the reference table. No raw source locator appears in release logs.
+Rollback restores prior Remote stable/tag routes; reference/source versions remain retained, never deleted.

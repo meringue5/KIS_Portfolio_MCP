@@ -77,6 +77,7 @@ class PositionAnalysisRequest(_Request):
 
 
 class PerformanceHistoryRequest(_DateRangeRequest):
+    include_legacy_reference: bool = False
     account_alias: str | None = Field(default=None, min_length=1, max_length=64)
     grain: Literal["daily"] = "daily"
     limit: int = Field(default=250, ge=1, le=1_000)

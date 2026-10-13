@@ -108,7 +108,9 @@ TOOL_CONTRACTS = (
         "stored",
         "Return stored daily total-asset valuation observations with explicit quality gaps. "
         "This is not a cash-flow-adjusted return series; use the daily observations to assess "
-        "only periods whose totals pass quality checks.",
+        "only periods whose totals pass quality checks. Set include_legacy_reference=true for "
+        "separate noncanonical historical total levels with disclosed FX/zero-cash assumptions; "
+        "references are total-only and never performance returns.",
     ),
     ToolContract("get-market-snapshot", "market-snapshot.v2", "cached-or-bounded-read-through", "Return a bounded current price, quote or FX snapshot with freshness."),
     ToolContract("get-market-history", "market-history.v2", "stored", "Return governed price or FX history with versioned technical context."),
@@ -251,8 +253,8 @@ def register_v2_read_tools(
     async def position_analysis(instrument_id: InstrumentId | None = None, account_alias: AccountAlias | None = None, as_of: datetime | None = None, limit: Limit200 = 50) -> ReadResponseEnvelope:
         return await invoke("get-position-analysis", lambda: PositionAnalysisRequest(instrument_id=instrument_id, account_alias=account_alias, as_of=as_of, limit=limit))
 
-    async def performance_history(start_date: date, end_date: date, account_alias: AccountAlias | None = None, grain: Literal["daily"] = "daily", limit: Limit1000 = 250) -> ReadResponseEnvelope:
-        return await invoke("get-performance-history", lambda: PerformanceHistoryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, grain=grain, limit=limit))
+    async def performance_history(start_date: date, end_date: date, account_alias: AccountAlias | None = None, grain: Literal["daily"] = "daily", limit: Limit1000 = 250, include_legacy_reference: bool = False) -> ReadResponseEnvelope:
+        return await invoke("get-performance-history", lambda: PerformanceHistoryRequest(start_date=start_date, end_date=end_date, account_alias=account_alias, grain=grain, limit=limit, include_legacy_reference=include_legacy_reference))
 
     async def market_snapshot(instrument_id: InstrumentId, market: Literal["KR", "US", "FX"], freshness_policy: Literal["stored", "cached", "bounded-live"] = "cached") -> ReadResponseEnvelope:
         return await invoke("get-market-snapshot", lambda: MarketSnapshotRequest(instrument_id=instrument_id, market=market, freshness_policy=freshness_policy))

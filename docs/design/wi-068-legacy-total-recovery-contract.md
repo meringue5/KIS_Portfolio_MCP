@@ -1,8 +1,8 @@
-# WI-068 — bounded legacy total reference recovery (proposed)
+# WI-068 — bounded legacy total reference recovery (approved)
 
-Status: proposed architecture/consumption contract; not an approved ADR or production activation.
+Status: owner approved 2026-10-13; DEC-062 / ADR-033. Implementation and protected activation authorized.
 Owner request: 2026-10-13 "채워봅시다", following acceptance of missing overseas cash = 0 and the bounded 27 dates.
-The request authorizes concrete recovery preparation; exact production storage/public consumption remains reviewable below.
+Owner subsequently approved the exact storage/read boundary below and authorized protected production activation.
 
 ## Concrete candidate
 
@@ -42,20 +42,20 @@ The earlier list of 27 "recoverable dates" was a list of retained overview dates
 - Source reads were SELECT-only and in one transaction, rolled back without DML/DDL. Retained `v1-latest` count/hash
   checked unchanged. WI-066 quality quarantine and native V2 values remain intact.
 
-## Proposed production boundary for owner approval
+## Approved production boundary
 
 Choose **owner-only noncanonical reference storage and explicit read projection**, scoped to total levels for these
 25 dates. Existing V1 input and canonical V2 ledgers remain immutable. This is the reference portion of the earlier
 hybrid recommendation; no broader source-fact promotion is needed for this first total-history outcome.
 
-1. New proposed dataset `dataset.portfolio-legacy-total-reference`, recovery version + date + input hash, append-only
-   corrections/supersession. Future target `silver.portfolio_legacy_total_reference`; no DDL exists in this phase.
+1. New dataset `dataset.portfolio-legacy-total-reference`, recovery version + date + input hash, append-only
+   corrections/supersession. Physical target `silver.portfolio_legacy_total_reference`; DDL is migration 0021.
 2. Row fields: date, original amount, reference amount, `recorded_reference|estimated_reference`, assumptions,
    input hash, knowledge/recorded time, recovery version and FX provenance. No account id or raw source locator.
    Unavailable rows may retain safe coverage reasons; reference amount stays NULL.
 3. Native V2 passing state takes precedence on overlapping dates. Reference rows never overwrite or satisfy canonical
    quality, return, drawdown, alert or contribution inputs. Dataset/read-model approval does not amend WI-066.
-4. Proposed explicit opt-in on existing `get-performance-history`: `include_legacy_reference=true`, returning a
+4. Explicit opt-in on existing `get-performance-history`: `include_legacy_reference=true`, returning a
    **separate `reference_history` array** with classification/assumptions/lineage. Default canonical history remains
    unchanged. No automatic fallback to estimates and no new public tool or command.
 5. Total-only grain. Account-filter requests combined with legacy references return a bounded unsupported-combination
@@ -64,17 +64,17 @@ hybrid recommendation; no broader source-fact promotion is needed for this first
    No new always-on service, provider credential, recurring collection or notification.
 7. Private Parquet backup/versioned manifest and fresh local restore must include the new physical dataset before
    production release. Rollback disables the opt-in projection/reference version and retains immutable source evidence.
-8. Implement only after owner approves this specific boundary and ADR/DEC + logical/physical contracts are updated.
+8. Owner approval is recorded in DEC-062/ADR-033 and the logical/physical contracts.
    Then test idempotency, source hash, reconciliation, native precedence, NULL handling and actual Codex/Claude
    positive (25 dated references), partial (Aug 6/25 unavailable), error (account-filter combination) behavior.
 
-## Approval requested
+## Owner decision
 
-Approve the 25 dated records as **noncanonical total-level reference data**, with disclosed external FX/zero-cash
+Owner approved the 25 dated records as **noncanonical total-level reference data**, with disclosed external FX/zero-cash
 assumptions, separate append-only storage and explicit opt-in MCP projection. This is not approval to mark legacy
 rows pass, overwrite native totals, interpolate absent dates, deploy unrelated Work Items or publish raw payloads.
 
-The dataset is registered proposed; the [read-model draft](wi-068-proposed-reference-read-model.toml) remains outside
-the runtime registry to preserve the currently approved three governance read models.
+The approved reference dataset/read model is registered separately from the existing three governance read models.
+The earlier [read-model draft](wi-068-proposed-reference-read-model.toml) remains retained as investigation evidence.
 
-Until this decision: private preview and proposed manifests only; no production DDL/backfill/publish/API/deploy.
+Owner approved this exact boundary and requested implementation. Production applies only after protected verification gates.

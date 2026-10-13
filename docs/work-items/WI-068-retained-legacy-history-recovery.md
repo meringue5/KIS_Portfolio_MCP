@@ -1,10 +1,10 @@
 ---
 id: WI-068
 title: Recover retained legacy portfolio history for bounded longitudinal use
-status: proposed
+status: in_progress
 type: architecture
 owner: owner
-decision_refs: pending architecture decision after retained-backup inventory
+decision_refs: DEC-062, ADR-033
 requirement_refs: owner intake 2026-10-13, WI-066 truthful-history boundary
 milestone_ref: MS-008
 delivery_refs: none
@@ -13,18 +13,18 @@ depends_on: WI-066
 discovered_from: WI-066
 supersedes: none
 rollback_of: none
-execution_scope: isolated private total-recovery preview and proposed contract design; production consumption waits for owner architecture approval
+execution_scope: isolated approved implementation and recovery rehearsal; protected production release follows verification
 production_effects: none
-architecture_impact: pending decision between canonical V2 compatibility import, a governed noncanonical reference read model, or a bounded hybrid
-data_impact: retained V1 and backup data must remain immutable; any publish, backfill, DDL or canonical promotion requires separate approval and versioned lineage
+architecture_impact: approved owner-only noncanonical reference dataset and explicit opt-in projection; canonical defaults unchanged
+data_impact: approved additive migration 0021 and pinned noncanonical reference import; retained V1/native V2 immutable, no canonical promotion
 security_impact: historical portfolio payload remains confidential and owner-only; no raw account identifiers or backup locators may enter MCP responses
 cost_impact: expected storage-local analysis with no new paid source; any new always-on service or material query cost requires approval
 user_visible_impact: yes
 real_use_acceptance: required
 real_use_evidence_refs: owner-Claude longitudinal question and direct Codex July history probes from 2026-10-13; implementation evidence pending
-stabilization_window: none
-stabilization_exit_refs: none
-rollback_plan: none; intake authorizes no mutation, migration, deployment or consumer activation
+stabilization_window: immediate direct Codex positive/partial/error plus owner-Claude same-question replay
+stabilization_exit_refs: protected migration/import/restore, direct Codex replay, owner-Claude acceptance
+rollback_plan: disable reference opt-in by restoring prior Remote revision/tag; retain append-only reference and original data
 ---
 
 # WI-068 — Recover retained legacy portfolio history for bounded longitudinal use
@@ -53,6 +53,12 @@ On 2026-10-13, production inspection and actual MCP calls established that the s
 The data may have high present decision value even if its value naturally decays as native V2 history accumulates.
 It therefore needs a bounded recovery decision, not silent deletion, automatic canonical adoption, or an open-ended
 rewrite of current history contracts.
+
+## Owner approval — 2026-10-13
+
+The owner explicitly approved the 25-date private candidate and the separate noncanonical DB/MCP contract,
+then requested implementation and activation. DEC-062 and ADR-033 record this decision. Original rows,
+WI-066 quarantine, native-V2 priority and unavailable Aug 6/25 boundaries remain mandatory.
 
 ## Classification and contract
 
@@ -225,3 +231,22 @@ rewrite of current history contracts.
 - Remaining risk: retained artifacts may be incomplete, mutually inconsistent, unavailable to the current runtime or
   too ambiguous for canonical promotion. Their decision value also decays as native V2 history accumulates.
 - Follow-up Work Item: pending inventory and owner architecture decision; do not pre-allocate an ID.
+
+## Approved implementation evidence — 2026-10-13
+
+- DEC-062/ADR-033 approved by owner after reviewing the 25 valued/2 unavailable candidate.
+- Migration 0021 adds a separate append-only, backed-up reference table; explicit opt-in on the existing performance
+  tool returns separate total levels. Default legacy quarantine, native state and independent market basis defect unchanged.
+- Pinned input SHA: `c1b5a62d0146b1f72265519aed09a3952768329b1b5afa00f6802b622c23e95b`.
+- Actual private candidate rehearsed in disposable local DuckDB: inserted 27, replay inserted 0, projection 25;
+  Aug 6/25 remain unavailable. No amounts or raw source locators enter tracked evidence.
+- Synthetic tests cover reconciliation, input hash failure, native precedence, unavailable NULL, total-only/range errors,
+  append-only conflict, pre/post private backup/fresh restore and release replay.
+- Protected release target `wi068` updates only a bounded one-off migration/import Job and the Remote stable/tag
+  routes after backup/restore succeeds. Account-history/core producer Jobs, schedulers, auth/IAM and source credentials
+  are not touched. Rollback restores both prior routes and retains all source/reference data.
+- Initial full gate exposed a test-fixture dependency on whichever WI was active; fixture isolation was corrected,
+  without relaxing the one-active-implementation rule. Final gate and actual production/client evidence follow.
+
+- Verification: repository Python 3.13.3; quick passed, full passed **833 tests** (39.89s);
+  `git diff --check` clean. Existing Authlib deprecation warning only. Protected activation/client replay pending.

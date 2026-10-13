@@ -35,8 +35,8 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
-registry의 **79 tables + 27 views = 106 objects**를 관리한다. repository migration ceiling은 `0020`이며,
-운영 V2는 아직 checksum migration `0019`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
+registry의 **80 tables + 27 views = 107 objects**를 관리한다. repository migration ceiling은 `0021`이며,
+운영 V2는 checksum migration `0020`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
 
@@ -58,7 +58,7 @@ Bronze를 임의로 직접 조인해 새로운 공식 지표를 만들지 않는
 
 DEC-045에 따라 기존 `main` 객체를 그대로 보존하면서 V2를 explicit checksum migration
 `src/kis_portfolio/platform/sql/0001_v2_foundation.sql`부터
-`0020_legacy_history_quality_quarantine.sql`까지 additive 생성한다. V2 runtime registry는
+`0021_legacy_total_reference.sql`까지 additive 생성한다. V2 runtime registry는
 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다.
 Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며 production startup도 DDL을 실행하지
 않는다.
@@ -70,6 +70,12 @@ Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며
 | `bronze.source_observations` | source record observation; content와 logical idempotency key로 append-only replay | Parquet / confidential |
 | `bronze.raw_object_manifest` | private object content hash와 rights metadata | private object / restricted |
 | `bronze.owner_research_documents` | owner PDF SHA-256별 immutable original identity | private object / restricted |
+
+### V2 Silver noncanonical reference
+
+| Object | Grain / contract | Backup / sensitivity |
+| --- | --- | --- |
+| `silver.portfolio_legacy_total_reference` | date + recovery version + input SHA; append-only owner-approved reference levels, 14 recorded + 11 estimated + 2 NULL unavailable; DEC-062/ADR-033. External DEXKOUS prior rate max 4 days and absent overseas cash=0 are disclosed; never canonical performance inputs. Native passing V2 wins. | Parquet / confidential |
 
 ### V2 Silver canonical ledger
 
@@ -136,7 +142,7 @@ Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며
 | `control.macro_series_definitions` | exact macro series contract/version/hash, native metadata, rights, attribution과 inactive activation state | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 106개 V2 object는 79 tables + 27 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 107개 V2 object는 80 tables + 27 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.

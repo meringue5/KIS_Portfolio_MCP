@@ -73,6 +73,11 @@ def test_catalog_quality_and_pipeline_read_models_are_approved_but_inactive():
         (REPO_ROOT / "governance/catalog/read-models.toml").read_text(encoding="utf-8")
     )["contracts"]
 
+    reference = [item for item in read_models if item["id"] == "read_model.portfolio-legacy-total-reference"]
+    assert len(reference) == 1
+    assert reference[0]["status"] == "active"
+    assert "explicit include_legacy_reference opt-in only" in reference[0]["query_policy"]
+    read_models = [item for item in read_models if item not in reference]
     assert {item["id"] for item in read_models} == {
         "read_model.data-catalog-v1",
         "read_model.data-quality-v1",
