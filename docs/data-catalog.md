@@ -302,8 +302,9 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 
 ### Managed V2 production register
 
-Canonical production은 migration `0019`까지 적용됐고 WI-048의 private pre/post backup, fresh restore와
-reference reconciliation을 통과했다. 아래 항목은 그 상태에 도달한 날짜별 append-only release history이며,
+Canonical production은 migration `0021`까지 적용됐다. 초기 WI-048의 `0019` release는 private pre/post backup,
+fresh restore와 reference reconciliation을 통과했고 후속 WI-066/WI-068도 개별 복구 증거를 보존한다.
+아래 항목은 날짜별 append-only release history이며,
 초기 migration 번호를 현재 ceiling으로 해석하지 않는다.
 
 2026-08-28 WI-022-S06 managed release가 checksum-verified migration을 `0010`까지 적용했다. canonical
