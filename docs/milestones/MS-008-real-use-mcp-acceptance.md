@@ -21,7 +21,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
 | 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
 | 7 | WI-067 calendar-aware pipeline run status | WI-066 | verified |
-| 8 | WI-068 retained legacy history recovery | WI-066 | in_progress |
+| 8 | WI-068 retained legacy history recovery | WI-066 | stabilizing |
 
 ## Gates
 
@@ -76,3 +76,5 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-10-13.1 | 2026-10-13 | Owner clarified that pre-V2 application history remains in incompatible retained data/backups and approved Work Item definition so its present analytical value can be recovered without weakening WI-066 quarantine | Register WI-068 as proposed; allow read-only inventory and fixture design only, then require an owner-approved architecture decision before any restore, import, read model, API, deployment or production mutation |
 
 | 2026-10-13.2 | 2026-10-13 | Owner approved DEC-062/ADR-033: 25 dated total-level references, external FX/zero-cash assumptions, two NULL unavailable totals, explicit MCP opt-in | WI-068 in_progress; isolated verification then protected additive import/Remote release; native state and WI-066 quarantine preserved |
+
+| 2026-10-13.3 | 2026-10-13 | WI-068 protected migration/import/restore and actual Codex positive/partial/error passed; native state and quarantine preserved | WI-068 stabilizing; owner-Claude replay/acceptance remains |

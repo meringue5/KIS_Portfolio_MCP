@@ -1,0 +1,197 @@
+{
+  "work_item": "WI-068",
+  "transport": "actual Codex OAuth Remote MCP",
+  "date": "2026-10-13",
+  "positive": {
+    "probe": "positive_full_range",
+    "reference_rows": 25,
+    "classification_counts": {
+      "recorded_reference": 14,
+      "estimated_reference": 11
+    },
+    "all_reference_canonical_false": true,
+    "all_original_history_quarantined": true,
+    "dates": [
+      "2026-04-19",
+      "2026-04-20",
+      "2026-04-21",
+      "2026-04-22",
+      "2026-04-23",
+      "2026-04-25",
+      "2026-04-27",
+      "2026-05-03",
+      "2026-05-04",
+      "2026-05-06",
+      "2026-05-11",
+      "2026-05-12",
+      "2026-05-14",
+      "2026-05-16",
+      "2026-05-22",
+      "2026-05-29",
+      "2026-06-05",
+      "2026-06-08",
+      "2026-06-14",
+      "2026-06-16",
+      "2026-06-20",
+      "2026-07-24",
+      "2026-08-10",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "quality": {
+      "status": "partial",
+      "row_count": 52
+    },
+    "missing_coverage": [
+      {
+        "dataset_id": "dataset.portfolio-daily-state",
+        "reason": "legacy_history_unassessed"
+      },
+      {
+        "dataset_id": "dataset.portfolio-legacy-total-reference",
+        "observation_date": "2026-08-06",
+        "reason": "legacy_total_unavailable",
+        "coverage_reasons": [
+          "legacy_noncanonical",
+          "not_cash_flow_adjusted_return",
+          "original_fetch_clock_not_repaired",
+          "overseas_position_observation_absent"
+        ]
+      },
+      {
+        "dataset_id": "dataset.portfolio-legacy-total-reference",
+        "observation_date": "2026-08-25",
+        "reason": "legacy_total_unavailable",
+        "coverage_reasons": [
+          "legacy_noncanonical",
+          "not_cash_flow_adjusted_return",
+          "original_fetch_clock_not_repaired",
+          "overseas_position_observation_absent"
+        ]
+      },
+      {
+        "dataset_id": "dataset.portfolio-legacy-total-reference",
+        "reason": "noncanonical_reference_levels_not_performance"
+      }
+    ],
+    "request_id": "29918c53dcdb44baadeacd073abbc558"
+  },
+  "probes": [
+    {
+      "probe": "partial_aug06",
+      "isError": false,
+      "quality": {
+        "status": "partial",
+        "row_count": 1
+      },
+      "reference_rows": 0,
+      "has_reference_history": true,
+      "history_rows": 1,
+      "all_history_totals_null": true,
+      "history_statuses": [
+        "legacy_unassessed"
+      ],
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        },
+        {
+          "dataset_id": "dataset.portfolio-legacy-total-reference",
+          "observation_date": "2026-08-06",
+          "reason": "legacy_total_unavailable",
+          "coverage_reasons": [
+            "legacy_noncanonical",
+            "not_cash_flow_adjusted_return",
+            "original_fetch_clock_not_repaired",
+            "overseas_position_observation_absent"
+          ]
+        }
+      ],
+      "request_id": "418abe1065c64fd896fd883ce2b97571"
+    },
+    {
+      "probe": "partial_aug25",
+      "isError": false,
+      "quality": {
+        "status": "partial",
+        "row_count": 1
+      },
+      "reference_rows": 0,
+      "has_reference_history": true,
+      "history_rows": 1,
+      "all_history_totals_null": true,
+      "history_statuses": [
+        "legacy_unassessed"
+      ],
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        },
+        {
+          "dataset_id": "dataset.portfolio-legacy-total-reference",
+          "observation_date": "2026-08-25",
+          "reason": "legacy_total_unavailable",
+          "coverage_reasons": [
+            "legacy_noncanonical",
+            "not_cash_flow_adjusted_return",
+            "original_fetch_clock_not_repaired",
+            "overseas_position_observation_absent"
+          ]
+        }
+      ],
+      "request_id": "b9a326d60e6a470daf589cba00d6a1dd"
+    },
+    {
+      "probe": "default_july24",
+      "isError": false,
+      "quality": {
+        "status": "partial",
+        "row_count": 1
+      },
+      "has_reference_history": false,
+      "history_rows": 1,
+      "all_history_totals_null": true,
+      "history_statuses": [
+        "legacy_unassessed"
+      ],
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        }
+      ],
+      "request_id": "05a029727494473a96212e6e04dc39ba"
+    },
+    {
+      "probe": "error_account_combination",
+      "isError": true,
+      "has_reference_history": false,
+      "error_code": "legacy_reference_total_only",
+      "error_detail": "legacy_reference_total_only",
+      "request_id": "dd1ad16b197147f79f3b4fe0ebbb8704",
+      "visibility": "owner_debug"
+    },
+    {
+      "probe": "native_current",
+      "isError": false,
+      "quality": {
+        "status": "pass",
+        "row_count": 2
+      },
+      "has_reference_history": false,
+      "history_rows": 2,
+      "all_history_totals_null": false,
+      "history_statuses": [
+        "pass",
+        "pass"
+      ],
+      "missing_coverage": [],
+      "request_id": "be164c9aa722405fae0bd0e20fca7fac"
+    }
+  ],
+  "github_run_id": "38398588990",
+  "release_git_sha": "db89d211b12b6270bb782c548b240b54a1f6316d",
+  "owner_claude_replay": "pending stabilization acceptance"
+}

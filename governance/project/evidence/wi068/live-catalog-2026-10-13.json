@@ -1,0 +1,20 @@
+{
+  "drift_counts": {
+    "managed_column_drift": 1,
+    "missing_managed_objects": 0,
+    "unmanaged_objects": 3
+  },
+  "drift_exception_review": {
+    "blockers": [],
+    "expired_exceptions": [],
+    "missing_managed_objects": [],
+    "production_change_authorized": false,
+    "registered_exception_count": 4,
+    "stale_exceptions": [],
+    "status": "pass",
+    "unregistered_drift": []
+  },
+  "inventory_object_count": 137,
+  "new_reference_table_managed": true,
+  "work_item": "WI-068"
+}

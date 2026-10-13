@@ -1,0 +1,98 @@
+{
+  "existing_job_templates_unchanged": true,
+  "git_sha": "db89d211b12b6270bb782c548b240b54a1f6316d",
+  "github_run_id": "38398588990",
+  "new_jobs": [
+    "kis-portfolio-wi068"
+  ],
+  "original_state_matches_baseline": true,
+  "references": {
+    "counts": {
+      "estimated_reference": 11,
+      "recorded_reference": 14,
+      "unavailable_total": 2
+    },
+    "fingerprint": 8246285942794121907,
+    "row_count": 27
+  },
+  "release": {
+    "applied_migrations": [
+      "0021"
+    ],
+    "deletions": 0,
+    "elapsed_seconds": 130.573,
+    "fresh_restore_verified": true,
+    "import": {
+      "input_sha256": "c1b5a62d0146b1f72265519aed09a3952768329b1b5afa00f6802b622c23e95b",
+      "inserted": 27,
+      "reviewed_rows": 27,
+      "unavailable_rows": 2,
+      "valued_rows": 25
+    },
+    "original_rows_mutated": 0,
+    "post_backup": {
+      "byte_size": 21296371,
+      "index_sha256": "b7ed6d4046b57d651d2ffa33c1f50e7fad5abcf641b34a9b6b3fe8965c589563",
+      "object_count": 80
+    },
+    "post_migration": "0021",
+    "pre_backup": {
+      "byte_size": 21286636,
+      "index_sha256": "daa121e001b5f9f94a2b0083149604ce68bc6eb72adfbf78c36f5bdb8ce2db19",
+      "object_count": 79
+    },
+    "pre_migration": "0020",
+    "references": {
+      "counts": {
+        "estimated_reference": 11,
+        "recorded_reference": 14,
+        "unavailable_total": 2
+      },
+      "fingerprint": 8246285942794121907,
+      "row_count": 27
+    },
+    "release_git_sha": "db89d211b12b6270bb782c548b240b54a1f6316d",
+    "release_image_digest": "sha256:432d4d4adae47f91149fa9ab4d922e635e56784ba08918b462b9ef09e82726f4",
+    "source_calls": 0,
+    "state_after": {
+      "fingerprint": 9878520502006917059,
+      "row_count": 3529
+    },
+    "state_before": {
+      "fingerprint": 9878520502006917059,
+      "row_count": 3529
+    },
+    "status": "succeeded",
+    "summary_evidence": {
+      "legacy_groups": 27,
+      "legacy_quarantined_groups": 27,
+      "native_groups": 83,
+      "native_valid_groups": 83
+    }
+  },
+  "remote_labels": {
+    "deploy-source": "github-actions",
+    "deploy-target": "wi068",
+    "git-sha": "db89d211b12b6270bb782c548b240b54a1f6316d",
+    "github-run-id": "38398588990"
+  },
+  "remote_latest_ready_revision": "projects/grand-forge-279904/locations/asia-northeast3/services/kis-portfolio-remote/revisions/kis-portfolio-remote-00061-z79",
+  "remote_traffic": [
+    {
+      "percent": 100,
+      "revision": "kis-portfolio-remote-00061-z79",
+      "tag": "wi046-v2",
+      "type": "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST",
+      "uri": "https://wi046-v2---kis-portfolio-remote-5q2yi575la-du.a.run.app"
+    },
+    {
+      "revision": "kis-portfolio-remote-00065-ley",
+      "tag": "wi060",
+      "type": "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION",
+      "uri": "https://wi060---kis-portfolio-remote-5q2yi575la-du.a.run.app"
+    }
+  ],
+  "scheduler_settings_unchanged": true,
+  "summary_matches_baseline": true,
+  "work_item": "WI-068"
+}
