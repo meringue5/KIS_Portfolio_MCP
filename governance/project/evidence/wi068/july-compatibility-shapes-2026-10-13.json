@@ -1,0 +1,80 @@
+{
+  "work_item": "WI-068",
+  "fixture_kind": "sanitized observed-shape cases; no source payload or money values; not implementation acceptance",
+  "cases": [
+    {
+      "id": "july-domestic-source-fact",
+      "date": "2026-07-06",
+      "account_alias": "brokerage",
+      "holding_rows": 2,
+      "required_fields_present": true,
+      "classification": "reference-only; canonical source-fact candidate after approved parser/pagination reconciliation",
+      "canonical_total_allowed": false
+    },
+    {
+      "id": "july-partial-overseas",
+      "date": "2026-07-24",
+      "account_alias": "brokerage",
+      "holding_rows": 6,
+      "overseas_rows_with_null_krw": 4,
+      "cash_rows": 0,
+      "classification": "reference-only",
+      "canonical_total_allowed": false
+    },
+    {
+      "id": "july-repeat-observation",
+      "date": "2026-07-24",
+      "account_alias": "brokerage",
+      "raw_envelopes": 2,
+      "distinct_payload_hashes": 1,
+      "classification": "reference-only; deduplicate by content and request identity, retain both observations"
+    },
+    {
+      "id": "july-price-available",
+      "month": "2026-07",
+      "instruments_dual_basis": 18,
+      "raw_rows": 396,
+      "adjusted_rows": 396,
+      "classification": "canonical price source facts for supported basis/time semantics; not canonical portfolio total or historic PIT knowledge"
+    },
+    {
+      "id": "july-price-provenance-gap",
+      "month": "2026-07",
+      "raw_only_rows": 22,
+      "missing_provenance_rows": 22,
+      "classification": "reference-only until provenance/basis independently proven"
+    },
+    {
+      "id": "july-absent-fx",
+      "month": "2026-07",
+      "governed_fx_rows": 0,
+      "classification": "unavailable for canonical KRW conversion"
+    },
+    {
+      "id": "july-fee-only-cash",
+      "date": "2026-07-28",
+      "account_alias": "brokerage",
+      "cash_events": 22,
+      "event_types": [
+        "fee"
+      ],
+      "classification": "canonical fee facts only; unavailable complete cash-flow reconstruction"
+    },
+    {
+      "id": "july-repriced-position",
+      "quantity_assumption": "fixed observed quantity carried to unobserved date",
+      "fx_assumption": "explicit missing or owner-provided",
+      "classification": "estimated",
+      "canonical_total_allowed": false
+    },
+    {
+      "id": "synthetic-conflict-guard",
+      "fixture_origin": "synthetic boundary, not observed contradiction",
+      "source_versions": 2,
+      "same_key": true,
+      "different_quantity": true,
+      "classification": "unavailable pending adjudication",
+      "canonical_total_allowed": false
+    }
+  ]
+}

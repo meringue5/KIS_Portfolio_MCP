@@ -1,0 +1,22 @@
+schema_version = 1
+
+[[contracts]]
+id = "read_model.portfolio-legacy-total-reference"
+version = "0.1.0"
+status = "proposed"
+owner = "owner"
+description = "WI-068 legacy 총자산 참고값을 기존 canonical history와 별도 배열로 반환하는 명시적 owner-only opt-in 제안."
+decision_refs = []
+input_dataset_ids = ["dataset.portfolio-legacy-total-reference"]
+registry_input_kinds = []
+consumer_scope = "mcp-read"
+response_schema_ref = "proposed/read-model-envelope-v1/legacy-total-reference-v0.1"
+allowed_fields = ["schema_version", "as_of", "source", "freshness", "quality", "missing_coverage", "lineage_ref", "request_id", "reference_history", "observation_date", "recorded_total_krw", "reference_total_krw", "valuation_kind", "assumptions", "coverage_reasons", "recovery_version", "knowledge_at", "fx_provider", "fx_series", "fx_rate_date", "fx_rate_type", "fx_age_days"]
+suppressed_fields = ["account_id", "account_number", "raw_payload", "raw_json", "private_uri", "backup_uri", "token", "secret", "input_object_locator"]
+query_policy = "proposed explicit include_legacy_reference opt-in only; daily total-only; account filter combination rejected; unchanged canonical default; current date/page validation plus max 100 rows and 1095 day lookback"
+status_policy = "recorded_reference/estimated_reference/unavailable are never canonical pass; mixed reference consumption carries explicit partial/reference coverage and preserves canonical history independently"
+unavailable_policy = "missing foreign positions or FX means null reference total with reason; never invent zero holdings or interpolate unobserved days"
+activation_state = "inactive"
+max_response_bytes = 262144
+max_page_size = 100
+max_lookback_days = 1095

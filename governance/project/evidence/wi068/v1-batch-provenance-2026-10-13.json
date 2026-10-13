@@ -1,0 +1,4962 @@
+{
+  "work_item": "WI-068",
+  "phase": "read-only batch provenance investigation",
+  "observed_on": "2026-10-13",
+  "production_effects": "none",
+  "owner_statement": "A separate Google Cloud batch ran before V2; daily total assets are the recovery priority.",
+  "scope": "configured project grand-forge-279904; retained Cloud Run Job audit April 1 through August 27 KST; current Seoul Jobs and Scheduler; pre-V2 repository documents and GitHub Actions; known MotherDuck table families",
+  "historical_audit": [
+    {
+      "query": "pre_v2_jobs",
+      "records": 313,
+      "pages": 6,
+      "complete": true,
+      "aggregates": [
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "google.cloud.run.v1.Jobs.CreateJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 1,
+          "first_at": "2026-04-23T13:41:40.072687Z",
+          "last_at": "2026-04-23T13:41:40.072687Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.CreateJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 1,
+          "first_at": "2026-04-23T13:41:40.670459Z",
+          "last_at": "2026-04-23T13:41:40.670459Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "google.cloud.run.v1.Jobs.ReplaceJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 12,
+          "first_at": "2026-04-23T13:46:46.831280Z",
+          "last_at": "2026-08-27T06:06:49.978188Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 12,
+          "first_at": "2026-04-23T13:46:47.619326Z",
+          "last_at": "2026-08-27T06:06:50.800055Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "google.cloud.run.v1.Jobs.SetIamPolicy",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 10,
+          "first_at": "2026-04-23T13:46:51.257701Z",
+          "last_at": "2026-08-27T05:02:35.221301Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "status_code": 10,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 82,
+          "first_at": "2026-04-24T06:35:23.325105Z",
+          "last_at": "2026-08-25T06:35:33.577627Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "google.cloud.run.v1.Jobs.CreateJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 1,
+          "first_at": "2026-05-15T14:13:51.170906Z",
+          "last_at": "2026-05-15T14:13:51.170906Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.CreateJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 1,
+          "first_at": "2026-05-15T14:13:51.786318Z",
+          "last_at": "2026-05-15T14:13:51.786318Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "google.cloud.run.v1.Jobs.SetIamPolicy",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 6,
+          "first_at": "2026-05-15T14:14:04.118266Z",
+          "last_at": "2026-08-27T05:03:32.140327Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "google.cloud.run.v1.Jobs.ReplaceJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 6,
+          "first_at": "2026-05-15T14:52:36.410424Z",
+          "last_at": "2026-08-27T06:08:21.369383Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 6,
+          "first_at": "2026-05-15T14:52:37.137274Z",
+          "last_at": "2026-08-27T06:08:22.124957Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "google.cloud.run.v1.Jobs.CreateJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 1,
+          "first_at": "2026-05-15T14:55:18.143054Z",
+          "last_at": "2026-05-15T14:55:18.143054Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.CreateJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 1,
+          "first_at": "2026-05-15T14:55:18.837580Z",
+          "last_at": "2026-05-15T14:55:18.837580Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "google.cloud.run.v1.Jobs.SetIamPolicy",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 5,
+          "first_at": "2026-05-15T14:56:19.163567Z",
+          "last_at": "2026-08-27T05:04:25.623323Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "google.cloud.run.v1.Jobs.ReplaceJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Factivity",
+          "records": 5,
+          "first_at": "2026-05-15T15:44:08.172432Z",
+          "last_at": "2026-08-27T05:04:21.385841Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.ReplaceJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 5,
+          "first_at": "2026-05-15T15:44:08.995739Z",
+          "last_at": "2026-08-27T05:04:22.259973Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 57,
+          "first_at": "2026-05-17T22:35:36.298456Z",
+          "last_at": "2026-08-26T22:35:34.611491Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 65,
+          "first_at": "2026-05-17T23:30:37.327468Z",
+          "last_at": "2026-08-26T23:30:51.714360Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "status_code": 10,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 17,
+          "first_at": "2026-05-18T22:35:36.899982Z",
+          "last_at": "2026-08-24T22:35:33.304477Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "status_code": 0,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 9,
+          "first_at": "2026-08-11T02:45:31.514498Z",
+          "last_at": "2026-08-27T06:35:34.788219Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "status_code": 10,
+          "log_kind": "cloudaudit.googleapis.com%2Fsystem_event",
+          "records": 10,
+          "first_at": "2026-08-11T23:30:54.873089Z",
+          "last_at": "2026-08-24T23:30:47.959205Z",
+          "regions": [
+            "asia-northeast3"
+          ]
+        }
+      ],
+      "historical_definitions": [
+        {
+          "timestamp": "2026-04-23T13:41:40.670459Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.CreateJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-23T13:46:47.619326Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-23T13:51:23.184867Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-23T13:55:55.564490Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-23T14:51:04.600245Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-24T06:35:23.325105Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-27T06:35:32.321312Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-28T06:35:36.322253Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-29T06:35:34.248686Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-04-30T06:35:33.943224Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-01T06:35:35.229496Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-03T12:08:11.629344Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-04T06:35:36.379723Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-05T06:35:38.040249Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-06T06:35:33.473416Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-07T06:35:36.586347Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-08T06:35:34.710726Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-11T06:35:33.192536Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-12T06:35:34.962991Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-13T06:35:35.839462Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-14T06:35:36.677140Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T06:35:37.798183Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T14:13:51.786318Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.CreateJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T14:52:37.137274Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T14:55:18.837580Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.CreateJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T15:42:18.299232Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T15:43:15.407520Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-15T15:44:08.995739Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-17T22:35:36.298456Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-17T23:30:37.327468Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-18T06:35:39.521739Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-18T22:35:36.899982Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-18T23:30:27.867081Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-19T06:35:39.060551Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-19T22:35:35.662062Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-19T23:30:29.156137Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-20T06:35:35.135967Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-20T22:35:33.784525Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-20T23:30:32.029214Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-21T06:35:38.606126Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-21T22:35:36.507862Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-21T23:30:29.154905Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-22T06:35:37.006014Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-24T22:35:34.146622Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-24T23:30:31.306440Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-25T06:35:40.200627Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-25T22:35:36.834246Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-25T23:30:34.686382Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-26T06:35:37.965532Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-26T22:35:34.611755Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-26T23:30:29.307349Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-27T06:35:33.228707Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-27T22:35:32.136728Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-27T23:30:33.065401Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-28T06:35:34.185292Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-28T22:35:32.813327Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-28T23:30:28.828005Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-29T06:35:36.025075Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-31T22:35:35.396643Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-05-31T23:30:30.661910Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-01T06:35:35.789291Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-01T22:35:34.134300Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-01T23:30:31.078205Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-02T06:35:39.348892Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-02T22:35:35.139304Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-02T23:30:28.714720Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-03T06:35:37.941161Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-03T22:35:35.560537Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-03T23:30:27.777094Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-04T06:35:36.871463Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-04T22:35:35.172474Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-04T23:30:32.445565Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-05T06:35:35.723502Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-07T22:35:33.900767Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-07T23:30:29.740484Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-08T06:35:41.882235Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-08T22:35:33.047734Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-08T23:30:28.822841Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-09T06:35:36.520925Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-09T22:35:35.650153Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-09T23:30:29.659454Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-10T06:35:33.048339Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-10T22:35:35.780609Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-10T23:30:30.004856Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-11T06:35:35.840127Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-11T22:35:37.175259Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-11T23:30:26.323854Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-12T06:35:32.753318Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-13T16:29:53.744358Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-13T16:30:54.741728Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-13T16:31:46.024067Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-13T16:37:39.232609Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-13T16:38:32.249038Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-13T16:39:25.715614Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-14T22:35:33.421288Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-14T23:30:31.723055Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-15T06:35:33.800231Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-15T22:35:34.030542Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-15T23:30:31.820582Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-16T06:35:35.603109Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-16T22:35:32.123514Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-16T23:30:26.534427Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-17T06:35:30.804012Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-17T22:35:31.980693Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-17T23:30:27.961418Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-18T06:35:31.014856Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-18T22:35:31.614472Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-18T23:30:28.858526Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-19T06:35:35.455378Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-21T22:35:31.218882Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-21T23:30:27.357896Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-22T06:35:34.428951Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-22T22:35:30.279048Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-22T23:30:28.379373Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-23T06:35:35.344580Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-23T22:35:31.179394Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-23T23:30:27.937262Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-24T06:35:32.884954Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-24T22:35:34.897022Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-24T23:30:27.238104Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-25T06:35:33.805123Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-25T22:35:32.509188Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-25T23:30:30.056208Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-26T06:35:37.236472Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-28T22:35:32.024113Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-28T23:30:29.168832Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-29T06:35:33.259991Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-29T22:35:30.203686Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-29T23:30:30.426909Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-30T06:35:32.357926Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-30T22:35:33.798050Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-06-30T23:30:33.890280Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-01T06:35:33.248457Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-01T22:35:32.577913Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-01T23:30:32.591570Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-02T06:35:34.153997Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-02T22:35:33.035881Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-02T23:30:31.277711Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-03T06:35:34.054558Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-05T22:35:38.385878Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-05T23:30:31.191225Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-06T06:35:34.806628Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-06T22:35:33.176009Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-06T23:30:29.279132Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-07T06:35:33.854740Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-07T22:35:34.519237Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-07T23:30:31.011653Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-08T06:35:33.554034Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-08T22:35:32.046611Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-08T23:30:29.272755Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-09T06:35:35.190292Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-09T22:35:35.215703Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-09T23:30:31.248503Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-10T06:35:34.490315Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-12T22:35:34.603147Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-12T23:30:30.679442Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-13T06:35:36.099501Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-13T22:35:31.899599Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-13T23:30:29.747793Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-14T06:35:35.034932Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-14T22:35:32.394948Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-14T23:30:28.482992Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-15T06:35:34.763824Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-15T22:35:32.455996Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-15T23:30:27.686997Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-16T06:35:32.565673Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-16T22:35:33.217963Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-16T23:30:30.294628Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-17T06:35:33.511778Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-19T22:35:32.566495Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-19T23:30:31.020343Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-20T06:35:32.864876Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-20T22:35:33.488273Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-20T23:30:32.453097Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-21T06:35:37.707533Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-21T22:35:35.529498Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-21T23:30:30.508508Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-22T06:35:34.667250Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-22T22:35:33.209743Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-22T23:30:32.707444Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-23T06:35:33.182488Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-23T22:35:31.049977Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-23T23:30:31.032242Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-24T06:35:33.014322Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-26T22:35:33.715139Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-26T23:30:31.939400Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-27T06:35:32.302407Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-27T22:35:32.014851Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-27T23:30:30.091110Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-28T06:35:32.467052Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-28T22:35:32.505560Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-28T23:30:32.981041Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-29T06:35:35.084686Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-29T22:35:34.057482Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-29T23:30:32.381630Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-30T06:35:33.862143Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-30T22:35:33.821254Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-30T23:30:32.970373Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-07-31T06:35:32.830394Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-02T22:35:33.182089Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-02T23:30:32.330573Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-03T06:35:35.440300Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-03T22:35:34.408962Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-03T23:30:34.959741Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-04T06:35:35.729150Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-04T22:35:33.472748Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-04T23:30:32.498900Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-05T06:35:35.506571Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-05T22:35:34.011679Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-05T23:30:32.518668Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-06T06:35:37.446189Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-06T22:35:31.322400Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-06T23:30:32.509513Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-07T06:35:35.893331Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-09T22:35:33.857003Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-09T23:30:32.903395Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-10T06:35:36.049036Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-10T22:35:31.738895Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-10T23:30:34.429427Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-11T02:42:59.772263Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-11T02:45:31.514498Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-11T02:53:06.462814Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-11T06:35:37.913695Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-11T22:35:40.622268Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-11T23:30:54.873089Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-12T06:35:44.020596Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-12T22:35:35.497523Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-12T23:30:46.527273Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-13T06:35:38.621101Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-13T22:35:33.906120Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-13T23:30:47.480094Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-14T06:35:36.830586Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-16T22:35:36.495283Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-16T23:30:48.383066Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-17T06:35:39.000332Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-17T22:35:33.308360Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-17T23:30:44.711721Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-18T06:35:39.843774Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-18T22:35:33.031473Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-18T23:30:43.398264Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-19T06:35:35.260773Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-19T22:35:29.182954Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-19T23:30:44.719145Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-20T06:35:34.792760Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-20T22:35:33.020025Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-20T23:30:48.850552Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-21T06:35:34.523099Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-23T22:35:34.183919Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-23T23:30:44.533824Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-24T06:35:40.464640Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-24T22:35:33.304477Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-24T23:30:47.959205Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-25T06:35:33.577627Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-25T06:58:54.748890Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-25T07:00:24.410998Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-25T22:35:32.143210Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-25T23:30:51.136936Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-26T06:35:39.904805Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-26T22:35:34.611491Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-26T23:30:51.714360Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-27T05:02:31.035463Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-27T05:03:28.703515Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-27T05:04:22.259973Z",
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "warm-token-cache",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-27T06:06:50.800055Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-27T06:08:22.124957Z",
+          "job": "kis-portfolio-overseas-transaction-history",
+          "method": "/Jobs.ReplaceJob",
+          "commands": [
+            "collect-overseas-transaction-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        },
+        {
+          "timestamp": "2026-08-27T06:35:34.788219Z",
+          "job": "kis-portfolio-domestic-order-history",
+          "method": "/Jobs.RunJob",
+          "commands": [
+            "collect-domestic-order-history",
+            "kis-portfolio-batch"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        }
+      ]
+    },
+    {
+      "query": "asset_job_exact",
+      "records": 0,
+      "pages": 2,
+      "complete": true,
+      "aggregates": [],
+      "historical_definitions": []
+    }
+  ],
+  "current_v1_jobs": [
+    {
+      "resource": "kis-portfolio-token-warmup-dry-run",
+      "kind": "jobs",
+      "created": "2026-05-15T14:55:18.351473Z",
+      "updated": "2026-09-14T08:50:43.672716Z",
+      "labels": {
+        "deploy-source": "github-actions",
+        "deploy-target": "wi051-final-audit",
+        "git-sha": "e458ba5dc1c62561b3841cbf45e9bf246fc0f438",
+        "github-run-id": "34824514114"
+      },
+      "containers": [
+        {
+          "commands": [
+            "kis-portfolio-batch",
+            "warm-token-cache"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        }
+      ]
+    },
+    {
+      "resource": "kis-portfolio-overseas-transaction-history",
+      "kind": "jobs",
+      "created": "2026-05-15T14:13:51.393547Z",
+      "updated": "2026-09-14T08:50:38.391272Z",
+      "labels": {
+        "deploy-source": "github-actions",
+        "deploy-target": "wi051-final-audit",
+        "git-sha": "e458ba5dc1c62561b3841cbf45e9bf246fc0f438",
+        "github-run-id": "34824514114"
+      },
+      "containers": [
+        {
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-overseas-transaction-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        }
+      ]
+    },
+    {
+      "resource": "kis-portfolio-domestic-order-history",
+      "kind": "jobs",
+      "created": "2026-04-23T13:41:40.298372Z",
+      "updated": "2026-09-14T08:50:33.785540Z",
+      "labels": {
+        "deploy-source": "github-actions",
+        "deploy-target": "wi051-final-audit",
+        "git-sha": "e458ba5dc1c62561b3841cbf45e9bf246fc0f438",
+        "github-run-id": "34824514114"
+      },
+      "containers": [
+        {
+          "commands": [
+            "kis-portfolio-batch",
+            "collect-domestic-order-history"
+          ],
+          "db_env": {
+            "KIS_DATA_DIR": "var",
+            "KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": "kis_portfolio"
+          }
+        }
+      ]
+    }
+  ],
+  "current_schedulers": [
+    {
+      "scheduler": "kis-portfolio-trade-incremental-domestic-1610",
+      "schedule": "10 16 * * 1-5",
+      "state": "ENABLED",
+      "target_job": "kis-portfolio-trade-incremental-domestic",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-owned-core-v2-1430-schedule",
+      "schedule": "30 14 * * 1-5",
+      "state": "ENABLED",
+      "target_job": "kis-portfolio-owned-core-v2-1430",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-trade-incremental-overseas-0735",
+      "schedule": "35 7 * * 1-5",
+      "state": "ENABLED",
+      "target_job": "kis-portfolio-trade-incremental-overseas",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-domestic-order-history-1535",
+      "schedule": "35 15 * * 1-5",
+      "state": "PAUSED",
+      "target_job": "kis-portfolio-domestic-order-history",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-owned-core-v2-1600-schedule",
+      "schedule": "0 16 * * 1-5",
+      "state": "ENABLED",
+      "target_job": "kis-portfolio-owned-core-v2-1600",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-token-warmup-0830",
+      "schedule": "30 8 * * 1-5",
+      "state": "ENABLED",
+      "target_job": "kis-portfolio-token-warmup-dry-run",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-owned-core-v2-1000-schedule",
+      "schedule": "0 10 * * 1-5",
+      "state": "ENABLED",
+      "target_job": "kis-portfolio-owned-core-v2-1000",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "scheduler": "kis-portfolio-overseas-transaction-history-0735",
+      "schedule": "35 7 * * 1-5",
+      "state": "PAUSED",
+      "target_job": "kis-portfolio-overseas-transaction-history",
+      "timezone": "Asia/Seoul"
+    }
+  ],
+  "pre_v2_table_profiles": [
+    {
+      "label": "domestic_raw_months",
+      "data": [
+        {
+          "month_bucket": "2026-04",
+          "rows_count": 1,
+          "fetch_days": 1,
+          "first_requested_date": "2026-01-01",
+          "last_requested_date": "2026-04-28"
+        },
+        {
+          "month_bucket": "2026-08",
+          "rows_count": 55,
+          "fetch_days": 12,
+          "first_requested_date": "2026-08-11",
+          "last_requested_date": "2026-08-27"
+        }
+      ]
+    },
+    {
+      "label": "overseas_raw_months",
+      "data": [
+        {
+          "month_bucket": "2026-05",
+          "rows_count": 9,
+          "fetch_days": 8,
+          "first_requested_date": "2026-01-01",
+          "last_requested_date": "2026-06-01"
+        },
+        {
+          "month_bucket": "2026-06",
+          "rows_count": 16,
+          "fetch_days": 16,
+          "first_requested_date": "2026-06-02",
+          "last_requested_date": "2026-07-01"
+        },
+        {
+          "month_bucket": "2026-07",
+          "rows_count": 17,
+          "fetch_days": 17,
+          "first_requested_date": "2026-07-03",
+          "last_requested_date": "2026-07-31"
+        },
+        {
+          "month_bucket": "2026-08",
+          "rows_count": 17,
+          "fetch_days": 17,
+          "first_requested_date": "2026-08-03",
+          "last_requested_date": "2026-08-28"
+        }
+      ]
+    },
+    {
+      "label": "domestic_order_writer",
+      "data": [
+        {
+          "last_source": "batch",
+          "rows_count": 5,
+          "trade_days": 2
+        },
+        {
+          "last_source": "kis_api",
+          "rows_count": 15,
+          "trade_days": 4
+        }
+      ]
+    },
+    {
+      "label": "overseas_transaction_writer",
+      "data": [
+        {
+          "last_source": "kis_api",
+          "rows_count": 2
+        }
+      ]
+    },
+    {
+      "label": "order_raw_summary_keys",
+      "data": [
+        {
+          "summary_keys": null,
+          "rows_count": 56
+        }
+      ]
+    },
+    {
+      "label": "overseas_summary_keys",
+      "data": [
+        {
+          "summary_keys": [],
+          "rows_count": 59
+        }
+      ]
+    },
+    {
+      "label": "overview_time_pattern",
+      "data": [
+        {
+          "month_bucket": "2026-04",
+          "kst_times": [
+            "00:02",
+            "00:14",
+            "00:27",
+            "01:27",
+            "11:57",
+            "12:29",
+            "14:05",
+            "14:40",
+            "14:48",
+            "14:55",
+            "21:20",
+            "21:21",
+            "21:29",
+            "21:33",
+            "21:57",
+            "21:59",
+            "22:41",
+            "23:36"
+          ]
+        },
+        {
+          "month_bucket": "2026-05",
+          "kst_times": [
+            "00:03",
+            "00:04",
+            "00:07",
+            "00:13",
+            "01:50",
+            "02:17",
+            "04:47",
+            "04:48",
+            "05:51",
+            "06:56",
+            "12:25",
+            "12:32",
+            "14:43",
+            "21:33"
+          ]
+        },
+        {
+          "month_bucket": "2026-06",
+          "kst_times": [
+            "02:14",
+            "03:39",
+            "03:49",
+            "07:43",
+            "13:23",
+            "17:26"
+          ]
+        },
+        {
+          "month_bucket": "2026-07",
+          "kst_times": [
+            "14:22"
+          ]
+        },
+        {
+          "month_bucket": "2026-08",
+          "kst_times": [
+            "00:37",
+            "00:45",
+            "01:16",
+            "06:32",
+            "06:40",
+            "06:52",
+            "11:14"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "row_producer_fields",
+      "data": []
+    }
+  ],
+  "pre_v2_github_deployments": {
+    "deploy_runs": [
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-27T06:07:08Z",
+        "databaseId": 33044730805,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "385cabf8b770078f223b7e7d19de7a99bc24881e"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-27T06:05:39Z",
+        "databaseId": 33044640597,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "385cabf8b770078f223b7e7d19de7a99bc24881e"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-27T06:03:31Z",
+        "databaseId": 33044515692,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "385cabf8b770078f223b7e7d19de7a99bc24881e"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-27T04:58:36Z",
+        "databaseId": 33041040418,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "865686a8899a7c02ae613322496edabf28a2858c"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-25T06:57:37Z",
+        "databaseId": 32819288442,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "161bb872007246312be07e089d89d280859ba57e"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-25T06:55:38Z",
+        "databaseId": 32819135515,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "161bb872007246312be07e089d89d280859ba57e"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-25T06:36:13Z",
+        "databaseId": 32817696792,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "0c28f9a21abc5c3a124c1924e7ac025a6dd5cd72"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-11T02:51:52Z",
+        "databaseId": 31453647811,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "57c35bf50141e45f1437e7e942d391d65d514528"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-11T02:45:48Z",
+        "databaseId": 31453344870,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "37ca1ebba20741ca5092b3095056e40b89a33d20"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-11T02:43:27Z",
+        "databaseId": 31453224799,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "37ca1ebba20741ca5092b3095056e40b89a33d20"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-11T02:41:41Z",
+        "databaseId": 31453136662,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "37ca1ebba20741ca5092b3095056e40b89a33d20"
+      },
+      {
+        "conclusion": "cancelled",
+        "createdAt": "2026-08-11T02:41:19Z",
+        "databaseId": 31453119178,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "a5f28a2069b78f877c1e318b4a59918387eaa785"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-06-21T07:26:23Z",
+        "databaseId": 27897220139,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "7d0ac57990a0dfa8385418be5dfe9cbbb9406d6a"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-06-13T16:33:58Z",
+        "databaseId": 27472558321,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "424f7335d0fbb120e1d634f53190345704c9e6f8"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-06-13T16:26:28Z",
+        "databaseId": 27472374108,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "32785ed629407a1c3dbb63ce070b23d3e63d0f5c"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T15:38:36Z",
+        "databaseId": 25926702973,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "bda61dfb27f9324e8b0ce01ba82e9ca392dadcba"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T14:55:45Z",
+        "databaseId": 25924631622,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d10ec57327849c326c5c210f402a0640cd0d7957"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T14:53:59Z",
+        "databaseId": 25924542376,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d10ec57327849c326c5c210f402a0640cd0d7957"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T14:52:59Z",
+        "databaseId": 25924492075,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d10ec57327849c326c5c210f402a0640cd0d7957"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T14:51:09Z",
+        "databaseId": 25924400684,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d10ec57327849c326c5c210f402a0640cd0d7957"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T14:48:56Z",
+        "databaseId": 25924290161,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d10ec57327849c326c5c210f402a0640cd0d7957"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-15T14:46:44Z",
+        "databaseId": 25924182497,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d10ec57327849c326c5c210f402a0640cd0d7957"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-05-14T09:29:48Z",
+        "databaseId": 25852676741,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "e4baf3de68b4b3707ff4f65dbb9280424039aba2"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-04-23T14:53:47Z",
+        "databaseId": 24841989271,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "794f327fa71d831aef5e73394d65abb8bb8a2003"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-04-23T14:52:22Z",
+        "databaseId": 24841908864,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d78f390f4ae0f5afca8317bb7a29a2d570ea9922"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-04-23T14:47:15Z",
+        "databaseId": 24841614880,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "d78f390f4ae0f5afca8317bb7a29a2d570ea9922"
+      },
+      {
+        "conclusion": "cancelled",
+        "createdAt": "2026-04-23T14:27:37Z",
+        "databaseId": 24840839054,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "760191d563de66358e186c28b168ac7243544545"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-04-23T14:27:28Z",
+        "databaseId": 24840837957,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "760191d563de66358e186c28b168ac7243544545"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-04-23T13:57:34Z",
+        "databaseId": 24839437101,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "3dea60fda4512cd70f171f30230a84c1364d73d5"
+      },
+      {
+        "conclusion": "cancelled",
+        "createdAt": "2026-04-23T13:56:12Z",
+        "databaseId": 24839366789,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "3dea60fda4512cd70f171f30230a84c1364d73d5"
+      },
+      {
+        "conclusion": "cancelled",
+        "createdAt": "2026-04-23T13:55:28Z",
+        "databaseId": 24839329703,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "3dea60fda4512cd70f171f30230a84c1364d73d5"
+      },
+      {
+        "conclusion": "cancelled",
+        "createdAt": "2026-04-23T13:43:05Z",
+        "databaseId": 24838710459,
+        "displayTitle": "Pass scheduler invoker env to deploy workflow",
+        "headBranch": "master",
+        "headSha": "882708c533cd3166fe74f9a5989ac360860e87fc"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-04-23T13:37:54Z",
+        "databaseId": 24838452045,
+        "displayTitle": "Add domestic order history batch scheduling",
+        "headBranch": "master",
+        "headSha": "1760c8f5dcd9278f3f16950f13a48294f11d69dd"
+      },
+      {
+        "conclusion": "success",
+        "createdAt": "2026-04-23T13:11:57Z",
+        "databaseId": 24837195646,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "51cd271c9345062576f31c8b9508c9b50b7c64bf"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-04-23T13:09:54Z",
+        "databaseId": 24837098411,
+        "displayTitle": "Deploy Cloud Run",
+        "headBranch": "master",
+        "headSha": "51cd271c9345062576f31c8b9508c9b50b7c64bf"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-04-23T13:08:44Z",
+        "databaseId": 24837044683,
+        "displayTitle": "Fix setup-uv action version in deploy workflow",
+        "headBranch": "master",
+        "headSha": "51cd271c9345062576f31c8b9508c9b50b7c64bf"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-04-23T13:08:09Z",
+        "databaseId": 24837017445,
+        "displayTitle": "Add GitHub Cloud Run deploy workflow and portfolio metadata improvements",
+        "headBranch": "master",
+        "headSha": "a096561bd886fa9771432df28ea9766bc931fa64"
+      }
+    ],
+    "source_checks": [
+      {
+        "sha": "0c28f9a21abc5c3a124c1924e7ac025a6dd5cd72",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          32817696792
+        ]
+      },
+      {
+        "sha": "161bb872007246312be07e089d89d280859ba57e",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          32819288442,
+          32819135515
+        ]
+      },
+      {
+        "sha": "1760c8f5dcd9278f3f16950f13a48294f11d69dd",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24838452045
+        ]
+      },
+      {
+        "sha": "32785ed629407a1c3dbb63ce070b23d3e63d0f5c",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          27472374108
+        ]
+      },
+      {
+        "sha": "37ca1ebba20741ca5092b3095056e40b89a33d20",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          31453344870,
+          31453224799,
+          31453136662
+        ]
+      },
+      {
+        "sha": "385cabf8b770078f223b7e7d19de7a99bc24881e",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          33044730805,
+          33044640597,
+          33044515692
+        ]
+      },
+      {
+        "sha": "3dea60fda4512cd70f171f30230a84c1364d73d5",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24839437101,
+          24839366789,
+          24839329703
+        ]
+      },
+      {
+        "sha": "424f7335d0fbb120e1d634f53190345704c9e6f8",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          27472558321
+        ]
+      },
+      {
+        "sha": "51cd271c9345062576f31c8b9508c9b50b7c64bf",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24837195646,
+          24837098411,
+          24837044683
+        ]
+      },
+      {
+        "sha": "57c35bf50141e45f1437e7e942d391d65d514528",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          31453647811
+        ]
+      },
+      {
+        "sha": "760191d563de66358e186c28b168ac7243544545",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24840839054,
+          24840837957
+        ]
+      },
+      {
+        "sha": "794f327fa71d831aef5e73394d65abb8bb8a2003",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24841989271
+        ]
+      },
+      {
+        "sha": "7d0ac57990a0dfa8385418be5dfe9cbbb9406d6a",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          27897220139
+        ]
+      },
+      {
+        "sha": "865686a8899a7c02ae613322496edabf28a2858c",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          33041040418
+        ]
+      },
+      {
+        "sha": "882708c533cd3166fe74f9a5989ac360860e87fc",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24838710459
+        ]
+      },
+      {
+        "sha": "a096561bd886fa9771432df28ea9766bc931fa64",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24837017445
+        ]
+      },
+      {
+        "sha": "a5f28a2069b78f877c1e318b4a59918387eaa785",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          31453119178
+        ]
+      },
+      {
+        "sha": "bda61dfb27f9324e8b0ce01ba82e9ca392dadcba",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          25926702973
+        ]
+      },
+      {
+        "sha": "d10ec57327849c326c5c210f402a0640cd0d7957",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          25924631622,
+          25924542376,
+          25924492075,
+          25924400684,
+          25924290161,
+          25924182497
+        ]
+      },
+      {
+        "sha": "d78f390f4ae0f5afca8317bb7a29a2d570ea9922",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          24841908864,
+          24841614880
+        ]
+      },
+      {
+        "sha": "e4baf3de68b4b3707ff4f65dbb9280424039aba2",
+        "cli_exists": true,
+        "has_asset_snapshot_command": false,
+        "has_owned_core_v2_command": false,
+        "run_ids": [
+          25852676741
+        ]
+      }
+    ]
+  },
+  "pr_1": {
+    "state": "CLOSED",
+    "merged_at": null,
+    "head_branch": "codex/portfolio-pipeline-reliability",
+    "commits": [
+      "9dea94c4c3c5c1ef8058135dcc3b9474895dee66",
+      "3a215f67bf352c00e736379ffbae2f75ce57f846",
+      "44e836e6eebe87c7e48e58c431e58718a8a1fe98"
+    ],
+    "first_asset_batch_commit_date_kst": "2026-08-02"
+  },
+  "limitations": [
+    "Cloud Run Jobs global wildcard listing returns 400; current Job inventory uses Seoul, historic Job audit covers all regions within the configured project",
+    "CLI metadata queries failed or timed out; REST results used instead; failures are not empty inventories",
+    "audit status supports terminal success/failure, not source-level root cause or complete database write success",
+    "snapshot writer fields do not identify MCP versus batch origin",
+    "unrelated Cloud projects or external standalone code are not comprehensively inventoried"
+  ],
+  "july_terminal_and_creation_metadata": [
+    {
+      "creation": {
+        "job": "kis-portfolio-domestic-order-history",
+        "timestamp": "2026-04-23T13:41:40.072687Z",
+        "proto_keys": [
+          "@type",
+          "status",
+          "authenticationInfo",
+          "requestMetadata",
+          "serviceName",
+          "methodName",
+          "authorizationInfo",
+          "resourceName",
+          "request",
+          "resourceLocation"
+        ],
+        "request_type": "dict",
+        "request_keys": [
+          "job",
+          "@type",
+          "parent"
+        ],
+        "response_keys": []
+      }
+    },
+    {
+      "creation": {
+        "job": "kis-portfolio-overseas-transaction-history",
+        "timestamp": "2026-05-15T14:13:51.170906Z",
+        "proto_keys": [
+          "@type",
+          "status",
+          "authenticationInfo",
+          "requestMetadata",
+          "serviceName",
+          "methodName",
+          "authorizationInfo",
+          "resourceName",
+          "request",
+          "resourceLocation"
+        ],
+        "request_type": "dict",
+        "request_keys": [
+          "job",
+          "@type",
+          "parent"
+        ],
+        "response_keys": []
+      }
+    },
+    {
+      "creation": {
+        "job": "kis-portfolio-token-warmup-dry-run",
+        "timestamp": "2026-05-15T14:55:18.143054Z",
+        "proto_keys": [
+          "@type",
+          "status",
+          "authenticationInfo",
+          "requestMetadata",
+          "serviceName",
+          "methodName",
+          "authorizationInfo",
+          "resourceName",
+          "request",
+          "resourceLocation"
+        ],
+        "request_type": "dict",
+        "request_keys": [
+          "parent",
+          "job",
+          "@type"
+        ],
+        "response_keys": []
+      }
+    },
+    {
+      "query": "july_terminals",
+      "complete": true,
+      "aggregates": [
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "status_code": 0,
+          "records": 18,
+          "message_shapes": {
+            "unknown": 18
+          }
+        },
+        {
+          "job": "kis-portfolio-token-warmup-dry-run",
+          "status_code": 0,
+          "records": 23,
+          "message_shapes": {
+            "unknown": 23
+          }
+        },
+        {
+          "job": "kis-portfolio-domestic-order-history",
+          "status_code": 10,
+          "records": 23,
+          "message_shapes": {
+            "failed": 23
+          }
+        },
+        {
+          "job": "kis-portfolio-overseas-transaction-history",
+          "status_code": 10,
+          "records": 5,
+          "message_shapes": {
+            "failed": 5
+          }
+        }
+      ]
+    }
+  ],
+  "audit_provenance_limit": "Historic create-job audit stores job identity, not full container/env configuration. Routing is corroborated by the pre-V2 runtime inspection and current preserved job definitions.",
+  "verification": {
+    "quick": "passed",
+    "full": "passed",
+    "tests": 815,
+    "warnings": 1
+  }
+}

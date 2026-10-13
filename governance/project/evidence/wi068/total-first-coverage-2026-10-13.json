@@ -1,0 +1,363 @@
+{
+  "phase": "read-only",
+  "production_effects": "none",
+  "owner_priority": "daily total asset history first; account detail later",
+  "totals": [
+    {
+      "label": "overview_months",
+      "data": [
+        {
+          "month_bucket": "2026-04",
+          "n": 18,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-05",
+          "n": 14,
+          "dates": 9,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-06",
+          "n": 6,
+          "dates": 5,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-07",
+          "n": 1,
+          "dates": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-08",
+          "n": 11,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-09",
+          "n": 7,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        }
+      ]
+    },
+    {
+      "label": "account_months",
+      "data": [
+        {
+          "month_bucket": "2026-04",
+          "account_type": "brokerage",
+          "n": 22,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-04",
+          "account_type": "irp",
+          "n": 20,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-04",
+          "account_type": "isa",
+          "n": 20,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-04",
+          "account_type": "pension",
+          "n": 20,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-04",
+          "account_type": "ria",
+          "n": 20,
+          "dates": 7,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-05",
+          "account_type": "brokerage",
+          "n": 22,
+          "dates": 12,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-05",
+          "account_type": "irp",
+          "n": 17,
+          "dates": 10,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-05",
+          "account_type": "isa",
+          "n": 17,
+          "dates": 9,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-05",
+          "account_type": "pension",
+          "n": 15,
+          "dates": 9,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-05",
+          "account_type": "ria",
+          "n": 14,
+          "dates": 9,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-06",
+          "account_type": "brokerage",
+          "n": 8,
+          "dates": 5,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-06",
+          "account_type": "irp",
+          "n": 6,
+          "dates": 5,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-06",
+          "account_type": "isa",
+          "n": 6,
+          "dates": 5,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-06",
+          "account_type": "pension",
+          "n": 5,
+          "dates": 4,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-06",
+          "account_type": "ria",
+          "n": 7,
+          "dates": 6,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-07",
+          "account_type": "brokerage",
+          "n": 4,
+          "dates": 3,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-07",
+          "account_type": "irp",
+          "n": 1,
+          "dates": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-07",
+          "account_type": "isa",
+          "n": 1,
+          "dates": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-07",
+          "account_type": "pension",
+          "n": 1,
+          "dates": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "month_bucket": "2026-07",
+          "account_type": "ria",
+          "n": 1,
+          "dates": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        }
+      ]
+    },
+    {
+      "label": "complete_account_days",
+      "data": [
+        {
+          "month_bucket": "2026-04",
+          "days_with_all_five": [
+            "2026-04-19",
+            "2026-04-20",
+            "2026-04-21",
+            "2026-04-22",
+            "2026-04-23",
+            "2026-04-25",
+            "2026-04-27"
+          ]
+        },
+        {
+          "month_bucket": "2026-05",
+          "days_with_all_five": [
+            "2026-05-03",
+            "2026-05-04",
+            "2026-05-06",
+            "2026-05-11",
+            "2026-05-12",
+            "2026-05-14",
+            "2026-05-16",
+            "2026-05-29"
+          ]
+        },
+        {
+          "month_bucket": "2026-06",
+          "days_with_all_five": [
+            "2026-06-05",
+            "2026-06-08",
+            "2026-06-14",
+            "2026-06-20"
+          ]
+        },
+        {
+          "month_bucket": "2026-07",
+          "days_with_all_five": [
+            "2026-07-24"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "july_accounts",
+      "data": [
+        {
+          "d": "2026-07-06",
+          "account_type": "brokerage",
+          "n": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "d": "2026-07-24",
+          "account_type": "brokerage",
+          "n": 2,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "d": "2026-07-24",
+          "account_type": "irp",
+          "n": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "d": "2026-07-24",
+          "account_type": "isa",
+          "n": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "d": "2026-07-24",
+          "account_type": "pension",
+          "n": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "d": "2026-07-24",
+          "account_type": "ria",
+          "n": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        },
+        {
+          "d": "2026-07-29",
+          "account_type": "brokerage",
+          "n": 1,
+          "null_totals": 0,
+          "nonpositive_totals": 0
+        }
+      ]
+    }
+  ],
+  "july_overseas_fx_data_currency_count": 0,
+  "v1_batch_code_evidence": {
+    "commit": "9dea94c",
+    "commit_date": "2026-08-02",
+    "branch": "codex/portfolio-pipeline-reliability",
+    "command": "collect-asset-overview-snapshot",
+    "proposed_schedule": "daily 16:10 Asia/Seoul",
+    "deployment_executed": "not established by code existence"
+  },
+  "limitations": [
+    "stored total fields are not proof of overseas feeder completeness",
+    "same-date five-account rows are not proof of synchronous fetch",
+    "MCP versus batch origin is not recorded on snapshot rows"
+  ],
+  "historic_batch_logs": {
+    "selection_window": "2026-06-01 through 2026-07-31 Asia/Seoul",
+    "month_buckets": "UTC",
+    "results": [
+      {
+        "job_inventory": "unavailable"
+      },
+      {
+        "historic_job_log_entries": 153,
+        "first_log": "2026-05-31T22:35:35.396643Z",
+        "last_log": "2026-07-31T06:35:32.830394Z",
+        "months": {
+          "2026-05": 2,
+          "2026-06": 84,
+          "2026-07": 67
+        },
+        "severities": {
+          "INFO": 85,
+          "ERROR": 56,
+          "NOTICE": 12
+        },
+        "job_counts": {
+          "kis-portfolio-overseas-transaction-history": 51,
+          "kis-portfolio-token-warmup-dry-run": 51,
+          "kis-portfolio-domestic-order-history": 51
+        },
+        "note": "empty retained logs do not prove no execution"
+      }
+    ],
+    "interpretation": "log record counts are not execution counts; observed three jobs are trade/transaction/token jobs; no total-asset job execution established; current job list unavailable"
+  }
+}
