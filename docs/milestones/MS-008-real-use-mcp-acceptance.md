@@ -20,6 +20,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | proposed |
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
 | 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
+| 7 | WI-067 calendar-aware pipeline run status | WI-066 | verified |
 
 ## Gates
 
@@ -37,6 +38,9 @@ gaps found there must be classified and routed to an owned follow-up.
 - WI-066 owns the independent longitudinal-data finding discovered after WI-065: retained V1 aggregate rows preserve
   an overseas-feeder-zero interval, while the migration can infer `pass` from non-null remaining holdings and expose
   the incomplete total as an apparent drawdown.
+- WI-067 owns the independent pipeline-status defect discovered during WI-066 acceptance: a holiday/weekend-only
+  empty lookback is reported as unavailable data because the read model ignores the governed market calendar and due
+  slots.
 - Completion requires immediate reproducible client calls; waiting for a future scheduler slot cannot be the only
   acceptance method.
 
@@ -62,3 +66,5 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-10-08.2 | 2026-10-08 | Protected run 37643171197 created and restored its pre-backup and applied view-only 0020, then exhausted the platform-default 512Mi transition-Job memory during later recovery work before Remote update; original rows and serving routes remained unchanged | Keep WI-066 in progress, set an explicit bounded 2Gi Job memory limit with regression coverage, and repeat the resumable protected target rather than waiting for a scheduled slot |
 | 2026-10-08.3 | 2026-10-08 | PR #145 and protected run 37693993263 succeeded at master f472a24: both 79-object backups restored, 3273 rows were fingerprint-preserved, all 27 legacy groups were quarantined, all 75 native groups validated, Remote 00058-5qk serves stable plus wi046-v2, and immediate Codex positive/partial/error plus overview/pipeline calls passed | Move WI-066 to stabilizing; require the owner to repeat the original longitudinal prompt in Claude before closure |
 | 2026-10-09.1 | 2026-10-09 | After the owner restored billing, PR #147/master cb83958 and protected run 37842065536 deployed the daily-only history schema to Remote 00059-d7z; direct Codex OAuth repeated the full owner question, returned truthful legacy gaps, current pass data, a working pipeline read and bounded validation errors without waiting for a slot | Move WI-066-S01 to stabilizing; retain owner-Claude same-question replay as the only remaining S01 acceptance exit |
+| 2026-10-12.1 | 2026-10-12 | Owner-Claude showed that a three-day holiday/weekend-only pipeline window returns partial/unavailable while seven days returns nine successful runs; code inspection proved the read model never evaluates calendar or due slots | Register WI-067 as an independent defect and start it as the sole implementation Work Item; keep production effects gated |
+| 2026-10-12.2 | 2026-10-12 | Four red regressions now distinguish no-runs-expected, scheduled-run-missing, calendar-unavailable and future same-day slots; additive read-model 1.2.0, actual MCP tool-boundary fixtures, quick gate and all 815 tests pass | Move WI-067 to verified; require protected release plus immediate Codex and owner-Claude replay before stabilizing |

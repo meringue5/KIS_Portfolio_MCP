@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import tomllib
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Mapping
+from zoneinfo import ZoneInfo
 
 import duckdb
 
@@ -42,6 +43,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 PUBLIC_PIPELINE_ALIASES = {
     "portfolio-refresh": "pipeline.owned-portfolio-core-v2",
 }
+OWNED_PORTFOLIO_PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
+KOREA_TZ = ZoneInfo("Asia/Seoul")
+OWNED_PORTFOLIO_KR_SLOTS = (
+    ("kr-1000", time(10, 0)),
+    ("kr-1430", time(14, 30)),
+    ("kr-1600", time(16, 0)),
+)
 PUBLIC_DATASET_ALIASES = {
     "price-bar-daily": "dataset.price-bar-daily",
 }
@@ -89,6 +97,7 @@ class WarehouseReadQueryPort:
         lineage_ref: str | None = None,
         missing_coverage: list[dict[str, Any]] | None = None,
         quality_status: str | None = None,
+        freshness_status: str | None = None,
     ) -> dict[str, Any]:
         missing = self._coverage(items, dataset_id) if missing_coverage is None else missing_coverage
         observed_at = as_of or datetime.now(UTC)
@@ -96,7 +105,10 @@ class WarehouseReadQueryPort:
             "schema_version": "2.0.0",
             "as_of": observed_at,
             "source": {"mode": "stored", "dataset_id": dataset_id},
-            "freshness": {"status": "available" if items else "unavailable", "as_of": observed_at},
+            "freshness": {
+                "status": freshness_status or ("available" if items else "unavailable"),
+                "as_of": observed_at,
+            },
             "quality": {"status": quality_status or ("pass" if items else "partial"), "row_count": len(items)},
             "missing_coverage": missing,
             "lineage_ref": lineage_ref,
@@ -824,6 +836,7 @@ class WarehouseReadQueryPort:
 
     def _get_pipeline_run(self, request: PipelineRunRequest) -> dict[str, Any]:
         pipeline_id = self._resolve_pipeline_id(request.pipeline_id) if request.pipeline_id else None
+        cutoff = _as_utc(request.as_of or datetime.now(UTC))
         rows = self._rows(
             """
             SELECT s.run_id, s.pipeline_id, s.pipeline_version, s.logical_date, s.slot,
@@ -847,45 +860,147 @@ class WarehouseReadQueryPort:
             request.as_of, request.as_of, request.lookback_days, request.limit],
         )
         missing: list[dict[str, Any]] = []
+        window: dict[str, Any] | None = None
+        freshness_status: str | None = None
+        if request.run_id is None and pipeline_id == OWNED_PORTFOLIO_PIPELINE_ID:
+            window = self._owned_portfolio_pipeline_window(
+                cutoff=cutoff,
+                lookback_days=request.lookback_days,
+            )
+            if window["window_status"] == "calendar_evidence_unavailable":
+                missing.append({
+                    "dataset_id": "dataset.market-calendar",
+                    "reason": "calendar_evidence_unavailable",
+                })
+                freshness_status = "unavailable"
+            elif window["window_status"] == "scheduled_runs_missing":
+                missing.append({
+                    "dataset_id": "dataset.pipeline-run-evidence",
+                    "reason": "scheduled_run_missing",
+                })
+                if not rows:
+                    freshness_status = "unavailable"
+            elif window["window_status"] == "no_runs_expected" and not rows:
+                freshness_status = "available"
+
         run_statuses = {str(row["status"]).lower() for row in rows}
-        if not rows:
-            quality_status = "partial"
-        elif run_statuses & {"failed", "error", "cancelled"} or any(
-            int(row["failed_quality_evidence_count"] or 0) > 0 for row in rows
-        ):
-            quality_status = "failed"
-        elif any(
-            row["pipeline_id"] == "pipeline.owned-portfolio-core-v2"
+        quality_evidence_missing = any(
+            row["pipeline_id"] == OWNED_PORTFOLIO_PIPELINE_ID
             and int(row["quality_evidence_count"] or 0) == 0
             for row in rows
-        ):
-            quality_status = "partial"
+        )
+        if quality_evidence_missing:
             missing.append({
                 "dataset_id": "dataset.data-quality-evidence",
                 "reason": "quality_evidence_missing_for_run",
             })
-        elif run_statuses == {"succeeded"}:
+        if run_statuses & {"failed", "error", "cancelled"} or any(
+            int(row["failed_quality_evidence_count"] or 0) > 0 for row in rows
+        ):
+            quality_status = "failed"
+        elif window is not None and window["window_status"] in {
+            "calendar_evidence_unavailable",
+            "scheduled_runs_missing",
+        }:
+            quality_status = "partial"
+        elif quality_evidence_missing:
+            quality_status = "partial"
+        elif rows and run_statuses == {"succeeded"}:
+            quality_status = "pass"
+        elif window is not None and window["window_status"] == "no_runs_expected":
             quality_status = "pass"
         else:
             quality_status = "partial"
-        return self._envelope(
-            data={
-                "query": {
-                    "requested_pipeline_id": request.pipeline_id,
-                    "resolved_pipeline_id": pipeline_id,
-                    "alias_applied": bool(
-                        request.pipeline_id is not None and request.pipeline_id != pipeline_id
-                    ),
-                },
-                "runs": rows,
-                "next_cursor": None,
+        data: dict[str, Any] = {
+            "query": {
+                "requested_pipeline_id": request.pipeline_id,
+                "resolved_pipeline_id": pipeline_id,
+                "alias_applied": bool(
+                    request.pipeline_id is not None and request.pipeline_id != pipeline_id
+                ),
             },
+            "runs": rows,
+            "next_cursor": None,
+        }
+        if window is not None:
+            data["window"] = window
+        return self._envelope(
+            data=data,
             items=rows,
-            dataset_id="dataset.pipeline-run-evidence", as_of=_latest_datetime(rows, "finished_at", "started_at"),
+            dataset_id="dataset.pipeline-run-evidence",
+            as_of=_latest_datetime(rows, "finished_at", "started_at") or (
+                cutoff if window is not None else None
+            ),
             lineage_ref="control.pipeline_run_summary",
-            missing_coverage=missing if rows else None,
+            missing_coverage=missing if rows or window is not None else None,
             quality_status=quality_status,
+            freshness_status=freshness_status,
         )
+
+    def _owned_portfolio_pipeline_window(
+        self,
+        *,
+        cutoff: datetime,
+        lookback_days: int,
+    ) -> dict[str, Any]:
+        window_start = cutoff - timedelta(days=lookback_days)
+        local_start = window_start.astimezone(KOREA_TZ).date()
+        local_end = cutoff.astimezone(KOREA_TZ).date()
+        required_dates: list[date] = []
+        current_date = local_start
+        while current_date <= local_end:
+            required_dates.append(current_date)
+            current_date += timedelta(days=1)
+
+        calendar_rows = self._rows(
+            "SELECT trade_date, is_open FROM control.market_calendar "
+            "WHERE lower(market)='krx' AND trade_date BETWEEN ? AND ? ORDER BY trade_date",
+            [local_start, local_end],
+        )
+        calendar_by_date = {
+            date.fromisoformat(str(row["trade_date"])): bool(row["is_open"])
+            for row in calendar_rows
+        }
+        if set(calendar_by_date) != set(required_dates):
+            return {
+                "window_status": "calendar_evidence_unavailable",
+                "expected_run_count": None,
+                "observed_run_count": 0,
+                "missing_run_count": None,
+            }
+
+        expected_keys: set[tuple[date, str]] = set()
+        for trade_date, is_open in calendar_by_date.items():
+            if not is_open:
+                continue
+            for slot, slot_time in OWNED_PORTFOLIO_KR_SLOTS:
+                due_at = datetime.combine(trade_date, slot_time, tzinfo=KOREA_TZ).astimezone(UTC)
+                if window_start <= due_at <= cutoff:
+                    expected_keys.add((trade_date, slot))
+
+        observed_rows = self._rows(
+            "SELECT DISTINCT logical_date, slot FROM control.pipeline_runs "
+            "WHERE pipeline_id=? AND logical_date BETWEEN ? AND ? AND started_at<=?",
+            [OWNED_PORTFOLIO_PIPELINE_ID, local_start, local_end, cutoff],
+        )
+        observed_keys = {
+            (date.fromisoformat(str(row["logical_date"])), str(row["slot"]))
+            for row in observed_rows
+        }
+        observed_expected_count = len(expected_keys & observed_keys)
+        missing_count = len(expected_keys) - observed_expected_count
+        if not expected_keys:
+            window_status = "no_runs_expected"
+        elif missing_count:
+            window_status = "scheduled_runs_missing"
+        else:
+            window_status = "scheduled_runs_observed"
+        return {
+            "window_status": window_status,
+            "expected_run_count": len(expected_keys),
+            "observed_run_count": observed_expected_count,
+            "missing_run_count": missing_count,
+        }
 
     def _get_journal_review_queue(self, request: JournalReviewQueueRequest) -> dict[str, Any]:
         if request.cursor is not None:
@@ -907,6 +1022,12 @@ class WarehouseReadQueryPort:
             dataset_id="control.owner-review-items", as_of=_latest_datetime(rows, "knowledge_at"),
             lineage_ref="control.owner_review_items_current",
         )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _latest_datetime(rows: list[dict[str, Any]], *keys: str) -> datetime | None:

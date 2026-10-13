@@ -327,10 +327,18 @@ async def test_pipeline_run_accepts_public_portfolio_refresh_name():
             run_id, pipeline_id, pipeline_version, logical_date, slot, partition_key,
             idempotency_key, status, source_calls, started_at, finished_at
         ) VALUES ('run-1', 'pipeline.owned-portfolio-core-v2', '1.0.0',
-                  '2026-09-11', 'kr-1600', 'all-accounts', 'logical-key',
+                  '2026-09-11', 'kr-1000', 'all-accounts', 'logical-key',
                   'succeeded', 39, ?, ?)
         """,
-        [NOW, NOW],
+        [datetime(2026, 9, 11, 1, 0, tzinfo=UTC), datetime(2026, 9, 11, 1, 1, tzinfo=UTC)],
+    )
+    connection.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX',?,?,?)",
+        [
+            (date(2026, 9, 10), False, "closed fixture boundary"),
+            (date(2026, 9, 11), True, "open"),
+        ],
     )
     application = RemoteReadApplication(
         WarehouseReadQueryPort(connection), expected_resource=RESOURCE
@@ -338,7 +346,11 @@ async def test_pipeline_run_accepts_public_portfolio_refresh_name():
 
     result = await application.execute(
         "get-pipeline-run",
-        PipelineRunRequest(pipeline_id="portfolio-refresh", as_of=NOW, lookback_days=1),
+        PipelineRunRequest(
+            pipeline_id="portfolio-refresh",
+            as_of=datetime(2026, 9, 11, 2, 0, tzinfo=UTC),
+            lookback_days=1,
+        ),
         ACTOR,
     )
 
@@ -383,11 +395,176 @@ async def test_pipeline_success_with_pass_quality_evidence_is_not_false_partial(
     application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
 
     result = await application.execute(
-        "get-pipeline-run", PipelineRunRequest(pipeline_id="portfolio-refresh", as_of=NOW), ACTOR,
+        "get-pipeline-run", PipelineRunRequest(run_id="run-quality", as_of=NOW), ACTOR,
     )
 
     assert result["quality"]["status"] == "pass"
     assert result["data"]["runs"][0]["quality_evidence_count"] == 1
+    assert result["missing_coverage"] == []
+
+
+@pytest.mark.anyio
+async def test_pipeline_empty_closed_market_window_is_available_and_pass():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX',?,?,?)",
+        [
+            (date(2026, 10, 9), False, "holiday"),
+            (date(2026, 10, 10), False, "weekend"),
+            (date(2026, 10, 11), False, "weekend"),
+            (date(2026, 10, 12), True, "open"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-pipeline-run",
+        PipelineRunRequest(
+            pipeline_id="portfolio-refresh",
+            as_of=datetime(2026, 10, 11, 15, 49, tzinfo=UTC),
+            lookback_days=3,
+        ),
+        ACTOR,
+    )
+
+    assert result["data"]["runs"] == []
+    assert result["data"]["window"] == {
+        "window_status": "no_runs_expected",
+        "expected_run_count": 0,
+        "observed_run_count": 0,
+        "missing_run_count": 0,
+    }
+    assert result["freshness"]["status"] == "available"
+    assert result["quality"] == {"status": "pass", "row_count": 0}
+    assert result["missing_coverage"] == []
+
+
+@pytest.mark.anyio
+async def test_pipeline_empty_open_market_window_names_missing_due_slots():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX',?,?,?)",
+        [
+            (date(2026, 9, 10), False, "closed fixture boundary"),
+            (date(2026, 9, 11), True, "open"),
+        ],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-pipeline-run",
+        PipelineRunRequest(
+            pipeline_id="portfolio-refresh",
+            as_of=datetime(2026, 9, 11, 8, 0, tzinfo=UTC),
+            lookback_days=1,
+        ),
+        ACTOR,
+    )
+
+    assert result["data"]["window"] == {
+        "window_status": "scheduled_runs_missing",
+        "expected_run_count": 3,
+        "observed_run_count": 0,
+        "missing_run_count": 3,
+    }
+    assert result["freshness"]["status"] == "unavailable"
+    assert result["quality"] == {"status": "partial", "row_count": 0}
+    assert result["missing_coverage"] == [{
+        "dataset_id": "dataset.pipeline-run-evidence",
+        "reason": "scheduled_run_missing",
+    }]
+
+
+@pytest.mark.anyio
+async def test_pipeline_empty_window_fails_closed_when_calendar_evidence_is_incomplete():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.execute(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX','2026-09-11',true,'open')"
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-pipeline-run",
+        PipelineRunRequest(
+            pipeline_id="portfolio-refresh",
+            as_of=datetime(2026, 9, 11, 8, 0, tzinfo=UTC),
+            lookback_days=1,
+        ),
+        ACTOR,
+    )
+
+    assert result["data"]["window"] == {
+        "window_status": "calendar_evidence_unavailable",
+        "expected_run_count": None,
+        "observed_run_count": 0,
+        "missing_run_count": None,
+    }
+    assert result["freshness"]["status"] == "unavailable"
+    assert result["quality"] == {"status": "partial", "row_count": 0}
+    assert result["missing_coverage"] == [{
+        "dataset_id": "dataset.market-calendar",
+        "reason": "calendar_evidence_unavailable",
+    }]
+
+
+@pytest.mark.anyio
+async def test_pipeline_window_excludes_future_same_day_slots():
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    connection.executemany(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('KRX',?,?,?)",
+        [
+            (date(2026, 9, 10), False, "closed fixture boundary"),
+            (date(2026, 9, 11), True, "open"),
+        ],
+    )
+    cutoff = datetime(2026, 9, 11, 2, 0, tzinfo=UTC)
+    connection.execute(
+        """
+        INSERT INTO control.pipeline_runs(
+            run_id,pipeline_id,pipeline_version,logical_date,slot,partition_key,
+            idempotency_key,status,source_calls,started_at,finished_at
+        ) VALUES ('run-1000','pipeline.owned-portfolio-core-v2','1.0.0',
+                  '2026-09-11','kr-1000','all-accounts','logical-1000',
+                  'succeeded',39,?,?)
+        """,
+        [datetime(2026, 9, 11, 1, 0, tzinfo=UTC), datetime(2026, 9, 11, 1, 1, tzinfo=UTC)],
+    )
+    connection.execute(
+        """
+        INSERT INTO control.quality_results VALUES (
+            'quality-1000','run-1000','dataset.price-bar-daily',
+            'held-instrument-price-coverage','pass','24','24','{}',?
+        )
+        """,
+        [datetime(2026, 9, 11, 1, 1, tzinfo=UTC)],
+    )
+    application = RemoteReadApplication(WarehouseReadQueryPort(connection), expected_resource=RESOURCE)
+
+    result = await application.execute(
+        "get-pipeline-run",
+        PipelineRunRequest(
+            pipeline_id="portfolio-refresh",
+            as_of=cutoff,
+            lookback_days=1,
+        ),
+        ACTOR,
+    )
+
+    assert result["data"]["window"] == {
+        "window_status": "scheduled_runs_observed",
+        "expected_run_count": 1,
+        "observed_run_count": 1,
+        "missing_run_count": 0,
+    }
+    assert result["quality"]["status"] == "pass"
     assert result["missing_coverage"] == []
 
 

@@ -183,7 +183,7 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066"]
+work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066", "WI-067"]
 
 [[work_items]]
 id = "WI-009"
@@ -797,6 +797,19 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 6
+
+[[work_items]]
+id = "WI-067"
+identity = "calendar-aware-pipeline-run-status"
+title = "Distinguish closed-market quiet windows from missing scheduled portfolio runs"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-066"]
+discovered_from = ["WI-066"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 7
 
 [[subitems]]
 id = "WI-060-S01"
