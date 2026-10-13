@@ -13,6 +13,7 @@ depends_on: none
 discovered_from: none
 supersedes: none
 rollback_of: none
+work_lane: delivery # delivery / stabilization_recovery / operations
 execution_scope: pending_gate
 production_effects: unknown
 architecture_impact: unknown
@@ -79,6 +80,8 @@ rollback_plan: none
 
 운영 증거가 필요 없는 작업은 `not applicable`로 표시한다. 운영 중 발견된 결함은 기존 증거를 지우거나
 상태를 되감지 않고 새 sub-item/Work Item을 append해 `discovered_from`, `rollback_of`, `supersedes`로 연결한다.
+안정화 중 동일 outcome 보정은 `stabilization_recovery`, 닫힌 milestone 이후 동일 outcome 결함은
+`operations`를 사용한다. 두 lane은 결함성 작업 전용이며 새 제품 범위는 별도 change/milestone 판단을 받는다.
 
 ## Real-use acceptance
 

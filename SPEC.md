@@ -887,6 +887,11 @@ DEC-060, 실행 추적은 WI-063이 소유한다.
 - approved source gap과 unsupported partition은 partial로 남기고 holdings delta에서 거래를 만들지 않는다.
 - separate repository, always-on worker와 새 provider는 추가하지 않는다.
 
+DEC-061은 DEC-051~053의 승인된 보유종목 Telegram 제품을 새 architecture 없이 영구 운영 rule로 복구한다.
+새 immutable successor는 만료일이 없지만 owner approval/revocation, baseline-only 최초 상태, pass-quality
+상태전이, Rich Message, 중복 억제와 redaction 계약을 그대로 유지한다. 만료 기간은 replay하지 않고 현재
+`quantity > 0` 보유종목만 평가한다. 미보유 관심종목은 별도 change decision 전까지 제외한다.
+
 ---
 
 ## Retained V1 implementation appendix

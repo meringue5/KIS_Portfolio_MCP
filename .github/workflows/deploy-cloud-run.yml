@@ -33,6 +33,7 @@ on:
           - wi063
           - wi065
           - wi066
+          - wi070
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -137,6 +138,7 @@ jobs:
       KIS_WI030_S03_JOB_NAME: ${{ vars.KIS_WI030_S03_JOB_NAME || 'kis-portfolio-wi030-s03' }}
       KIS_WI048_S02_JOB_NAME: ${{ vars.KIS_WI048_S02_JOB_NAME || 'kis-portfolio-wi048-s02' }}
       KIS_WI066_JOB_NAME: ${{ vars.KIS_WI066_JOB_NAME || 'kis-portfolio-wi066' }}
+      KIS_WI070_JOB_NAME: ${{ vars.KIS_WI070_JOB_NAME || 'kis-portfolio-wi070' }}
       KIS_CLOUD_RUN_WI066_MEMORY: ${{ vars.KIS_CLOUD_RUN_WI066_MEMORY || '2Gi' }}
       KIS_TELEGRAM_BOT_TOKEN_VERSION: ${{ vars.KIS_TELEGRAM_BOT_TOKEN_VERSION }}
       KIS_TELEGRAM_CHAT_ID_VERSION: ${{ vars.KIS_TELEGRAM_CHAT_ID_VERSION }}
@@ -408,6 +410,15 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI030_S03_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Activate and deploy WI-070 permanent held-position Telegram signals
+        if: github.event.inputs.target == 'wi070'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi070 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI070_JOB_NAME}" \
             --secret-mode secret-manager
 
       - name: Deploy WI-055 scheduled total-asset digest

@@ -165,6 +165,12 @@ rollback은 과거 상태·증거·release를 삭제하거나 milestone을 과�
 5. 새 보정 작업 하나만 `in_progress → verified → stabilizing/closed`로 진행한다.
 6. 회복 release와 새 관찰 증거가 exit 기준을 만족하면 parent/milestone을 닫는다.
 
+안정화 중 보정 Work Item은 `work_lane: stabilization_recovery`를 선언한다. `defect`, `incident`,
+`maintenance`, `governance` 중 하나여야 하고 기존 Work Item을 `discovered_from`, `rollback_of` 또는
+`supersedes`로 가리켜야 한다. 이는 새 제품 범위나 architecture outcome을 안정화 작업으로 위장하는 통로가
+아니다. milestone을 `in_progress`로 되감거나 보정마다 새 milestone을 만들지 않으며 단일 구현 WIP 제한은
+그대로 적용한다.
+
 `depends_on`만 cycle 검사와 실행 선후관계에 참여한다. `discovered_from`, `rollback_of`, `supersedes`는
 존재하는 Work Item을 가리키는 append-only feedback 관계이며 위상정렬 입력이 아니다. 따라서 운영상
 `build → use → defect → rollback → correct → verify → use` loop를 표현하면서도 계획 DAG를 깨뜨리지 않는다.
@@ -212,6 +218,22 @@ release/migration 뒤 `stabilizing`으로 진행할 수 있다. checker는 produ
 지속적 overlap은 Work Item dependency를 완화하지 않는다. 선행 Work Item이 `proposed`, `ready`,
 `in_progress`, `blocked` 또는 `rejected`이면 그에 의존하는 구현은 시작할 수 없다. 안정화 중 선행 기능의
 중대한 결함이 발견되면 append-only recovery 작업이 우선하며 필요하면 후속 구현을 `blocked`로 전환한다.
+
+### 6.4 Stabilization exit and steady-state operations
+
+Milestone은 유한한 delivery·acceptance 단위이고 운영은 지속적인 feedback cycle이다. `stabilizing` milestone은
+다음 조건을 모두 만족할 때만 `closed`가 된다.
+
+1. 선언한 관찰창·표본과 `stabilization_exit_work_item_ids`의 증거가 충족된다.
+2. outcome을 무효화하는 미해결 결함이 없다.
+3. rollback 준비와 인계할 운영 monitor·owner가 확인된다.
+4. 사용자 노출 outcome이면 실제 승인 client/transport의 증거와 owner acceptance가 있다.
+
+`closed`는 운영 종료가 아니라 승인된 outcome과 당시 증거의 immutable handoff다. 이후 발견된 동일 outcome의
+결함은 milestone을 되열거나 새 milestone을 자동 생성하지 않고 `work_lane: operations`인 corrective Work
+Item으로 append한다. 이 Work Item은 `defect`, `incident`, `maintenance`, `governance` 중 하나이고 기존 Work
+Item으로의 feedback 관계를 가져야 한다. 새 제품 범위, 별도 acceptance/rollback 경계 또는 새로운 dependency
+gate가 필요할 때만 새 milestone을 제안하며 owner 승인 전에 기준선화하지 않는다.
 
 ## 7. Change Set 계약
 

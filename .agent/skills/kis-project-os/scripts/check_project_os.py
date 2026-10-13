@@ -82,6 +82,8 @@ FEEDBACK_RELATIONSHIP_FIELDS = {
 VALID_GATE_STATUSES = {"stabilizing", "closed"}
 VALID_OVERLAP_MODES = {"none", "continuous_isolated"}
 IMPLEMENTATION_DEPENDENCY_STATUSES = {"verified", "stabilizing", "closed"}
+VALID_WORK_LANES = {"delivery", "stabilization_recovery", "operations"}
+CORRECTIVE_WORK_TYPES = {"defect", "incident", "maintenance", "governance"}
 REAL_USE_FIELDS = {
     "user_visible_impact",
     "real_use_acceptance",
@@ -501,9 +503,30 @@ def check_milestone_registry(
             )
         if fields.get("status") != "in_progress":
             continue
-        if milestone.get("status") not in {"in_progress", "ready"}:
+        milestone_status = milestone.get("status")
+        work_lane = fields.get("work_lane", "delivery")
+        if work_lane not in VALID_WORK_LANES:
+            errors.append(f"{item_id}: invalid work_lane {work_lane!r}")
+        feedback_refs = [
+            related_id
+            for relationship in FEEDBACK_RELATIONSHIP_FIELDS
+            for related_id in item.get(relationship, [])
+        ]
+        corrective_recovery = (
+            fields.get("type") in CORRECTIVE_WORK_TYPES and bool(feedback_refs)
+        )
+        milestone_allows_work = milestone_status in {"in_progress", "ready"}
+        if milestone_status == "stabilizing":
+            milestone_allows_work = (
+                work_lane == "stabilization_recovery" and corrective_recovery
+            )
+        elif milestone_status == "closed":
+            milestone_allows_work = work_lane == "operations" and corrective_recovery
+        if not milestone_allows_work:
             errors.append(
-                f"{item_id}: in_progress requires milestone {milestone_id} to be ready or in_progress"
+                f"{item_id}: in_progress requires a ready/in_progress milestone, a corrective "
+                "stabilization_recovery lane under a stabilizing milestone, or a corrective "
+                "operations lane under a closed milestone"
             )
         for dependency_id in item.get("depends_on", []):
             dependency_status = work_item_fields.get(dependency_id, {}).get("status")

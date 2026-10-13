@@ -537,6 +537,10 @@ Deploy workflow:
   view-only `0020`, 원본 row fingerprint 및 legacy/native projection 검증을 통과한 동일 digest만 Remote에
   배포하고 stable과 `wi046-v2`를 함께 이동한다. core Job, Scheduler, IAM, Secret, source 호출과 row rewrite는
   없으며 Remote smoke 실패 시 캡처한 이전 두 route로 되돌린다.
+- `wi070`도 `all`에 포함되지 않는 수동 protected target이다. 한 immutable image로 금융정보 없는 Rich
+  transport smoke, DEC-061 permanent rule activation과 세 core Job update를 순서대로 수행한다. 기존
+  owner-report enablement를 보존하고 signal producer만 permanent successor로 전환한다. activation은 이전
+  owner-approved RC 수신과 clean shadow/calibration을 요구하며 만료 기간의 slot은 replay하지 않는다.
 - `production` GitHub Environment approval을 거친다.
 - `refs/heads/master`에서만 실행된다. `master` push만으로는 배포되지 않는다.
 - GitHub Actions가 Workload Identity Federation으로 Google Cloud에 로그인한다.
