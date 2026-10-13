@@ -1,0 +1,505 @@
+{
+  "work_item": "WI-068",
+  "candidate_version": "preview-1",
+  "date_count": 27,
+  "statuses": {
+    "recorded_reference": 14,
+    "estimated_reference": 11,
+    "unavailable_total": 2
+  },
+  "dates": [
+    {
+      "date": "2026-04-19",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-19 21:59:45.526437",
+      "input_sha256": "ff43a4543a542ca24c6d7a6c4acb53eef21106b51ebc71a73ca0b7b20ac348bd",
+      "account_coverage_count": 5,
+      "foreign_position_count": 6,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-04-20",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-20 22:41:09.472991",
+      "input_sha256": "2fca0c32c826b38a63b7699772b691d36da34db5d57bcdfb0e33fd53b13868e9",
+      "account_coverage_count": 5,
+      "foreign_position_count": 6,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-04-21",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-21 21:33:17.803836",
+      "input_sha256": "c9479876d862ab708e799441f833ed289e44e2122e87e6ebbb67a36e5d641721",
+      "account_coverage_count": 5,
+      "foreign_position_count": 6,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-04-22",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-22 01:27:12.278518",
+      "input_sha256": "31c7f9b98fa954579bde66df04bc03516a601d5a4b05f930afc5e6f9af66d6e3",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-04-23",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-23 23:36:18.955296",
+      "input_sha256": "d1f2ef0961e5601d3244210de443f940b832d064e00aed93bca8332ebe47f6da",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-04-25",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-25 11:57:34.793431",
+      "input_sha256": "7ab44c66eff13440ce669f293599eaa1fd68a726d4e285604728066593d946ee",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-04-27",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-04-27 00:14:46.927161",
+      "input_sha256": "43244a3754cd01637f1ca5b09189f62b5c1a421e53714908fedc85448eccd7c8",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-05-03",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-03 21:33:33.970150",
+      "input_sha256": "ed4942acd1a5ca4905188af903621ca88d9248d24eae01dfff41995dd1502667",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-05-04",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-04 01:50:00.478071",
+      "input_sha256": "4485e401305f78f25ab62585f65674dbe3ce2f98bc4af72f7e23f3d761c88761",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 5,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-05-06",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-06 00:07:28.647796",
+      "input_sha256": "3175a4ad3262b2688b24dd1451618bdbfbad0ab47da67424f4d96c915d83edce",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 5,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-05-11",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-11 05:51:17.170315",
+      "input_sha256": "63b00a67a322ac1fe3b97de54ca2999b307b5de459a7b21c4c6a18a5d27c0cf1",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 5,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-05-12",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-12 14:43:53.030444",
+      "input_sha256": "bdffacd84fee3775854f8ec8252adf342e963ee2bbec3c0b7c7cb178fd21e6b2",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 5,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-05-14",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-14 12:32:24.181826",
+      "input_sha256": "2670a0ed885dbd3348b90a409affdd882b106c6556445cf41872b80309d9f2b6",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-05-16",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-16 00:13:25.739309",
+      "input_sha256": "97f21ab7c9ae4270c94486a6935ac06eca802c136d6e1658e24c752ae7e319a1",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 5,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13",
+        "last_available_fx_at_or_before_observation_date"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-05-22",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-22 02:17:37.182144",
+      "input_sha256": "ed9ad4603dc707f5c9e01fa1aebb0dc9821235f07bf73860154521094863c54c",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "overseas_cash_unknown"
+      ]
+    },
+    {
+      "date": "2026-05-29",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-05-29 06:56:50.996038",
+      "input_sha256": "a62e87089ed60ababf436cb066497fd27fbcca8055fa6f06095192cef4ab6b10",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-06-05",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-06-05 17:26:32.623927",
+      "input_sha256": "dd8ab9b66cfc3550f0526bbc1046aaa8bedb35d312d2088c83c9e837706a0ea1",
+      "account_coverage_count": 5,
+      "foreign_position_count": 7,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-06-08",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-06-08 13:23:01.804387",
+      "input_sha256": "66faac65361b8710048ed2ab0a34b5bae2195a3a702c9a7c957d6fd5033c95bb",
+      "account_coverage_count": 5,
+      "foreign_position_count": 7,
+      "missing_krw_position_count": 7,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-06-14",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-06-14 07:43:08.979816",
+      "input_sha256": "c39f8ffd0908480ee074450cc7ba1d5bd19e07ce6afc75825079672bf7b28d25",
+      "account_coverage_count": 5,
+      "foreign_position_count": 7,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-06-16",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-06-16 03:39:26.921204",
+      "input_sha256": "6612221418a85cf626b0c61fc0ec16c983b5a770738ea41688240083e99362a5",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "status": "recorded_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-06-20 02:14:03.140585",
+      "input_sha256": "c51e9a02c43aac913ab8840af39b8e048fbc49c73882ac323d0f41bdad3119b7",
+      "account_coverage_count": 5,
+      "foreign_position_count": 5,
+      "missing_krw_position_count": 0,
+      "assumptions": [],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired"
+      ]
+    },
+    {
+      "date": "2026-07-24",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-07-24 14:22:43.746730",
+      "input_sha256": "457b40f71db876bcfee11bf2bf103196a6d2be74993c42c897ccd118a7eb73dc",
+      "account_coverage_count": 5,
+      "foreign_position_count": 4,
+      "missing_krw_position_count": 4,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-08-06",
+      "status": "unavailable_total",
+      "canonical": false,
+      "snapshot_at_original": "2026-08-06 06:32:14.850517",
+      "input_sha256": "96ece2bc01a06472e400bed6985070bdf1c23737842270e99573f8eb92c6b900",
+      "account_coverage_count": 5,
+      "foreign_position_count": 0,
+      "missing_krw_position_count": 0,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "overseas_position_observation_absent"
+      ]
+    },
+    {
+      "date": "2026-08-10",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-08-10 11:14:36.896357",
+      "input_sha256": "d02acc675611b9f1f90205db01a524af8568979ff2969bb6ac4b5d90e58d698e",
+      "account_coverage_count": 5,
+      "foreign_position_count": 4,
+      "missing_krw_position_count": 4,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-08-25",
+      "status": "unavailable_total",
+      "canonical": false,
+      "snapshot_at_original": "2026-08-25 06:52:21.150480",
+      "input_sha256": "33e67dc23ea77e8a583dfb25a062ff5a56dc8903bef3de9fe8746469d0c7c052",
+      "account_coverage_count": 5,
+      "foreign_position_count": 0,
+      "missing_krw_position_count": 0,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "overseas_position_observation_absent"
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-08-26 01:16:54.033057",
+      "input_sha256": "95b8d6d5414550798af564b8d58e43a4c9634b3cca61329e537256a95b295dc2",
+      "account_coverage_count": 5,
+      "foreign_position_count": 4,
+      "missing_krw_position_count": 4,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "status": "estimated_reference",
+      "canonical": false,
+      "snapshot_at_original": "2026-08-27 00:37:55.595864",
+      "input_sha256": "c8c91ec47371766073081a44607e9ebe3fcce668d0f7e05bafb500c773e458b0",
+      "account_coverage_count": 5,
+      "foreign_position_count": 4,
+      "missing_krw_position_count": 4,
+      "assumptions": [
+        "missing_overseas_cash_assumed_zero_owner_2026-10-13"
+      ],
+      "flags": [
+        "legacy_noncanonical",
+        "not_cash_flow_adjusted_return",
+        "original_fetch_clock_not_repaired",
+        "external_fx_valuation",
+        "retrospective_not_historical_pit"
+      ]
+    }
+  ],
+  "production_effects": "none",
+  "legacy_state_fingerprint_unchanged": true,
+  "source_fx_csv_sha256": "f828b3d847680807917f06d49aa89a6c1579427e38327803526886db54a6e925",
+  "source_fx_valid_observations": 104,
+  "candidate_file_sha256": "c1b5a62d0146b1f72265519aed09a3952768329b1b5afa00f6802b622c23e95b",
+  "private_payload_path_excluded": true,
+  "verification": {
+    "rows_unique": true,
+    "money_reconciliation": true,
+    "no_future_fx_date": true,
+    "fx_lag_max_days": 4,
+    "no_unobserved_positions_as_zero": true,
+    "owner_only_file_permissions": true,
+    "canonical_flags_false": true,
+    "quick": "passed",
+    "full": "passed",
+    "tests": 815,
+    "warnings": 1
+  }
+}

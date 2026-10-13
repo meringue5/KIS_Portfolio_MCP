@@ -436,3 +436,10 @@ Scheduler, Cloud Run, private/public MCP, Telegram과 retention 삭제는 비활
 새 수집·dataset·metric·pipeline은 DGH manifest를 proposed로 먼저 등록한다. 새 물리 객체는 data catalog에
 layer/grain/key/backup/sensitivity를 선언한다. 물리 schema 분리 전까지도 이 논리 계약은 즉시 적용되며,
 `main`에 코드 밖 객체를 임의 생성하지 않는다.
+
+## WI-068 total-level reference boundary
+
+DEC-062/ADR-033 authorize a one-off pinned import to `silver.portfolio_legacy_total_reference`.
+This dataset is consumed only by explicit `get-performance-history(include_legacy_reference=true)` in a separate
+`reference_history` array. It never joins return/contribution/alert pipelines or marks retained `v1-latest` pass.
+MCP reads make no upstream source calls. Native passing V2 dates take precedence; unavailable totals stay NULL.

@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import subprocess
 
+import pytest
+
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "deploy_cloud_run.py"
 WORKFLOW_PATH = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "deploy-cloud-run.yml"
@@ -69,18 +71,20 @@ def test_workflow_dispatches_wi065_remote_compatibility_recovery():
     assert "environment: production" in workflow
 
 
-def test_workflow_dispatches_wi066_migration_and_remote_release():
+@pytest.mark.parametrize("release", ["wi066", "wi068"])
+def test_workflow_dispatches_wi066_migration_and_remote_release(release):
     workflow = WORKFLOW_PATH.read_text()
-    assert "- wi066" in workflow
-    assert "github.event.inputs.target == 'wi066'" in workflow
-    assert "scripts/deploy_cloud_run.py wi066" in workflow
-    assert "KIS_WI066_JOB_NAME" in workflow
+    assert f"- {release}" in workflow
+    assert f"github.event.inputs.target == '{release}'" in workflow
+    assert f"scripts/deploy_cloud_run.py {release}" in workflow
+    assert f"KIS_{release.upper()}_JOB_NAME" in workflow
     assert "environment: production" in workflow
 
 
-def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatch):
+@pytest.mark.parametrize("release", ["wi066", "wi068"])
+def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatch, release):
     args = argparse.Namespace(
-        region="asia-northeast3", target="wi066", dry_run=False,
+        region="asia-northeast3", target=release, dry_run=False,
         secret_mode="secret-manager", job=None, service=None,
     )
     commands = []
@@ -107,7 +111,7 @@ def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatc
     monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_remote", lambda **_kwargs: True)
     monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_tagged_urls", lambda **_kwargs: True)
 
-    result = deploy_cloud_run._deploy_wi066(
+    result = getattr(deploy_cloud_run, f"_deploy_{release}")(
         args,
         env={
             "KIS_DB_MODE": "motherduck",
@@ -120,8 +124,8 @@ def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatc
     )
 
     assert result == 0
-    assert commands[0][:5] == ["gcloud", "run", "jobs", "deploy", "kis-portfolio-wi066"]
-    assert commands[1][:5] == ["gcloud", "run", "jobs", "execute", "kis-portfolio-wi066"]
+    assert commands[0][:5] == ["gcloud", "run", "jobs", "deploy", f"kis-portfolio-{release}"]
+    assert commands[1][:5] == ["gcloud", "run", "jobs", "execute", f"kis-portfolio-{release}"]
     assert "--wait" in commands[1]
     assert commands[2][:4] == ["gcloud", "run", "services", "update"]
     assert "--no-traffic" in commands[2]
@@ -137,9 +141,10 @@ def test_wi066_migrates_before_moving_stable_and_compatibility_routes(monkeypatc
     assert not any("iam-policy-binding" in command for command in commands)
 
 
-def test_wi066_uses_explicit_bounded_job_memory(monkeypatch):
+@pytest.mark.parametrize("release", ["wi066", "wi068"])
+def test_wi066_uses_explicit_bounded_job_memory(monkeypatch, release):
     args = argparse.Namespace(
-        region="asia-northeast3", target="wi066", dry_run=True,
+        region="asia-northeast3", target=release, dry_run=True,
         secret_mode="secret-manager", job=None, service=None,
     )
     commands = []
@@ -154,7 +159,7 @@ def test_wi066_uses_explicit_bounded_job_memory(monkeypatch):
     )
     monkeypatch.setattr(deploy_cloud_run, "_run", lambda command, **_kwargs: commands.append(command) or 0)
 
-    result = deploy_cloud_run._deploy_wi066(
+    result = getattr(deploy_cloud_run, f"_deploy_{release}")(
         args,
         env={
             "KIS_DB_MODE": "motherduck",
@@ -162,7 +167,7 @@ def test_wi066_uses_explicit_bounded_job_memory(monkeypatch):
             "KIS_GCS_BUCKET": "project-private",
             "KIS_AUTH_BASE_URL": "https://auth.example.test",
             "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
-            "KIS_CLOUD_RUN_WI066_MEMORY": "4Gi",
+            f"KIS_CLOUD_RUN_{release.upper()}_MEMORY": "4Gi",
         },
         project="project-1",
     )
@@ -172,9 +177,10 @@ def test_wi066_uses_explicit_bounded_job_memory(monkeypatch):
     assert deploy_job[deploy_job.index("--memory") + 1] == "4Gi"
 
 
-def test_wi066_job_failure_never_updates_remote(monkeypatch):
+@pytest.mark.parametrize("release", ["wi066", "wi068"])
+def test_wi066_job_failure_never_updates_remote(monkeypatch, release):
     args = argparse.Namespace(
-        region="asia-northeast3", target="wi066", dry_run=False,
+        region="asia-northeast3", target=release, dry_run=False,
         secret_mode="secret-manager", job=None, service=None,
     )
     commands = []
@@ -202,7 +208,7 @@ def test_wi066_job_failure_never_updates_remote(monkeypatch):
 
     monkeypatch.setattr(deploy_cloud_run, "_run", run)
 
-    result = deploy_cloud_run._deploy_wi066(
+    result = getattr(deploy_cloud_run, f"_deploy_{release}")(
         args,
         env={
             "KIS_DB_MODE": "motherduck",
@@ -218,9 +224,10 @@ def test_wi066_job_failure_never_updates_remote(monkeypatch):
     assert not any(command[:4] == ["gcloud", "run", "services", "update"] for command in commands)
 
 
-def test_wi066_smoke_failure_restores_both_routes(monkeypatch):
+@pytest.mark.parametrize("release", ["wi066", "wi068"])
+def test_wi066_smoke_failure_restores_both_routes(monkeypatch, release):
     args = argparse.Namespace(
-        region="asia-northeast3", target="wi066", dry_run=False,
+        region="asia-northeast3", target=release, dry_run=False,
         secret_mode="secret-manager", job=None, service=None,
     )
     commands = []
@@ -248,7 +255,7 @@ def test_wi066_smoke_failure_restores_both_routes(monkeypatch):
     monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_remote", lambda **_kwargs: False)
     monkeypatch.setattr(deploy_cloud_run, "_smoke_wi046_tagged_urls", lambda **_kwargs: True)
 
-    result = deploy_cloud_run._deploy_wi066(
+    result = getattr(deploy_cloud_run, f"_deploy_{release}")(
         args,
         env={
             "KIS_DB_MODE": "motherduck",

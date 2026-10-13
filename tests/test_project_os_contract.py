@@ -277,13 +277,10 @@ def test_project_os_allows_linked_corrective_work_during_stabilization(tmp_path:
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
 
-    signal = target / "docs/work-items/WI-070-permanent-held-position-telegram-signals.md"
-    signal.write_text(
-        signal.read_text(encoding="utf-8").replace(
-            "status: in_progress", "status: closed", 1
-        ),
-        encoding="utf-8",
-    )
+    # Isolate this scenario from whichever delivery item is currently active in the repository.
+    for item in (target / "docs/work-items").glob("WI-*.md"):
+        document = item.read_text(encoding="utf-8")
+        item.write_text(document.replace("status: in_progress", "status: verified", 1), encoding="utf-8")
     recovery = target / "docs/work-items/WI-059-scheduled-core-telegram-recovery.md"
     document = recovery.read_text(encoding="utf-8")
     document = document.replace("status: stabilizing", "status: in_progress", 1)

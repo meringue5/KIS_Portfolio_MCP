@@ -703,6 +703,16 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - deterministic positive, no-send와 error 경계를 먼저 검증하고, protected same-image release, provider-confirmed
   delivery ledger와 owner-visible receipt 뒤에만 WI-070/MS-006 안정화 exit를 인정한다.
 
+### DEC-062: 보존된 25일 총자산은 가정을 표시한 별도 참고 이력으로 제공한다
+
+- 2026-10-13 owner approved WI-068's concrete candidate: 14 recorded and 11 estimated reference totals.
+- Explicit `include_legacy_reference=true` on `get-performance-history` returns a separate total-only reference list;
+  default canonical results stay unchanged. Account-filter combination is unsupported, with a bounded error.
+- Original amounts, FX provider/date/basis and missing-overseas-cash-zero assumptions remain visible; missing overseas
+  position dates (2026-08-06/25) remain unavailable. No absent day interpolation or canonical total/return promotion.
+- Passing native V2 date wins. No source request occurs during reads; reference storage and rollback preserve originals.
+- Source rights/backup/restore and actual Codex/owner-Claude positive/partial/error acceptance are mandatory.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.

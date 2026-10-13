@@ -166,6 +166,7 @@ DATA_OBJECTS = (
 # V2 objects are governed separately from the V1 runtime allowlist. They are created only by
 # ``kis-portfolio-migrate``; V1 ``init_schema`` and the current backup job do not touch them.
 V2_DATA_OBJECTS = (
+    DataObject("portfolio_legacy_total_reference", "table", "silver", "silver", "append-only versions", "parquet", "confidential", "Owner-approved noncanonical legacy total levels; never performance inputs.", "one observation date recovery version input hash", "observation_date, recovery_version, input_content_hash", "silver"),
     DataObject("source_observations", "table", "bronze", "bronze", "append-only", "parquet", "confidential", "Immutable source envelopes for replay.", "one source record observation", "idempotency_key", "bronze"),
     DataObject("raw_object_manifest", "table", "bronze", "bronze", "content-addressed", "object", "restricted", "Private raw-object identity and rights manifest.", "one content hash", "content_hash", "bronze"),
     DataObject("owner_research_documents", "table", "bronze", "bronze", "content-addressed", "object", "restricted", "Owner-provided PDF metadata and private object identity.", "one PDF content hash", "document_sha256", "bronze"),

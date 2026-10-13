@@ -1080,3 +1080,27 @@ freshness_slo = "exact requested business date only; release preflight and manag
 quality_rules = ["positive finite rate", "currency pair and native field explicit", "requested and effective rate dates present and equal", "weekend and holiday empty response stays explicit", "provider shape drift fails", "disagreement with primary source quarantines rather than silently chooses"]
 producer_pipeline_ids = ["pipeline.owned-portfolio-core-v2"]
 consumer_ids = ["owned portfolio FX fallback quality gate", "total asset valuation after quarantine gate"]
+
+[[contracts]]
+id = "dataset.portfolio-legacy-total-reference"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "WI-068의 25개 retained legacy 날짜에 대한 owner-only noncanonical 총자산 참고값과 두 unavailable 날짜의 coverage 기록."
+decision_refs = ["DEC-062", "ADR-033"]
+layer = "silver"
+source_ids = ["source.kis-open-api", "source.federal-reserve-h10-reference"]
+input_dataset_ids = []
+purpose = "retained main.asset_overview_snapshots/main.asset_holding_snapshots의 pinned candidate를 사용; 원본 총액과 외부 FX/누락 해외 예수금 0 가정을 구분해 과거 총자산 관측일의 참고 수준을 복구한다."
+grain = "one legacy observation date, recovery version and immutable input content hash"
+natural_key = ["observation_date", "recovery_version", "input_content_hash"]
+time_semantics = "original legacy snapshot clock preserved; external FX effective date, fetched knowledge time and recovery recorded time distinct; retrospective reference only"
+write_mode = "append-only reference revisions; no native V2 or raw overwrite"
+schema_contract = "WI-068 total reference v1; date, recorded/reference nullable amount, valuation_kind, assumptions, input hash, recovery version, FX provenance and knowledge time; physical silver.portfolio_legacy_total_reference via migration 0021"
+sensitivity = "confidential"
+retention_policy = "immutable source/reference evidence retained; no automatic deletion; consumer need reviewed separately as native V2 history grows"
+backup_policy = "parquet"
+freshness_slo = "finite historical recovery window; no recurring producer; last knowledge time explicit"
+quality_rules = ["never canonical or an input to return/signal metrics", "native V2 precedence", "only observed missing foreign valuation can be added", "known cash preserved; absent overseas cash zero labelled", "missing overseas positions keep reference amount null", "no future dated FX and maximum four calendar day lag", "input hash and provider/date/basis/knowledge lineage required"]
+producer_pipeline_ids = []
+consumer_ids = ["owner private recovery preview", "read_model.portfolio-legacy-total-reference"]

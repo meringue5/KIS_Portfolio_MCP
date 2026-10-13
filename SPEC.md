@@ -894,6 +894,24 @@ DEC-061은 DEC-051~053의 승인된 보유종목 Telegram 제품을 새 architec
 
 ---
 
+### ADR-033: 보존된 legacy 총자산은 별도 noncanonical reference로 복구한다
+
+**상태**: 2026-10-13 owner approved the concrete 25-date recovery contract and requested implementation/activation.
+**요구**: DEC-062. **추적**: WI-068.
+
+- `silver.portfolio_legacy_total_reference`에 date/version/input-hash별 append-only 참고 총액과 coverage를 저장한다.
+- 기존 `get-performance-history`의 명시적 `include_legacy_reference` 요청만 별도 `reference_history`를 반환한다.
+  기본 canonical history, WI-066 quarantine과 native V2 rows는 바꾸지 않는다.
+- 외화 평가액이 실제 남은 행만 Federal Reserve H.10 DEXKOUS 환율로 보완하며, 누락 해외 예수금은 owner가
+  승인한 0 가정을 표시한다. 해외 보유내역이 없는 8/6·8/25 전체 총액은 NULL로 유지한다.
+- original/FX effective/knowledge/recorded clocks와 source hashes를 보존한다. 추정값은 정본 수익률·고점·경보
+  metric 입력으로 사용하지 않는다. passing native V2 날짜가 겹치면 reference는 반환하지 않는다.
+- 공개 tool 추가, recurring source, 새 service와 credential은 없다. migration/import 전후 private backup,
+  fresh restore, idempotency, 원본 fingerprint와 실제 Codex/Claude 호출을 release gate로 둔다.
+- rollback은 opt-in consumer를 이전 Remote로 되돌리고 immutable reference/source는 보존한다.
+
+---
+
 ## Retained V1 implementation appendix
 
 > 이 아래 내용은 초기 KIS endpoint 조사와 V1 구현 명세를 보존한 역사 자료다. 현재 client setup, public

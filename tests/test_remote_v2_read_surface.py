@@ -78,6 +78,7 @@ def test_v2_catalog_is_exactly_fifteen_read_tools_with_owned_contracts():
     assert by_name["get-position-analysis"].parameters["properties"]["limit"]["maximum"] == 200
     performance = by_name["get-performance-history"]
     assert performance.parameters["properties"]["grain"]["const"] == "daily"
+    assert performance.parameters["properties"]["include_legacy_reference"] == {"default": False, "title": "Include Legacy Reference", "type": "boolean"}
     assert "not a cash-flow-adjusted return series" in performance.description
     assert "omit both selectors" in by_name["get-pipeline-run"].description
     assert by_name["get-portfolio-overview"].output_schema["additionalProperties"] is False

@@ -374,8 +374,57 @@ class WarehouseReadQueryPort:
             {"dataset_id": "dataset.portfolio-daily-state", "reason": reason}
             for reason in reasons
         ]
+        reference = []
+        if request.include_legacy_reference:
+            if request.account_alias is not None:
+                raise RemoteReadError("legacy_reference_total_only")
+            if (request.end_date - request.start_date).days > 1095:
+                raise RemoteReadError("legacy_reference_range_exceeded")
+            reference = self._rows(
+                """
+                SELECT observation_date, recorded_total_krw, reference_total_krw,
+                       valuation_kind, assumptions, coverage_reasons, recovery_version,
+                       knowledge_at,
+                       json_extract_string(fx_provenance, '$.provider') AS fx_provider,
+                       json_extract_string(fx_provenance, '$.series_id') AS fx_series,
+                       json_extract_string(fx_provenance, '$.rate_date') AS fx_rate_date,
+                       json_extract_string(fx_provenance, '$.rate_type') AS fx_rate_type,
+                       CAST(json_extract_string(fx_provenance, '$.age_days') AS INTEGER) AS fx_age_days
+                FROM silver.portfolio_legacy_total_reference r
+                WHERE observation_date BETWEEN ? AND ? AND canonical=false
+                  AND NOT EXISTS (
+                      SELECT 1 FROM gold.portfolio_daily_summary n
+                      WHERE n.evaluation_date=r.observation_date
+                        AND n.evaluation_slot<>'v1-latest'
+                        AND n.quality_status='pass' AND n.total_value_krw IS NOT NULL
+                  )
+                QUALIFY row_number() OVER (
+                    PARTITION BY observation_date ORDER BY knowledge_at DESC,
+                    recorded_at DESC, recovery_version DESC, input_content_hash DESC
+                )=1
+                ORDER BY observation_date LIMIT ?
+                """, [request.start_date, request.end_date, min(request.limit, 100)],
+            )
+            for row in reference:
+                row["canonical"] = False
+                row["lineage_ref"] = "silver.portfolio_legacy_total_reference"
+            unavailable = [row for row in reference if row["reference_total_krw"] is None]
+            missing.extend({"dataset_id": "dataset.portfolio-legacy-total-reference",
+                            "observation_date": row["observation_date"],
+                            "reason": "legacy_total_unavailable",
+                            "coverage_reasons": row["coverage_reasons"]} for row in unavailable)
+            reference = [row for row in reference if row["reference_total_krw"] is not None]
+            if reference:
+                missing.append({"dataset_id": "dataset.portfolio-legacy-total-reference",
+                                "reason": "noncanonical_reference_levels_not_performance"})
+            elif not unavailable:
+                missing.append({"dataset_id": "dataset.portfolio-legacy-total-reference",
+                                "reason": "no_reference_rows_or_native_precedence"})
+        data = {"grain": request.grain, "history": rows}
+        if request.include_legacy_reference:
+            data["reference_history"] = reference
         return self._envelope(
-            data={"grain": request.grain, "history": rows}, items=rows,
+            data=data, items=rows + reference,
             dataset_id="dataset.portfolio-daily-state", as_of=_latest_datetime(rows, "as_of"),
             lineage_ref="gold.portfolio_daily_summary",
             missing_coverage=missing,
