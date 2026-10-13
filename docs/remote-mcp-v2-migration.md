@@ -102,3 +102,20 @@ fix. V1 is migration history, not an operational recovery target.
 
 The WI-044 repository suite is profile-replay evidence, not proof that a live connector or iPhone UI worked. Actual
 client screenshots/logs, connector refresh and user-visible calls remain explicit production-gated evidence.
+
+## Retained total-asset reference history (WI-068)
+
+`get-performance-history` keeps its default canonical-quality behavior. For the owner-approved retained history,
+request `include_legacy_reference=true` with a daily total-only date range and no account filter. The separate
+`reference_history` contains 25 dated total levels between 2026-04-19 and 2026-08-27, including July 24: 14
+`recorded_reference` and 11 `estimated_reference`. Preserve their assumptions and noncanonical labels when charting.
+Foreign valuation repair uses retrospective Federal Reserve H.10/DEXKOUS FX; absent overseas cash may be assumed
+zero per owner approval. These levels do not support cash-flow-adjusted performance or canonical drawdown metrics.
+
+Aug 6/25 have missing foreign positions and remain `legacy_total_unavailable`; no unobserved date is interpolated.
+Native passing V2 dates take precedence. The account-filter combination returns `legacy_reference_total_only`.
+Reference reads call no source API. Existing legacy canonical totals remain quarantined/NULL in `history`.
+
+A reproducible owner prompt: "2026-04-19부터 2026-08-27까지 get-performance-history를
+include_legacy_reference=true, 계좌 필터 없이 조회해서 reference_history의 총자산 추이를 보여주세요.
+기록 참고값과 추정 참고값을 구분하고 8/6·8/25의 빈 날짜는 유지해주세요."

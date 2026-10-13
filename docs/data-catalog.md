@@ -36,7 +36,7 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
 registry의 **80 tables + 27 views = 107 objects**를 관리한다. repository migration ceiling은 `0021`이며,
-운영 V2는 checksum migration `0020`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
+운영 V2는 checksum migration `0021`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
 
@@ -302,8 +302,9 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 
 ### Managed V2 production register
 
-Canonical production은 migration `0019`까지 적용됐고 WI-048의 private pre/post backup, fresh restore와
-reference reconciliation을 통과했다. 아래 항목은 그 상태에 도달한 날짜별 append-only release history이며,
+Canonical production은 migration `0021`까지 적용됐다. 초기 WI-048의 `0019` release는 private pre/post backup,
+fresh restore와 reference reconciliation을 통과했고 후속 WI-066/WI-068도 개별 복구 증거를 보존한다.
+아래 항목은 날짜별 append-only release history이며,
 초기 migration 번호를 현재 ceiling으로 해석하지 않는다.
 
 2026-08-28 WI-022-S06 managed release가 checksum-verified migration을 `0010`까지 적용했다. canonical
@@ -339,3 +340,7 @@ uv run python .agent/skills/kis-warehouse-contract/scripts/inspect_portfolio_db.
 ```
 
 알려진 branch/live drift를 통합한 뒤에는 release 검사에서 `--fail-on-drift`를 추가한다.
+
+WI-068 protected release 2026-10-13 applied `0021`: 27 append-only reference/coverage rows; 25 valued/2 NULL.
+Pre/post private backup and fresh restore plus unchanged state/quarantine verified in
+[release evidence](../governance/project/evidence/wi068/protected-release-2026-10-13.json).

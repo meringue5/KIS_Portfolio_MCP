@@ -1,7 +1,7 @@
 ---
 id: WI-068
 title: Recover retained legacy portfolio history for bounded longitudinal use
-status: in_progress
+status: stabilizing
 type: architecture
 owner: owner
 decision_refs: DEC-062, ADR-033
@@ -13,17 +13,17 @@ depends_on: WI-066
 discovered_from: WI-066
 supersedes: none
 rollback_of: none
-execution_scope: owner-approved protected production recovery and Remote release after verified isolated rehearsal
-production_effects: approved additive migration 0021, pinned noncanonical reference import and Remote opt-in activation; original/native writes prohibited
+execution_scope: verified protected production recovery; actual owner-client stabilization
+production_effects: applied migration 0021, 27 append-only reference/coverage rows and explicit Remote opt-in; original/native data unchanged
 architecture_impact: approved owner-only noncanonical reference dataset and explicit opt-in projection; canonical defaults unchanged
 data_impact: approved additive migration 0021 and pinned noncanonical reference import; retained V1/native V2 immutable, no canonical promotion
 security_impact: historical portfolio payload remains confidential and owner-only; no raw account identifiers or backup locators may enter MCP responses
 cost_impact: expected storage-local analysis with no new paid source; any new always-on service or material query cost requires approval
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: owner-Claude longitudinal question and direct Codex July history probes from 2026-10-13; implementation evidence pending
+real_use_evidence_refs: governance/project/evidence/wi068/codex-real-use-2026-10-13.json; actual Codex positive, two partial, error, default and native-current probes
 stabilization_window: immediate direct Codex positive/partial/error plus owner-Claude same-question replay
-stabilization_exit_refs: protected migration/import/restore, direct Codex replay, owner-Claude acceptance
+stabilization_exit_refs: protected migration/import/restore and direct Codex replay passed; owner-Claude same-question replay and owner acceptance pending
 rollback_plan: disable reference opt-in by restoring prior Remote revision/tag; retain append-only reference and original data
 ---
 
@@ -253,3 +253,37 @@ WI-066 quarantine, native-V2 priority and unavailable Aug 6/25 boundaries remain
 
 - Release preflight caught an overly strict estimate validator: same-day external FX may have no missing-cash/stale-rate
   assumption. FX provenance remains mandatory for added foreign value; regression covers this plus future/5-day FX rejection.
+
+## Protected activation and real-use evidence — 2026-10-13
+
+- [PR #152](https://github.com/meringue5/KIS_Portfolio_MCP/pull/152) merged; final quick/full verification passed
+  **835 tests** (Python 3.13.3, 36.55s). Master CI and protected deploy
+  [run 38398588990](https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/38398588990) succeeded for
+  `db89d211b12b6270bb782c548b240b54a1f6316d`. Owner explicitly approved the specific private GCS input upload
+  after automatic approval review requested exact bucket/payload authorization.
+- [Protected release evidence](../../governance/project/evidence/wi068/protected-release-2026-10-13.json):
+  migration 0020→0021; 27 new rows = 14 recorded, 11 estimated, 2 unavailable. Replay inserted 0 (Job assertion);
+  pre/post private backup and fresh restore succeeded; aggregate recovery elapsed 130.573s. Source calls 0, original
+  rows mutated 0, deletions 0. Native/legacy state fingerprint and summary exactly match pre-release.
+- Existing 11 Job templates and 8 scheduler settings unchanged; only new Job `kis-portfolio-wi068`. Remote stable
+  and `wi046-v2` route labels match Git SHA/run/image provenance. Auth/IAM and recurring producers unchanged.
+- [Actual Codex OAuth Remote evidence](../../governance/project/evidence/wi068/codex-real-use-2026-10-13.json):
+  positive full range returns 25 separate noncanonical references; 27 original legacy totals remain NULL/quarantined.
+  Aug 6/25 each return empty references with `legacy_total_unavailable`; account filter combination returns
+  bounded `legacy_reference_total_only`; default July 24 remains quarantined, current native date returns pass.
+- All immediate findings are owned here: incomplete two dates and retrospective FX/zero-cash assumptions are approved
+  degraded reference behavior, never canonical performance. The independent adjusted/raw market-history defect remains
+  outside this implementation. No unobserved dates/positions, transaction-derived opening state or return metrics invented.
+- **Stabilizing**, not closed: owner-Claude same-question replay and owner acceptance remain.
+
+### Owner-Claude replay
+
+Ask Claude to call `get-performance-history` with `start_date="2026-04-19"`, `end_date="2026-08-27"`,
+`include_legacy_reference=true`, no account filter. Read the separate `reference_history` (25 dates) and preserve
+`recorded_reference`/`estimated_reference` labels and assumptions. This is a total-level chart, not a performance
+return. Aug 6/25 are gaps. A single-date July 24 opt-in returns one estimated reference; the default remains quarantined.
+The three immediate positive/partial/error cases are reproducible without another source collection or data change.
+
+- [Live catalog gate](../../governance/project/evidence/wi068/live-catalog-2026-10-13.json): new reference table
+  managed; missing managed objects 0, unregistered drift 0. Four existing preservation-only drift exceptions still
+  match current fingerprints/expiry; no auto-adoption or contract relaxation. Final evidence full gate 835 passed (39.52s).
