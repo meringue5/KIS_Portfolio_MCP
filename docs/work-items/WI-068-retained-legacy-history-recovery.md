@@ -13,8 +13,8 @@ depends_on: WI-066
 discovered_from: WI-066
 supersedes: none
 rollback_of: none
-execution_scope: isolated approved implementation and recovery rehearsal; protected production release follows verification
-production_effects: none
+execution_scope: owner-approved protected production recovery and Remote release after verified isolated rehearsal
+production_effects: approved additive migration 0021, pinned noncanonical reference import and Remote opt-in activation; original/native writes prohibited
 architecture_impact: approved owner-only noncanonical reference dataset and explicit opt-in projection; canonical defaults unchanged
 data_impact: approved additive migration 0021 and pinned noncanonical reference import; retained V1/native V2 immutable, no canonical promotion
 security_impact: historical portfolio payload remains confidential and owner-only; no raw account identifiers or backup locators may enter MCP responses
@@ -250,3 +250,6 @@ WI-066 quarantine, native-V2 priority and unavailable Aug 6/25 boundaries remain
 
 - Verification: repository Python 3.13.3; quick passed, full passed **833 tests** (39.89s);
   `git diff --check` clean. Existing Authlib deprecation warning only. Protected activation/client replay pending.
+
+- Release preflight caught an overly strict estimate validator: same-day external FX may have no missing-cash/stale-rate
+  assumption. FX provenance remains mandatory for added foreign value; regression covers this plus future/5-day FX rejection.

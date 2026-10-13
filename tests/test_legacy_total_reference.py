@@ -26,6 +26,13 @@ def candidate():
             foreign_position_count=0 if i>=25 else 1,missing_krw_position_count=0,
             assumptions=[] if i<14 else ['missing_overseas_cash_assumed_zero_owner_2026-10-13'],
             flags=['legacy_noncanonical'],fx=None))
+    # A same-day external FX estimate can have no missing-cash or stale-rate assumption.
+    rows[14].update(candidate_total_krw='1400', missing_foreign_valuation_added_krw='1300',
+        assumptions=[], missing_krw_position_count=1,
+        fx=dict(provider='FRED / Federal Reserve Board',series_id='DEXKOUS',
+                rate_type='new_york_noon_buying',base_currency='USD',quote_currency='KRW',rate='1300',
+                requested_date=rows[14]['date'],rate_date=rows[14]['date'],age_days=0,
+                fetched_at='2026-10-13T10:00:00+00:00',source_file_sha256='e'*64))
     return dict(work_item='WI-068',canonical=False,created_at='2026-10-13T11:44:32+00:00',rows=rows)
 
 
@@ -141,3 +148,11 @@ def test_protected_release_backup_restore_and_replay(monkeypatch):
     assert first['source_calls']==first['original_rows_mutated']==first['deletions']==0
     assert 'gs://' not in json.dumps(first)
     con.close()
+
+
+@pytest.mark.parametrize('rate_day,age', [('2026-05-04',-1), ('2026-04-28',5)])
+def test_future_or_stale_fx_is_rejected(tmp_path,rate_day,age):
+    data=candidate();data['rows'][14]['fx'].update(rate_date=rate_day,age_days=age)
+    path,digest=write_candidate(tmp_path,data)
+    with pytest.raises(ValueError,match='fx_contract'):
+        validate_candidate(path.read_bytes(),expected_sha256=digest)

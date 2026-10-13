@@ -62,7 +62,7 @@ def validate_candidate(payload: bytes, *, expected_sha256: str = APPROVED_SHA256
             raise ValueError("reference_reconciliation")
         if kind == "recorded_reference" and (added or row["assumptions"] or row["fx"] is not None):
             raise ValueError("reference_recorded_assumptions")
-        if kind == "estimated_reference" and not row["assumptions"]:
+        if kind == "estimated_reference" and not row["assumptions"] and row["fx"] is None:
             raise ValueError("reference_estimate_assumptions_missing")
         fx = row["fx"]
         if added > 0 and (kind != "estimated_reference" or fx is None):
