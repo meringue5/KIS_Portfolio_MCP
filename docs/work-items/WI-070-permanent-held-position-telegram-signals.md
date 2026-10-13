@@ -1,7 +1,7 @@
 ---
 id: WI-070
 title: Restore permanent held-position Telegram signal delivery
-status: in_progress
+status: stabilizing
 type: defect
 owner: owner
 decision_refs: DEC-051, DEC-052, DEC-053, DEC-061, ADR-021, ADR-023
@@ -14,15 +14,15 @@ discovered_from: WI-059, WI-030
 supersedes: none
 rollback_of: none
 work_lane: stabilization_recovery
-execution_scope: repository implementation and deterministic production-equivalent verification before protected release
-production_effects: none in the current phase
+execution_scope: protected production release and stabilization observation
+production_effects: permanent held-position rule activated; three existing owned-core Jobs updated to one immutable image digest
 architecture_impact: none; preserve the existing batch, alert warehouse and outbound Telegram boundaries
 data_impact: append immutable rule and approval revisions plus future candidates/state/delivery evidence; no historical replay or row rewrite
 security_impact: preserve owner-only destination aliases, Secret Manager references and public-context redaction
 cost_impact: no new source or service; bounded evaluation remains inside the three existing scale-to-zero Jobs
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: pending deterministic positive/no-send/error scenarios, protected release, provider-confirmed delivery and owner receipt
+real_use_evidence_refs: deterministic positive/no-send/error scenarios; GitHub run 38359853705; Rich smoke execution kis-portfolio-wi070-vbk5w sent; activation execution kis-portfolio-wi070-ccmf6 passed; owner receipt and next eligible scheduled transition pending
 stabilization_window: immediate activation/baseline evidence plus the next eligible scheduled transition and owner receipt
 stabilization_exit_refs: protected release identity, rule approval/revocation ledger, three-Job candidate counts, delivery ledger and owner-visible Telegram acceptance
 rollback_plan: disable KIS_TELEGRAM_REAL_USE_ENABLED or restore the prior Job revision; preserve immutable rule/candidate/delivery history and do not replay missed slots
@@ -57,10 +57,10 @@ to create candidates/transitions, proving that the monitoring input path had not
 ## Acceptance criteria
 
 - [ ] Production evaluation no longer returns `expired` after the permanent rule's `valid_from`.
-- [ ] First active observation is baseline-only and does not create a Telegram delivery.
-- [ ] A later pass-quality watch-or-higher transition creates one eligible Rich Message and one terminal attempt.
-- [ ] Replay, quality failure, unsupported slot and transport error remain bounded and do not duplicate delivery.
-- [ ] Only current `quantity > 0` held instruments are selected; unheld watchlists are not silently added.
+- [x] First active observation is baseline-only and does not create a Telegram delivery in deterministic verification.
+- [x] A later pass-quality watch-or-higher transition creates one eligible Rich Message and one terminal attempt in deterministic verification.
+- [x] Replay, quality failure, unsupported slot and transport error remain bounded and do not duplicate delivery in deterministic verification.
+- [x] Only current `quantity > 0` held instruments are selected; unheld watchlists are not silently added.
 - [ ] Protected release, provider-confirmed evidence and owner-visible receipt pass before closure.
 
 ## Change impact
@@ -112,10 +112,24 @@ to create candidates/transitions, proving that the monitoring input path had not
   replay suppression, held-only selection, transport and protected deploy target.
 - `bash scripts/check.sh quick`: passed with 70 tracked Work Items and WI-070 as the only active implementation WIP.
 - `bash scripts/check.sh full`: 824 passed with one pre-existing Authlib deprecation warning.
-- Production protected release, permanent owner-decision ledger, three-Job runtime and owner receipt: pending.
+- PR #150 merged as `fdb8f4037f0eee51bdb100409eb5459c61be26a7`; protected GitHub run
+  `38359853705` passed from that exact `master` SHA.
+- The release built once and pinned Rich smoke, activation and all three owned-core Jobs to
+  `sha256:2bacb77326598623649b19692edcf15f4aa1fbc2cd40bb566122a7acb3d6bc9e`.
+- Rich transport execution `kis-portfolio-wi070-vbk5w` completed successfully and reported
+  `status=passed`, `outcome=sent`, `error_code=null` without evaluating or replaying financial signals.
+- Activation execution `kis-portfolio-wi070-ccmf6` completed successfully and appended
+  `permanent-2026-10-13.1` under `DEC-061`: `valid_to=null`, `scope=held-positive-quantity-only`,
+  `initial_active_policy=baseline_only`, `historical_replay=false`, shadow sensitive violations 0 and external sends 0.
+  The prior approved RC had 25 owner sends before revocation.
+- Jobs `kis-portfolio-owned-core-v2-1000`, `-1430` and `-1600` carry the same digest, merge SHA/run labels,
+  real-use and delivery enabled, owner destination approved, and the existing V2 total-asset report preserved.
+- First post-activation production candidate counts and owner receipt of the next eligible held-position transition:
+  pending stabilization evidence; no manual historical slot was executed.
 
 ## Closeout
 
-- Result: in progress.
-- Remaining risk: no permanent rule is active until implementation, protected release and approval revision succeed.
+- Result: stabilizing after protected production release and permanent rule activation.
+- Remaining risk: the next scheduled observation must prove non-expired production evaluation and establish the
+  baseline; a later eligible held-position transition and owner receipt remain the user-visible exit evidence.
 - Follow-up Work Item: unheld watchlist monitoring only if separately approved.
