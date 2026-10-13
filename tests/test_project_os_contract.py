@@ -272,6 +272,69 @@ def test_project_os_rejects_two_in_progress_work_items(tmp_path: Path):
     assert any("only one Work Item may be in_progress" in error for error in errors)
 
 
+def test_project_os_allows_linked_corrective_work_during_stabilization(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+
+    signal = target / "docs/work-items/WI-070-permanent-held-position-telegram-signals.md"
+    signal.write_text(
+        signal.read_text(encoding="utf-8").replace(
+            "status: in_progress", "status: closed", 1
+        ),
+        encoding="utf-8",
+    )
+    recovery = target / "docs/work-items/WI-059-scheduled-core-telegram-recovery.md"
+    document = recovery.read_text(encoding="utf-8")
+    document = document.replace("status: stabilizing", "status: in_progress", 1)
+    document = document.replace(
+        "rollback_of: none", "rollback_of: none\nwork_lane: stabilization_recovery", 1
+    )
+    recovery.write_text(document, encoding="utf-8")
+
+    assert checker.check(target) == []
+
+
+def test_project_os_rejects_unlabelled_active_work_under_closed_milestone(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    signal = target / "docs/work-items/WI-070-permanent-held-position-telegram-signals.md"
+    signal.write_text(
+        signal.read_text(encoding="utf-8").replace(
+            "status: in_progress", "status: closed", 1
+        ),
+        encoding="utf-8",
+    )
+    path = target / "docs/work-items/WI-069-stabilization-recovery-operations-lanes.md"
+    document = path.read_text(encoding="utf-8").replace("status: closed", "status: in_progress", 1)
+    path.write_text(document.replace("work_lane: operations", "work_lane: delivery", 1), encoding="utf-8")
+
+    errors = checker.check(target)
+
+    assert any("corrective operations lane under a closed milestone" in error for error in errors)
+
+
+def test_project_os_rejects_scope_expansion_through_corrective_lane(tmp_path: Path):
+    checker = _load_checker()
+    target = tmp_path / "repo"
+    _copy_project_os_fixture(target)
+    signal = target / "docs/work-items/WI-070-permanent-held-position-telegram-signals.md"
+    signal.write_text(
+        signal.read_text(encoding="utf-8").replace(
+            "status: in_progress", "status: closed", 1
+        ),
+        encoding="utf-8",
+    )
+    path = target / "docs/work-items/WI-069-stabilization-recovery-operations-lanes.md"
+    document = path.read_text(encoding="utf-8").replace("status: closed", "status: in_progress", 1)
+    path.write_text(document.replace("type: governance", "type: change", 1), encoding="utf-8")
+
+    errors = checker.check(target)
+
+    assert any("corrective operations lane under a closed milestone" in error for error in errors)
+
+
 def test_project_os_rejects_registered_identity_drift(tmp_path: Path):
     checker = _load_checker()
     target = tmp_path / "repo"

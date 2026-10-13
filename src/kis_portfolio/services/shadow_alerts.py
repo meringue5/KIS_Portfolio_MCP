@@ -33,10 +33,12 @@ CANARY_VALID_FROM = datetime(2026, 9, 1, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CANARY_VALID_TO = datetime(2026, 9, 8, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 PRIOR_REAL_USE_RULE_VERSION = "rc-2026-09-03.2"
 REAL_USE_RULE_VERSION = "rc-2026-09-07.1"
+PERMANENT_REAL_USE_RULE_VERSION = "permanent-2026-10-13.1"
 PRIOR_REAL_USE_VALID_FROM = datetime(2026, 9, 3, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 PRIOR_REAL_USE_VALID_TO = datetime(2026, 9, 10, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 REAL_USE_VALID_FROM = datetime(2026, 9, 7, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 REAL_USE_VALID_TO = datetime(2026, 9, 14, 0, 0, tzinfo=SEOUL).astimezone(UTC)
+PERMANENT_REAL_USE_VALID_FROM = datetime(2026, 10, 13, 0, 0, tzinfo=SEOUL).astimezone(UTC)
 CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
 THRESHOLD_MULTIPLIER = Decimal("0.75")
 US_MARKETS = frozenset({"NAS", "NYS", "AMS"})
@@ -140,6 +142,37 @@ def prior_real_use_rule() -> AlertRuleVersion:
             "KRW valuation-change contribution unavailable until comparable-state readiness passes",
             "ETF constituent exposure unavailable",
             "no automatic promotion",
+        ],
+    })
+
+
+def permanent_real_use_rule() -> AlertRuleVersion:
+    """Return the immutable DEC-061 permanent held-position rule."""
+    return AlertRuleVersion.from_document({
+        "id": RULE_ID,
+        "version": PERMANENT_REAL_USE_RULE_VERSION,
+        "status": "active",
+        "minimum_delivery_severity": "watch",
+        "delivery_mode": "external",
+        "initial_active_policy": "baseline_only",
+        "valid_from": PERMANENT_REAL_USE_VALID_FROM,
+        "valid_to": None,
+        "metric_refs": ["price-shock", "sma-volume", "rsi14", "bollinger20"],
+        "thresholds": {
+            "profile": "bootstrap-package-d",
+            "absolute_boundary_multiplier": str(THRESHOLD_MULTIPLIER),
+            "calibration_report_hash": CALIBRATION_REPORT_HASH,
+        },
+        "limitations": [
+            "Telegram Rich Message production-value permanent successor",
+            "currently held instruments with positive quantity only",
+            "initial active state is baseline-only and not a market event",
+            "expired slots are never replayed",
+            "intraday KRX volume is unavailable until same-slot normalization exists",
+            "episode drawdown unavailable until governed metric readiness passes",
+            "KRW valuation-change contribution unavailable until comparable-state readiness passes",
+            "ETF constituent exposure unavailable",
+            "unheld watchlist instruments are outside DEC-061 scope",
         ],
     })
 
@@ -376,7 +409,7 @@ def _candidate(
         if observation.daily_return is None
         else format((observation.daily_return * Decimal("100")).quantize(Decimal("0.01")), "f")
     )
-    if rule.version == REAL_USE_RULE_VERSION:
+    if rule.version in {REAL_USE_RULE_VERSION, PERMANENT_REAL_USE_RULE_VERSION}:
         public_context = _production_value_context(observation, decision)
     else:
         public_context = {
@@ -609,7 +642,7 @@ def run_external_real_use_signal_evaluation(
     logical_date: date,
     source_slot: str,
 ) -> dict[str, Any]:
-    """Create DEC-053 Rich Message production-value release-candidate alerts."""
+    """Create preserved DEC-053 bounded release-candidate alerts."""
     rule = real_use_rule()
     slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
     evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
@@ -637,4 +670,33 @@ def run_external_real_use_signal_evaluation(
         shadow_claims=False,
     )
     result["transport"] = "telegram-production-value-rc-pending"
+    return result
+
+
+def run_external_permanent_signal_evaluation(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    logical_date: date,
+    source_slot: str,
+) -> dict[str, Any]:
+    """Create DEC-061 permanent held-position Rich Message candidates."""
+    rule = permanent_real_use_rule()
+    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
+    if all(value < rule.valid_from for value in evaluation_times):
+        return {
+            "status": "not_yet_valid",
+            "logical_date": logical_date.isoformat(),
+            "source_slot": source_slot,
+            "rule_version": rule.version,
+            "candidate_count": 0,
+        }
+    result = _run_signal_evaluation(
+        connection,
+        logical_date=logical_date,
+        source_slot=source_slot,
+        rule=rule,
+        shadow_claims=False,
+    )
+    result["transport"] = "telegram-production-value-pending"
     return result

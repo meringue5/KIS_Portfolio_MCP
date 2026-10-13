@@ -133,7 +133,7 @@ implementation_gate = []
 production_gate = []
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056", "WI-057"]
+work_item_ids = ["WI-018", "WI-031", "WI-034", "WI-052", "WI-053", "WI-056", "WI-057", "WI-069"]
 
 [[milestones]]
 id = "MS-005"
@@ -157,9 +157,9 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-stabilization_exit_work_item_ids = ["WI-059"]
+stabilization_exit_work_item_ids = ["WI-059", "WI-070"]
 rollback_policy = "append_only_feedback"
-work_item_ids = ["WI-059"]
+work_item_ids = ["WI-059", "WI-070"]
 
 [[milestones]]
 id = "MS-007"
@@ -810,6 +810,32 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 7
+
+[[work_items]]
+id = "WI-069"
+identity = "stabilization-recovery-operations-lanes"
+title = "Align Project OS recovery lanes with stabilization and steady-state operations"
+milestone_id = "MS-GOV"
+delivery_refs = []
+depends_on = ["WI-056"]
+discovered_from = ["WI-056"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 8
+
+[[work_items]]
+id = "WI-070"
+identity = "permanent-held-position-telegram-signals"
+title = "Restore permanent held-position Telegram signal delivery"
+milestone_id = "MS-006"
+delivery_refs = []
+depends_on = ["WI-059"]
+discovered_from = ["WI-059", "WI-030"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 2
 
 [[subitems]]
 id = "WI-060-S01"

@@ -47,6 +47,9 @@ Also read:
 - If another Work Item is already `in_progress`, finish, block or explicitly supersede it before starting implementation.
 - Keep `depends_on` acyclic. Represent rollback and correction as an append-only sub-item or Work Item connected by
   `discovered_from`, `rollback_of` or `supersedes`; do not erase evidence or rewind milestone history.
+- During stabilization, use `work_lane: stabilization_recovery` for linked corrective work without rewinding or
+  replacing the milestone. After milestone closure, use `work_lane: operations` for linked steady-state defects while
+  preserving the closed delivery baseline. Neither lane authorizes new product scope or a new acceptance boundary.
 - While a predecessor milestone is `stabilizing`, continue the successor milestone one Work Item at a time through
   the reviewed continuous-overlap allowlist. The active phase requires satisfied Work Item dependencies,
   `execution_scope: isolated` and `production_effects: none`; verified repository work may feed the next Work Item.

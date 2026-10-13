@@ -35,6 +35,7 @@ DEFAULT_WI022_S06_JOB = "kis-portfolio-wi022-s06"
 DEFAULT_WI029_S04_JOB = "kis-portfolio-wi029-s04"
 DEFAULT_WI030_S02_JOB = "kis-portfolio-wi030-s02"
 DEFAULT_WI030_S03_JOB = "kis-portfolio-wi030-s03"
+DEFAULT_WI070_JOB = "kis-portfolio-wi070"
 DEFAULT_WI046_MIGRATION_JOB = "kis-portfolio-wi046-migration"
 DEFAULT_WI046_STATE_MIGRATION_JOB = "kis-portfolio-wi046-state-migration"
 DEFAULT_WI046_AUTH_TAG = "wi046-auth"
@@ -2306,6 +2307,104 @@ def _deploy_wi055(
     )
 
 
+def _deploy_wi070(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Smoke, activate DEC-061, then update all core Jobs from one digest."""
+    for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
+        if not env.get(key, "").strip().isdigit():
+            print(f"Missing or non-numeric pinned secret version: {key}")
+            return 1
+    image = _build_release_image(args, project=project)
+    if not image:
+        print("Failed to resolve the build-once image digest.")
+        return 1
+    service_account = env.get(
+        "KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+        f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com",
+    )
+    activation_job = args.job or DEFAULT_WI070_JOB
+    required = _required_keys_for_batch(env)
+    payload, secret_refs = _split_runtime_env(
+        env=env,
+        payload=_build_v2_pipeline_env(env, project),
+        required=required,
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    activation_env = {
+        key: value for key, value in payload.items()
+        if key in {
+            "KIS_DB_MODE", "MOTHERDUCK_DATABASE", "KIS_DATA_DIR",
+            "KIS_STATE_BACKEND", "KIS_GCP_PROJECT", "KIS_FIRESTORE_DATABASE",
+        }
+    }
+    smoke_env, smoke_secret_refs = _split_runtime_env(
+        env=env,
+        payload={"KIS_TELEGRAM_DELIVERY_ENABLED": "true"},
+        required=["KIS_TELEGRAM_BOT_TOKEN", "KIS_TELEGRAM_CHAT_ID"],
+        secret_mode=args.secret_mode,
+        include_account_secrets=False,
+    )
+    smoke_env_path = _write_env_yaml(smoke_env)
+    activation_env_path = _write_env_yaml(activation_env)
+    try:
+        steps = (
+            (
+                "send-telegram-rich-transport-smoke", smoke_env_path, smoke_secret_refs,
+                "wi070-rich-transport-smoke", "120s",
+            ),
+            (
+                "activate-wi070-permanent-signals", activation_env_path,
+                {key: value for key, value in secret_refs.items() if key == "MOTHERDUCK_TOKEN"},
+                "wi070-permanent-signal-activation", DEFAULT_BATCH_TASK_TIMEOUT,
+            ),
+        )
+        for command_name, env_path, refs, label, timeout in steps:
+            command = [
+                "gcloud", "run", "jobs", "deploy", activation_job,
+                "--image", image, "--region", args.region,
+                "--env-vars-file", env_path,
+                "--command", "kis-portfolio-batch", "--args", command_name,
+                "--tasks", "1", "--parallelism", "1", "--task-timeout", timeout,
+                "--max-retries", "0", "--service-account", service_account,
+                *_build_secret_flags(refs), *_build_label_flags(label), "--project", project,
+            ]
+            if _run(command, dry_run=args.dry_run) != 0:
+                return 1
+            if _run([
+                "gcloud", "run", "jobs", "execute", activation_job,
+                "--region", args.region, "--wait", "--project", project,
+            ], dry_run=args.dry_run) != 0:
+                return 1
+    finally:
+        for temporary_path in (smoke_env_path, activation_env_path):
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
+
+    runtime_env = dict(env)
+    runtime_env.update({
+        "KIS_TELEGRAM_DELIVERY_ENABLED": "true",
+        "KIS_TELEGRAM_CANARY_ENABLED": "false",
+        "KIS_TELEGRAM_REAL_USE_ENABLED": "true",
+        "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED": "true",
+        "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED": "true",
+        "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
+    })
+    return _deploy_v2_core_jobs(
+        args,
+        env=runtime_env,
+        project=project,
+        image=image,
+        deploy_label="wi070-permanent-held-signals",
+    )
+
+
 def _deploy_wi055_s01(
     args: argparse.Namespace,
     *,
@@ -3487,6 +3586,7 @@ def main() -> int:
             "wi063",
             "wi065",
             "wi066",
+            "wi070",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -3744,6 +3844,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi066(args, env=env, project=project)
+
+    if args.target == "wi070":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi070(args, env=env, project=project)
 
     if args.target == "wi046-stage":
         if not project:
