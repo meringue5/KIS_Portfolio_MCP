@@ -13,8 +13,10 @@ from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.ports.source import SourceEnvelope
 from kis_portfolio.services.shadow_alerts import (
     CANARY_RULE_VERSION,
+    PERMANENT_REAL_USE_RULE_VERSION,
     REAL_USE_RULE_VERSION,
     run_external_canary_signal_evaluation,
+    run_external_permanent_signal_evaluation,
     run_external_real_use_signal_evaluation,
     run_shadow_signal_evaluation,
 )
@@ -248,6 +250,48 @@ def test_external_canary_expires_without_creating_candidates() -> None:
     assert result["candidate_count"] == 0
     assert connection.execute(
         "SELECT count(*) FROM gold.alert_candidates"
+    ).fetchone()[0] == 0
+    connection.close()
+
+
+def test_permanent_rule_has_no_expiry_and_initial_active_state_is_baseline_only() -> None:
+    logical_date = date(2026, 10, 13)
+    connection = _warehouse(logical_date=logical_date)
+
+    result = run_external_permanent_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+
+    assert result["status"] == "succeeded"
+    assert result["rule_version"] == PERMANENT_REAL_USE_RULE_VERSION
+    assert result["candidate_count"] == 1
+    assert result["transition_count"] == 1
+    assert result["transport"] == "telegram-production-value-pending"
+    rule = connection.execute(
+        "SELECT valid_to FROM control.alert_rule_versions WHERE version=?",
+        [PERMANENT_REAL_USE_RULE_VERSION],
+    ).fetchone()
+    assert rule == (None,)
+    transition = connection.execute(
+        "SELECT transition_type,delivery_required FROM control.alert_state_revisions"
+    ).fetchone()
+    assert transition == ("entered", False)
+    connection.close()
+
+
+def test_permanent_rule_selects_only_positive_quantity_holdings() -> None:
+    logical_date = date(2026, 10, 13)
+    connection = _warehouse(logical_date=logical_date)
+    connection.execute("UPDATE gold.portfolio_daily_state SET quantity=0")
+
+    result = run_external_permanent_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+
+    assert result["candidate_count"] == 0
+    assert connection.execute(
+        "SELECT count(*) FROM gold.alert_candidates WHERE rule_version=?",
+        [PERMANENT_REAL_USE_RULE_VERSION],
     ).fetchone()[0] == 0
     connection.close()
 

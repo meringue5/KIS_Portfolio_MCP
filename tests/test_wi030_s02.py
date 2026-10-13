@@ -13,12 +13,14 @@ from kis_portfolio.platform.migrations import MigrationRunner
 from kis_portfolio.services.shadow_alerts import (
     CALIBRATION_REPORT_HASH,
     CANARY_RULE_VERSION,
+    PERMANENT_REAL_USE_RULE_VERSION,
     PRIOR_REAL_USE_RULE_VERSION,
     REAL_USE_RULE_VERSION,
     prior_real_use_rule,
 )
 from kis_portfolio.services.wi030_s02 import activate_wi030_canary
 from kis_portfolio.services.wi030_s03 import activate_wi030_real_use
+from kis_portfolio.services.wi070 import activate_wi070_permanent_signals
 
 
 NOW = datetime(2026, 8, 31, 12, tzinfo=UTC)
@@ -246,6 +248,85 @@ def test_real_use_activation_requires_successful_prior_real_use_evidence() -> No
     assert connection.execute(
         "SELECT count(*) FROM control.alert_rule_versions WHERE version=?",
         [REAL_USE_RULE_VERSION],
+    ).fetchone()[0] == 0
+    connection.close()
+
+
+def _activate_prior_rc_with_delivery(connection: duckdb.DuckDBPyConnection) -> None:
+    _approve_prior_real_use(connection)
+    _record_successful_delivery(
+        connection,
+        rule_version=PRIOR_REAL_USE_RULE_VERSION,
+        recorded_at=datetime(2026, 9, 3, 1, 30, tzinfo=UTC),
+    )
+    activate_wi030_real_use(
+        connection, decided_at=datetime(2026, 9, 7, 3, tzinfo=UTC)
+    )
+    _record_successful_delivery(
+        connection,
+        rule_version=REAL_USE_RULE_VERSION,
+        recorded_at=datetime(2026, 9, 8, 7, tzinfo=UTC),
+    )
+
+
+def test_permanent_signal_activation_is_no_expiry_append_only_and_idempotent() -> None:
+    connection = _warehouse()
+    _activate_prior_rc_with_delivery(connection)
+    decided_at = datetime(2026, 10, 13, 3, tzinfo=UTC)
+
+    first = activate_wi070_permanent_signals(connection, decided_at=decided_at)
+    second = activate_wi070_permanent_signals(connection, decided_at=decided_at)
+
+    assert first["status"] == "activated"
+    assert second["status"] == "already_active"
+    assert first["valid_to"] is None
+    assert first["historical_replay"] is False
+    rule = connection.execute(
+        """
+        SELECT contract_status,delivery_mode,minimum_delivery_rank,valid_to
+        FROM control.alert_rule_versions WHERE version=?
+        """,
+        [PERMANENT_REAL_USE_RULE_VERSION],
+    ).fetchone()
+    assert rule == ("active", "external", 1, None)
+    decisions = connection.execute(
+        """
+        SELECT rule_version,revision,decision,rationale_code
+        FROM control.alert_rule_approval_revisions
+        WHERE rule_version IN (?,?) ORDER BY rule_version,revision
+        """,
+        [REAL_USE_RULE_VERSION, PERMANENT_REAL_USE_RULE_VERSION],
+    ).fetchall()
+    assert (
+        PERMANENT_REAL_USE_RULE_VERSION, 1, "approved",
+        "OWNER_APPROVED_PERMANENT_HELD_SIGNALS",
+    ) in decisions
+    assert (
+        REAL_USE_RULE_VERSION, 2, "revoked", "REPLACED_BY_PERMANENT_HELD_SIGNALS",
+    ) in decisions
+    connection.close()
+
+
+def test_permanent_signal_activation_requires_successful_prior_owner_delivery() -> None:
+    connection = _warehouse()
+    _approve_prior_real_use(connection)
+    _record_successful_delivery(
+        connection,
+        rule_version=PRIOR_REAL_USE_RULE_VERSION,
+        recorded_at=datetime(2026, 9, 3, 1, 30, tzinfo=UTC),
+    )
+    activate_wi030_real_use(
+        connection, decided_at=datetime(2026, 9, 7, 3, tzinfo=UTC)
+    )
+
+    with pytest.raises(RuntimeError, match="successful owner delivery"):
+        activate_wi070_permanent_signals(
+            connection, decided_at=datetime(2026, 10, 13, 3, tzinfo=UTC)
+        )
+
+    assert connection.execute(
+        "SELECT count(*) FROM control.alert_rule_versions WHERE version=?",
+        [PERMANENT_REAL_USE_RULE_VERSION],
     ).fetchone()[0] == 0
     connection.close()
 

@@ -14,18 +14,21 @@ total-asset report configuration without replaying historical messages or weaken
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
 | 1 | WI-059 scheduled core and Telegram recovery | WI-058, WI-055 | stabilizing; deployed, awaiting first post-release slots and owner receipt |
+| 2 | WI-070 permanent held-position Telegram signals | WI-059 | in progress; corrective stabilization recovery after the bounded rule expired |
 
 ## Gates
 
 - implementation and production gates: MS-005 closed.
 - release: protected master workflow with existing `wi055-s04` photo smoke and same-image three-Job deployment.
 - exit: exact runtime configuration, successful post-release 10:00 collection and quality evidence, provider ledger,
-  and owner-visible Telegram receipt or explicit no-eligible-alert evidence.
+  owner-visible total-asset and held-position signal behavior, plus explicit no-eligible-alert evidence where
+  applicable. WI-070 is part of the exit because the approved signal rule had expired while transport remained healthy.
 
 ## Revision log
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-10-13.1 | 2026-10-13 | Appended WI-070 after live logs proved all three Jobs and Telegram transport were healthy but the bounded production-value rule had expired, producing zero external candidates | Existing Telegram-recovery outcome preserved; no new milestone; unheld watchlist remains excluded |
 | 2026-09-17.2 | 2026-09-17 | WI-059-S01 PR #120 and protected run `35172054518` corrected FX landing and report preflight; release is stabilizing, while owner rejected the all-or-nothing information design and opened WI-060/MS-007 | Recovery history preserved; new architecture outcome is separate and production-gated |
 | 2026-09-17.1 | 2026-09-17 | Appended WI-059-S01 after the first post-release 10:00 run succeeded but the owner report was blocked by the missing 2026-09-16 same-slot state; read-only inspection also found ungoverned stale FX in pass-marked Gold | Parent remains stabilizing; one isolated corrective sub-item is in progress; no historical send replay |
 | 2026-09-16.2 | 2026-09-16 | PR #118 passed CI and merged as `9c7d518`; protected run `35070642487` passed photo smoke and restored all three Jobs on one immutable image | No new identity; parent enters live stabilization without replaying 2026-09-16 messages |

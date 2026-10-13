@@ -33,6 +33,7 @@ from kis_portfolio.services.overseas_history import collect_overseas_transaction
 from kis_portfolio.services.price_history import run_held_price_backfill
 from kis_portfolio.services.shadow_alerts import (
     run_external_canary_signal_evaluation,
+    run_external_permanent_signal_evaluation,
     run_external_real_use_signal_evaluation,
     run_shadow_signal_evaluation,
 )
@@ -75,6 +76,7 @@ from kis_portfolio.services.wi066_release import WI066ReleaseConfig, run_wi066_r
 from kis_portfolio.services.wi029_s05 import refresh_wi029_s05_evidence
 from kis_portfolio.services.wi030_s02 import activate_wi030_canary
 from kis_portfolio.services.wi030_s03 import activate_wi030_real_use
+from kis_portfolio.services.wi070 import activate_wi070_permanent_signals
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -322,6 +324,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Activate the exact owner-approved DEC-051 production-value release candidate.",
     )
     subparsers.add_parser(
+        "activate-wi070-permanent-signals",
+        help="Activate the owner-approved DEC-061 permanent held-position signal rule.",
+    )
+    subparsers.add_parser(
         "send-telegram-rich-transport-smoke",
         help="Send one finance-free Rich Message and fail unless Telegram confirms it.",
     )
@@ -405,7 +411,7 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
                 get_connection(), logical_date=logical_date, source_slot=args.slot,
             )
         if real_use_enabled:
-            result["telegram_real_use"] = run_external_real_use_signal_evaluation(
+            result["telegram_real_use"] = run_external_permanent_signal_evaluation(
                 get_connection(), logical_date=logical_date, source_slot=args.slot,
             )
         result["telegram_delivery"] = run_telegram_delivery(get_connection())
@@ -754,6 +760,19 @@ def _run_wi030_real_use_activation(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_wi070_permanent_signal_activation(_args: argparse.Namespace) -> int:
+    try:
+        result = activate_wi070_permanent_signals(get_connection())
+    except Exception as exc:
+        print(json.dumps({
+            "status": "failed", "error_type": type(exc).__name__,
+            "detail": "redacted; inspect aggregate permanent signal activation evidence",
+        }))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _run_telegram_rich_transport_smoke(_args: argparse.Namespace) -> int:
     try:
         result = run_telegram_rich_transport_smoke()
@@ -815,6 +834,8 @@ def main() -> None:
         raise SystemExit(_run_wi030_canary_activation(args))
     if args.command == "activate-wi030-real-use":
         raise SystemExit(_run_wi030_real_use_activation(args))
+    if args.command == "activate-wi070-permanent-signals":
+        raise SystemExit(_run_wi070_permanent_signal_activation(args))
     if args.command == "send-telegram-rich-transport-smoke":
         raise SystemExit(_run_telegram_rich_transport_smoke(args))
     if args.command == "send-telegram-photo-transport-smoke":

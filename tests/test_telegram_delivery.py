@@ -24,6 +24,7 @@ from kis_portfolio.services.telegram_delivery import (
     run_telegram_photo_transport_smoke,
     run_telegram_rich_transport_smoke,
 )
+from kis_portfolio.services.shadow_alerts import permanent_real_use_rule
 
 
 NOW = datetime(2026, 8, 30, 1, tzinfo=UTC)
@@ -130,6 +131,75 @@ def test_disabled_delivery_creates_no_claim_or_network_request() -> None:
     }
     assert client.calls == 0
     assert connection.execute("SELECT count(*) FROM control.alert_dispatch_claims").fetchone()[0] == 0
+
+
+def test_permanent_rule_baselines_then_sends_one_later_rich_transition() -> None:
+    connection = duckdb.connect(":memory:")
+    MigrationRunner(connection).apply()
+    repository = AlertWarehouseRepository(connection)
+    rule = permanent_real_use_rule()
+    base_context = {
+        "presentation_version": "production-value-v3",
+        "subject_label": "Synthetic", "market_label": "국내", "asset_type_label": "ETF",
+        "summary": "당일 급락 기준을 넘었습니다", "reason_codes": ["price_shock_down"],
+        "change_percent": "-10.00", "sma20_relation": "below",
+        "sma50_relation": "below", "sma120_relation": "below",
+        "sma20_sma50_relation": "below", "volume_ratio20": "2.00", "rsi14": "30.00",
+        "bollinger_state": "below_lower", "episode_drawdown_percent": None,
+        "portfolio_impact_percent": None,
+        "unavailable_codes": [
+            "episode_drawdown_not_ready", "valuation_contribution_not_ready",
+        ],
+        "source_at": "2026-10-13T07:00:00+00:00",
+        "metric_refs": ["price-shock"], "quality_status": "pass",
+    }
+
+    def candidate(day: int, state_key: str, context: dict[str, object]) -> AlertCandidate:
+        evaluated_at = datetime(2026, 10, day, 7, tzinfo=UTC)
+        return AlertCandidate.build(rule, AlertEvaluation(
+            subject_type="instrument", subject_id="instrument.opaque.fixture",
+            evaluation_date=date(2026, 10, day), evaluation_slot="kr-1600",
+            session_key=f"krx:2026-10-{day:02d}", evaluation_at=evaluated_at,
+            signal_state="active", severity="watch", state_key=state_key,
+            quality_status="pass", input_lineage_hash=f"lineage-{day}",
+            public_context=context, evaluation_run_id=f"run-{day}",
+        ))
+
+    baseline = repository.apply_candidate(candidate(13, "price_shock_down", base_context))
+    assert baseline.transition is not None and baseline.transition.delivery_required is False
+    updated_context = {
+        **base_context,
+        "summary": "급락과 거래량 증가가 함께 감지됐습니다",
+        "reason_codes": ["price_shock_down", "volume_confirmation"],
+        "source_at": "2026-10-14T07:00:00+00:00",
+    }
+    later = repository.apply_candidate(candidate(
+        14, "price_shock_down:volume_confirmation", updated_context,
+    ))
+    assert later.transition is not None and later.transition.delivery_required is True
+    connection.execute(
+        """
+        INSERT INTO control.alert_rule_approval_revisions(
+            approval_revision_id,rule_id,rule_version,revision,decision,actor_type,
+            calibration_run_id,shadow_window_id,evidence_hash,rationale_code,decided_at
+        ) VALUES ('approval-permanent',?,?,1,'approved','owner','calibration-live',
+                  'shadow-live',?,'OWNER_APPROVED_PERMANENT_HELD_SIGNALS',?)
+        """,
+        [rule.rule_id, rule.version, "d" * 64, datetime(2026, 10, 13, 3, tzinfo=UTC)],
+    )
+    client = FakeTelegramClient(TelegramSendResult("sent", response_ref="telegram-message:170"))
+
+    first = run_telegram_delivery(
+        connection, config=_config(), client=client, now=datetime(2026, 10, 14, 8, tzinfo=UTC),
+    )
+    replay = run_telegram_delivery(
+        connection, config=_config(), client=client, now=datetime(2026, 10, 14, 8, 1, tzinfo=UTC),
+    )
+
+    assert first["eligible_count"] == 1 and first["sent_count"] == 1
+    assert replay["eligible_count"] == 0 and replay["attempt_count"] == 0
+    assert client.calls == 1
+    connection.close()
 
 
 def test_missing_enabled_secrets_fails_before_claim() -> None:

@@ -690,6 +690,19 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
 - fixture/manual current-date replay를 제공해 다음 scheduler slot을 기다리지 않고 positive, partial, error와
   unrelated portfolio-read isolation을 검증한다.
 
+### DEC-061: 보유종목 Telegram 시그널은 만료 없는 immutable successor로 운영한다
+
+- 2026-10-13 owner는 bounded production-value rule 만료 뒤 총자산 리포트만 계속되고 더 중요한 보유종목
+  시그널이 생성되지 않은 결함을 확인하고, MS-006 안정화 recovery로 영구 successor 활성화를 승인했다.
+- successor는 새 immutable version, `valid_to = null`, owner approval revision과 prior-RC revocation을 가진다.
+  기존 rule 문서·후보·전송 증거를 수정하거나 만료 기간의 slot을 replay하지 않는다.
+- 최초 active 상태는 DEC-052대로 baseline-only이며 외부 메시지를 만들지 않는다. 이후 pass-quality의
+  `주의` 이상 상태전이만 DEC-053 Rich Message로 한 번 전송한다.
+- 평가 대상은 현재 `quantity > 0`인 보유종목이다. 미보유 관심종목은 이 결함 조치에 포함하지 않으며 별도
+  제품 change와 source/retention/notification 계약 승인 전에는 조용히 추가하지 않는다.
+- deterministic positive, no-send와 error 경계를 먼저 검증하고, protected same-image release, provider-confirmed
+  delivery ledger와 owner-visible receipt 뒤에만 WI-070/MS-006 안정화 exit를 인정한다.
+
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 
 `보유종목 감시 v1`은 데이터 제품 작업명이며 KIS Portfolio 앱 이름을 대체하지 않는다.
@@ -1252,6 +1265,7 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 
 | 날짜 | 상태 | 내용 |
 | --- | --- | --- |
+| 2026-10-13 | 영구 보유종목 시그널 복구 승인 | DEC-061로 만료 없는 immutable successor, baseline-only 초기화, no historical replay, held-position-only scope와 실제 Telegram 인수를 승인함 |
 | 2026-09-24 | 거래 증분 수집 복구 승인 | DEC-060으로 총자산 코어와 독립된 scale-to-zero producer, per-partition coverage, bounded current-date replay와 실패 격리를 승인함 |
 | 2026-09-13 | V2-only production 전환 승인 | DEC-056으로 오동작하던 V1을 운영 fallback과 WI-046 완료조건에서 제외하고, 검증된 V2 immutable release와 보존된 Firestore/MotherDuck를 이용한 forward recovery를 정본으로 확정함; WI-046/MS-003 close와 MS-004/WI-047 시작을 승인하되 파괴적 cleanup은 WI-049에 유지함 |
 | 2026-09-10 | 총자산 리포트 caption 정돈 승인 | 첫 v2.1 실사용의 정보 내용과 chart는 owner가 인수하고, 동일 계산·privacy 경계 안에서 텍스트를 구획·고정폭 표 형태로 정돈하도록 WI-055-S04를 승인함 |
