@@ -44,7 +44,7 @@ max_lookback_days = 31
 
 [[contracts]]
 id = "read_model.pipeline-run-v1"
-version = "1.2.0"
+version = "1.2.1"
 status = "approved"
 owner = "owner"
 description = "logical pipeline run과 stage, quality, watermark, resume 상태를 bounded safe fields로 구성한 운영 projection."
@@ -55,8 +55,8 @@ consumer_scope = "mcp-read"
 response_schema_ref = "read-model-envelope-v1/pipeline-run-v1"
 allowed_fields = ["schema_version", "as_of", "source", "freshness", "quality", "missing_coverage", "lineage_ref", "request_id", "data", "query", "requested_pipeline_id", "resolved_pipeline_id", "alias_applied", "window", "window_status", "expected_run_count", "observed_run_count", "missing_run_count", "run_id", "pipeline_id", "pipeline_version", "definition_hash", "logical_date", "slot", "partition_ref", "execution_state", "overall_status", "source_calls_used", "source_call_budget", "stage_name", "stage_status", "first_failed_stage", "resumable_stage", "watermark_type", "watermark_status", "retry_eligible", "resume_eligible", "error_code"]
 suppressed_fields = ["raw_json", "details", "stage_evidence", "error_message", "exception_text", "partition_key", "input_ref", "output_ref", "object_uri", "secret_profile", "auth_class", "cost_budget"]
-query_policy = "exact run_id or exact pipeline_id list, mutually exclusive; public pipeline aliases resolve to canonical ids and the response reports requested_pipeline_id, resolved_pipeline_id, and alias_applied; list lookback default 7 maximum 31 days; portfolio-refresh evaluates only fixed due KST slots inside the exact wall-clock window and excludes future slots; limit default 20 maximum 50; stable started_at,run_id ordering"
-status_policy = "unavailable > failed > partial > stale > not_assessed > pass; succeeded run or compatibility summary alone never proves overall pass; zero run rows pass only when complete governed market-calendar evidence proves no fixed portfolio slot was due; any due slot without run evidence is partial"
+query_policy = "exact run_id or exact pipeline_id list, mutually exclusive; public pipeline aliases resolve to canonical ids and the response reports requested_pipeline_id, resolved_pipeline_id, and alias_applied; list lookback default 7 maximum 31 days; request as_of is the inclusive cutoff, while envelope as_of is the latest returned finished_at/started_at when rows exist and otherwise the cutoff for a calendar-evaluated empty window; portfolio-refresh evaluates only fixed due KST slots inside the exact wall-clock window and excludes future slots; limit default 20 maximum 50; stable started_at,run_id ordering"
+status_policy = "unavailable > failed > partial > stale > not_assessed > pass; window_status reports scheduled-slot coverage and does not summarize run success, so a failed run counts as observed while quality.status and each run status expose the failure; succeeded run or compatibility summary alone never proves overall pass; zero run rows pass only when complete governed market-calendar evidence proves no fixed portfolio slot was due; any due slot without run evidence is partial"
 unavailable_policy = "Control query/session failure or incomplete calendar coverage returns unavailable and no cached or evidence-free empty green; unknown stages and error codes are redacted and prevent pass"
 activation_state = "inactive"
 max_response_bytes = 262144
