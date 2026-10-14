@@ -85,3 +85,7 @@ Pending full gate, production release and owner Claude consent/write.
 - Protected auth run 38513570481 failed before deployment because the pre-existing discovery fixture inherited production allowed scopes. Pin the fixture to its explicit read-only profile and validate with production scope env. Serving services were unchanged. The premature retry 38513816577 was cancelled.
 
 - Production-scope environment full gate: 842 passed after explicit fixture isolation. Samsung discrepancy confirmed by bounded read-only comparison: omitted venue returned zero; ALL returned October 12 three shares and October 13 one share on SOR. Producer remediation will use separate WI-074 acceptance/recovery.
+
+- Final transport review: step-up challenge must include both base read and journal/collect scope, since a token with only the command scope would fail transport admission. Retain regression assertions for the complete operation scope set.
+
+- Complete-operation step-up verification passed full production-scope gate 844 tests, including both MCP paths and all three command scopes.

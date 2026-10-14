@@ -523,7 +523,7 @@ def test_command_scope_challenge_precedes_dispatch(monkeypatch, path, name, requ
         assert denied.json() == {'error': 'insufficient_scope'}
         challenge = denied.headers['WWW-Authenticate']
         assert 'error="insufficient_scope"' in challenge
-        assert f'scope="{required}"' in challenge
+        assert f'scope="mcp:read {required}"' in challenge
         assert 'resource_metadata="https://resource.example.com/.well-known/oauth-protected-resource/mcp"' in challenge
         assert dispatched == []
         accepted = client.post(path, json=payload, headers={'Authorization': 'Bearer authorized'}, follow_redirects=False)
