@@ -284,6 +284,8 @@ def test_remote_oauth_mode_exposes_discovery_and_authorize_redirect(monkeypatch)
     monkeypatch.setenv("KIS_AUTH_TOKEN_PEPPER", "pepper")
     monkeypatch.setenv("KIS_AUTH_REQUIRED_SCOPES", "mcp:read")
 
+    monkeypatch.setenv("KIS_AUTH_ALLOWED_SCOPES", "mcp:read offline_access")
+
     remote = importlib.reload(importlib.import_module("kis_portfolio.remote"))
     monkeypatch.setattr(remote, "_build_v2_runtime_server", lambda _resource: _dummy_remote_server())
 

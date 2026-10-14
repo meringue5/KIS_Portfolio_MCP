@@ -81,3 +81,7 @@ Pending full gate, production release and owner Claude consent/write.
 - Remote release uses the guarded WI-065 image/traffic path through target `wi073`, adding only the explicit allowed-scope env update; stable and Claude compatibility routes move together. Existing runtime settings and fixed Jobs are preserved.
 
 - Repository verification: 45 auth/command/compatibility tests, 117 auth/deployment tests and full 842 tests passed. Quick, governance, architecture, warehouse, MCP and documentation gates passed. Owner identifies Samsung purchase in brokerage this week with settlement D+2 today; preserve as concrete trade discrepancy pending source evidence.
+
+- Protected auth run 38513570481 failed before deployment because the pre-existing discovery fixture inherited production allowed scopes. Pin the fixture to its explicit read-only profile and validate with production scope env. Serving services were unchanged. The premature retry 38513816577 was cancelled.
+
+- Production-scope environment full gate: 842 passed after explicit fixture isolation. Samsung discrepancy confirmed by bounded read-only comparison: omitted venue returned zero; ALL returned October 12 three shares and October 13 one share on SOR. Producer remediation will use separate WI-074 acceptance/recovery.
