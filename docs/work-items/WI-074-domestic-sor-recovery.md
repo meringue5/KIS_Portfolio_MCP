@@ -82,3 +82,7 @@ Pending protected release, immediate recovery and owner acceptance.
 
 - Verification: 107 source/incremental/deploy tests passed; full production-scope gate 844 passed. Regression reprocesses a prior 1.0.0 empty success under 1.0.1, lands SOR venue and canonical quantity, and reuses repeat recovery without duplicate trade events.
 - Pre-release domestic Job image: `sha256:d200e39a5cea2d192c551a19ff77d0bcba579efde00bc05125ec9a303b3757dd`; routine args remain `collect-trade-incremental-v2 --date today --scope domestic` and the pipeline execution identity is unchanged.
+
+- First protected release 38515331206 updated only the domestic image but execution zrx26 failed before any source call or write: global minimum source watermark July 14 rejected the fixed October 7 recovery. Source route endpoints represent complementary historical/recent ranges, not scope completeness. Resolve from quality-published account-market query coverage only when every callable market in the requested scope has evidence; otherwise preserve conservative legacy fallback and no-gap/120-day guards. Retain failed execution and retry the same bounded October 7-14 scope after verification.
+
+- Scoped coverage correction verified: five incremental tests and full production-scope gate 845 passed. Complete scoped query evidence permits October 7 reread; missing account/market evidence, true skipped dates and >120-day replay still fail closed. Immutable successor pipeline patch is 1.0.2.

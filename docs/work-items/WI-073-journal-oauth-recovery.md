@@ -1,7 +1,7 @@
 ---
 id: WI-073
 title: Restore production journal OAuth consent and scope challenges
-status: verified
+status: closed
 type: defect
 owner: owner
 decision_refs: ADR-015, ADR-020, ADR-028
@@ -23,9 +23,9 @@ cost_impact: existing services only
 user_visible_impact: yes
 real_use_acceptance: required
 real_use_evidence_refs: owner Claude insufficient_scope report; fresh consent replay pending
-stabilization_window: none
-stabilization_exit_refs: none
-rollback_plan: none
+stabilization_window: immediate actual-client scope replay and owner Claude fresh consent/write
+stabilization_exit_refs: auth run 38514161606; Remote run 38514918682; owner Claude actual journal acceptance pending
+rollback_plan: restore prior V2 Remote 00061-z79 and auth 00034-qvj if transport regresses; preserve all grants and journals
 ---
 
 # WI-073 — Restore production journal OAuth consent and scope challenges
@@ -89,3 +89,7 @@ Pending full gate, production release and owner Claude consent/write.
 - Final transport review: step-up challenge must include both base read and journal/collect scope, since a token with only the command scope would fail transport admission. Retain regression assertions for the complete operation scope set.
 
 - Complete-operation step-up verification passed full production-scope gate 844 tests, including both MCP paths and all three command scopes.
+
+- Production verified: auth run 38514161606 / revision 00035-fk8; Remote run 38514918682 / serving and Claude tag revision 00062-d2q / source ad2ff08. Both resource URLs advertise read/journal, auth read/journal/offline. Actual Codex overview pass/32 request c4faf44c392c4ca4b4d8d9bfee61aea9; honest pre-recovery partial ledger request 2b8787e1068e43169665678aa634ba4e; invalid ledger dates request cc43a54c533c44a2bd5fb36179f9dc95; invalid journal probe now yields transport Insufficient scope with no write. Owner Claude reconnect/write requested; no owner acceptance inferred.
+
+- Owner acceptance 2026-10-14: user confirms Claude actual journal write succeeded. Codex explicit read/journal/offline OAuth consent also completed and CLI login succeeded; current chat transport retains its old read token, so that session still demonstrates old-grant denial. Claude positive receipt plus actual Codex read/partial/error and HTTP-denial evidence satisfy journal recovery acceptance.
