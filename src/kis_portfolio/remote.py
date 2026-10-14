@@ -169,12 +169,13 @@ class OAuthChallengeMiddleware:
 class CommandScopeMiddleware:
     """Challenge missing tool scopes before invoking an authenticated MCP command."""
 
-    def __init__(self, app: ASGIApp, *, resource_server_url: str) -> None:
+    def __init__(self, app: ASGIApp, *, resource_server_url: str, required_scopes: list[str]) -> None:
         from kis_portfolio.adapters.mcp.v2 import COMMAND_TOOL_CONTRACTS
 
         self.app = app
         self.resource_server_url = resource_server_url
         self.command_scopes = {item.name: item.scope for item in COMMAND_TOOL_CONTRACTS}
+        self.required_scopes = required_scopes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or scope.get("method") != "POST":
@@ -207,7 +208,7 @@ class CommandScopeMiddleware:
                     {"error": "insufficient_scope"}, status_code=403,
                     headers={"WWW-Authenticate": _oauth_challenge(
                         status_code=403, resource_server_url=self.resource_server_url,
-                        scopes=[required],
+                        scopes=list(dict.fromkeys([*self.required_scopes, required])),
                     )},
                 )(scope, receive, send)
                 return
@@ -419,7 +420,9 @@ def _build_oauth_app() -> ASGIApp:
     mcp_handler, server = _create_mcp_handler(resource_server_url)
     protected_mcp_handler = OAuthChallengeMiddleware(
         RequireAuthMiddleware(
-            CommandScopeMiddleware(mcp_handler, resource_server_url=resource_server_url),
+            CommandScopeMiddleware(
+                mcp_handler, resource_server_url=resource_server_url, required_scopes=required_scopes,
+            ),
             required_scopes,
             AnyHttpUrl(_resource_metadata_url(resource_server_url)),
         ),
