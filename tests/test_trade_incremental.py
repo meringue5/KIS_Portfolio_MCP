@@ -142,3 +142,37 @@ def test_incremental_start_rejects_skipped_and_unbounded_windows(tmp_path: Path)
             requested_start=date(2026, 1, 1),
         )
     connection.close()
+
+
+def test_corrected_venue_pipeline_reprocesses_old_empty_success_without_duplicates(tmp_path, monkeypatch):
+    import kis_portfolio.services.trade_incremental as incremental
+    from kis_portfolio.services import kis_api
+
+    connection = _connection(tmp_path / 'sor-recovery.duckdb')
+
+    def empty(partition, gate):
+        gate.reserve(partition.key)
+        return FetchedBackfillPartition((BackfillSourcePage({'output1': []}, FETCHED),), True)
+
+    monkeypatch.setattr(incremental, 'PIPELINE_VERSION', '1.0.0')
+    old = incremental.run_trade_incremental(connection, [_account()], start_date=DAY, end_date=DAY, scope='domestic', fetch_partition=empty)
+    assert old['status'] == 'succeeded'
+
+    async def source(path, tr_id, params, **kwargs):
+        assert params['EXCG_ID_DVSN_CD'] == 'ALL'
+        kwargs['before_request'](1)
+        return {'captured_pages': [{'rt_cd': '0', 'output1': [
+            {'ord_dt': '20260924', 'ord_tmd': '101500', 'pdno': '005930', 'odno': 'SOR-FIXTURE', 'ord_gno_brno': '01', 'sll_buy_dvsn_cd': '02', 'tot_ccld_qty': '3', 'avg_prvs': '70000', 'excg_id_dvsn_cd': 'SOR'},
+        ]}]}
+
+    monkeypatch.setattr(kis_api, '_get_paginated_kis_json', source)
+    monkeypatch.setattr(incremental, 'PIPELINE_VERSION', '1.0.1')
+    corrected = incremental.run_trade_incremental(connection, [_account()], start_date=DAY, end_date=DAY, scope='domestic')
+    assert corrected['reused_partition_count'] == 0
+    assert connection.execute('select count(*), sum(quantity) from silver.trade_events_current').fetchone() == (1, 3)
+    assert connection.execute("select json_extract_string(payload, '$.excg_id_dvsn_cd') from bronze.source_observations").fetchone() == ('SOR',)
+    repeated = incremental.run_trade_incremental(connection, [_account()], start_date=DAY, end_date=DAY, scope='domestic')
+    assert repeated['reused_partition_count'] == corrected['partition_count']
+    assert connection.execute('select count(*) from silver.trade_events_current').fetchone()[0] == 1
+    assert connection.execute('select distinct pipeline_version from control.pipeline_runs order by 1').fetchall() == [('1.0.0',), ('1.0.1',)]
+    connection.close()

@@ -3045,6 +3045,25 @@ def _deploy_wi063(
     return 0
 
 
+def _deploy_wi074(args: argparse.Namespace, *, env: dict[str, str], project: str) -> int:
+    """Update only the domestic trade image and replay the reviewed SOR gap."""
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        print("Failed to resolve the immutable WI-074 image digest.")
+        return 1
+    job = env.get("KIS_TRADE_INCREMENTAL_DOMESTIC_JOB", DEFAULT_TRADE_INCREMENTAL_DOMESTIC_JOB)
+    if _run([
+        "gcloud", "run", "jobs", "update", job, "--image", image,
+        "--region", args.region, *_build_label_flags("wi074"), "--project", project,
+    ], dry_run=args.dry_run) != 0:
+        return 1
+    return _run([
+        "gcloud", "run", "jobs", "execute", job,
+        "--args", "collect-trade-incremental-v2,--date,20261014,--start-date,20261007,--scope,domestic",
+        "--region", args.region, "--wait", "--project", project,
+    ], dry_run=args.dry_run)
+
+
 def _deploy_wi065(
     args: argparse.Namespace,
     *,
@@ -3764,6 +3783,7 @@ def main() -> int:
             "wi063",
             "wi065",
             "wi073",
+            "wi074",
             "wi066",
             "wi068",
             "wi070",
@@ -4012,6 +4032,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi063(args, env=env, project=project)
+
+    if args.target == "wi074":
+        if not project:
+            print("Missing required environment variables: GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi074(args, env=env, project=project)
 
     if args.target in {"wi065", "wi073"}:
         if not project:

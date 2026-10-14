@@ -34,7 +34,7 @@ from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfi
 
 
 PIPELINE_ID = "pipeline.trade-incremental-v2"
-PIPELINE_VERSION = "1.0.0"
+PIPELINE_VERSION = "1.0.1"
 INCREMENTAL_SLOT = "daily"
 MAX_REPLAY_DAYS = 120
 MAX_PHYSICAL_CALLS = 48

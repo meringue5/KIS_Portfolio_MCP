@@ -85,6 +85,7 @@ class KisTradeCashBackfillSource:
                     "INQR_DVSN": "00",
                     "PDNO": "",
                     "CCLD_DVSN": "00",
+                    "EXCG_ID_DVSN_CD": "ALL",
                     "ORD_GNO_BRNO": "",
                     "ODNO": "",
                     "INQR_DVSN_3": "00",

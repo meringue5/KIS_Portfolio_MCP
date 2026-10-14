@@ -443,3 +443,7 @@ DEC-062/ADR-033 authorize a one-off pinned import to `silver.portfolio_legacy_to
 This dataset is consumed only by explicit `get-performance-history(include_legacy_reference=true)` in a separate
 `reference_history` array. It never joins return/contribution/alert pipelines or marks retained `v1-latest` pass.
 MCP reads make no upstream source calls. Native passing V2 dates take precedence; unavailable totals stay NULL.
+
+## Domestic execution venue completeness (WI-074)
+
+Domestic order history explicitly sends `EXCG_ID_DVSN_CD=ALL` so KRX, NXT and SOR executions enter the same approved account ledger. The canonical domestic instrument market remains KRX; source venue is retained in Bronze, and existing broker execution identity remains unchanged. Incremental pipeline patch 1.0.1 prevents reuse of old venue-filtered successful runs. The reviewed recovery is domestic October 7-14, 2026 only, preserving prior runs/observations and idempotent event keys.
