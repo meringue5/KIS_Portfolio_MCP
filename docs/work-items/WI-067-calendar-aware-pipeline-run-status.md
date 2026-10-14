@@ -1,7 +1,7 @@
 ---
 id: WI-067
 title: Distinguish closed-market quiet windows from missing scheduled portfolio runs
-status: verified
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-031, DEC-032, DEC-038, DEC-057, ADR-029
@@ -13,15 +13,15 @@ depends_on: WI-066
 discovered_from: WI-066
 supersedes: none
 rollback_of: none
-execution_scope: repository implementation and deterministic actual-tool-boundary fixtures verified; production release requires its normal gate
-production_effects: none in the current phase
+execution_scope: protected Remote release and actual Codex/owner-Claude acceptance completed
+production_effects: read-only calendar-aware pipeline status is active in production; no scheduler, source or stored-row mutation
 architecture_impact: none; reuse the governed KRX calendar inside the existing read adapter and preserve the service, warehouse and MCP boundaries
 data_impact: no DDL or stored-row mutation; read_model.pipeline-run-v1 adds dataset.market-calendar as schedule evidence
 security_impact: none; no new identifiers, credentials or raw provider payloads are exposed
 cost_impact: one bounded calendar query per portfolio pipeline-status read
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic MCP tool-boundary no-runs-expected positive, scheduled-run-missing partial and invalid-selector error passed; PR #149 initial CI run 38191885891 passed; post-release Codex and owner-Claude replay pending
+real_use_evidence_refs: deterministic MCP boundary plus post-release Codex positive/partial/error and owner-Claude PASS on 2026-10-14; PR #149, deploy run 38342496464
 stabilization_window: post-release immediate Codex and owner-Claude replay across a closed-only window and a window containing scheduled runs
 stabilization_exit_refs: protected release evidence plus actual-client positive, partial and error behavior
 rollback_plan: restore the prior Remote revision if current run visibility regresses; no data rollback is required because the change is read-only
@@ -71,7 +71,9 @@ or data failure and invites false incident diagnosis.
 - [x] Same-day slots later than the query cutoff are not counted as missing.
 - [x] Existing successful/failed run and quality-evidence behavior remains compatible.
 - [x] Focused, quick and full checks pass before release consideration.
-- [ ] Actual Codex and owner-Claude calls reproduce the closed-window and scheduled-window behavior after release.
+- [x] Actual Codex and owner-Claude calls reproduce the closed-window and scheduled-window behavior after release;
+      Codex also observed a real missing-slot partial, while owner-Claude accepted the fixed closed and fully observed
+      scheduled windows with the noted non-blocking diagnostic limitations.
 
 ## Change impact
 
@@ -81,6 +83,10 @@ or data failure and invites false incident diagnosis.
   window fields.
 - Security/privacy: owner-only aggregate operational evidence only; no account or secret fields.
 - MCP/API compatibility: additive response fields under `data.window`; existing `data.runs` and query fields remain.
+- Consumer interpretation: `window_status` reports scheduled-slot coverage, not run success. A failed run still counts
+  as an observed slot; consumers must also inspect top-level `quality.status` and each run's `status`.
+- Time interpretation: request `as_of` is the inclusive query cutoff. Envelope `as_of` is the latest returned
+  `finished_at`/`started_at` when rows exist, and falls back to the cutoff for a calendar-evaluated empty window.
 - Deployment/rollback: code-only Remote release after approval; revert traffic to the prior revision on regression.
 - Cost/SLO: one small bounded calendar query covering at most 32 local dates.
 
@@ -125,11 +131,33 @@ or data failure and invites false incident diagnosis.
 - `bash scripts/check.sh quick`: passed with the repository Python 3.13 and uv paths explicitly selected.
 - `bash scripts/check.sh full`: 815 passed with one pre-existing Authlib deprecation warning.
 - PR #149 initial CI run `38191885891`: passed on commit `860ee4d`.
-- Production evidence: pending protected release and actual-client replay.
+- PR #149 merged as `fa4a1ead9dc5407671d8d415852d56f781b60a1d`; protected Remote run `38342496464`
+  deployed revision `kis-portfolio-remote-00060-6ts`, and health passed.
+- Direct Codex replay: the fixed closed-only cutoff returned `no_runs_expected`, available/pass and zero counts; a
+  live seven-day window returned `scheduled_runs_missing` with expected 12, observed 11 and missing 1 while retaining
+  the failed `kr-1430` run; invalid `lookback_days=33` returned bounded validation detail.
+- Owner-Claude replay on 2026-10-14: PASS. The closed-only window returned `no_runs_expected`; the scheduled window
+  returned all due slots observed and exposed the failed run through `quality.status` and run `status`; the invalid
+  lookback returned the expected validation error. The owner accepted the result and reported four non-blocking
+  observations recorded below.
+
+## Accepted closeout observations
+
+- `window_status` is intentionally a coverage dimension. It does not summarize execution success; this distinction is
+  now explicit in the read-model consumer contract.
+- Envelope `as_of` is evidence time when rows exist, not a verbatim echo of the requested cutoff; the cutoff remains
+  the query boundary. This existing behavior is now explicit in the read-model consumer contract.
+- Owner-Claude did not encounter a missing slot in its scheduled-window sample. The branch remains covered by the
+  earlier real Codex missing-slot observation and deterministic MCP fixtures, and the owner accepted that evidence.
+- `quality_evidence_missing_for_run` currently omits `run_id`, so consumers must correlate against returned runs.
+  This is an accepted diagnostic limitation, not a false-green or WI-067 outcome failure; adding safe per-run gap
+  identity requires a separately approved response-contract change.
 
 ## Closeout
 
-- Result: repository implementation and deterministic actual MCP tool-boundary verification complete; status
-  `verified`, not deployed.
-- Remaining risk: governed calendar completeness and production client interpretation must be verified.
-- Follow-up Work Item: none at intake.
+- Result: `closed`. The protected release and both approved actual clients passed the calendar-aware acceptance, and
+  the owner accepted the 2026-10-14 Claude result.
+- Remaining risk: consumers that inspect only `window_status` can miss a failed-but-observed run; the canonical
+  contract now requires inspection of `quality.status` and run `status`. Per-run identity in missing coverage remains
+  a separately approvable diagnostic enhancement.
+- Follow-up Work Item: WI-068 remains an independent retained-history recovery outcome and does not block this close.
