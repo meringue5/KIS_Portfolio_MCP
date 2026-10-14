@@ -56,6 +56,8 @@ traffic with rollback holds. 4. Observe and close the rollback window.
 
 ## Sub-items
 
+- `WI-073` — restore journal consent and transport scope challenges after generic auth deployment regression.
+
 - `WI-046-S01` — correct the Claude `resource=None` OAuth interoperability failure while retaining strict
   canonical resource binding.
 - `WI-046-S02` — correct the production-read `pass`/`passed` status mismatch and make the managed collection

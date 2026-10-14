@@ -178,7 +178,8 @@ MCP OAuth state:
 - Authorization codes: digest only, one-time use
 - Client secrets: hash only
 - Required env shared by auth and remote: `KIS_AUTH_TOKEN_PEPPER`
-- Required OAuth scope for MCP: `mcp:read`
+- Required OAuth admission scope for MCP: `mcp:read`
+- Production journal commands require explicitly consented `mcp:journal.write`; the production workflow defaults to read/journal/offline. `mcp:collect` remains separately configured. Resource metadata lists enabled resource scopes; command denial returns HTTP 403 with a tool-specific scope challenge. Existing grants are never expanded automatically.
 - Access and refresh tokens are bound to the canonical `KIS_RESOURCE_SERVER_URL`. If a supported client omits the
   RFC 8707 resource indicator or serializes the missing value as `None`, the authorization server binds it to that
   canonical resource; a different explicit resource fails closed before token issuance.

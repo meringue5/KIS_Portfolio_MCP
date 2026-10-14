@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import hmac
+import json
 import os
 from urllib.parse import urlsplit
 
 import httpx
-from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
+from mcp.server.auth.middleware.auth_context import AuthContextMiddleware, get_access_token
 from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend, RequireAuthMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
@@ -165,6 +166,60 @@ class OAuthChallengeMiddleware:
             await response(scope, receive, send)
 
 
+class CommandScopeMiddleware:
+    """Challenge missing tool scopes before invoking an authenticated MCP command."""
+
+    def __init__(self, app: ASGIApp, *, resource_server_url: str) -> None:
+        from kis_portfolio.adapters.mcp.v2 import COMMAND_TOOL_CONTRACTS
+
+        self.app = app
+        self.resource_server_url = resource_server_url
+        self.command_scopes = {item.name: item.scope for item in COMMAND_TOOL_CONTRACTS}
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope.get("method") != "POST":
+            await self.app(scope, receive, send)
+            return
+        messages = []
+        body = bytearray()
+        while True:
+            message = await receive()
+            messages.append(message)
+            if message["type"] == "http.disconnect":
+                return
+            body.extend(message.get("body", b""))
+            if len(body) > 4 * 1024 * 1024:
+                await JSONResponse({"error": "request_too_large"}, status_code=413)(scope, receive, send)
+                return
+            if not message.get("more_body", False):
+                break
+        try:
+            payload = json.loads(body)
+        except (ValueError, UnicodeDecodeError):
+            payload = None
+        if isinstance(payload, dict) and payload.get("method") == "tools/call":
+            params = payload.get("params")
+            name = params.get("name") if isinstance(params, dict) else None
+            required = self.command_scopes.get(name) if isinstance(name, str) else None
+            token = get_access_token()
+            if required and token is not None and required not in token.scopes:
+                await JSONResponse(
+                    {"error": "insufficient_scope"}, status_code=403,
+                    headers={"WWW-Authenticate": _oauth_challenge(
+                        status_code=403, resource_server_url=self.resource_server_url,
+                        scopes=[required],
+                    )},
+                )(scope, receive, send)
+                return
+
+        async def replay_receive():
+            if messages:
+                return messages.pop(0)
+            return await receive()
+
+        await self.app(scope, replay_receive, send)
+
+
 class ExactPathMCPApp:
     def __init__(self, app: ASGIApp, mount_path: str = "/mcp") -> None:
         self.app = app
@@ -295,7 +350,7 @@ async def _remote_protected_resource_metadata(request: Request) -> JSONResponse:
         _protected_resource_metadata(
             issuer_url=request.app.state.auth_issuer_url,
             resource_server_url=request.app.state.resource_server_url,
-            scopes=list(request.app.state.required_scopes),
+            scopes=[scope for scope in request.app.state.supported_scopes if scope != "offline_access"],
         )
     )
 
@@ -364,7 +419,7 @@ def _build_oauth_app() -> ASGIApp:
     mcp_handler, server = _create_mcp_handler(resource_server_url)
     protected_mcp_handler = OAuthChallengeMiddleware(
         RequireAuthMiddleware(
-            mcp_handler,
+            CommandScopeMiddleware(mcp_handler, resource_server_url=resource_server_url),
             required_scopes,
             AnyHttpUrl(_resource_metadata_url(resource_server_url)),
         ),

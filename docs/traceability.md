@@ -155,3 +155,5 @@
 - 상세 로그나 긴 테스트 출력은 Work Item/CI artifact에 두고 이 표에는 링크나 명령 이름만 둔다.
 - closed row는 삭제하지 않는다. 오래된 항목은 별도 archive table/file로 이동할 수 있다.
 - 요구나 결정이 superseded되면 새 ID와 대체 관계를 기록하고 과거 연결을 덮어쓰지 않는다.
+
+| Approved journal commands must be reachable after explicit owner consent and insufficient scopes must challenge at HTTP transport | DEC-029/030/038 and ADR-015/020/028 | WI-073 discovered from WI-046 | Restore production grant configuration, supported-scope metadata and per-command HTTP challenge | Owner Claude failure; live auth read-only/resource read-only discovery; regression and consent replay pending | in_progress |

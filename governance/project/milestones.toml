@@ -110,7 +110,7 @@ overlap_work_item_ids = [
 ]
 work_item_ids = [
   "WI-035", "WI-037", "WI-038", "WI-039", "WI-040", "WI-041",
-  "WI-042", "WI-043", "WI-044", "WI-045", "WI-046",
+  "WI-042", "WI-043", "WI-044", "WI-045", "WI-046", "WI-073",
 ]
 
 [[milestones]]
@@ -1270,3 +1270,16 @@ id = "WI-066-S01"
 parent_id = "WI-066"
 title = "Make longitudinal MCP planning truthful and repeat the owner recovery question in actual clients"
 status = "stabilizing"
+
+[[work_items]]
+id = "WI-073"
+identity = "journal-oauth-recovery"
+title = "Restore production journal OAuth consent and scope challenges"
+milestone_id = "MS-003"
+delivery_refs = []
+depends_on = ["WI-046"]
+discovered_from = ["WI-046"]
+supersedes = []
+rollback_of = []
+parent_id = "WI-046"
+sequence = 12

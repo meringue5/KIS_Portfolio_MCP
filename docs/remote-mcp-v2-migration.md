@@ -119,3 +119,7 @@ Reference reads call no source API. Existing legacy canonical totals remain quar
 A reproducible owner prompt: "2026-04-19부터 2026-08-27까지 get-performance-history를
 include_legacy_reference=true, 계좌 필터 없이 조회해서 reference_history의 총자산 추이를 보여주세요.
 기록 참고값과 추정 참고값을 구분하고 8/6·8/25의 빈 날짜는 유지해주세요."
+
+### Journal scope recovery (WI-073)
+
+Production auth and Remote must share `KIS_AUTH_ALLOWED_SCOPES=mcp:read mcp:journal.write offline_access`. Generic production releases preserve this journal-enabled default; `mcp:collect` requires an explicit allowed-scope configuration. `KIS_AUTH_REQUIRED_SCOPES=mcp:read` remains the transport admission scope. Protected-resource metadata advertises supported resource scopes (excluding `offline_access`), not only admission scopes. An authenticated command lacking its tool scope returns HTTP 403 with `WWW-Authenticate: Bearer error="insufficient_scope"`, the required tool scope and resource metadata URL. Application authorization remains enforced. Reconnect and explicitly consent; old grants do not expand.
