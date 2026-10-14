@@ -88,6 +88,8 @@ def test_kis_source_reserves_each_page_and_uses_approved_route(
     assert gate.reservations == Counter({partition.key: 2})
     assert calls[0][1] == expected_tr_id
     assert calls[0][3]["max_pages"] == 2
+    if operation == DOMESTIC_ORDER_HISTORY:
+        assert calls[0][2]["EXCG_ID_DVSN_CD"] == "ALL"
     if expected_exchange:
         assert calls[0][2]["OVRS_EXCG_CD"] == expected_exchange
     assert os.environ["KIS_CANO"] == "previous"

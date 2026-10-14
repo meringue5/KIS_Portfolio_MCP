@@ -183,7 +183,7 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066", "WI-067", "WI-068"]
+work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066", "WI-067", "WI-068", "WI-074"]
 
 [[work_items]]
 id = "WI-009"
@@ -1283,3 +1283,16 @@ supersedes = []
 rollback_of = []
 parent_id = "WI-046"
 sequence = 12
+
+[[work_items]]
+id = "WI-074"
+identity = "domestic-sor-recovery"
+title = "Recover omitted domestic SOR executions and preserve complete trade collection"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-063"]
+discovered_from = ["WI-063"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 11

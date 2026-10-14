@@ -157,3 +157,5 @@
 - 요구나 결정이 superseded되면 새 ID와 대체 관계를 기록하고 과거 연결을 덮어쓰지 않는다.
 
 | Approved journal commands must be reachable after explicit owner consent and insufficient scopes must challenge at HTTP transport | DEC-029/030/038 and ADR-015/020/028 | WI-073 discovered from WI-046 | Restore production grant configuration, supported-scope metadata and per-command HTTP challenge | Owner Claude failure; live auth read-only/resource read-only discovery; regression and consent replay pending | in_progress |
+
+| Domestic owner executions across KRX/NXT/SOR must enter the approved same-account ledger | DEC-009/010/015/030/044/060 and ADR-032 | WI-074 discovered from WI-063 | Explicit ALL venue source selection; distinct pipeline patch version; fixed domestic Job recovery | Same-period KIS source comparison: omitted venue 0 rows, ALL two Samsung SOR buys; owner brokerage report | in_progress |

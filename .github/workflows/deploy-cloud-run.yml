@@ -33,6 +33,7 @@ on:
           - wi063
           - wi065
           - wi073
+          - wi074
           - wi066
           - wi068
           - wi070
@@ -318,6 +319,14 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --scheduler-region "${KIS_CLOUD_SCHEDULER_REGION}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-074 domestic SOR recovery
+        if: github.event.inputs.target == 'wi074'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi074 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
             --secret-mode secret-manager
 
       - name: Deploy WI-073 journal OAuth recovery

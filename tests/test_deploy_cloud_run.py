@@ -2552,3 +2552,20 @@ def test_wi051_service_traffic_rollback_restores_actual_prior_serving_revisions(
     assert commands[0][commands[0].index("--to-revisions") + 1] == "remote-00020-stable=100"
     assert commands[1][4] == "auth"
     assert commands[1][commands[1].index("--to-revisions") + 1] == "auth-00010-stable=100"
+
+
+def test_wi074_changes_only_domestic_job_image_and_executes_fixed_recovery(monkeypatch):
+    commands = []
+    monkeypatch.setattr(deploy_cloud_run, '_build_release_image', lambda *_args, **_kwargs: 'image@sha256:fixture')
+    monkeypatch.setattr(deploy_cloud_run, '_run', lambda command, **_kwargs: commands.append(command) or 0)
+    args = argparse.Namespace(region='asia-northeast3', dry_run=True)
+    assert deploy_cloud_run._deploy_wi074(args, env={}, project='fixture') == 0
+    assert len(commands) == 2
+    assert commands[0][:5] == ['gcloud', 'run', 'jobs', 'update', 'kis-portfolio-trade-incremental-domestic']
+    assert '--env-vars-file' not in commands[0]
+    assert '--args' not in commands[0]
+    assert commands[1][:5] == ['gcloud', 'run', 'jobs', 'execute', 'kis-portfolio-trade-incremental-domestic']
+    assert commands[1][commands[1].index('--args') + 1] == 'collect-trade-incremental-v2,--date,20261014,--start-date,20261007,--scope,domestic'
+    workflow = WORKFLOW_PATH.read_text()
+    assert "github.event.inputs.target == 'wi074'" in workflow
+    assert 'scripts/deploy_cloud_run.py wi074' in workflow
