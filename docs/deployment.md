@@ -170,7 +170,7 @@ ChatGPT 호환과 운영 배포의 기본 경로다. 구조는 **별도 auth ser
 - `KIS_RESOURCE_SERVER_URL=https://...`
 - `KIS_REMOTE_ADDITIONAL_ALLOWED_HOSTS=exact-tag---service-....a.run.app` (선택; 정확한 추가 호스트만)
 - `KIS_AUTH_REQUIRED_SCOPES=mcp:read`
-- `KIS_AUTH_ALLOWED_SCOPES=mcp:read offline_access` (선택, 기본값 동일)
+- `KIS_AUTH_ALLOWED_SCOPES=mcp:read mcp:journal.write offline_access` (production workflow default; local runtime default remains read/offline)
 - `KIS_AUTH_TOKEN_PEPPER=...`
 
 auth 서버 필수 환경변수:
@@ -181,7 +181,7 @@ auth 서버 필수 환경변수:
 - `KIS_AUTH_OWNER_EMAILS=owner@example.com`
 - `KIS_AUTH_SESSION_SECRET=...`
 - `KIS_AUTH_TOKEN_PEPPER=...`
-- `KIS_AUTH_ALLOWED_SCOPES=mcp:read offline_access` (선택, 기본값 동일)
+- `KIS_AUTH_ALLOWED_SCOPES=mcp:read mcp:journal.write offline_access` (production workflow default; local runtime default remains read/offline)
 - `KIS_AUTH_CLAUDE_CLIENT_ID=...`
 - `KIS_AUTH_CLAUDE_CLIENT_SECRET=...`
 - `KIS_OAUTH_GOOGLE_CLIENT_ID/SECRET`

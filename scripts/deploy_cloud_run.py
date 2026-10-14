@@ -3096,10 +3096,19 @@ def _deploy_wi065(
         print("Failed to resolve the immutable WI-065 image digest.")
         return 1
 
+    scope_flags = []
+    if args.target == "wi073":
+        allowed = env.get("KIS_AUTH_ALLOWED_SCOPES", "").strip()
+        if "mcp:journal.write" not in allowed.split():
+            print("WI-073 requires explicit journal allowed scope configuration.")
+            return 1
+        scope_flags = ["--update-env-vars", f"KIS_AUTH_ALLOWED_SCOPES={allowed}"]
+
     if _run([
         "gcloud", "run", "services", "update", service,
         "--image", image, "--region", args.region,
-        *_build_label_flags("wi065"), "--project", project,
+        *scope_flags,
+        *_build_label_flags(args.target), "--project", project,
     ], dry_run=args.dry_run) != 0:
         return 1
 
@@ -3754,6 +3763,7 @@ def main() -> int:
             "wi060",
             "wi063",
             "wi065",
+            "wi073",
             "wi066",
             "wi068",
             "wi070",
@@ -4003,7 +4013,7 @@ def main() -> int:
             return 1
         return _deploy_wi063(args, env=env, project=project)
 
-    if args.target == "wi065":
+    if args.target in {"wi065", "wi073"}:
         if not project:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1

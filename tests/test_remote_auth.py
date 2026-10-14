@@ -480,3 +480,53 @@ def test_remote_oauth_mode_supports_2026_discovery(monkeypatch):
     assert follow_up.status_code == 200
     assert follow_up.json()["id"] == "discover-2"
     assert health.status_code == 200
+
+
+@pytest.mark.parametrize('path', ['/mcp', '/mcp/'])
+@pytest.mark.parametrize('name,required', [
+    ('upsert-trade-journal', 'mcp:journal.write'),
+    ('revise-trade-thread', 'mcp:journal.write'),
+    ('run-managed-pipeline', 'mcp:collect'),
+])
+def test_command_scope_challenge_precedes_dispatch(monkeypatch, path, name, required):
+    from mcp.server.auth.provider import AccessToken
+
+    monkeypatch.setenv('KIS_REMOTE_AUTH_MODE', 'oauth')
+    monkeypatch.setenv('KIS_AUTH_ISSUER_URL', 'https://auth.example.com')
+    monkeypatch.setenv('KIS_RESOURCE_SERVER_URL', 'https://resource.example.com/mcp')
+    monkeypatch.setenv('KIS_AUTH_TOKEN_PEPPER', 'pepper')
+    monkeypatch.setenv('KIS_AUTH_REQUIRED_SCOPES', 'mcp:read')
+    monkeypatch.setenv('KIS_AUTH_ALLOWED_SCOPES', 'mcp:read mcp:journal.write offline_access')
+    remote = importlib.reload(importlib.import_module('kis_portfolio.remote'))
+    dispatched = []
+
+    async def handler(scope, receive, send):
+        from starlette.requests import Request
+        payload = await Request(scope, receive).json()
+        dispatched.append(payload)
+        await JSONResponse(payload)(scope, receive, send)
+
+    async def load_token(self, token):
+        scopes = ['mcp:read'] + ([required] if token == 'authorized' else [])
+        return AccessToken(token=token, client_id='client', scopes=scopes)
+
+    monkeypatch.setattr(KisOAuthProvider, 'load_access_token', load_token)
+    monkeypatch.setattr(remote, '_create_mcp_handler', lambda _resource: (handler, _dummy_remote_server()))
+    payload = {'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {'name': name, 'arguments': {}}}
+    with TestClient(remote.create_app()) as client:
+        metadata = client.get('/.well-known/oauth-protected-resource/mcp').json()
+        assert metadata['scopes_supported'] == ['mcp:read', 'mcp:journal.write']
+        denied = client.post(path, json=payload, headers={'Authorization': 'Bearer read'}, follow_redirects=False)
+        assert denied.status_code == 403
+        assert denied.json() == {'error': 'insufficient_scope'}
+        challenge = denied.headers['WWW-Authenticate']
+        assert 'error="insufficient_scope"' in challenge
+        assert f'scope="{required}"' in challenge
+        assert 'resource_metadata="https://resource.example.com/.well-known/oauth-protected-resource/mcp"' in challenge
+        assert dispatched == []
+        accepted = client.post(path, json=payload, headers={'Authorization': 'Bearer authorized'}, follow_redirects=False)
+        assert accepted.status_code == 200
+        assert accepted.json() == payload
+        assert dispatched == [payload]
+        read_payload = {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'}
+        assert client.post(path, json=read_payload, headers={'Authorization': 'Bearer read'}, follow_redirects=False).status_code == 200

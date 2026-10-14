@@ -277,10 +277,11 @@ def test_wi066_smoke_failure_restores_both_routes(monkeypatch, release):
     ]
 
 
-def test_wi065_moves_stable_and_claude_compatibility_routes_together(monkeypatch):
+@pytest.mark.parametrize("target", ["wi065", "wi073"])
+def test_wi065_moves_stable_and_claude_compatibility_routes_together(monkeypatch, target):
     args = argparse.Namespace(
         region="asia-northeast3",
-        target="wi065",
+        target=target,
         dry_run=True,
         secret_mode="secret-manager",
     )
@@ -305,6 +306,7 @@ def test_wi065_moves_stable_and_claude_compatibility_routes_together(monkeypatch
     result = deploy_cloud_run._deploy_wi065(
         args,
         env={
+            "KIS_AUTH_ALLOWED_SCOPES": "mcp:read mcp:journal.write offline_access",
             "KIS_AUTH_BASE_URL": "https://auth.example.test",
             "KIS_RESOURCE_SERVER_URL": "https://resource.example.test/mcp",
         },
@@ -325,6 +327,12 @@ def test_wi065_moves_stable_and_claude_compatibility_routes_together(monkeypatch
         and "--to-latest" in command
         for command in commands
     )
+
+    service_update = next(command for command in commands if command[:4] == ["gcloud", "run", "services", "update"])
+    if target == "wi073":
+        assert service_update[service_update.index("--update-env-vars") + 1] == "KIS_AUTH_ALLOWED_SCOPES=mcp:read mcp:journal.write offline_access"
+    else:
+        assert "--update-env-vars" not in service_update
 
 
 def test_wi065_smoke_failure_restores_stable_and_compatibility_routes(monkeypatch):
