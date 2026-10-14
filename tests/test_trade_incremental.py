@@ -176,3 +176,24 @@ def test_corrected_venue_pipeline_reprocesses_old_empty_success_without_duplicat
     assert connection.execute('select count(*) from silver.trade_events_current').fetchone()[0] == 1
     assert connection.execute('select distinct pipeline_version from control.pipeline_runs order by 1').fetchall() == [('1.0.0',), ('1.0.1',)]
     connection.close()
+
+
+def test_start_uses_complete_scoped_query_coverage_and_preserves_gap_guards(tmp_path):
+    connection = _connection(tmp_path / 'query-coverage.duckdb')
+    def watermark(key, kind, value):
+        connection.execute('INSERT INTO control.watermarks VALUES (?,?,?,?,?,current_timestamp)', [PIPELINE_ID,key,kind,value,'fixture'])
+    watermark('historical-domestic-route', 'source_end_date_v1', '2026-07-14')
+    watermark('account:brokerage|market:KRX', QUERY_COVERAGE_WATERMARK_TYPE, '2026-10-13')
+    watermark('account:brokerage|market:NAS', QUERY_COVERAGE_WATERMARK_TYPE, '2026-07-14')
+    keys = ('account:brokerage|market:KRX',)
+    assert resolve_incremental_start(connection, end_date=date(2026,10,14), coverage_keys=keys) == date(2026,10,14)
+    assert resolve_incremental_start(connection, end_date=date(2026,10,14), requested_start=date(2026,10,7), coverage_keys=keys) == date(2026,10,7)
+    with pytest.raises(ValueError, match='skip governed coverage'):
+        resolve_incremental_start(connection, end_date=date(2026,10,16), requested_start=date(2026,10,15), coverage_keys=keys)
+    with pytest.raises(ValueError, match='skip governed coverage'):
+        resolve_incremental_start(connection, end_date=date(2026,10,14), requested_start=date(2026,10,7), coverage_keys=keys+('account:ria|market:KRX',))
+    with pytest.raises(ValueError, match='skip governed coverage'):
+        resolve_incremental_start(connection, end_date=date(2026,10,14), requested_start=date(2026,10,7), coverage_keys=('account:brokerage|market:NAS',))
+    with pytest.raises(ValueError, match='exceeds 120 days'):
+        resolve_incremental_start(connection, end_date=date(2026,10,14), requested_start=date(2026,1,1), coverage_keys=keys)
+    connection.close()

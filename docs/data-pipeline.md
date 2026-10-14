@@ -446,4 +446,6 @@ MCP reads make no upstream source calls. Native passing V2 dates take precedence
 
 ## Domestic execution venue completeness (WI-074)
 
-Domestic order history explicitly sends `EXCG_ID_DVSN_CD=ALL` so KRX, NXT and SOR executions enter the same approved account ledger. The canonical domestic instrument market remains KRX; source venue is retained in Bronze, and existing broker execution identity remains unchanged. Incremental pipeline patch 1.0.1 prevents reuse of old venue-filtered successful runs. The reviewed recovery is domestic October 7-14, 2026 only, preserving prior runs/observations and idempotent event keys.
+Domestic order history explicitly sends `EXCG_ID_DVSN_CD=ALL` so KRX, NXT and SOR executions enter the same approved account ledger. The canonical domestic instrument market remains KRX; source venue is retained in Bronze, and existing broker execution identity remains unchanged. Incremental pipeline patch 1.0.2 prevents reuse of old venue-filtered successful runs. The reviewed recovery is domestic October 7-14, 2026 only, preserving prior runs/observations and idempotent event keys.
+
+Start resolution uses the minimum quality-published query coverage across every callable account-market in the requested domestic/overseas/all scope. Incomplete or missing scope evidence falls back conservatively to prior source coverage; no-gap and 120-day replay guards remain enforced. Complementary historical/recent source-route end dates must not be mistaken for scope-level completeness.

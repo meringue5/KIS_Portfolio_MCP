@@ -34,7 +34,7 @@ from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfi
 
 
 PIPELINE_ID = "pipeline.trade-incremental-v2"
-PIPELINE_VERSION = "1.0.1"
+PIPELINE_VERSION = "1.0.2"
 INCREMENTAL_SLOT = "daily"
 MAX_REPLAY_DAYS = 120
 MAX_PHYSICAL_CALLS = 48
@@ -61,12 +61,23 @@ def resolve_incremental_start(
     *,
     end_date: date,
     requested_start: date | None = None,
+    coverage_keys: tuple[str, ...] = (),
 ) -> date:
     """Resolve a bounded contiguous start without silently skipping a gap."""
 
     incremental = _minimum_watermark(connection, PIPELINE_ID)
     predecessor = _minimum_watermark(connection, BACKFILL_PIPELINE_ID)
-    coverage = incremental or predecessor
+    query_coverage = None
+    if coverage_keys:
+        rows = connection.execute(
+            """SELECT partition_key, try_cast(watermark_value AS DATE)
+               FROM control.watermarks WHERE pipeline_id=? AND watermark_type=?""",
+            [PIPELINE_ID, QUERY_COVERAGE_WATERMARK_TYPE],
+        ).fetchall()
+        published = {key: value for key, value in rows if key in coverage_keys}
+        if all(published.get(key) is not None for key in coverage_keys):
+            query_coverage = min(published[key] for key in coverage_keys)
+    coverage = query_coverage or incremental or predecessor
     start = requested_start or (coverage + timedelta(days=1) if coverage else end_date)
     if start > end_date:
         return end_date
@@ -96,18 +107,30 @@ def run_trade_incremental(
     """Collect one bounded current/recovery window with isolated run state."""
 
     account_list = list(accounts)
+    if scope not in {"all", "domestic", "overseas"}:
+        raise ValueError("scope must be all, domestic or overseas")
+    account_scopes = account_scopes_from_registry(
+        account_list,
+        overseas_account_labels=overseas_account_labels,
+        overseas_exchanges=overseas_exchanges,
+    )
+    coverage_plan = plan_trade_cash_backfill(
+        account_scopes, start_date=end_date, end_date=end_date, as_of_date=end_date,
+        partition_days=90,
+        include_domestic=scope in {"all", "domestic"},
+        include_overseas=scope in {"all", "overseas"},
+    )
+    coverage_keys = tuple(sorted({
+        f"account:{partition.account_label}|market:{partition.exchange or 'KRX'}"
+        for partition in coverage_plan.callable_partitions
+        if "dataset.trade-event" in partition.output_dataset_ids
+    }))
     resolved_start = resolve_incremental_start(
         connection,
         end_date=end_date,
         requested_start=start_date,
+        coverage_keys=coverage_keys,
     )
-    if scope not in {"all", "domestic", "overseas"}:
-        raise ValueError("scope must be all, domestic or overseas")
-    account_scopes = account_scopes_from_registry(
-            account_list,
-            overseas_account_labels=overseas_account_labels,
-            overseas_exchanges=overseas_exchanges,
-        )
     source_plan = plan_trade_cash_backfill(
         account_scopes,
         start_date=resolved_start,
