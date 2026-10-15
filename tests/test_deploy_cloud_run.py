@@ -42,6 +42,13 @@ def test_workflow_dispatches_wi055_s04_to_exact_deploy_target():
     assert "scripts/deploy_cloud_run.py wi055-s04" in workflow
 
 
+def test_workflow_dispatches_wi075_to_exact_deploy_target():
+    workflow = WORKFLOW_PATH.read_text()
+    assert "- wi075" in workflow
+    assert "github.event.inputs.target == 'wi075'" in workflow
+    assert "scripts/deploy_cloud_run.py wi075" in workflow
+
+
 def test_workflow_dispatches_wi060_as_one_protected_remote_and_job_release():
     workflow = WORKFLOW_PATH.read_text()
     assert "- wi060" in workflow
@@ -2075,6 +2082,31 @@ def test_wi070_smokes_activates_and_preserves_owner_report_on_one_digest(monkeyp
     assert core_call["env"]["KIS_TELEGRAM_REAL_USE_ENABLED"] == "true"
     assert core_call["env"]["KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED"] == "true"
     assert core_call["env"]["KIS_TELEGRAM_OWNER_DESTINATION_APPROVED"] == "true"
+
+
+def test_wi075_reuses_owner_report_guard_and_preserves_signal_flags(monkeypatch):
+    captured = {}
+    args = argparse.Namespace(target="wi075")
+
+    def fake_release(_args, **kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_wi055_s01", fake_release)
+
+    result = deploy_cloud_run._deploy_wi075(
+        args,
+        env={"KIS_TELEGRAM_REAL_USE_ENABLED": "true"},
+        project="grand-forge-279904",
+    )
+
+    assert result == 0
+    assert captured == {
+        "env": {"KIS_TELEGRAM_REAL_USE_ENABLED": "true"},
+        "project": "grand-forge-279904",
+        "deploy_label": "wi075-total-asset-completeness",
+        "smoke_label": "wi075-photo-transport-smoke",
+    }
 
 
 def test_overseas_batch_command_uses_default_account_and_exchange():

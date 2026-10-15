@@ -93,7 +93,7 @@ rollback_policy = "append_only_feedback"
 work_item_ids = [
   "WI-013", "WI-014", "WI-015", "WI-016", "WI-017",
   "WI-019", "WI-020", "WI-021", "WI-036", "WI-022", "WI-023", "WI-024",
-  "WI-025", "WI-026", "WI-027", "WI-033", "WI-028", "WI-029", "WI-030", "WI-054", "WI-055",
+  "WI-025", "WI-026", "WI-027", "WI-033", "WI-028", "WI-029", "WI-030", "WI-054", "WI-055", "WI-075",
 ]
 
 [[milestones]]
@@ -850,6 +850,19 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 2
+
+[[work_items]]
+id = "WI-075"
+identity = "total-asset-overseas-coverage-recovery"
+title = "Prevent incomplete overseas coverage from being reported as total assets"
+milestone_id = "MS-002"
+delivery_refs = []
+depends_on = ["WI-055"]
+discovered_from = ["WI-055", "WI-059"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 22
 
 [[subitems]]
 id = "WI-060-S01"

@@ -46,6 +46,30 @@ async def test_fetch_balance_snapshot_uses_standard_api_for_pension_savings(monk
     assert calls[0]["headers"]["tr_id"] == "TTTC8434R"
 
 
+@pytest.mark.anyio
+async def test_balance_read_uses_three_bounded_rate_limit_retries(monkeypatch):
+    captured = []
+    monkeypatch.setenv("KIS_CANO", "22222222")
+    monkeypatch.setenv("KIS_ACNT_PRDT_CD", "01")
+    monkeypatch.setenv("KIS_APP_KEY", "key")
+    monkeypatch.setenv("KIS_APP_SECRET", "secret")
+    monkeypatch.setenv("KIS_ACCOUNT_TYPE", "REAL")
+    monkeypatch.setattr(kis_balance, "get_access_token", fake_token)
+    monkeypatch.setattr(kis_balance, "save_balance_snapshot", lambda data: "snapshot-id")
+    monkeypatch.setattr(kis_balance.httpx, "AsyncClient", lambda: FakeClient([]))
+
+    async def capture_request(*args, **kwargs):
+        captured.append(kwargs)
+        return FakeResponse()
+
+    monkeypatch.setattr(kis_balance, "request_kis", capture_request)
+
+    await kis_balance.fetch_balance_snapshot()
+
+    assert captured[0]["policy"] == "account"
+    assert captured[0]["rate_limit_retries"] == 3
+
+
 def test_latest_balance_fallback_marks_saved_data_stale(monkeypatch):
     as_of = datetime.now() - timedelta(seconds=90)
     monkeypatch.setattr(

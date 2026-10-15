@@ -89,6 +89,7 @@ def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatc
     assert quality == [
         ("dataset.fx-rate-daily", "usd-krw-valuation-rate-coverage", "partial", "0", "1"),
         ("dataset.portfolio-position-observation", "configured-account-coverage", "pass", "1", "1"),
+        ("dataset.portfolio-position-observation", "same-day-overseas-scope", "pass", "1", "1"),
         ("dataset.price-bar-daily", "held-instrument-price-coverage", "pass", "1", "1"),
     ]
     assert con.execute("select count(*) from control.lineage_edges").fetchone()[0] == 3
@@ -341,4 +342,89 @@ def test_operational_price_payload_is_landed_as_strict_and_beats_legacy_reconstr
         """
     ).fetchall()
     assert rows == [("operational_strict", 90)]
+    con.close()
+
+
+def test_later_slot_recovers_missing_overseas_anchor_once(monkeypatch):
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    con.execute(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('krx','2026-10-15',true,NULL)"
+    )
+    observed = datetime(2026, 10, 15, 5, 30, tzinfo=UTC)
+    overseas_requests = []
+
+    async def fake_collect(slot, *_args, include_overseas=None, **_kwargs):
+        overseas_requests.append((slot, include_overseas))
+        return {
+            "domestic": [{
+                "account_label": "ria", "account_type": "REAL", "snapshot_id": f"s-{slot}",
+                "observed_at": observed,
+                "raw": {
+                    "output1": [{"pdno": "005930", "hldg_qty": "1", "evlu_amt": "90"}],
+                    "output2": [{"tot_evlu_amt": "100"}],
+                },
+            }],
+            "overseas": {}, "overseas_deposit": {}, "source_calls": 1,
+            "domestic_symbols": ["005930"], "overseas_symbols": [],
+            "price_observations": [{
+                "market": "KRX", "symbol": "005930", "adjusted": False,
+                "fetched_at": observed,
+                "raw": {"output2": [{
+                    "stck_bsop_date": "20261015", "stck_clpr": "90",
+                }]},
+            }],
+        }
+
+    monkeypatch.setattr(v2_collection, "_collect_sources", fake_collect)
+    monkeypatch.setattr(v2_collection, "load_account_registry", lambda: [FakeAccount("ria")])
+    store = FakeObjectStore()
+
+    first = v2_collection.run_owned_portfolio_pipeline(
+        con, logical_date=date(2026, 10, 15), slot="kr-1430", object_store=store,
+    )
+    second = v2_collection.run_owned_portfolio_pipeline(
+        con, logical_date=date(2026, 10, 15), slot="kr-1600", object_store=store,
+    )
+
+    assert first["status"] == second["status"] == "succeeded"
+    assert overseas_requests == [("kr-1430", True), ("kr-1600", False)]
+    evidence = con.execute(
+        "SELECT evidence FROM control.pipeline_stage_runs s JOIN control.pipeline_runs r USING(run_id) "
+        "WHERE r.slot='kr-1430' AND s.stage_name='collect-land'"
+    ).fetchone()[0]
+    assert '"overseas_scope_collected": true' in str(evidence).lower()
+    quality = con.execute(
+        "SELECT status FROM control.quality_results WHERE rule_id='same-day-overseas-scope' "
+        "ORDER BY evaluated_at"
+    ).fetchall()
+    assert quality == [("pass",), ("pass",)]
+    con.close()
+
+
+def test_failed_later_slot_overseas_recovery_blocks_gold_publish(monkeypatch):
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    con.execute(
+        "INSERT INTO control.market_calendar(market,trade_date,is_open,note) "
+        "VALUES ('krx','2026-10-15',true,NULL)"
+    )
+
+    async def failed_collect(slot, *_args, include_overseas=None, **_kwargs):
+        assert slot == "kr-1600"
+        assert include_overseas is True
+        raise RuntimeError("bounded overseas recovery unavailable")
+
+    monkeypatch.setattr(v2_collection, "_collect_sources", failed_collect)
+    monkeypatch.setattr(v2_collection, "load_account_registry", lambda: [FakeAccount("ria")])
+
+    with pytest.raises(PipelineExecutionError, match="collect-land"):
+        v2_collection.run_owned_portfolio_pipeline(
+            con, logical_date=date(2026, 10, 15), slot="kr-1600", object_store=FakeObjectStore(),
+        )
+
+    assert con.execute(
+        "SELECT count(*) FROM gold.portfolio_daily_state WHERE evaluation_date='2026-10-15'"
+    ).fetchone()[0] == 0
     con.close()

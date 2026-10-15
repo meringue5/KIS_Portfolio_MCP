@@ -37,6 +37,7 @@ on:
           - wi066
           - wi068
           - wi070
+          - wi075
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -450,6 +451,15 @@ jobs:
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI070_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-075 total-asset completeness recovery
+        if: github.event.inputs.target == 'wi075'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi075 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI030_S03_JOB_NAME}" \
             --secret-mode secret-manager
 
       - name: Deploy WI-055 scheduled total-asset digest

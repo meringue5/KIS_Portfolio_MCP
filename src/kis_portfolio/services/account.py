@@ -79,6 +79,7 @@ async def fetch_balance_snapshot(
                     f"{DOMAIN}{PENSION_BALANCE_PATH}",
                     domain=DOMAIN,
                     policy="account",
+                    rate_limit_retries=3,
                     headers={
                         "content-type": CONTENT_TYPE,
                         "authorization": f"{AUTH_TYPE} {access_token}",
@@ -109,6 +110,7 @@ async def fetch_balance_snapshot(
                 f"{balance_domain}{BALANCE_PATH}",
                 domain=balance_domain,
                 policy="account",
+                rate_limit_retries=3,
                 headers={
                     "content-type": CONTENT_TYPE,
                     "authorization": f"{AUTH_TYPE} {access_token}",

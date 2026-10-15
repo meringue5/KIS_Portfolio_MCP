@@ -2518,6 +2518,22 @@ def _deploy_wi055_s04(
     )
 
 
+def _deploy_wi075(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Release total-asset completeness recovery through proven owner-report guards."""
+    return _deploy_wi055_s01(
+        args,
+        env=env,
+        project=project,
+        deploy_label="wi075-total-asset-completeness",
+        smoke_label="wi075-photo-transport-smoke",
+    )
+
+
 def _deploy_wi060(
     args: argparse.Namespace,
     *,
@@ -3787,6 +3803,7 @@ def main() -> int:
             "wi066",
             "wi068",
             "wi070",
+            "wi075",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -4062,6 +4079,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi070(args, env=env, project=project)
+
+    if args.target == "wi075":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi075(args, env=env, project=project)
 
     if args.target == "wi046-stage":
         if not project:
