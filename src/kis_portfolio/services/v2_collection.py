@@ -45,7 +45,7 @@ from kis_portfolio.security.redaction import redact_nested
 
 SEOUL = ZoneInfo("Asia/Seoul")
 PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
-PIPELINE_VERSION = "1.2.0"
+PIPELINE_VERSION = "1.3.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
 FX_FALLBACK_SOURCE_ID = "source.korea-eximbank-open-api"
 FX_FALLBACK_DATASET_ID = "dataset.fx-rate-fallback-observation"
@@ -156,6 +156,7 @@ async def _collect_sources(
     logical_date: date | None = None,
     *,
     allow_fx_fallback: bool = False,
+    include_overseas: bool | None = None,
 ) -> dict[str, Any]:
     accounts = load_account_registry()
     domestic = []
@@ -177,7 +178,8 @@ async def _collect_sources(
     price_observations: list[dict[str, Any]] = []
     fx_observations: list[dict[str, Any]] = []
     fx_fallback_observation: dict[str, Any] | None = None
-    if slot == "kr-1000":
+    collect_overseas = slot == "kr-1000" if include_overseas is None else include_overseas
+    if collect_overseas:
         brokerage = next(account for account in accounts if account.label == "brokerage")
         with scoped_account_env(brokerage):
             overseas = await kis_api.inquery_overseas_balance("ALL")
@@ -206,7 +208,7 @@ async def _collect_sources(
                     "fetched_at": datetime.now(UTC), "raw": raw,
                 })
                 calls += 1
-        if slot == "kr-1000":
+        if collect_overseas:
             market_map = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}
             for market, symbol in overseas_symbols:
                 normalized_market = market_map.get(market, market[:3])
@@ -272,7 +274,24 @@ async def _collect_sources(
         "price_observations": price_observations,
         "fx_observations": fx_observations,
         "fx_fallback_observation": fx_fallback_observation,
+        "overseas_scope_collected": collect_overseas,
     }
+
+
+def _has_same_day_overseas_anchor(connection: Any, logical_date: date) -> bool:
+    """Return whether an earlier successful run completed the daily overseas scope."""
+    row = connection.execute(
+        """
+        SELECT count(*)
+        FROM control.pipeline_runs r
+        JOIN control.pipeline_stage_runs s USING(run_id)
+        WHERE r.pipeline_id=? AND r.logical_date=? AND r.status='succeeded'
+          AND s.stage_name='collect-land' AND s.status='succeeded'
+          AND coalesce(json_extract_string(s.evidence,'$.overseas_scope_collected'),'false')='true'
+        """,
+        [PIPELINE_ID, logical_date],
+    ).fetchone()
+    return bool(row and int(row[0]) > 0)
 
 
 def _operational_price_rows(observation: dict[str, Any]) -> list[dict[str, Any]]:
@@ -354,11 +373,17 @@ def build_owned_portfolio_pipeline(
         return not row or int(row[0]) == 0
 
     def collect(context: StageContext) -> StageResult:
+        existing_overseas_anchor = _has_same_day_overseas_anchor(connection, context.logical_date)
+        recover_overseas = context.slot == "kr-1000" or not existing_overseas_anchor
         collected = asyncio.run(_collect_sources(
             context.slot,
             context.logical_date,
             allow_fx_fallback=needs_fx_fallback(context.logical_date),
+            include_overseas=recover_overseas,
         ))
+        collected["overseas_scope_collected"] = recover_overseas
+        collected["overseas_scope_available"] = existing_overseas_anchor or recover_overseas
+        collected["overseas_scope_source_slot"] = context.slot if recover_overseas else "earlier-slot"
         context.state["collected"] = collected
         fallback = collected.get("fx_fallback_observation")
         fallback_observation_id = None
@@ -391,6 +416,9 @@ def build_owned_portfolio_pipeline(
             "overseas_deposit": collected.get("overseas_deposit", {}),
             "price_observations": collected.get("price_observations", []),
             "fx_observations": collected.get("fx_observations", []),
+            "overseas_scope_collected": collected["overseas_scope_collected"],
+            "overseas_scope_available": collected["overseas_scope_available"],
+            "overseas_scope_source_slot": collected["overseas_scope_source_slot"],
         }
         payload = json.dumps(redact_nested(safe_bundle), ensure_ascii=False, sort_keys=True, default=str).encode()
         stored = object_store.put_bytes(
@@ -412,7 +440,13 @@ def build_owned_portfolio_pipeline(
         return StageResult(
             output_count=len(collected["domestic"]) + len(collected["overseas"]),
             source_calls=collected["source_calls"],
-            evidence={"raw_object_hash": stored.content_hash, "raw_object_created": stored.created},
+            evidence={
+                "raw_object_hash": stored.content_hash,
+                "raw_object_created": stored.created,
+                "overseas_scope_collected": collected["overseas_scope_collected"],
+                "overseas_scope_available": collected["overseas_scope_available"],
+                "overseas_scope_source_slot": collected["overseas_scope_source_slot"],
+            },
             lineage=(
                 LineageEvidence("source.kis-open-api", stored.uri, "kis-raw-bundle", "1.0.0"),
                 *(
@@ -459,6 +493,9 @@ def build_owned_portfolio_pipeline(
                 "price_observations": bundle.get("price_observations", []),
                 "fx_observations": bundle.get("fx_observations", []),
                 "fx_fallback_observation": None,
+                "overseas_scope_collected": bool(bundle.get("overseas_scope_collected", False)),
+                "overseas_scope_available": bool(bundle.get("overseas_scope_available", False)),
+                "overseas_scope_source_slot": bundle.get("overseas_scope_source_slot"),
             }
             for item in collected["price_observations"]:
                 item["fetched_at"] = datetime.fromisoformat(item["fetched_at"])
@@ -748,6 +785,9 @@ def build_owned_portfolio_pipeline(
             raise RuntimeError(f"price coverage failed: {price_observed}/{price_expected}")
         fallback_status = str(context.state.get("fx_fallback_status") or "missing")
         fx_quality_status = "pass" if fallback_status in {"pass", "not_needed"} else "partial"
+        overseas_available = bool(collected.get("overseas_scope_available", False))
+        if not overseas_available:
+            raise RuntimeError("same-day overseas collection anchor is missing")
         return StageResult(
             input_count=context.state.get("normalized_count", 0), output_count=account_count,
             quality=(
@@ -764,6 +804,15 @@ def build_owned_portfolio_pipeline(
                     "1" if fx_quality_status == "pass" else "0", "1",
                     context.state.get("fx_fallback_details", {}) | {
                         "fallback_status": fallback_status,
+                    },
+                ),
+                QualityEvidence(
+                    "dataset.portfolio-position-observation", "same-day-overseas-scope", "pass",
+                    "1", "1", {
+                        "slot": context.slot,
+                        "source_slot": collected.get("overseas_scope_source_slot"),
+                        "recovery_collection": bool(collected.get("overseas_scope_collected"))
+                        and context.slot != "kr-1000",
                     },
                 ),
             ),

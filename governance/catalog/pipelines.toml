@@ -48,7 +48,7 @@ trigger_policy = "fixed-argument scale-to-zero managed Job and Scheduler; owner 
 
 [[contracts]]
 id = "pipeline.owned-portfolio-core-v2"
-version = "1.2.0"
+version = "1.3.0"
 status = "approved"
 owner = "owner"
 description = "현재 보유 국내·미국 계좌·가격·환율을 immutable observation과 canonical daily state로 만드는 managed pipeline; 거래 수집은 독립 pipeline이 소유한다."
@@ -61,10 +61,10 @@ schedule_policy = "KR 10:00, 14:30 and 16:00 KST slots plus next Korean-morning 
 calendar_gate = "approved KR/US market calendar and explicit closed/early-close state"
 idempotency_key = "pipeline id, version, logical date, slot and account or instrument partition"
 timeout_policy = "bounded per stage and run; no request-scoped long execution"
-retry_policy = "resume failed stage; idempotent source reads only; no live order retry"
+retry_policy = "resume failed stage; idempotent source reads only; account balance rate-limit rejection receives three bounded retries; no live order retry"
 source_call_budget = "bounded by configured account and held-instrument count plus at most one Korea Eximbank call when exact-date FX is absent; implementation cap 65"
 freshness_gates = ["position and cash as-of recorded", "price session and FX date match the evaluation slot"]
-quality_gates = ["pagination and account coverage complete or explicit degraded", "fallback USD deal_bas_r requires exact date, recent KIS reference and deviation no greater than 3 percent", "fallback failure degrades FX coverage without failing independent KRW capabilities", "daily state reconciles to positions, price, cash and FX", "trade source health cannot block this pipeline"]
+quality_gates = ["pagination and account coverage complete or explicit degraded", "every slot requires a same-logical-date overseas collection anchor; 14:30 or 16:00 performs one bounded recovery collection when the 10:00 anchor is absent", "fallback USD deal_bas_r requires exact date, recent KIS reference and deviation no greater than 3 percent", "fallback failure degrades FX coverage without failing independent KRW capabilities", "daily state reconciles to positions, price, cash and FX", "trade source health cannot block this pipeline"]
 secret_profile = "KIS account runtime plus pinned Korea Eximbank API key in Secret Manager; synthetic fixture has none"
 cost_class = "routine"
 trigger_policy = "Scheduler primary; allowlisted Remote MCP may request the same logical run without arbitrary args"

@@ -1,0 +1,108 @@
+---
+id: WI-075
+title: Prevent incomplete overseas coverage from being reported as total assets
+status: in_progress
+type: incident
+owner: owner
+decision_refs: DEC-055, DEC-057, ADR-029
+requirement_refs: DGOV-007, DGOV-008
+milestone_ref: MS-002
+delivery_refs: none
+parent_work_item: none
+depends_on: WI-055
+discovered_from: WI-055, WI-059
+supersedes: none
+rollback_of: none
+work_lane: operations
+execution_scope: protected production correction approved by owner on 2026-10-16
+production_effects: update the three existing owned-core Jobs from one immutable image after finance-free transport smoke
+architecture_impact: none; preserve the existing KIS source, managed pipeline, Gold state and Telegram boundaries
+data_impact: strengthen existing collection and publish quality; no DDL, migration, backfill, rewrite or deletion
+security_impact: none; existing Secret Manager references and owner-only destination remain unchanged
+cost_impact: exceptional later-slot overseas recovery only when the same-day anchor is missing; existing call cap remains 65
+user_visible_impact: yes
+real_use_acceptance: required
+real_use_evidence_refs: deterministic recovery and fail-closed fixtures, protected release, finance-free actual transport smoke, next complete owner report pending
+stabilization_window: protected release plus the next 10:00 and 16:00 owner-report slots including one controlled missing-anchor scenario
+stabilization_exit_refs: exact image and Job labels, overseas-anchor quality evidence, complete component count and owner receipt
+rollback_plan: restore the prior three-Job image or disable only the owner report; retain run, Gold and delivery evidence without replay
+---
+
+# WI-075 — Prevent incomplete overseas coverage from being reported as total assets
+
+## Problem and evidence
+
+The 2026-10-15 10:00 owned-core run failed on KIS `EGW00215`. The later domestic-only runs succeeded and published
+27 passing Gold components even though the prior 16:00 state had 32. All five configured accounts were present, but
+five overseas positions worth roughly KRW 249.6 million were absent. The 16:00 owner report therefore sent KRW
+389.2 million as total assets instead of the owner's roughly KRW 600 million complete portfolio.
+
+## Classification and contract
+
+- Classification: production incident and defect in the closed MS-002 outcome; use the `operations` lane without a
+  new milestone or reopening history.
+- Existing contract: incomplete or stale inputs must block official Gold publish or remain explicitly degraded, and
+  the owner report may call a value total assets only when all required account, price, FX and component coverage passes.
+- Contract delta: compatible pipeline minor version clarifies the already-approved completeness and recovery rule.
+- Approval: owner approved implementation, PR, merge and deployment on 2026-10-16.
+
+## Scope
+
+- Include: same-day overseas collection anchor, bounded 14:30/16:00 recovery, fail-closed quality, three bounded
+  balance rate-limit retries, regression tests and protected three-Job release.
+- Exclude: historical row rewrite, missed-message replay, new schedules/providers/schema, watchlist work and threshold changes.
+
+## Acceptance criteria
+
+- [ ] A failed 10:00 anchor causes the first later slot to collect overseas scope once within the existing call cap.
+- [ ] A valid same-day anchor prevents duplicate later-slot overseas calls.
+- [ ] Missing or failed overseas recovery prevents Gold publish and exact total-asset delivery.
+- [ ] Account balance `EGW00215` receives three bounded idempotent retries without changing order behavior.
+- [ ] The three Jobs use one immutable image and preserve permanent held-position signals plus owner report flags.
+- [ ] Actual transport smoke and the next complete owner report provide user-visible acceptance evidence.
+
+## Change impact
+
+- Architecture: none.
+- Data/schema/backup: no physical change; existing observations and failed runs remain immutable.
+- Security/privacy: no new secret or payload field.
+- MCP/API compatibility: no public schema change.
+- Deployment/rollback: protected build-once target; prior image remains the rollback artifact.
+- Cost/SLO: normal slots unchanged; one bounded recovery collection only after a missing daily anchor.
+
+## Plan
+
+1. Freeze the missing-anchor and false-pass regressions.
+2. Add explicit collection-scope evidence and later-slot recovery.
+3. Strengthen the quality gate and balance retry boundary.
+4. Run focused, quick and full checks.
+5. Merge and deploy through GitHub Actions; reconcile exact labels and finance-free smoke.
+
+## Sub-items
+
+- `none`.
+
+## Stabilization plan
+
+- Observation: the first post-release 10:00 and 16:00 states plus any missing-anchor recovery.
+- Signals: pipeline version, overseas anchor source slot, Gold component/account counts, total quality and report outcome.
+- Rollback: any duplicate collection, unsafe send or unexplained total restores the prior image or disables the report.
+- Exit: complete total, provider-confirmed delivery and owner receipt.
+
+## Real-use acceptance
+
+- Actual client/transport: production Cloud Run Jobs and the approved private Telegram destination.
+- Immediate positive: deterministic missing-anchor recovery plus finance-free photo transport smoke.
+- Immediate partial/error: deterministic missing/failed recovery prevents publish and numeric total output.
+- Remaining acceptance: next scheduled complete total and owner receipt; no historical replay.
+
+## Evidence
+
+- Intake: 2026-10-15 `kr-1600` had 27 rows and KRW 389,191,496 versus 2026-10-14's 32 rows and KRW
+  638,786,242. Five overseas position rows were absent while all five account aliases and every persisted row passed.
+
+## Closeout
+
+- Result: in progress.
+- Remaining risk: production schedule evidence pending.
+- Follow-up Work Item: none.
