@@ -1,7 +1,7 @@
 ---
 id: WI-075
 title: Prevent incomplete overseas coverage from being reported as total assets
-status: in_progress
+status: verified
 type: incident
 owner: owner
 decision_refs: DEC-055, DEC-057, ADR-029
@@ -100,9 +100,15 @@ five overseas positions worth roughly KRW 249.6 million were absent. The 16:00 o
 
 - Intake: 2026-10-15 `kr-1600` had 27 rows and KRW 389,191,496 versus 2026-10-14's 32 rows and KRW
   638,786,242. Five overseas position rows were absent while all five account aliases and every persisted row passed.
+- Focused recovery, owner-report, KIS client and release tests: 144 passed. The missing-anchor fixture recovers at
+  `kr-1430`, reuses that anchor at `kr-1600`, and records two passing `same-day-overseas-scope` quality results. The
+  recovery-failure fixture leaves `gold.portfolio_daily_state` at zero rows for the logical date.
+- `bash scripts/check.sh quick`: passed with 74 tracked Work Items and WI-075 as the sole active implementation.
+- `bash scripts/check.sh full`: 850 passed with one existing Authlib deprecation warning; all Project OS, data,
+  architecture, warehouse, MCP and documentation gates passed.
 
 ## Closeout
 
-- Result: in progress.
+- Result: verified in repository; protected production release pending.
 - Remaining risk: production schedule evidence pending.
 - Follow-up Work Item: none.
