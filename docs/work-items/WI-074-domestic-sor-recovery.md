@@ -1,7 +1,7 @@
 ---
 id: WI-074
 title: Recover omitted domestic SOR executions and preserve complete trade collection
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-009, DEC-010, DEC-015, DEC-030, DEC-044, DEC-060, ADR-032
@@ -22,7 +22,7 @@ security_impact: existing account secrets and confidential trade controls; no ne
 cost_impact: bounded existing five-account domestic source budget; no new schedules
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: protected run 38516713345; l6qml recovery and 8twgd scheduled success; Codex positive e779b12205bd4ee89a5e98c5923c3e14, partial ffc4376fc66b4195ab449c2e84fada85 and error 7367b01062b5481a8651493219e8f230; owner Claude trade link acceptance pending
+real_use_evidence_refs: protected run 38516713345; l6qml recovery and 8twgd scheduled success; Codex positive e779b12205bd4ee89a5e98c5923c3e14, partial ffc4376fc66b4195ab449c2e84fada85 and error 7367b01062b5481a8651493219e8f230; owner Claude success confirmed 2026-10-14
 stabilization_window: immediate controlled recovery and next domestic scheduled run
 stabilization_exit_refs: exact Samsung October 12 and 13 execution evidence visible through Codex and Claude; recurring success and owner journal link acceptance
 rollback_plan: restore prior domestic Job image if collection fails; preserve all prior and appended observations, never delete ledger history
@@ -78,7 +78,7 @@ Direct KIS comparison: rt_cd=0 both; omitted exchange KIOK0560/0 rows; ALL KIOK0
 
 ## Closeout
 
-Pending protected release, immediate recovery and owner acceptance.
+Closed on 2026-10-14 after protected recovery, successful recurring execution, actual Codex positive/partial/error replay and owner confirmation of the remaining Claude scenario. No further WI-074 recovery work remains.
 
 - Verification: 107 source/incremental/deploy tests passed; full production-scope gate 844 passed. Regression reprocesses a prior 1.0.0 empty success under 1.0.1, lands SOR venue and canonical quantity, and reuses repeat recovery without duplicate trade events.
 - Pre-release domestic Job image: `sha256:d200e39a5cea2d192c551a19ff77d0bcba579efde00bc05125ec9a303b3757dd`; routine args remain `collect-trade-incremental-v2 --date today --scope domestic` and the pipeline execution identity is unchanged.
@@ -89,6 +89,10 @@ Pending protected release, immediate recovery and owner acceptance.
 
 - Production successor: protected run 38516713345/source be4e80a/image ae81fb7e797786cbb6eab9d806f6471dbcc5e5241eb4d7c2166530f5be89034e. Recovery l6qml succeeded 14:30-14:31 KST; normal 16:10 execution 8twgd succeeded 16:10-16:11. Routine args stayed current-date/domestic. Stored 1.0.2 evidence totals eight source calls across recovery and scheduled four-market runs; raw_rows=2, output_rows=2. No source/write occurred in the prior failed zrx26 execution.
 - Actual Codex-authorized MCP ledger: October 12/13 positive returns two Samsung buys (3 and 1 shares), quality pass and no missing coverage; through October 14 returns the same verified events with explicit partial coverage (brokerage overseas date remains October 13); invalid reversed dates return invalid_request. Stored business facts each occur once, both revision 1. No journal content was fabricated.
-- Remaining acceptance: owner Claude can now attach the actual Samsung trade-event IDs to a journal; journal authority itself has owner-confirmed acceptance under closed WI-073. Align Remote packaged pipeline catalog to successor 1.0.2 via guarded existing image/traffic release 38547709115; outcome pending at evidence preparation.
+- Earlier stabilization checkpoint (superseded by the owner acceptance below): owner Claude can now attach the actual Samsung trade-event IDs to a journal; journal authority itself has owner-confirmed acceptance under closed WI-073. Align Remote packaged pipeline catalog to successor 1.0.2 via guarded existing image/traffic release 38547709115; outcome pending at evidence preparation.
 
 - Final Remote contract alignment 38547709115/source be4e80a succeeded: ready revision 00063-mcr. Actual Codex OAuth get-data-catalog advertises pipeline 1.0.2 (pass/1), overview remains pass/32 and intentionally invalid journal input reaches validation with no scope denial or journal mutation. Auth/journal supported scopes remain enabled; the canonical and Claude compatibility routes were promoted together by the existing guarded release.
+
+## Owner acceptance — 2026-10-14
+
+After the closeout response identified Claude recovered-event/journal linkage as the only remaining acceptance item, the owner replied “클로드도 성공”. This is recorded as acceptance of that remaining Claude scenario. WI-074 is closed; successful source, recurring-run, Codex and Claude evidence is retained. WI-073 was already closed on the earlier actual journal-save confirmation. This closes the two recovery Work Items without changing other milestone or Work Item states.
