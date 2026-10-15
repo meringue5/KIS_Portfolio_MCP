@@ -1,7 +1,7 @@
 ---
 id: WI-075
 title: Prevent incomplete overseas coverage from being reported as total assets
-status: verified
+status: stabilizing
 type: incident
 owner: owner
 decision_refs: DEC-055, DEC-057, ADR-029
@@ -22,7 +22,7 @@ security_impact: none; existing Secret Manager references and owner-only destina
 cost_impact: exceptional later-slot overseas recovery only when the same-day anchor is missing; existing call cap remains 65
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic recovery and fail-closed fixtures, protected release, finance-free actual transport smoke, next complete owner report pending
+real_use_evidence_refs: deterministic recovery and fail-closed fixtures; PR 162; GitHub run 38759300465; finance-free smoke execution kis-portfolio-wi030-s03-wnqxq passed; next complete owner report pending
 stabilization_window: protected release plus the next 10:00 and 16:00 owner-report slots including one controlled missing-anchor scenario
 stabilization_exit_refs: exact image and Job labels, overseas-anchor quality evidence, complete component count and owner receipt
 rollback_plan: restore the prior three-Job image or disable only the owner report; retain run, Gold and delivery evidence without replay
@@ -54,11 +54,11 @@ five overseas positions worth roughly KRW 249.6 million were absent. The 16:00 o
 
 ## Acceptance criteria
 
-- [ ] A failed 10:00 anchor causes the first later slot to collect overseas scope once within the existing call cap.
-- [ ] A valid same-day anchor prevents duplicate later-slot overseas calls.
-- [ ] Missing or failed overseas recovery prevents Gold publish and exact total-asset delivery.
-- [ ] Account balance `EGW00215` receives three bounded idempotent retries without changing order behavior.
-- [ ] The three Jobs use one immutable image and preserve permanent held-position signals plus owner report flags.
+- [x] A failed 10:00 anchor causes the first later slot to collect overseas scope once within the existing call cap.
+- [x] A valid same-day anchor prevents duplicate later-slot overseas calls.
+- [x] Missing or failed overseas recovery prevents Gold publish and exact total-asset delivery.
+- [x] Account balance `EGW00215` receives three bounded idempotent retries without changing order behavior.
+- [x] The three Jobs use one immutable image and preserve permanent held-position signals plus owner report flags.
 - [ ] Actual transport smoke and the next complete owner report provide user-visible acceptance evidence.
 
 ## Change impact
@@ -106,9 +106,19 @@ five overseas positions worth roughly KRW 249.6 million were absent. The 16:00 o
 - `bash scripts/check.sh quick`: passed with 74 tracked Work Items and WI-075 as the sole active implementation.
 - `bash scripts/check.sh full`: 850 passed with one existing Authlib deprecation warning; all Project OS, data,
   architecture, warehouse, MCP and documentation gates passed.
+- PR #162 merged as `021ea3c9c1e5265e2bcfe1598473328f0af186f8`; protected GitHub run `38759300465`
+  passed from that exact `master` SHA.
+- The release built once and pinned all three owned-core Jobs to
+  `sha256:4a3e9b4e9bf964937858e7a61d10856b1ee1118bf63e04772d15b0f97b4ea8d9` with
+  `deploy-target=wi075-total-asset-completeness`, the merge SHA and the GitHub run ID.
+- Live Job reconciliation confirmed delivery enabled, canary disabled, real-use signals enabled, V2 owner report
+  enabled, legacy digest disabled, and approved destination `dest.owner.primary` on the 10:00, 14:30 and 16:00 Jobs.
+- Finance-free photo transport execution `kis-portfolio-wi030-s03-wnqxq` completed successfully with one succeeded
+  task and labels `deploy-target=wi075-photo-transport-smoke`, the merge SHA and the GitHub run ID.
 
 ## Closeout
 
-- Result: verified in repository; protected production release pending.
-- Remaining risk: production schedule evidence pending.
+- Result: stabilizing after protected production release and finance-free transport smoke.
+- Remaining risk: the next scheduled 10:00 and 16:00 runs must prove complete same-day overseas coverage, correct
+  total-asset value, provider-confirmed delivery and owner receipt; no historical report was replayed.
 - Follow-up Work Item: none.
