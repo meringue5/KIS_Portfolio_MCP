@@ -1,7 +1,7 @@
 ---
 id: WI-076
 title: Deliver held-position signal status at all three governed slots
-status: verified
+status: stabilizing
 type: defect
 owner: owner
 decision_refs: DEC-006, DEC-053, DEC-061, DEC-063
@@ -22,7 +22,7 @@ security_impact: owner-only destination; report contains redacted instrument lab
 cost_impact: at most one additional Telegram operation per governed slot and three per applicable day; no new KIS calls
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic positive/no-change/partial/error scenarios, finance-free transport smoke, immediate controlled actual status report and owner receipt
+real_use_evidence_refs: deterministic positive/no-change/partial/error scenarios; finance-free transport smoke kis-portfolio-wi030-s03-snbfr; next applicable 10:00, 14:30 and 16:00 owner receipts pending
 stabilization_window: protected release plus immediate actual positive/no-change/error scenarios and the next three governed slots
 stabilization_exit_refs: one terminal report per date-slot, current active-signal count, no duplicate detail alerts, provider outcome and owner receipt
 rollback_plan: disable only KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED or restore the prior three-Job image; preserve candidates, detail delivery and report evidence
@@ -55,12 +55,12 @@ event-time monitoring is unavailable, not merely an internal evaluation cadence.
 
 ## Acceptance criteria
 
-- [ ] Each 10:00, 14:30 and 16:00 run attempts exactly one consolidated report when enabled.
-- [ ] A zero-transition slot still says `신규 변화 0건` and lists current active pass-quality signals.
-- [ ] Existing detailed transition delivery remains once-only and is not repeated by the consolidated report.
-- [ ] Same date-slot replay does not send again; interrupted/ambiguous send becomes terminal unknown.
-- [ ] Disabled, unsafe or missing evaluation evidence fails before a provider request.
-- [ ] Protected one-image release preserves total-asset reporting and all three Jobs.
+- [x] Each 10:00, 14:30 and 16:00 run attempts exactly one consolidated report when enabled.
+- [x] A zero-transition slot still says `신규 변화 0건` and lists current active pass-quality signals.
+- [x] Existing detailed transition delivery remains once-only and is not repeated by the consolidated report.
+- [x] Same date-slot replay does not send again; interrupted/ambiguous send becomes terminal unknown.
+- [x] Disabled, unsafe or missing evaluation evidence fails before a provider request.
+- [x] Protected one-image release preserves total-asset reporting and all three Jobs.
 - [ ] Actual private Telegram positive/no-change/error scenarios and owner receipt pass before closure.
 
 ## Change impact
@@ -108,9 +108,18 @@ event-time monitoring is unavailable, not merely an internal evaluation cadence.
 - `bash scripts/check.sh quick`: passed with WI-076 as the only active implementation.
 - `bash scripts/check.sh full`: 856 passed with the existing Authlib deprecation warning and a sandbox-only pytest
   cache warning; Project OS, data, architecture, warehouse, MCP and documentation gates all passed.
+- PR #164 merged as `f5b9dc44d94bb6faf5e66467640f554b844b3bbb`; protected GitHub run `39044692160`
+  passed from that exact `master` SHA, including the full test step and the dedicated `wi076` release step.
+- The release built once and pinned the 10:00, 14:30 and 16:00 owned-core Jobs to
+  `sha256:fc187a3bd5770a8d808cd53e431855a8fffd3a7112e42904abeab2c185e2b195`. Live reconciliation confirmed
+  `deploy-target=wi076-three-slot-signal-status`, the merge SHA/run ID, exact slot arguments, approved owner
+  destination, real-use delivery, V2 owner report and `KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED=true` on all three.
+- Finance-free Rich transport execution `kis-portfolio-wi030-s03-snbfr` completed successfully on the same image
+  with `deploy-target=wi076-rich-transport-smoke`. No historical financial slot was replayed.
 
 ## Closeout
 
-- Result: verified in repository; protected release and actual private Telegram acceptance pending.
-- Remaining risk: message density and actual owner usefulness require production transport acceptance.
+- Result: stabilizing after protected production release, live Job reconciliation and successful finance-free transport smoke.
+- Remaining risk: because release completed on Saturday, the next applicable 10:00, 14:30 and 16:00 runs must prove
+  one-per-slot provider delivery, preserved detail de-duplication and owner usefulness; no historical report is replayed.
 - Follow-up Work Item: true event-time monitoring only after a separately approved source/cost design.

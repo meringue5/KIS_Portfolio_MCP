@@ -80,10 +80,12 @@ five overseas positions worth roughly KRW 249.6 million were absent. The 16:00 o
 
 ## Sub-items
 
-- `WI-075-S01` (`verified`, release pending): when the current total is complete but the prior same-slot comparison is unavailable,
+- `WI-075-S01` (`stabilizing`): when the current total is complete but the prior same-slot comparison is unavailable,
   preserve the full owner photo layout and current total/account/asset allocations. Replace only D/D and Top 5 with
-  an explicit comparison-unavailable state. This corrects the owner-visible presentation without weakening the
-  current-state completeness gate or inventing a comparison.
+  an explicit comparison-unavailable state. PR #164 and protected run `39044692160` deployed it to all three Jobs on
+  the same immutable image as WI-076 after a successful photo-capable Rich transport smoke. This corrects the
+  owner-visible presentation without weakening the current-state completeness gate or inventing a comparison; the
+  next applicable 10:00 owner receipt remains the stabilization exit.
 
 ## Stabilization plan
 

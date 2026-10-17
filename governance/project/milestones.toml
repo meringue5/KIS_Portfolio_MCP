@@ -881,7 +881,7 @@ sequence = 3
 id = "WI-075-S01"
 parent_id = "WI-075"
 title = "Keep the complete current owner-report layout when comparison is unavailable"
-status = "verified"
+status = "stabilizing"
 
 [[subitems]]
 id = "WI-060-S01"
