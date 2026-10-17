@@ -629,8 +629,9 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   독립 품질 상태를 가진다. 한 셀의 `missing`, `stale`, `unsupported`는 의존하지 않는 셀을 삭제하거나
   응답 전체를 `pass`로 가장하게 만들지 않는다.
 - Telegram partial presentation은 owner-only destination, alias/secret 비노출, 본문 비저장, 단일 provider
-  operation과 terminal unknown/no-auto-replay 계약을 유지한다. presentation/pipeline version은 `2.3.0`으로
-  올리고, complete photo와 partial Rich Message는 같은 date-slot idempotency claim을 공유한다.
+  operation과 terminal unknown/no-auto-replay 계약을 유지한다. `2.3.0` capability isolation을 보존하고,
+  비교만 불가능한 완전 현재 상태도 동일 photo layout을 유지하는 presentation/pipeline `2.4.0`으로
+  올린다. complete/current-only photo와 scoped partial Rich Message는 같은 date-slot idempotency claim을 공유한다.
 - 운영 배포 전 missing prior, stale FX, missing account, degraded row, optional context gap과 complete case를
   합성 fixture 및 무전송 preview로 재현한다. 다음 예약 slot을 기다리는 것은 인수 테스트의 전제조건이 아니다.
 - 외부 환율 fallback은 별도 source 권리, rate type/source date 의미, credential, 비용과 불일치 quarantine
@@ -712,6 +713,17 @@ DEC-020~DEC-043은 제품·데이터 계약을 소유하고 DEC-044가 그 범�
   position dates (2026-08-06/25) remain unavailable. No absent day interpolation or canonical total/return promotion.
 - Passing native V2 date wins. No source request occurs during reads; reference storage and rollback preserve originals.
 - Source rights/backup/restore and actual Codex/owner-Claude positive/partial/error acceptance are mandatory.
+
+### DEC-063: 보유종목 시그널 현황은 세 평가 시각마다 전달한다
+
+- `10:00`, `14:30`, `16:00` 평가는 각각 owner Telegram에 하나의 통합 시그널 현황을 전달한다.
+- 상태전이 상세 경보의 중복 억제는 유지한다. 통합 현황은 해당 slot의 신규·악화·회복 수와 현재 `주의`
+  이상 종목을 보여주며, 변화가 없어도 `신규 변화 0건`을 명시한다.
+- 같은 시각의 재실행은 통합 현황을 다시 보내지 않는다. 전송 시작 뒤 결과가 불명확하면 자동 재전송하지
+  않고 terminal unknown으로 보존한다.
+- 미국장 마감 신호는 기존 계약대로 10:00에서만 포함한다. 14:30과 16:00에 같은 미국장 결과를 반복하지 않는다.
+- 실시간 사건 감지는 이번 변경에 포함하지 않는다. 더 잦은 수집이나 streaming은 source 호출량·비용·시장별
+  freshness 계약을 별도로 승인한 뒤 추가한다.
 
 ## 5. 첫 번째 데이터 제품: 보유종목 감시 v1
 

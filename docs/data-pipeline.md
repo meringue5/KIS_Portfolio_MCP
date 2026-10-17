@@ -226,10 +226,17 @@ mode/channel은 DB `shadow`다. claim lease token은 digest만 저장하고 `unk
 calibration과 2주 shadow는 WI-029, Telegram API와 external mode는 WI-030이 담당한다. 상세 계약은
 [WI-028 alert state and delivery ledger](./design/wi-028-alert-state-delivery-ledger-contract.md)에 둔다.
 
-`pipeline.telegram-delivery-v2:1.1.0`은 기존 scale-to-zero monitoring Job 뒤에서만 합성되는 outbound-only
+`pipeline.telegram-delivery-v2:1.5.0`은 기존 scale-to-zero monitoring Job 뒤에서만 합성되는 outbound-only
 consumer다. `KIS_TELEGRAM_DELIVERY_ENABLED`의 기본값은 `false`이며, 이 상태에서는 candidate 조회, dispatch
 claim과 network request를 모두 만들지 않는다. 활성 상태에서도 `active external` rule, 최신 owner approval,
 `pass` quality와 delivery-required transition이 모두 있어야 Telegram 후보가 된다.
+
+DEC-063 통합 현황은 permanent held-position 평가와 상세 transition 전송 뒤에 같은 Job에서 실행된다.
+`KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED=true`일 때 10:00·14:30·16:00 각각 date-slot당 한 번, exact evaluation
+run의 평가·변화·현재 active·품질 보류 수를 대조해 Rich Message로 보낸다. 상세 alert의 candidate claim을
+재사용하거나 다시 보내지 않으며, 변화가 없어도 `신규 변화 0건`을 표시한다. report 본문은 저장하지 않고
+hash·count·provider outcome만 기존 pipeline run/stage evidence에 남긴다. 전송 시작 뒤 ambiguity는 terminal
+unknown으로 봉인하고 같은 date-slot을 자동 재전송하지 않는다.
 
 DEC-050 bounded canary에서는 `bootstrap-1.0.0` shadow rule을 그대로 실행한 뒤 별도
 `canary-2026-09-01.1` external rule로 같은 point-in-time 입력을 평가한다. 두 rule의 candidate와 state identity는

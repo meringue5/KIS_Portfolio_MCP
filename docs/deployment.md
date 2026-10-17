@@ -467,6 +467,10 @@ claim 이전에 종료하므로 DB-only shadow 동작을 유지한다. DEC-050�
   `KIS_TELEGRAM_DESTINATION_REF=dest.owner.primary`. The `wi055-s01` target changes only the existing three core Job
   revisions; it does not create a Scheduler, service, secret or database object. Roll back by restoring the last safe
   image or by setting both report flags to `false`; never enable both report versions together.
+- non-secret WI-076: `KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED=true`. The protected `wi076` target performs a
+  finance-free Rich transport smoke and updates the same three owned-core Jobs from one image. It adds no Scheduler,
+  KIS call or secret. Roll back only the consolidated status by setting this flag to `false`; detailed transition
+  alerts and total-asset reporting remain enabled.
 
 Bounded S02 release 전제는 DEC-050 owner approval, one complete scheduled-day smoke, owner-verified private
 destination과 별도 승인된 finance-free test message다. permanent rule은 verified WI-029 shadow를 계속 요구한다.

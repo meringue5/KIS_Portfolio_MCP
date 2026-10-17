@@ -342,10 +342,14 @@ def test_owner_report_keeps_complete_current_total_when_only_prior_state_is_miss
     )
 
     assert result["quality_status"] == "partial"
-    assert not client.photos and len(client.rich) == 1
-    assert "현재 총자산 ₩1,050" in client.rich[0].html
-    assert "전일 비교는 산출하지 않았습니다" in client.rich[0].html
-    assert "이전 동일 시각 상태 없음" in client.rich[0].html
+    assert len(client.photos) == 1 and not client.rich
+    photo = client.photos[0]
+    assert "총자산" in photo.caption_html and "₩1,050" in photo.caption_html
+    assert "계좌 구성" in photo.caption_html and "자산 구성" in photo.caption_html
+    assert "전일대비" in photo.caption_html and "비교 불가" in photo.caption_html
+    assert "이전 동일 시각 상태 없음" in photo.caption_html
+    assert "총자산 변동 기여 Top 5" not in photo.caption_html
+    assert photo.png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None:

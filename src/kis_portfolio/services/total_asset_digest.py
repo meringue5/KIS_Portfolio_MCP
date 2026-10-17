@@ -44,7 +44,7 @@ PIPELINE_VERSION = "1.0.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1600"})
 PARTITION_KEY = "owner-consolidated"
 V2_PIPELINE_ID = "pipeline.telegram-total-asset-report-v2"
-V2_PIPELINE_VERSION = "2.3.0"
+V2_PIPELINE_VERSION = "2.4.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -344,7 +344,53 @@ def _build_owner_report(
         connection, evaluation_date=logical_date, slot=slot, snapshot_at=current.snapshot_at,
     )
 
+    def current_allocations() -> tuple[tuple[ChartAllocation, ...], tuple[ChartAllocation, ...]]:
+        account_totals = {alias: Decimal("0") for alias in aliases.values()}
+        asset_totals = {"DOMESTIC": Decimal("0"), "OVERSEAS": Decimal("0"), "CASH": Decimal("0")}
+        exposure_rows = connection.execute("""
+            SELECT instrument_id,economic_exposure
+            FROM silver.instrument_versions_effective
+            WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?) AND knowledge_at<=?
+            QUALIFY row_number() OVER (
+                PARTITION BY instrument_id ORDER BY knowledge_at DESC,instrument_version_id DESC
+            )=1
+        """, [current.snapshot_at, current.snapshot_at, datetime.now(UTC)]).fetchall()
+        economic_exposures = {
+            str(instrument_id): str(exposure).lower() for instrument_id, exposure in exposure_rows
+        }
+        for component in current.components.values():
+            for account_id, value in component.account_values.items():
+                account_totals[aliases[account_id]] += value
+            if component.is_cash:
+                asset_totals["CASH"] += component.value_krw
+            elif economic_exposures.get(component.component_id, "").startswith("overseas"):
+                asset_totals["OVERSEAS"] += component.value_krw
+            elif economic_exposures.get(component.component_id, "").startswith("domestic"):
+                asset_totals["DOMESTIC"] += component.value_krw
+            elif str(component.market or "").upper() == "KRX" and component.currency.upper() == "KRW":
+                asset_totals["DOMESTIC"] += component.value_krw
+            else:
+                asset_totals["OVERSEAS"] += component.value_krw
+
+        def allocations(items: Mapping[str, Decimal]) -> tuple[ChartAllocation, ...]:
+            ordered = sorted(items.items(), key=lambda item: (-item[1], item[0]))
+            rounded = [[label, _whole_krw(value)] for label, value in ordered]
+            total_krw = _whole_krw(current.total_value_krw)
+            residual = total_krw - sum(value for _, value in rounded)
+            if rounded:
+                rounded[0][1] += residual
+            return tuple(
+                ChartAllocation(label, value, _percentage(Decimal(value), Decimal(total_krw)))
+                for label, value in rounded
+            )
+
+        return allocations(asset_totals), allocations(account_totals)
+
     def partial_report(*, codes: tuple[str, ...], include_complete_total: bool) -> tuple[OwnerPortfolioReport, dict[str, object]]:
+        asset_allocations: tuple[ChartAllocation, ...] = ()
+        account_allocations: tuple[ChartAllocation, ...] = ()
+        if include_complete_total:
+            asset_allocations, account_allocations = current_allocations()
         report = OwnerPortfolioReport(
             slot=slot,
             source_at=current.snapshot_at,
@@ -358,6 +404,8 @@ def _build_owner_report(
                 if capability.verified_krw_listed_positions_count else None
             ),
             verified_krw_listed_positions_count=capability.verified_krw_listed_positions_count,
+            asset_allocations=asset_allocations,
+            account_allocations=account_allocations,
             unavailable_codes=codes,
         )
         return report, {
@@ -409,42 +457,7 @@ def _build_owner_report(
             public_blockers.append("reconciliation_failed")
         return partial_report(codes=tuple(public_blockers), include_complete_total=True)
 
-    account_totals = {alias: Decimal("0") for alias in aliases.values()}
-    asset_totals = {"DOMESTIC": Decimal("0"), "OVERSEAS": Decimal("0"), "CASH": Decimal("0")}
-    exposure_rows = connection.execute("""
-        SELECT instrument_id,economic_exposure
-        FROM silver.instrument_versions_effective
-        WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?) AND knowledge_at<=?
-        QUALIFY row_number() OVER (
-            PARTITION BY instrument_id ORDER BY knowledge_at DESC,instrument_version_id DESC
-        )=1
-    """, [current.snapshot_at, current.snapshot_at, datetime.now(UTC)]).fetchall()
-    economic_exposures = {str(instrument_id): str(exposure).lower() for instrument_id, exposure in exposure_rows}
-    for component in current.components.values():
-        for account_id, value in component.account_values.items():
-            account_totals[aliases[account_id]] += value
-        if component.is_cash:
-            asset_totals["CASH"] += component.value_krw
-        elif economic_exposures.get(component.component_id, "").startswith("overseas"):
-            asset_totals["OVERSEAS"] += component.value_krw
-        elif economic_exposures.get(component.component_id, "").startswith("domestic"):
-            asset_totals["DOMESTIC"] += component.value_krw
-        elif str(component.market or "").upper() == "KRX" and component.currency.upper() == "KRW":
-            asset_totals["DOMESTIC"] += component.value_krw
-        else:
-            asset_totals["OVERSEAS"] += component.value_krw
-
-    def allocations(items: Mapping[str, Decimal]) -> tuple[ChartAllocation, ...]:
-        ordered = sorted(items.items(), key=lambda item: (-item[1], item[0]))
-        rounded = [[label, _whole_krw(value)] for label, value in ordered]
-        total_krw = _whole_krw(current.total_value_krw)
-        residual = total_krw - sum(value for _, value in rounded)
-        if rounded:
-            rounded[0][1] += residual
-        return tuple(
-            ChartAllocation(label, value, _percentage(Decimal(value), Decimal(total_krw)))
-            for label, value in rounded
-        )
+    asset_allocations, account_allocations = current_allocations()
 
     def contributors(items: list[dict[str, object]]) -> tuple[TotalAssetDigestContributor, ...]:
         return tuple(
@@ -482,8 +495,8 @@ def _build_owner_report(
         total_asset_krw=_whole_krw(current.total_value_krw),
         total_change_krw=_whole_krw(total_change),
         total_change_percent=_percentage(total_change, prior_total),
-        asset_allocations=allocations(asset_totals),
-        account_allocations=allocations(account_totals),
+        asset_allocations=asset_allocations,
+        account_allocations=account_allocations,
         positive=contributors(result["top_positive_contributors"]),
         negative=contributors(result["top_negative_contributors"]),
         top_impacts=top_impacts,
@@ -492,8 +505,8 @@ def _build_owner_report(
         "quality_status": "pass",
         "blocker_codes": [],
         "prior_date": prior_date.isoformat(),
-        "account_alias_count": len(account_totals),
-        "asset_bucket_count": len(asset_totals),
+        "account_alias_count": len(account_allocations),
+        "asset_bucket_count": len(asset_allocations),
         "positive_count": len(report.positive),
         "negative_count": len(report.negative),
         "top_impact_count": len(report.top_impacts),

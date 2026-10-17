@@ -394,26 +394,26 @@ trigger_policy = "manual bounded replay and existing Scheduler shadow slots; ext
 
 [[contracts]]
 id = "pipeline.telegram-delivery-v2"
-version = "1.4.0"
+version = "1.5.0"
 status = "approved"
 owner = "owner"
-description = "DEC-050 transport canary와 DEC-051/052 plain RC 증거를 보존하면서 DEC-053 Rich Message successor의 owner-approved alert transition을 redacted Telegram ledger로 전달한다."
-decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-050", "DEC-051", "DEC-052", "DEC-053"]
+description = "owner-approved 상세 alert transition을 once-only Rich Message로 전달하고 DEC-063의 10:00·14:30·16:00 통합 보유종목 시그널 현황을 date-slot당 한 번 전달한다."
+decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-050", "DEC-051", "DEC-052", "DEC-053", "DEC-061", "DEC-063"]
 source_ids = []
 input_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger", "dataset.alert-calibration-evidence"]
-output_dataset_ids = ["dataset.alert-delivery-ledger"]
-stages = ["verify-owner-approval", "render-rich-message", "redact", "claim", "send-rich-message", "record-outcome"]
-schedule_policy = "composed after the existing 10:00, 14:30 and 16:00 KST monitoring jobs; a canary rule is valid for at most seven elapsed days and U.S. close remains morning-only"
+output_dataset_ids = ["dataset.alert-delivery-ledger", "dataset.pipeline-run-evidence", "dataset.pipeline-stage-evidence"]
+stages = ["verify-owner-approval", "render-rich-message", "redact", "claim", "send-rich-message", "record-outcome", "build-slot-report", "send-slot-report"]
+schedule_policy = "composed after the existing 10:00, 14:30 and 16:00 KST monitoring jobs; detailed transitions remain event-de-duplicated while one consolidated status is attempted at every slot; U.S. close remains morning-only"
 calendar_gate = "inherits the exact candidate evaluation slot and session; no independent delivery schedule"
-idempotency_key = "candidate id, telegram channel and opaque destination reference"
+idempotency_key = "detailed alert uses candidate id, channel and opaque destination; consolidated status uses pipeline version, logical date, slot and owner-held-signal-status partition"
 timeout_policy = "one bounded HTTPS sendRichMessage request per acquired claim; post-send timeout is terminal unknown and never falls back to sendMessage"
 retry_policy = "no in-process retry; explicit provider 429/5xx may be retried by a later scheduled run only while the rule remains valid; terminal unknown and expired claims are never automatically retried"
-source_call_budget = "at most 20 Telegram sendRichMessage attempts per monitoring run after all activation gates pass"
+source_call_budget = "at most 20 detailed Telegram attempts plus one consolidated status operation per monitoring run; zero additional KIS calls"
 freshness_gates = ["candidate and delivery-required transition are terminal for the slot", "latest owner decision remains approved", "rule valid_from and valid_to contain dispatch time"]
-quality_gates = ["active external rule only", "pass-quality candidate only", "watch or higher non-baseline transition only", "normal no-change and first-rule baseline remain DB evidence", "current SMA position actual cross and moving-average structure use distinct owner-readable terms", "intraday non-comparable volume and unavailable drawdown or contribution are explicit and never zero-filled", "allowlisted payload excludes account number absolute total assets credentials raw source and chat identifier", "disabled incomplete expired or revoked configuration creates no request"]
+quality_gates = ["active external rule only", "pass-quality candidate only", "watch or higher non-baseline transition only", "normal no-change and first-rule baseline remain DB evidence", "consolidated evaluated active changed and quality-suppressed counts reconcile to the exact completed evaluation run", "zero-transition slot explicitly reports zero new changes", "current SMA position actual cross and moving-average structure use distinct owner-readable terms", "intraday non-comparable volume and unavailable drawdown or contribution are explicit and never zero-filled", "allowlisted payload excludes account number absolute total assets credentials raw source and chat identifier", "disabled incomplete expired or revoked configuration creates no request"]
 secret_profile = "GCP Secret Manager Telegram bot token and private chat id only on the V2 pipeline runtime identity; opaque destination alias is non-secret runtime config"
 cost_class = "routine"
-trigger_policy = "prior transport/plain release candidates remain immutable evidence; DEC-053 permits one separately versioned Rich Message release candidate for real-use stabilization, while permanent external activation still requires verified WI-029 evidence and owner acceptance"
+trigger_policy = "existing owned-core Jobs only; permanent detailed alerts require owner-approved rule and DEC-063 consolidated status requires its independent feature flag; no public arbitrary trigger"
 
 [[contracts]]
 id = "pipeline.telegram-total-asset-digest-v1"
@@ -440,10 +440,10 @@ trigger_policy = "DEC-054 owner-approved activation through the manual wi055 dep
 
 [[contracts]]
 id = "pipeline.telegram-total-asset-report-v2"
-version = "2.3.0"
+version = "2.4.0"
 status = "approved"
 owner = "owner"
-description = "owner 전용 정확 총자산 photo와 capability-isolated current-only 또는 명시적 KRX/KRW 포지션 부분합 Rich Message를 동일 claim으로 전달한다."
+description = "owner 전용 정확 총자산 photo를 전달하며 현재 합계가 완전하면 비교 품질과 무관하게 동일 photo에서 총자산·계좌·자산 구성을 유지한다; 현재 합계가 불완전할 때만 명시적 KRX/KRW 부분합 Rich Message로 축소한다."
 decision_refs = ["DEC-055", "DEC-057"]
 source_ids = []
 input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.market-calendar", "dataset.fx-rate-daily"]
@@ -456,10 +456,10 @@ timeout_policy = "one bounded Telegram sendPhoto or sendRichMessage request; an 
 retry_policy = "no automatic retry after the send stage starts; a succeeded or ambiguous date-slot is never resent"
 source_call_budget = "at most one Telegram provider operation per enabled slot, two per applicable weekday"
 freshness_gates = ["current exact-slot canonical rows exist", "every displayed value retains the current source timestamp", "foreign conversion requires an approved in-window FX rate", "same-slot comparison requires the prior open-date state independently"]
-quality_gates = ["complete total requires all required accounts price FX component quality and reconciliation", "missing prior suppresses comparison and Top 5 only", "stale FX suppresses foreign conversion and complete total but not independently verified KRX/KRW listed positions", "a scoped subtotal is labelled as excluding cash foreign conversion missing accounts and economic look-through and is never called total assets", "optional macro and ETF look-through never gate the report", "payload excludes source account ids credentials raw rows and destination identifiers", "message body and image bytes are not logged or persisted"]
+quality_gates = ["complete total requires all required accounts price FX component quality and reconciliation", "missing or invalid prior suppresses comparison and Top 5 only while preserving complete current total and allocations in the same photo layout", "stale current FX suppresses foreign conversion and complete total but not independently verified KRX/KRW listed positions", "a scoped subtotal is labelled as excluding cash foreign conversion missing accounts and economic look-through and is never called total assets", "optional macro and ETF look-through never gate the report", "payload excludes source account ids credentials raw rows and destination identifiers", "message body and image bytes are not logged or persisted"]
 secret_profile = "existing pinned Telegram bot token and private owner chat id on the V2 pipeline runtime identity; no new secret"
 cost_class = "routine"
-trigger_policy = "DEC-057-approved presentation 2.3.0 remains repository-isolated until the WI-060 protected release and owner-visible stabilization gate"
+trigger_policy = "DEC-057 presentation 2.4.0 preserves the activated owner-report boundary; protected release and owner-visible stabilization remain required"
 
 [[contracts]]
 id = "pipeline.fx-fallback-validation-v1"

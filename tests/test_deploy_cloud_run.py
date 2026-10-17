@@ -907,6 +907,7 @@ def test_v2_pipeline_env_includes_explicit_telegram_canary_flags():
             "KIS_TELEGRAM_CANARY_ENABLED": "true",
             "KIS_TELEGRAM_REAL_USE_ENABLED": "false",
             "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "true",
+            "KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED": "true",
             "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
         },
         "grand-forge-279904",
@@ -915,7 +916,28 @@ def test_v2_pipeline_env_includes_explicit_telegram_canary_flags():
     assert payload["KIS_TELEGRAM_CANARY_ENABLED"] == "true"
     assert payload["KIS_TELEGRAM_REAL_USE_ENABLED"] == "false"
     assert payload["KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED"] == "true"
+    assert payload["KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED"] == "true"
     assert payload["KIS_TELEGRAM_DESTINATION_REF"] == "dest.owner.primary"
+
+
+def test_wi076_reuses_protected_owner_report_release_and_enables_slot_status(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        deploy_cloud_run,
+        "_deploy_wi055_s01",
+        lambda args, **kwargs: captured.update(kwargs) or 0,
+    )
+    args = argparse.Namespace()
+
+    result = deploy_cloud_run._deploy_wi076(
+        args, env={"KIS_DB_MODE": "motherduck"}, project="grand-forge-279904",
+    )
+
+    assert result == 0
+    assert captured["signal_slot_report_enabled"] is True
+    assert captured["deploy_label"] == "wi076-three-slot-signal-status"
+    assert captured["smoke_label"] == "wi076-rich-transport-smoke"
+    assert captured["smoke_command_name"] == "send-telegram-rich-transport-smoke"
 
 
 def test_wi055_deploy_enables_digest_on_existing_jobs(monkeypatch):

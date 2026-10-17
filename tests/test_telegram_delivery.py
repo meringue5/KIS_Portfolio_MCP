@@ -9,11 +9,13 @@ import json
 
 from kis_portfolio.adapters.outbound.alert_warehouse import AlertClaimError, AlertWarehouseRepository
 from kis_portfolio.adapters.outbound.telegram import (
+    HeldSignalSlotReport,
     TelegramBotClient,
     TelegramRichMessage,
     TelegramPhotoMessage,
     TelegramSendResult,
     UnsafeTelegramPayload,
+    render_held_signal_slot_report,
     render_telegram_alert,
 )
 from kis_portfolio.modules.monitoring import AlertCandidate, AlertEvaluation, AlertRuleVersion
@@ -28,6 +30,27 @@ from kis_portfolio.services.shadow_alerts import permanent_real_use_rule
 
 
 NOW = datetime(2026, 8, 30, 1, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("slot", "label"),
+    [("kr-1000", "오전 10시"), ("kr-1430", "오후 2시 30분"), ("kr-1600", "오후 4시")],
+)
+def test_consolidated_signal_status_has_one_allowlisted_message_for_every_slot(
+    slot: str, label: str,
+) -> None:
+    message = render_held_signal_slot_report(HeldSignalSlotReport(
+        slot=slot,
+        source_at=NOW,
+        evaluated_count=0,
+        changed_count=0,
+        active_count=0,
+        quality_suppressed_count=0,
+    ))
+
+    assert f"보유종목 시그널 · {label}" in message.html
+    assert "신규 변화 0건" in message.html
+    assert "현재 주의 이상 신호가 없습니다" in message.html
 
 
 class FakeTelegramClient:
