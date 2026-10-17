@@ -121,6 +121,31 @@ class TelegramPhotoMessage:
     filename: str = "total-asset-report.png"
 
 
+@dataclass(frozen=True, slots=True)
+class HeldSignalSlotItem:
+    """One relative-value, owner-readable held-position signal summary row."""
+
+    label: str
+    market_label: str
+    severity: str
+    reason_code: str
+    change_percent: Decimal | None
+    transition_type: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class HeldSignalSlotReport:
+    """Consolidated status delivered once for every governed monitoring slot."""
+
+    slot: str
+    source_at: datetime
+    evaluated_count: int
+    changed_count: int
+    active_count: int
+    quality_suppressed_count: int
+    active_items: Sequence[HeldSignalSlotItem] = ()
+
+
 def _safe_text(value: object, *, field: str, maximum: int, forbid_absolute: bool = False) -> str:
     text = str(value or "").strip()
     if not text or len(text) > maximum:
@@ -228,6 +253,86 @@ def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
     return TelegramRichMessage(html=html)
 
 
+def render_held_signal_slot_report(report: HeldSignalSlotReport) -> TelegramRichMessage:
+    """Render a bounded per-slot status without weakening detailed-alert de-duplication."""
+    slot_labels = {
+        "kr-1000": "오전 10시",
+        "kr-1430": "오후 2시 30분",
+        "kr-1600": "오후 4시",
+    }
+    slot_label = slot_labels.get(report.slot)
+    if slot_label is None or report.source_at.tzinfo is None:
+        raise UnsafeTelegramPayload("signal slot report has an invalid slot or source time")
+    counts = (
+        report.evaluated_count, report.changed_count, report.active_count,
+        report.quality_suppressed_count,
+    )
+    if any(value < 0 or value > 1000 for value in counts):
+        raise UnsafeTelegramPayload("signal slot report counts are out of bounds")
+    if report.changed_count > report.evaluated_count or report.active_count > report.evaluated_count:
+        raise UnsafeTelegramPayload("signal slot report counts do not reconcile")
+    if len(report.active_items) > 20 or len(report.active_items) > report.active_count:
+        raise UnsafeTelegramPayload("signal slot report item count is out of bounds")
+
+    severity_labels = {"watch": ("🟡", "주의"), "warning": ("🟠", "경고"), "critical": ("🔴", "긴급")}
+    reason_labels = {
+        "price_shock_up": "급등", "price_shock_down": "급락",
+        "sma20_downward_cross": "20일선 하향 이탈", "bearish_sma20_regime": "20일선 하회",
+        "bearish_sma50_drawdown": "중기 약세", "volume_confirmation": "거래량 확인",
+        "portfolio_contribution": "포트폴리오 영향", "episode_drawdown": "보유구간 낙폭",
+        "thread_stop_breach": "손절 기준 이탈", "thread_risk_ratio": "계획손실 경고",
+    }
+    transition_labels = {
+        None: "유지", "entered": "신규", "reentered": "재발생", "updated": "변화",
+        "escalated": "악화", "deescalated": "완화", "recovered": "회복",
+    }
+    rows: list[str] = []
+    for item in report.active_items:
+        label = _safe_text(item.label, field="subject_label", maximum=80)
+        market = _safe_text(item.market_label, field="market_label", maximum=40)
+        severity = severity_labels.get(item.severity)
+        if severity is None or not _SAFE_REASON.fullmatch(item.reason_code):
+            raise UnsafeTelegramPayload("signal slot item is not allowlisted")
+        transition = transition_labels.get(item.transition_type)
+        if transition is None:
+            raise UnsafeTelegramPayload("signal slot transition is not allowlisted")
+        change = ""
+        if item.change_percent is not None:
+            value = _bounded_percent(item.change_percent, field="change_percent")
+            change = f" {'+' if item.change_percent > 0 else ''}{value}%"
+        signal = reason_labels.get(item.reason_code, "상태 변화")
+        rows.append(
+            f"{severity[0]} {escape(label)}{escape(change)} · {escape(signal)} · "
+            f"{escape(transition)} · {escape(market)}"
+        )
+
+    summary_rows = (
+        ("평가", str(report.evaluated_count), "종목"),
+        ("신규 변화", str(report.changed_count), "건"),
+        ("현재 주의 이상", str(report.active_count), "종목"),
+        ("품질 보류", str(report.quality_suppressed_count), "종목"),
+    )
+    body = [
+        f"<h3>📡 보유종목 시그널 · {slot_label}</h3>",
+        f"<pre>{escape(_fixed_width_rows(summary_rows))}</pre>",
+    ]
+    if rows:
+        body.extend(("<b>현재 활성 신호</b>", "<p>" + "<br>".join(rows) + "</p>"))
+        hidden = report.active_count - len(rows)
+        if hidden:
+            body.append(f"<p>외 {hidden}종목은 DB에 보존했습니다.</p>")
+    else:
+        body.append("<p>현재 주의 이상 신호가 없습니다.</p>")
+    if report.changed_count == 0:
+        body.append("<p><b>신규 변화 0건</b> · 직전 상태와 달라진 상세 경보는 없습니다.</p>")
+    source_at = report.source_at.astimezone(_SEOUL)
+    body.append(f"<footer>{source_at:%Y-%m-%d %H:%M} · KST</footer>")
+    html = "".join(body)
+    if len(html) > 3500 or _ACCOUNT_NUMBER.search(html):
+        raise UnsafeTelegramPayload("rendered signal slot report is unsafe or too large")
+    return TelegramRichMessage(html)
+
+
 _OWNER_ACCOUNT_ALIASES = frozenset({"ria", "isa", "brokerage", "irp", "pension"})
 _ASSET_LABELS = frozenset({"DOMESTIC", "OVERSEAS", "CASH"})
 _SAFE_CHART_SYMBOL = re.compile(r"^[A-Za-z0-9._-]{1,16}$")
@@ -297,31 +402,17 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
         return render_total_asset_digest(TotalAssetDigest(
             report.slot, report.source_at, "unavailable", unavailable_codes=report.unavailable_codes,
         ))
+    comparison_unavailable = report.quality_status == "partial" and report.total_asset_krw is not None
+    partial_reasons: list[str] = []
     if report.quality_status == "partial":
         if report.total_change_krw is not None or report.total_change_percent is not None:
             raise UnsafeTelegramPayload("partial owner report cannot contain comparison values")
-        if report.asset_allocations or report.account_allocations or report.positive or report.negative or report.top_impacts:
-            raise UnsafeTelegramPayload("partial owner report cannot contain complete allocations or impacts")
+        if report.positive or report.negative or report.top_impacts:
+            raise UnsafeTelegramPayload("partial owner report cannot contain comparison impacts")
         if not report.unavailable_codes or any(
             not _SAFE_REASON.fullmatch(str(code)) for code in report.unavailable_codes
         ):
             raise UnsafeTelegramPayload("partial owner report requires bounded reason codes")
-        if report.total_asset_krw is not None:
-            if report.total_asset_krw <= 0:
-                raise UnsafeTelegramPayload("partial current total must be positive")
-            value_lines = (
-                f"<p><b>현재 총자산 {_format_krw(report.total_asset_krw)}</b><br>"
-                "현재 상태는 완전하지만 전일 비교는 산출하지 않았습니다.</p>"
-            )
-        else:
-            subtotal = report.verified_krw_listed_positions_krw
-            if subtotal is None or subtotal <= 0 or report.verified_krw_listed_positions_count <= 0:
-                raise UnsafeTelegramPayload("partial owner report requires a positive scoped subtotal")
-            value_lines = (
-                f"<p><b>확인된 KRX·KRW 상장종목 합계 {_format_krw(subtotal)}</b><br>"
-                f"가격·보유 품질을 통과한 {report.verified_krw_listed_positions_count}개 포지션의 부분합입니다. "
-                "총자산이 아닙니다.</p>"
-            )
         reason_labels = {
             "missing_prior_state": "이전 동일 시각 상태 없음",
             "prior_fx_input_stale": "이전 상태 환율 시점 품질 미달",
@@ -333,26 +424,45 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
             "state_quality_failed": "비교 상태 품질 미달",
             "reconciliation_failed": "비교 합계 정합성 미달",
         }
-        reasons = [reason_labels.get(str(code), "데이터 품질 확인 필요") for code in report.unavailable_codes]
-        html = (
-            f"<h3>🟡 총자산 현황 · {slot_label}</h3>"
-            "<p>일부 데이터 수집 또는 비교에 문제가 있어 확인된 범위만 표시합니다.</p>"
-            + value_lines
-            + "<details><summary>제외 범위</summary><p>"
-            + escape(" · ".join(dict.fromkeys(reasons)))
-            + "</p></details>"
-            + f"<footer>{source_at:%Y-%m-%d %H:%M} · KST</footer>"
-        )
-        if len(html) > 3500 or _ACCOUNT_NUMBER.search(html):
-            raise UnsafeTelegramPayload("partial owner report is unsafe or too large")
-        return TelegramRichMessage(html)
-    if report.quality_status != "pass":
+        partial_reasons = [
+            reason_labels.get(str(code), "데이터 품질 확인 필요") for code in report.unavailable_codes
+        ]
+        if report.total_asset_krw is None:
+            if report.asset_allocations or report.account_allocations:
+                raise UnsafeTelegramPayload("scoped partial report cannot contain complete allocations")
+            subtotal = report.verified_krw_listed_positions_krw
+            if subtotal is None or subtotal <= 0 or report.verified_krw_listed_positions_count <= 0:
+                raise UnsafeTelegramPayload("partial owner report requires a positive scoped subtotal")
+            value_lines = (
+                f"<p><b>확인된 KRX·KRW 상장종목 합계 {_format_krw(subtotal)}</b><br>"
+                f"가격·보유 품질을 통과한 {report.verified_krw_listed_positions_count}개 포지션의 부분합입니다. "
+                "총자산이 아닙니다.</p>"
+            )
+            html = (
+                f"<h3>🟡 총자산 현황 · {slot_label}</h3>"
+                "<p>일부 데이터 수집 또는 비교에 문제가 있어 확인된 범위만 표시합니다.</p>"
+                + value_lines
+                + "<details><summary>제외 범위</summary><p>"
+                + escape(" · ".join(dict.fromkeys(partial_reasons)))
+                + "</p></details>"
+                + f"<footer>{source_at:%Y-%m-%d %H:%M} · KST</footer>"
+            )
+            if len(html) > 3500 or _ACCOUNT_NUMBER.search(html):
+                raise UnsafeTelegramPayload("partial owner report is unsafe or too large")
+            return TelegramRichMessage(html)
+        if report.total_asset_krw <= 0:
+            raise UnsafeTelegramPayload("partial current total must be positive")
+    elif report.quality_status != "pass":
         raise UnsafeTelegramPayload("owner report quality is not allowlisted")
     if report.total_asset_krw is None or report.total_asset_krw <= 0:
         raise UnsafeTelegramPayload("owner report requires a positive total")
-    if report.total_change_krw is None or report.total_change_percent is None:
+    if not comparison_unavailable and (
+        report.total_change_krw is None or report.total_change_percent is None
+    ):
         raise UnsafeTelegramPayload("owner report requires exact change values")
-    if not report.total_change_percent.is_finite() or abs(report.total_change_percent) > Decimal("1000"):
+    if report.total_change_percent is not None and (
+        not report.total_change_percent.is_finite() or abs(report.total_change_percent) > Decimal("1000")
+    ):
         raise UnsafeTelegramPayload("owner report change percentage is unsafe")
     assets = _validate_allocations(report.asset_allocations, allowed=_ASSET_LABELS, field="asset_allocations")
     accounts = _validate_allocations(
@@ -368,15 +478,22 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
         if abs(item.percent - expected) > Decimal("0.02"):
             raise UnsafeTelegramPayload("allocation percentage does not reconcile to value")
 
-    change_prefix = "+" if report.total_change_percent > 0 else ""
-    summary_rows = (
-        ("총자산", _format_krw(report.total_asset_krw), None),
-        (
-            "전일대비",
-            _format_krw(report.total_change_krw, signed=True),
-            f"{change_prefix}{report.total_change_percent.quantize(Decimal('0.01')):.2f}%",
-        ),
-    )
+    if comparison_unavailable:
+        summary_rows = (
+            ("총자산", _format_krw(report.total_asset_krw), None),
+            ("전일대비", "비교 불가", None),
+        )
+    else:
+        assert report.total_change_krw is not None and report.total_change_percent is not None
+        change_prefix = "+" if report.total_change_percent > 0 else ""
+        summary_rows = (
+            ("총자산", _format_krw(report.total_asset_krw), None),
+            (
+                "전일대비",
+                _format_krw(report.total_change_krw, signed=True),
+                f"{change_prefix}{report.total_change_percent.quantize(Decimal('0.01')):.2f}%",
+            ),
+        )
     account_rows = tuple(
         (item.label.upper(), _format_krw(item.value_krw), f"{item.percent:.2f}%")
         for item in accounts
@@ -405,7 +522,7 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
     if len(report.top_impacts) > 5:
         raise UnsafeTelegramPayload("owner report can contain at most five holding impacts")
     previous_magnitude: int | None = None
-    prior_total = report.total_asset_krw - report.total_change_krw
+    prior_total = report.total_asset_krw - (report.total_change_krw or 0)
     if report.top_impacts and prior_total <= 0:
         raise UnsafeTelegramPayload("owner report contributions require a positive prior total")
     for index, item in enumerate(report.top_impacts, start=1):
@@ -433,6 +550,10 @@ def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichM
         chart_contributions.append(ChartContribution(symbol, item.change_krw, item.impact_percent_points))
     if top_rows:
         lines.append(f"<pre>{escape(chr(10).join(top_rows))}</pre>")
+    if comparison_unavailable:
+        lines.extend((
+            "", "<b>전일 비교</b>", escape(" · ".join(dict.fromkeys(partial_reasons))),
+        ))
     lines.extend(("", "해외 자산은 환율 효과를 포함한 원화 평가액입니다.", f"{source_at:%Y-%m-%d %H:%M} · KST"))
     caption = "\n".join(lines)
     if len(caption) > 1000 or _ACCOUNT_NUMBER.search(caption):

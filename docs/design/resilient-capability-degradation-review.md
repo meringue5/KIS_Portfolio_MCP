@@ -82,8 +82,8 @@ does not send a message. It adds an explicitly scoped `verified_krw_listed_posit
 `total_value_krw` when complete coverage is not established.
 
 The release candidate now uses the shared application quality composer for MCP and Telegram. Owner presentation
-`2.3.0` has four outcomes: complete photo, complete current total without comparison, scoped KRX/KRW listed-position
-Rich Message, and value-free unavailable. `get-data-quality` aggregates actual rule statuses, and the owned-portfolio
+`2.4.0` has four outcomes: complete comparison photo, complete current-only photo with the same allocation layout,
+scoped KRX/KRW listed-position Rich Message, and value-free unavailable. `get-data-quality` aggregates actual rule statuses, and the owned-portfolio
 `get-pipeline-run` is partial when a succeeded run lacks linked quality evidence. The generic envelope remains a
 transport helper; callers with governed row quality must supply their composed status.
 

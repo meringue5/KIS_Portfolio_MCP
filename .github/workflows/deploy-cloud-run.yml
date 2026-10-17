@@ -38,6 +38,7 @@ on:
           - wi068
           - wi070
           - wi075
+          - wi076
           - wi046-stage
           - wi046-candidate-resume
           - wi046-auth-candidate
@@ -151,6 +152,7 @@ jobs:
       KOREA_EXIM_API_KEY_VERSION: ${{ vars.KOREA_EXIM_API_KEY_VERSION || '1' }}
       KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED: ${{ vars.KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED || 'false' }}
       KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED: ${{ vars.KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED || 'false' }}
+      KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED: ${{ vars.KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED || 'false' }}
       KIS_TELEGRAM_OWNER_DESTINATION_APPROVED: ${{ vars.KIS_TELEGRAM_OWNER_DESTINATION_APPROVED || 'false' }}
       SEC_EDGAR_USER_AGENT: ${{ vars.SEC_EDGAR_USER_AGENT }}
       KIS_DEPLOY_SECRET_MODE: secret-manager
@@ -457,6 +459,15 @@ jobs:
         if: github.event.inputs.target == 'wi075'
         run: |
           uv run python scripts/deploy_cloud_run.py wi075 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI030_S03_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-076 three-slot held-signal status
+        if: github.event.inputs.target == 'wi076'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi076 \
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --job "${KIS_WI030_S03_JOB_NAME}" \

@@ -366,6 +366,7 @@ def _build_v2_pipeline_env(env: dict[str, str], project: str) -> dict[str, str]:
         "KIS_TELEGRAM_REAL_USE_ENABLED",
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED",
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED",
+        "KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED",
         "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED",
         "KIS_TELEGRAM_DESTINATION_REF",
     ):
@@ -2415,6 +2416,8 @@ def _deploy_wi055_s01(
     project: str,
     deploy_label: str = "wi055-s01-owner-report",
     smoke_label: str = "wi055-s01-photo-transport-smoke",
+    signal_slot_report_enabled: bool = False,
+    smoke_command_name: str = "send-telegram-photo-transport-smoke",
 ) -> int:
     """Atomically replace the legacy digest with the approved owner-only photo report."""
     for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
@@ -2447,7 +2450,7 @@ def _deploy_wi055_s01(
             "--image", image, "--region", args.region,
             "--env-vars-file", smoke_env_path,
             "--command", "kis-portfolio-batch",
-            "--args", "send-telegram-photo-transport-smoke",
+            "--args", smoke_command_name,
             "--tasks", "1", "--parallelism", "1",
             "--task-timeout", "120s", "--max-retries", "0",
             "--service-account", service_account,
@@ -2475,6 +2478,11 @@ def _deploy_wi055_s01(
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED": "false",
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED": "true",
         "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED": "true",
+        "KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED": (
+            "true" if signal_slot_report_enabled else report_env.get(
+                "KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED", "false"
+            )
+        ),
         "KIS_TELEGRAM_DESTINATION_REF": "dest.owner.primary",
     })
     return _deploy_v2_core_jobs(
@@ -2499,6 +2507,24 @@ def _deploy_wi055_s03(
         project=project,
         deploy_label="wi055-s03-top5-impact",
         smoke_label="wi055-s03-photo-transport-smoke",
+    )
+
+
+def _deploy_wi076(
+    args: argparse.Namespace,
+    *,
+    env: dict[str, str],
+    project: str,
+) -> int:
+    """Release one consolidated held-signal status at every governed slot."""
+    return _deploy_wi055_s01(
+        args,
+        env=env,
+        project=project,
+        deploy_label="wi076-three-slot-signal-status",
+        smoke_label="wi076-rich-transport-smoke",
+        signal_slot_report_enabled=True,
+        smoke_command_name="send-telegram-rich-transport-smoke",
     )
 
 
@@ -3804,6 +3830,7 @@ def main() -> int:
             "wi068",
             "wi070",
             "wi075",
+            "wi076",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -4085,6 +4112,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi075(args, env=env, project=project)
+
+    if args.target == "wi076":
+        if not project:
+            print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi076(args, env=env, project=project)
 
     if args.target == "wi046-stage":
         if not project:

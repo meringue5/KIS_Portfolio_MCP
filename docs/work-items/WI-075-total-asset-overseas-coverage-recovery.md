@@ -80,7 +80,10 @@ five overseas positions worth roughly KRW 249.6 million were absent. The 16:00 o
 
 ## Sub-items
 
-- `none`.
+- `WI-075-S01` (`verified`, release pending): when the current total is complete but the prior same-slot comparison is unavailable,
+  preserve the full owner photo layout and current total/account/asset allocations. Replace only D/D and Top 5 with
+  an explicit comparison-unavailable state. This corrects the owner-visible presentation without weakening the
+  current-state completeness gate or inventing a comparison.
 
 ## Stabilization plan
 

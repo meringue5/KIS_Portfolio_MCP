@@ -2,7 +2,7 @@
 
 > 상태: S01 closed; DEC-050 transport canary S02 and DEC-051/052/053 production-value S03 in progress
 > Work Item: WI-030-S01 / WI-030-S02 / WI-030-S03
-> Data contracts: `pipeline.telegram-delivery-v2:1.4.0`, `dataset.alert-candidate:1.3.0`, `dataset.alert-delivery-ledger:1.2.0`
+> Data contracts: `pipeline.telegram-delivery-v2:1.5.0`, `dataset.alert-candidate:1.3.0`, `dataset.alert-delivery-ledger:1.2.0`
 
 ## Boundary
 
@@ -17,6 +17,13 @@ approved point-in-time candidate
   -> leased telegram claim
   -> one sendRichMessage attempt
   -> redacted terminal/retryable ledger outcome
+
+completed date-slot evaluation
+  -> reconcile evaluated / changed / active / quality-suppressed counts
+  -> bounded consolidated Rich Message
+  -> one date-slot pipeline evidence claim
+  -> one sendRichMessage attempt
+  -> redacted terminal outcome
 ```
 
 S01 makes this path executable in offline tests. DEC-050 authorizes S02 to add one immutable external canary rule for
@@ -118,12 +125,19 @@ ledger is the non-secret alias `dest.owner.primary`, never the Telegram chat ID.
 There is no in-process retry. One monitoring run processes at most 20 eligible claims, and Cloud Run Job infrastructure
 retry remains zero.
 
+DEC-063 adds one independently flagged consolidated status operation after detailed delivery. It is not a replacement
+candidate and does not reacquire or repeat detailed alert claims. Every 10:00, 14:30 and 16:00 date-slot reports the
+current pass-quality watch-or-higher set and says `신규 변화 0건` when no delivery-required transition occurred.
+The status body is not persisted; the existing pipeline evidence stores only counts, hashes and provider outcome.
+An interrupted send is terminal unknown, and the date-slot is not sent again automatically.
+
 ## Secret and release contract
 
 - `KIS_TELEGRAM_BOT_TOKEN`: GCP Secret Manager; V2 pipeline identity only after S02.
 - `KIS_TELEGRAM_CHAT_ID`: GCP Secret Manager; V2 pipeline identity only after owner destination verification.
 - `KIS_TELEGRAM_DESTINATION_REF`: non-secret opaque alias; must not encode the chat ID.
 - `KIS_TELEGRAM_DELIVERY_ENABLED`: defaults to `false`; S02 release manifest changes it to `true`.
+- `KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED`: defaults to `false`; DEC-063 enables one consolidated report per governed slot.
 - `KIS_TELEGRAM_CANARY_ENABLED` and `KIS_TELEGRAM_REAL_USE_ENABLED`: mutually exclusive producers. S03 sets the
   former to `false` and the latter to `true`; an invalid simultaneous configuration fails before collection.
 

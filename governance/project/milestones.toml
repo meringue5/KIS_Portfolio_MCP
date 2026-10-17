@@ -159,7 +159,7 @@ overlap_work_item_ids = []
 overlap_mode = "none"
 stabilization_exit_work_item_ids = ["WI-059", "WI-070"]
 rollback_policy = "append_only_feedback"
-work_item_ids = ["WI-059", "WI-070"]
+work_item_ids = ["WI-059", "WI-070", "WI-076"]
 
 [[milestones]]
 id = "MS-007"
@@ -863,6 +863,25 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 22
+
+[[work_items]]
+id = "WI-076"
+identity = "three-slot-held-signal-status"
+title = "Deliver held-position signal status at all three governed slots"
+milestone_id = "MS-006"
+delivery_refs = []
+depends_on = ["WI-070"]
+discovered_from = ["WI-070", "WI-030"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 3
+
+[[subitems]]
+id = "WI-075-S01"
+parent_id = "WI-075"
+title = "Keep the complete current owner-report layout when comparison is unavailable"
+status = "verified"
 
 [[subitems]]
 id = "WI-060-S01"

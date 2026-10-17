@@ -6,7 +6,9 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import duckdb
+import pytest
 
+from kis_portfolio.adapters.outbound.telegram import TelegramSendResult
 from kis_portfolio.adapters.outbound.instrument_warehouse import InstrumentWarehouseRepository
 from kis_portfolio.adapters.outbound.v2_warehouse import V2WarehouseRepository
 from kis_portfolio.platform.migrations import MigrationRunner
@@ -20,9 +22,30 @@ from kis_portfolio.services.shadow_alerts import (
     run_external_real_use_signal_evaluation,
     run_shadow_signal_evaluation,
 )
+from kis_portfolio.services.signal_slot_report import (
+    SignalSlotReportConfig,
+    run_signal_slot_report,
+)
+from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig
 
 
 LOGICAL_DATE = date(2026, 8, 28)
+
+
+class _SlotReportClient:
+    def __init__(self, *, crash: bool = False) -> None:
+        self.crash = crash
+        self.messages = []
+
+    def send_rich_message(self, *, bot_token, chat_id, message):
+        self.messages.append(message)
+        if self.crash:
+            raise SystemExit("simulated post-send crash")
+        return TelegramSendResult("sent", response_ref="telegram-message:slot-report")
+
+
+def _telegram_config() -> TelegramDeliveryConfig:
+    return TelegramDeliveryConfig(enabled=True, bot_token="test-token", chat_id="test-chat")
 
 
 def _warehouse(
@@ -276,6 +299,100 @@ def test_permanent_rule_has_no_expiry_and_initial_active_state_is_baseline_only(
         "SELECT transition_type,delivery_required FROM control.alert_state_revisions"
     ).fetchone()
     assert transition == ("entered", False)
+    connection.close()
+
+
+def test_slot_report_sends_active_baseline_with_explicit_zero_change_once() -> None:
+    logical_date = date(2026, 10, 13)
+    connection = _warehouse(logical_date=logical_date)
+    evaluation = run_external_permanent_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+    client = _SlotReportClient()
+
+    first = run_signal_slot_report(
+        connection,
+        logical_date=logical_date,
+        source_slot="kr-1600",
+        evaluation=evaluation,
+        config=SignalSlotReportConfig(enabled=True),
+        telegram_config=_telegram_config(),
+        client=client,
+    )
+    replay = run_signal_slot_report(
+        connection,
+        logical_date=logical_date,
+        source_slot="kr-1600",
+        evaluation=evaluation,
+        config=SignalSlotReportConfig(enabled=True),
+        telegram_config=_telegram_config(),
+        client=client,
+    )
+
+    assert first == {
+        "status": "completed", "run_id": first["run_id"], "reused": False, "outcome": "sent",
+        "evaluated_count": 1, "changed_count": 0, "active_count": 1,
+        "quality_suppressed_count": 0,
+    }
+    assert replay["reused"] is True and replay["outcome"] == "sent"
+    assert len(client.messages) == 1
+    html = client.messages[0].html
+    assert "보유종목 시그널 · 오후 4시" in html
+    assert "신규 변화" in html and "신규 변화 0건" in html
+    assert "Synthetic -10.00%" in html and "급락" in html and "유지" in html
+    evidence = connection.execute(
+        "SELECT evidence FROM control.pipeline_stage_runs WHERE stage_name='send-slot-report'"
+    ).fetchone()[0]
+    assert "test-chat" not in str(evidence) and "test-token" not in str(evidence)
+    connection.close()
+
+
+def test_slot_report_seals_ambiguous_send_and_rejects_unreconciled_evaluation() -> None:
+    logical_date = date(2026, 10, 13)
+    connection = _warehouse(logical_date=logical_date)
+    evaluation = run_external_permanent_signal_evaluation(
+        connection, logical_date=logical_date, source_slot="kr-1600"
+    )
+    crashed = _SlotReportClient(crash=True)
+    with pytest.raises(SystemExit):
+        run_signal_slot_report(
+            connection,
+            logical_date=logical_date,
+            source_slot="kr-1600",
+            evaluation=evaluation,
+            config=SignalSlotReportConfig(enabled=True),
+            telegram_config=_telegram_config(),
+            client=crashed,
+        )
+    replacement = _SlotReportClient()
+    recovered = run_signal_slot_report(
+        connection,
+        logical_date=logical_date,
+        source_slot="kr-1600",
+        evaluation=evaluation,
+        config=SignalSlotReportConfig(enabled=True),
+        telegram_config=_telegram_config(),
+        client=replacement,
+    )
+    assert recovered["outcome"] == "unknown" and recovered["reused"] is True
+    assert len(crashed.messages) == 1 and not replacement.messages
+
+    second = _warehouse(logical_date=logical_date)
+    other_evaluation = run_external_permanent_signal_evaluation(
+        second, logical_date=logical_date, source_slot="kr-1600"
+    )
+    with pytest.raises(RuntimeError, match="does not reconcile"):
+        run_signal_slot_report(
+            second,
+            logical_date=logical_date,
+            source_slot="kr-1600",
+            evaluation={**other_evaluation, "candidate_count": 2},
+            config=SignalSlotReportConfig(enabled=True),
+            telegram_config=_telegram_config(),
+            client=replacement,
+        )
+    assert not replacement.messages
+    second.close()
     connection.close()
 
 

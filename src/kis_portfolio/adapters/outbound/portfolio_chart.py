@@ -166,8 +166,8 @@ def _money(value: int) -> str:
 def render_portfolio_chart(
     *,
     total_asset_krw: int,
-    change_krw: int,
-    change_percent: Decimal,
+    change_krw: int | None,
+    change_percent: Decimal | None,
     asset_allocations: tuple[ChartAllocation, ...],
     account_allocations: tuple[ChartAllocation, ...],
     contributions: tuple[ChartContribution, ...] = (),
@@ -179,15 +179,18 @@ def render_portfolio_chart(
     canvas.rect(32, 28, 1136, 1024, _PANEL)
     canvas.text(64, 58, "TOTAL ASSET", scale=6, color=_TEXT)
     canvas.text(64, 120, _money(total_asset_krw), scale=6, color=_TEXT)
-    change_prefix = "+" if change_krw > 0 else ""
-    change_color = _GREEN if change_krw >= 0 else _RED
-    canvas.text(
-        64,
-        182,
-        f"D/D {change_prefix}{_money(change_krw)} ({change_prefix}{change_percent:.2f}%)",
-        scale=3,
-        color=change_color,
-    )
+    if change_krw is None or change_percent is None:
+        canvas.text(64, 182, "D/D COMPARISON UNAVAILABLE", scale=3, color=_MUTED)
+    else:
+        change_prefix = "+" if change_krw > 0 else ""
+        change_color = _GREEN if change_krw >= 0 else _RED
+        canvas.text(
+            64,
+            182,
+            f"D/D {change_prefix}{_money(change_krw)} ({change_prefix}{change_percent:.2f}%)",
+            scale=3,
+            color=change_color,
+        )
 
     canvas.text(64, 265, "ASSET MIX", scale=4, color=_MUTED)
     canvas.donut(235, 500, 150, 82, asset_allocations)
@@ -210,7 +213,11 @@ def render_portfolio_chart(
         canvas.text(690, y + 58, _money(item.value_krw), scale=2, color=_MUTED)
 
     canvas.rect(64, 752, 1072, 2, (51, 65, 85))
-    canvas.text(64, 782, "TOP 5 TOTAL-ASSET IMPACT", scale=4, color=_MUTED)
+    canvas.text(
+        64, 782,
+        "TOP 5 TOTAL-ASSET IMPACT" if change_krw is not None else "COMPARISON UNAVAILABLE",
+        scale=4, color=_MUTED,
+    )
     canvas.text(64, 824, "HOLDING", scale=2, color=_MUTED)
     canvas.text(260, 824, "KRW CHANGE", scale=2, color=_MUTED)
     canvas.text(970, 824, "IMPACT", scale=2, color=_MUTED)
@@ -233,7 +240,8 @@ def render_portfolio_chart(
             970, y, f"{impact_sign}{item.impact_percent_points:.2f}%P", scale=2, color=color,
         )
     if not contributions:
-        canvas.text(430, 910, "NO MATERIAL HOLDING CHANGE", scale=3, color=_MUTED)
+        empty_label = "NO MATERIAL HOLDING CHANGE" if change_krw is not None else "CURRENT ALLOCATION ONLY"
+        canvas.text(430, 910, empty_label, scale=3, color=_MUTED)
     return canvas.png()
 
 

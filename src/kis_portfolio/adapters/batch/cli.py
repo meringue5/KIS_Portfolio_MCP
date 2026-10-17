@@ -37,6 +37,7 @@ from kis_portfolio.services.shadow_alerts import (
     run_external_real_use_signal_evaluation,
     run_shadow_signal_evaluation,
 )
+from kis_portfolio.services.signal_slot_report import run_signal_slot_report
 from kis_portfolio.services.position_reconstruction_runtime import (
     build_reconstruction_execution_plan,
 )
@@ -422,6 +423,13 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
                 get_connection(), logical_date=logical_date, source_slot=args.slot,
             )
         result["telegram_delivery"] = run_telegram_delivery(get_connection())
+        if real_use_enabled:
+            result["signal_slot_report"] = run_signal_slot_report(
+                get_connection(),
+                logical_date=logical_date,
+                source_slot=args.slot,
+                evaluation=result["telegram_real_use"],
+            )
         result["total_asset_digest"] = run_total_asset_digest(
             get_connection(), logical_date=logical_date, slot=args.slot, config=legacy_digest_config,
         )
