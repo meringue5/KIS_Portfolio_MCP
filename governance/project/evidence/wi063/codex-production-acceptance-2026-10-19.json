@@ -1,0 +1,370 @@
+{
+  "work_item": "WI-063-S02",
+  "evidence_kind": "actual owner-approved Codex OAuth Remote MCP after protected release",
+  "release_sha": "8ba01d81b5cd0d8c48f8c6a770f4abe55a53341a",
+  "github_run_id": "39144314352",
+  "source_calls": 0,
+  "production_data_mutations": 0,
+  "oracles_passed": 9,
+  "oracles_failed": 0,
+  "cases": [
+    {
+      "name": "old-false-pass",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2020-01-01",
+        "end_date": "2020-01-02",
+        "limit": 20
+      },
+      "expected": [
+        "partial",
+        0,
+        "collection_coverage_gap"
+      ],
+      "passed": true,
+      "request_id": "a637c9975f5c409eae7e3e9b8c3a831a",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2020-01-01",
+        "end_date": "2020-01-02",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [
+              {
+                "start_date": "2020-01-01",
+                "end_date": "2020-01-02"
+              }
+            ],
+            "uncovered_interval_count": 1
+          }
+        ]
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_coverage_before_start",
+          "account_alias": "ria",
+          "market": "KRX"
+        }
+      ]
+    },
+    {
+      "name": "populated",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2026-08-25",
+        "end_date": "2026-08-25",
+        "limit": 20
+      },
+      "expected": [
+        "pass",
+        2,
+        "matched"
+      ],
+      "passed": true,
+      "request_id": "3e1a43b0a7aa41f0ac9915bdc944c19b",
+      "quality": {
+        "status": "pass",
+        "row_count": 2
+      },
+      "query": {
+        "start_date": "2026-08-25",
+        "end_date": "2026-08-25",
+        "result_status": "matched",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing_coverage": []
+    },
+    {
+      "name": "covered-empty",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2026-10-16",
+        "end_date": "2026-10-16",
+        "limit": 20
+      },
+      "expected": [
+        "pass",
+        0,
+        "no_events_in_query_window"
+      ],
+      "passed": true,
+      "request_id": "8d79af522e564b32ba9d05e4293394c9",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-16",
+        "end_date": "2026-10-16",
+        "result_status": "no_events_in_query_window",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing_coverage": []
+    },
+    {
+      "name": "upper-gap",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2026-10-17",
+        "end_date": "2026-10-18",
+        "limit": 20
+      },
+      "expected": [
+        "partial",
+        0,
+        "collection_coverage_gap"
+      ],
+      "passed": true,
+      "request_id": "5b429dbefab44027884e2151db5831dc",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-17",
+        "end_date": "2026-10-18",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [
+              {
+                "start_date": "2026-10-17",
+                "end_date": "2026-10-18"
+              }
+            ],
+            "uncovered_interval_count": 1
+          }
+        ]
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_watermark_before_query_end",
+          "account_alias": "ria",
+          "market": "KRX"
+        }
+      ]
+    },
+    {
+      "name": "brokerage",
+      "args": {
+        "account_alias": "brokerage",
+        "start_date": "2026-10-15",
+        "end_date": "2026-10-15",
+        "limit": 20
+      },
+      "expected": [
+        "pass",
+        0,
+        "no_events_in_query_window"
+      ],
+      "passed": true,
+      "request_id": "02d50177ff614f1ba32dd0ab2d4d0958",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-15",
+        "end_date": "2026-10-15",
+        "result_status": "no_events_in_query_window",
+        "coverage_through": "2026-10-15",
+        "coverage_partitions": [
+          {
+            "account_alias": "brokerage",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "brokerage",
+            "market": "NAS",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-15",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing_coverage": []
+    },
+    {
+      "name": "global",
+      "args": {
+        "start_date": "2026-10-15",
+        "end_date": "2026-10-15",
+        "limit": 20
+      },
+      "expected": [
+        "partial",
+        0,
+        "collection_coverage_gap"
+      ],
+      "passed": true,
+      "request_id": "793300bab73b4ad38bf2b6d3b45d3126",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-15",
+        "end_date": "2026-10-15",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-07-14",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "isa",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "brokerage",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "brokerage",
+            "market": "NAS",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-15",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "irp",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-07-14",
+            "uncovered_intervals": [
+              {
+                "start_date": "2026-10-15",
+                "end_date": "2026-10-15"
+              }
+            ],
+            "uncovered_interval_count": 1
+          },
+          {
+            "account_alias": "pension",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_watermark_before_query_end",
+          "account_alias": "irp",
+          "market": "KRX"
+        }
+      ]
+    },
+    {
+      "name": "invalid-range",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2026-10-18",
+        "end_date": "2026-10-17",
+        "limit": 20
+      },
+      "oracle": "bounded invalid_request; no mutation",
+      "passed": true,
+      "isError": true,
+      "error": "Error executing tool get-trade-ledger: {\"error\":{\"code\":\"invalid_request\",\"detail\":\"request:value_error:Value error, start_date must not be after end_date\",\"exception_type\":\"ValidationError\",\"request_id\":\"7b209656457e4706bf3505e4b4395e5a\",\"visibility\":\"owner_debug\"}}"
+    },
+    {
+      "name": "unaffected-overview",
+      "passed": true,
+      "request_id": "e04ca4f119544181bc4c0225ea2aea4b",
+      "quality": {
+        "status": "pass",
+        "row_count": 32
+      },
+      "freshness": {
+        "status": "available",
+        "as_of": "2026-10-16T07:02:09.956433Z"
+      }
+    },
+    {
+      "name": "retained-pipeline-failure",
+      "passed": true,
+      "request_id": "24934f8cc9c64905b9baf3ecfcb18387",
+      "quality": {
+        "status": "failed",
+        "row_count": 1
+      },
+      "runs": [
+        {
+          "run_id": "30679156-d56d-4b15-8ccb-67b7a7fd9a4d",
+          "pipeline_id": "pipeline.trade-incremental-v2",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-14",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+          "status": "failed",
+          "source_calls": 0,
+          "stage_count": 1,
+          "succeeded_stage_count": 0,
+          "started_at": "2026-10-14T22:35:33.826794+00:00",
+          "finished_at": "2026-10-14T22:35:36.706495+00:00",
+          "quality_evidence_count": 0,
+          "failed_quality_evidence_count": 0
+        }
+      ]
+    }
+  ]
+}

@@ -16,7 +16,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | ---: | --- | --- | --- |
 | 1 | WI-061 real-use completion gate | none | closed |
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
-| 3 | WI-063 incremental trade-event collection | WI-062 | stabilizing |
+| 3 | WI-063 incremental trade-event collection | WI-062 | closed; owner accepted 2026-10-19 |
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | stabilizing; production/actual OAuth verified, owner acceptance pending |
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
 | 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
@@ -83,3 +83,7 @@ gaps found there must be classified and routed to an owned follow-up.
 - 2026-10-18: WI-064 PR #166 / workflow 39105328346 applied the source-preserving 0022 projection repair. Direct OAuth 4→2 and production 300→281/19→0 reconcile; owner acceptance remains pending without replacing the Work Item or rewinding the milestone.
 
 | 2026-10-19.1 | 2026-10-19 | Actual OAuth 2020 false pass exposed missing lower-bound and gap proof; WI-063-S02 validates exact source/quality/publish intervals and preserves watermark monotonicity | Append same-outcome corrective sub-item; verified repository phase, parent remains stabilizing; protected patch release and owner acceptance pending |
+
+| 2026-10-19.2 | 2026-10-19 | Owner approved PR #168 merge and protected wi063-s02 release; run 39144314352 passed, both Remote routes converge and actual Codex OAuth passes 9/9 including 2020 partial | S02 stabilizing; parent/S01 preserve history and await owner result acceptance; no source replay, DDL or unrelated closure |
+
+| 2026-10-19.3 | 2026-10-19 | Owner explicitly accepted deployed OAuth 9/9, bounded recurring sample and preserved source/failure evidence, and approved publishing closeout | Close WI-063/S01/S02 only; retain original identities and all failure history; MS-008 and unrelated acceptance gates remain unchanged |

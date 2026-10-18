@@ -1,0 +1,33 @@
+{
+  "work_item": "WI-063",
+  "subitems": [
+    "WI-063-S01",
+    "WI-063-S02"
+  ],
+  "date_kst": "2026-10-19",
+  "evidence_kind": "explicit owner acceptance in this chat after deployed results were presented",
+  "owner_statement": "네 인수하고 정리합시다",
+  "accepted_result": {
+    "production_release": "39144314352",
+    "release_sha": "8ba01d81b5cd0d8c48f8c6a770f4abe55a53341a",
+    "actual_codex_oauth_oracles": "9/9 pass",
+    "old_2020_window": "partial with exact uncovered interval",
+    "ria_2026_08_25": "two rows/pass",
+    "source_reference_tables": "12 unchanged fingerprints",
+    "runtime_sample": "KST 10/14..16; domestic three successes; overseas two successes and one retained explained HTTP 500 failure, later independent source proof and no legacy/new overlap"
+  },
+  "accepted_limits": [
+    "IRP recent history stays a named source gap; global queries remain partial",
+    "Historical source failures remain visible; later success does not rewrite them",
+    "No fabricated pre-2023-08-28 coverage or internal gap closure",
+    "Ongoing source operation does not make all history complete"
+  ],
+  "authorization": "owner accepts these results and authorizes publishing the post-release operational/OAuth evidence and closeout to the same meringue5/KIS_Portfolio_MCP GitHub repository",
+  "status": "closed",
+  "new_source_calls": 0,
+  "new_ddl": 0,
+  "new_production_deployment": 0,
+  "unrelated_work_items_changed": false,
+  "rollback": "retained prior Job definitions and Remote stable/compatibility revisions; preserve immutable observations and failed run evidence",
+  "remaining_exit_conditions": []
+}

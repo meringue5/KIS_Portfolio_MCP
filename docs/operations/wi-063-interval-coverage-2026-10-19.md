@@ -1,8 +1,8 @@
 # WI-063-S02 interval coverage correction — 2026-10-19
 
-The lower-bound false pass is fixed in the candidate reader. Production is still on the pre-correction image;
-this package is repository verification and protected-release preparation, not corrected production acceptance.
-The parent WI-063 and its scheduler correction S01 remain stabilizing. S02 is verified in isolated scope.
+The lower-bound false pass is fixed and deployed through the owner-approved protected release. Actual Codex OAuth
+passes all nine post-release oracles. The owner explicitly accepted the corrected results and explained recurring
+sample on 2026-10-19; WI-063, S01 and S02 are closed. The candidate/baseline sections below preserve pre-release evidence.
 
 ## Independent oracles and implementation
 
@@ -128,3 +128,50 @@ build, two image updates, Remote image update and stable/tag promotion; it perfo
 [Validation summary](../../governance/project/evidence/wi063/validation-2026-10-19.json) and
 [dry-run transcript](../../governance/project/evidence/wi063/release-dry-run-2026-10-19.log) retain the commands
 and distinguish local/candidate verification from post-release client acceptance.
+
+
+## Executed protected release and actual OAuth — 2026-10-19
+
+Owner approval: explicit “네 배포해요” in this chat. PR #168 merged `8ba01d81b5cd0d8c48f8c6a770f4abe55a53341a`;
+[protected run 39144314352](https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/39144314352) succeeded.
+The release reran the full gate: **908 passed**, one existing Authlib warning, 142.29s. Both trade Jobs and Remote
+share digest `sha256:f2099627e6936013a471b05eaa525e7a27ffd67ac467c72a4d8d24deaa19cd39`. Stable traffic
+and `wi046-v2` point to `kis-portfolio-remote-00064-ndw`; other tags are retained. Label/SHA/run identity, unchanged
+non-image settings, eight Scheduler configurations and unchanged latest Job execution IDs were verified independently.
+All 12 source/reference fingerprints, 281 current trades, 19 identity aliases and schema ceiling 0022 are unchanged.
+
+Actual approved Codex OAuth [9/9 oracles](../../governance/project/evidence/wi063/codex-production-acceptance-2026-10-19.json):
+
+| Case | Observed result |
+| --- | --- |
+| RIA 2020-01-01..02 | 0 rows, partial, collection_coverage_before_start, exact 2020 uncovered interval |
+| RIA 8/25 | 2 rows/pass/matched |
+| RIA 10/16 | empty/pass/no uncovered interval |
+| RIA 10/17..18 | partial upper gap |
+| Brokerage 10/15 | empty/pass with KRX and NAS proof |
+| Global 10/15 | partial for IRP KRX; other accounts retain their own coverage |
+| Inverted date range | bounded invalid_request |
+| Portfolio overview | available/pass, 32 rows |
+| Retained failed run 30679156… | failed/visible, not rewritten as successful |
+
+The 2020 corrected request is `a637c9975f5c409eae7e3e9b8c3a831a`. This is post-release actual transport proof,
+separate from prior candidate reads and fixture passes. The release executes no source Job, backfill, DDL/migration,
+Scheduler/secret change or external send. [Release summary](../../governance/project/evidence/wi063/protected-production-release-2026-10-19.json)
+and [resource comparison](../../governance/project/evidence/wi063/production-resources-2026-10-19.json) preserve deployment and data evidence.
+
+Remaining exit is owner acceptance of these displayed corrected results and the already-explained recurring sample.
+S02 advances to stabilizing; parent/S01 stay stabilizing. No new Claude or mandatory future-slot wait is introduced.
+
+
+## Owner-accepted closure — 2026-10-19
+
+The owner replied “네 인수하고 정리합시다” after the deployed 9/9 results and source-preservation outcome were
+presented, accepting the results and authorizing publication of these post-release operational/OAuth evidence files
+to the same repository. [Acceptance record](../../governance/project/evidence/wi063/owner-acceptance-2026-10-19.json)
+closes WI-063 and both corrective sub-items. Earlier pending-acceptance statements above are historical snapshots.
+Recent IRP remains an explicit unsupported-source gap; the overseas HTTP 500 remains failed history with its later
+independent coverage proof. Owner acceptance does not turn either into fabricated successful coverage.
+
+Existing Jobs/Schedulers and owner retain monitoring responsibility and source-preserving rollback; no source run,
+DDL, notification or additional deployment is part of closeout. Other Work Items/milestones and the original dirty
+shared checkout are preserved. The isolated managed worktree can be archived after the evidence/closeout PR merges.
