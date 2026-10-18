@@ -1,0 +1,29 @@
+{
+  "work_item": "WI-064",
+  "evidence_kind": "direct-production-read-only-post-release-audit",
+  "observed_at": "2026-10-18T06:56:02.532984+00:00",
+  "migration_ceiling": "0022",
+  "before_current_rows": 300,
+  "after_current_rows": 281,
+  "source_proven_alias_links": 19,
+  "remaining_duplicate_candidates": 0,
+  "unchanged_data_table_fingerprints": 12,
+  "preserved_reference_counts": {
+    "bronze.source_observations": 43455,
+    "silver.trade_events": 300,
+    "silver.trade_event_revisions": 300,
+    "silver.cash_flow_events": 77,
+    "silver.cash_flow_event_revisions": 77,
+    "silver.purchase_lots": 19,
+    "silver.trade_threads": 19,
+    "silver.trade_thread_lots": 19,
+    "silver.trade_journal_revisions": 3,
+    "silver.purchase_lot_identities": 0,
+    "silver.sell_allocation_sets": 0,
+    "silver.sell_allocation_revisions": 0
+  },
+  "untouched_current_events_preserved": 262,
+  "current_lots_exactly_preserved": true,
+  "cash_current_rows": 77,
+  "historical_source_and_revision_ids_resolve": true
+}

@@ -36,7 +36,7 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
 registry의 **80 tables + 28 views = 108 objects**를 관리한다. repository migration ceiling은 `0022`이며,
-운영 V2는 checksum migration `0021`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
+운영 V2는 checksum migration `0022`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
 
@@ -302,7 +302,7 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 
 ### Managed V2 production register
 
-Canonical production은 migration `0021`까지 적용됐다. 초기 WI-048의 `0019` release는 private pre/post backup,
+Canonical production은 migration `0022`까지 적용됐다. 초기 WI-048의 `0019` release는 private pre/post backup,
 fresh restore와 reference reconciliation을 통과했고 후속 WI-066/WI-068도 개별 복구 증거를 보존한다.
 아래 항목은 날짜별 append-only release history이며,
 초기 migration 번호를 현재 ceiling으로 해석하지 않는다.
@@ -345,7 +345,7 @@ WI-068 protected release 2026-10-13 applied `0021`: 27 append-only reference/cov
 Pre/post private backup and fresh restore plus unchanged state/quarantine verified in
 [release evidence](../governance/project/evidence/wi068/protected-release-2026-10-13.json).
 
-### WI-064 executed-order identity repair (0022, local verification; production pending)
+### WI-064 executed-order identity repair (0022, production verified 2026-10-18)
 
 `silver.trade_event_identity_aliases` is a confidential, rebuild-only view (one historical source trade identity,
 key `source_trade_event_id`) implementing the existing `dataset.trade-event` order natural key. It links only
@@ -366,3 +366,5 @@ Order-query replay is idempotent. A later changed aggregate appends the next rev
 Bronze without replacing newer state. Explicit revision replay must match immutable facts. The immutable base event
 is not reinserted for a correction. Backup tables remain unchanged; migration-prefix restore rebuilds the alias view.
 [WI-064 rehearsal and release plan](operations/wi-064-identity-repair-2026-10-18.md) owns operational evidence.
+
+WI-064 protected workflow `39105328346` applied `0022` on 2026-10-18. This changes rebuild-only trade identity/current-lot projections and preserves every source/revision/reference table: 300→281 current events, 19 proven aliases, no remaining duplicate candidates. Pre/post complete private backup/fresh restore preserved all 79 data-table fingerprints. Both existing trade Job images were updated; Remote routes and Scheduler definitions were preserved. Actual Codex OAuth positive/partial/error passed; owner acceptance remains in WI-064.

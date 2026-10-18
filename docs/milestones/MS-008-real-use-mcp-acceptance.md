@@ -17,7 +17,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 1 | WI-061 real-use completion gate | none | closed |
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
 | 3 | WI-063 incremental trade-event collection | WI-062 | stabilizing |
-| 4 | WI-064 trade-event business-key deduplication | WI-063 | verified; approved production release in progress |
+| 4 | WI-064 trade-event business-key deduplication | WI-063 | stabilizing; production/actual OAuth verified, owner acceptance pending |
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
 | 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
 | 7 | WI-067 calendar-aware pipeline run status | WI-066 | closed |
@@ -79,3 +79,5 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-10-14.1 | 2026-10-14 | PR #149/merge `fa4a1ead`, protected run `38342496464`, Remote `00060-6ts`, direct Codex positive/real-partial/error and owner-Claude PASS completed WI-067 acceptance; owner noted slot-coverage versus run-health and evidence-time semantics plus non-blocking diagnostic limits | Close WI-067 independently of WI-068; clarify read-model 1.2.1 without changing runtime behavior, and retain per-run missing-coverage identity as a separately approved enhancement |
 
 - 2026-10-18: owner prioritized existing WI-064 and approved its normal PR/CI/production release. The original shared checkout preserves blocked WI-072 and other uncommitted artifacts; they are not bundled in this isolated release. No identity/dependency renumbering or milestone rewind.
+
+- 2026-10-18: WI-064 PR #166 / workflow 39105328346 applied the source-preserving 0022 projection repair. Direct OAuth 4→2 and production 300→281/19→0 reconcile; owner acceptance remains pending without replacing the Work Item or rewinding the milestone.

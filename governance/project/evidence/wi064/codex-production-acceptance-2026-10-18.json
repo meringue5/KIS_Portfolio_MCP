@@ -1,0 +1,31 @@
+{
+  "work_item": "WI-064",
+  "client": "approved Codex OAuth Remote MCP",
+  "release_sha": "dca956d791ae30bfc547dd5bedecaf3ab7674449",
+  "github_run_id": "39105328346",
+  "positive": {
+    "request_id": "73b10b6a1a524a9b9306194ad2d356f0",
+    "account_alias": "ria",
+    "start_date": "2026-08-25",
+    "end_date": "2026-08-25",
+    "row_count": 2,
+    "quality": "pass",
+    "expected_unique_orders": 2,
+    "matched": true
+  },
+  "partial": {
+    "request_id": "1d95518152484d3ca71ed75142c4e01c",
+    "start_date": "2026-10-17",
+    "end_date": "2026-10-18",
+    "quality": "partial",
+    "reason": "collection_watermark_before_query_end"
+  },
+  "error": {
+    "request_id": "5275f62fc0f549b1bd590c4c53e85a04",
+    "code": "invalid_request",
+    "visibility": "owner_debug",
+    "scenario": "start_date_after_end_date"
+  },
+  "result": "all immediate actual-client scenarios passed",
+  "owner_acceptance": "pending owner review; no closure inferred from release authorization"
+}
