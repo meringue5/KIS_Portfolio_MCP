@@ -1,0 +1,21 @@
+{
+  "work_item": "WI-064",
+  "evidence_kind": "production-backup-local-warehouse-read-port",
+  "actual_oauth_acceptance": false,
+  "rows": 2,
+  "quality": "pass",
+  "events": [
+    {
+      "instrument_id": "v1|KRX|0074K0",
+      "side": "buy",
+      "quantity": "1.0000000000",
+      "price": "16980.00000000"
+    },
+    {
+      "instrument_id": "v1|KRX|495230",
+      "side": "buy",
+      "quantity": "2.0000000000",
+      "price": "30370.00000000"
+    }
+  ]
+}

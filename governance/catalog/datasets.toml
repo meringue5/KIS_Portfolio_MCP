@@ -26,7 +26,7 @@ consumer_ids = ["portfolio reconciliation", "asset overview", "owned-instrument 
 
 [[contracts]]
 id = "dataset.trade-event"
-version = "1.1.0"
+version = "1.1.1"
 status = "approved"
 owner = "owner"
 description = "국내·IRP·해외 주문체결을 정규화한 immutable buy/sell 사건과 reconciliation 상태."
@@ -44,7 +44,7 @@ sensitivity = "confidential"
 retention_policy = "canonical facts retained; initial three-year backfill and no automatic deletion"
 backup_policy = "parquet"
 freshness_slo = "domestic by the post-close run, overseas by the Korean-morning run, IRP gaps reconciled when the delayed source becomes available"
-quality_rules = ["source order identity unique within account and market", "executed quantity and price are never inferred from current average cost", "provisional, actual and reconciliation_exception states are explicit"]
+quality_rules = ["source order identity unique within account and market", "WI-064 source-proven legacy/current aliases implement the existing natural key; immutable ids and revisions retained", "executed quantity and price are never inferred from current average cost", "provisional, actual and reconciliation_exception states are explicit"]
 producer_pipeline_ids = ["pipeline.trade-cash-backfill-v2", "pipeline.trade-incremental-v2"]
 consumer_ids = ["purchase lots", "trade threads", "trade journal review", "realized performance"]
 

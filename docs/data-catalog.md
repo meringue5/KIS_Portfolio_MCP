@@ -35,7 +35,7 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
-registry의 **80 tables + 27 views = 107 objects**를 관리한다. repository migration ceiling은 `0021`이며,
+registry의 **80 tables + 28 views = 108 objects**를 관리한다. repository migration ceiling은 `0022`이며,
 운영 V2는 checksum migration `0021`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
@@ -58,7 +58,7 @@ Bronze를 임의로 직접 조인해 새로운 공식 지표를 만들지 않는
 
 DEC-045에 따라 기존 `main` 객체를 그대로 보존하면서 V2를 explicit checksum migration
 `src/kis_portfolio/platform/sql/0001_v2_foundation.sql`부터
-`0021_legacy_total_reference.sql`까지 additive 생성한다. V2 runtime registry는
+`0022_trade_identity_projection.sql`까지 additive 생성한다. V2 runtime registry는
 `src/kis_portfolio/db/catalog.py`의 `V2_DATA_OBJECTS`가 소유한다.
 Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며 production startup도 DDL을 실행하지
 않는다.
@@ -142,7 +142,7 @@ Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며
 | `control.macro_series_definitions` | exact macro series contract/version/hash, native metadata, rights, attribution과 inactive activation state | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 107개 V2 object는 80 tables + 27 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 108개 V2 object는 80 tables + 28 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.
@@ -344,3 +344,25 @@ uv run python .agent/skills/kis-warehouse-contract/scripts/inspect_portfolio_db.
 WI-068 protected release 2026-10-13 applied `0021`: 27 append-only reference/coverage rows; 25 valued/2 NULL.
 Pre/post private backup and fresh restore plus unchanged state/quarantine verified in
 [release evidence](../governance/project/evidence/wi068/protected-release-2026-10-13.json).
+
+### WI-064 executed-order identity repair (0022, local verification; production pending)
+
+`silver.trade_event_identity_aliases` is a confidential, rebuild-only view (one historical source trade identity,
+key `source_trade_event_id`) implementing the existing `dataset.trade-event` order natural key. It links only
+unambiguous legacy KRX aggregate imports to collected KIS orders with complete matching source order number,
+branch, market/product/account, source date/time, instrument, side, quantity and price. Broker-id encodings must
+agree with that evidence; missing/ambiguous evidence and separate order numbers never collapse. It is derived from
+immutable revisions and Bronze, adding no new source, natural key, retention rule or writable identity store.
+
+`trade_events_current` first selects the latest revision within each immutable source identity, then the latest
+knowledge across its proven aliases. The selected `trade_event_id` remains a real immutable revision ID, while
+`source_trade_event_id` resolves to the legacy source anchor for existing lot references. All old source and revision
+IDs remain in history and can resolve via the alias view. `purchase_lots_current` uses that anchor and selects one
+compatibility lot per order, preferring the legacy lot; base lots, threads, journals and allocations are untouched.
+This is a defect repair under DEC-009/010, not a new key or architecture decision. Existing reconstruction outputs
+are never silently recomputed; any affected derived allocation/lot output requires reviewed replay evidence.
+
+Order-query replay is idempotent. A later changed aggregate appends the next revision; older observations remain in
+Bronze without replacing newer state. Explicit revision replay must match immutable facts. The immutable base event
+is not reinserted for a correction. Backup tables remain unchanged; migration-prefix restore rebuilds the alias view.
+[WI-064 rehearsal and release plan](operations/wi-064-identity-repair-2026-10-18.md) owns operational evidence.

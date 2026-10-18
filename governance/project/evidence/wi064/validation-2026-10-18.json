@@ -1,0 +1,24 @@
+{
+  "work_item": "WI-064",
+  "status": "verified",
+  "production_effects": "none",
+  "quick": "passed",
+  "full": "passed",
+  "tests_passed": 885,
+  "preexisting_warnings": 1,
+  "production_approval": "owner approved in current chat 2026-10-18",
+  "corrected_oauth_acceptance": "pending",
+  "unrelated_changes_staged_or_committed": false,
+  "evidence": [
+    "local-rehearsal-2026-10-18.json",
+    "local-read-port-2026-10-18.json",
+    "protected-runner-rehearsal-2026-10-18.json",
+    "codex-baseline-2026-10-18.json"
+  ],
+  "isolated_master_full": {
+    "base_sha": "1565464",
+    "passed": true,
+    "tests_passed": 876,
+    "preexisting_warnings": 1
+  }
+}

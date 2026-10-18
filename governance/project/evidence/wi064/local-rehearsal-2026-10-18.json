@@ -1,0 +1,37 @@
+{
+  "work_item": "WI-064",
+  "observed_at": "2026-10-18T06:33:35.519498+00:00",
+  "production_mutations": 0,
+  "evidence_kind": "production-backup-fresh-local-restore",
+  "applied_migrations": [
+    "0022"
+  ],
+  "pre_restore_tables": 79,
+  "post_restore_tables": 79,
+  "unchanged_data_table_fingerprints": 79,
+  "source_history_references_preserved": true,
+  "before_current_rows": 300,
+  "after_current_rows": 281,
+  "before_duplicate_candidate_groups": 19,
+  "after_duplicate_candidate_groups": 0,
+  "source_proven_alias_links": 19,
+  "historical_ids_resolve": true,
+  "before_current_lots": 19,
+  "after_current_lots": 19,
+  "preserved_reference_row_counts": {
+    "silver.purchase_lots": 19,
+    "silver.trade_threads": 19,
+    "silver.trade_thread_lots": 19,
+    "silver.trade_journal_revisions": 3,
+    "silver.purchase_lot_identities": 0,
+    "silver.sell_allocation_sets": 0,
+    "silver.sell_allocation_revisions": 0
+  },
+  "cash_rows": 77,
+  "cash_same_economics_candidates": 9,
+  "cash_linked_to_legacy_observations": 0,
+  "rollback_restored_prior_counts": true,
+  "rollback_changed_source_rows": false,
+  "real_client_acceptance": "pending production approval; local replay is not OAuth acceptance",
+  "private_object_bytes": "not included; table/view-only change does not alter object bytes"
+}

@@ -1,7 +1,7 @@
 ---
 id: WI-064
 title: Eliminate duplicate current trade events without erasing source history
-status: proposed
+status: verified
 type: defect
 owner: owner
 decision_refs: DEC-009, DEC-010, DEC-015
@@ -13,15 +13,15 @@ depends_on: WI-063
 discovered_from: WI-063
 supersedes: none
 rollback_of: none
-execution_scope: pending_gate
+execution_scope: isolated
 production_effects: none
-architecture_impact: current-read identity may need a governed business-key projection while Bronze remains append-only
+architecture_impact: none; repair the existing approved executed-order natural key using source-proven aliases, without a new SSOT or grain
 data_impact: preserve all observations and revisions; correct only canonical current-event projection and evidence
 security_impact: no new public identifiers or raw provider payloads
 cost_impact: DB-only diagnosis and projection work expected
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: direct Codex OAuth get-trade-ledger 2026-08-25 ria query on 2026-09-24
+real_use_evidence_refs: governance/project/evidence/wi064/codex-baseline-2026-10-18.json; corrected-production acceptance pending
 ---
 
 # WI-064 — Eliminate duplicate current trade events without erasing source history
@@ -51,8 +51,8 @@ revision projection need a separate review before a user-facing ledger can be ca
 
 ## Acceptance criteria
 
-- [ ] Every candidate duplicate group is classified from governed source fields without exposing account numbers.
-- [ ] Repeated observations resolve to one current economic event while legitimate equal-price fills remain distinct.
+- [x] Every candidate duplicate group is classified from governed source fields without exposing account numbers.
+- [x] Repeated observations resolve to one current economic event while legitimate equal-price fills remain distinct.
 - [ ] Historical and populated-window MCP results reconcile to the corrected Silver projection.
 - [ ] Direct Codex OAuth positive/partial/error scenarios and full repository gate pass.
 
@@ -97,6 +97,54 @@ revision projection need a separate review before a user-facing ledger can be ca
 
 ## Closeout
 
-- Result: proposed; no implementation or production mutation authorized by registration.
+- Result: isolated implementation and local rehearsal; production approval/actual corrected OAuth acceptance pending.
 - Remaining risk: user-facing trade counts may be overstated in affected historical windows.
 - Follow-up Work Item: none.
+
+- 2026-10-18: owner explicitly requested fixing WI-064 within its existing outcome. WI-063 is stabilizing; MS-005 is closed. WI-072 is blocked with preservation/resume conditions, making WI-064 the sole implementation WIP. Existing unrelated checkout changes remain unstaged and preserved. Implementation authorization does not bypass production release approval.
+
+
+### 2026-10-18 implementation and validation
+
+- Owner explicitly prioritized the existing WI-064; no new Work Item/sub-item was created. Classify as a defect:
+  `dataset.trade-event` already defines the executed-order natural key. Its patch contract v1.1.1 clarifies the
+  physical alias implementation without changing natural key, source, retention, trust boundary or public schema.
+- Reconfirmed live 300 current rows, 19 candidate groups/38 rows (RIA 17, ISA 1, pension 1); all eight normalized
+  source order fields present/equal in every pair. Old 3-component and collected 5-component broker identifiers differ.
+- Migration 0022 derives unambiguous source-proven legacy/current identity aliases and repairs current trade/lot
+  views. Historical IDs, revisions, raw payloads and all stored references remain intact. Latest revision is chosen
+  within source identity before latest knowledge across proven aliases; missing/ambiguous evidence never merges.
+- Repository correction fixes the base-event PK conflict on revision >1, keeps immutable base facts and appends
+  later changed aggregate revisions. Replay is idempotent; stale knowledge cannot overwrite newer facts; conflicting
+  explicit revisions/same-knowledge corrections fail. Correction/replay regression fixtures are synthetic.
+- Production backup was exported privately and restored locally at prefix 0021. Rehearsal applies only 0022:
+  current rows 300→281, duplicate candidates 19→0, alias links 19, current compatibility lots 19→19. All 79 data-table
+  count/hash fingerprints match. Threads/links 19 each, journal revisions 3, canonical reconstructed lots and
+  allocation sets/revisions 0; no stored reconstruction is silently rebuilt.
+- Pre/post fresh restore, historical ID resolution and local transactional rollback to 300 rows verified.
+  Private object bytes are not part of table backup; no object metadata/content is changed by this repair.
+- Cash check: 77 events, no links to legacy imported observations. Nine same-economics groups (all fee) are a
+  separate incomplete-identity classification: eight have identical source bytes but distinct record/ordinal IDs;
+  source rows lack broker order identity. They cannot be collapsed by this trade alias rule. Keep the cash monetary
+  SSOT/77 rows intact; no claim that same cash amount or bytes proves duplicate economic events.
+- Actual Codex OAuth baseline still returns four rows/quality pass for the two RIA orders; request
+  `166c22f174674d0fb2bbb34dba977713`. Actual uncovered 2026-10-17..18 returns partial coverage gap
+  (`c9c8caab05894ab9b13d3345bf5a1a32`); reversed dates return invalid_request
+  (`ff574f1a0b614b44b03dda9f40e515a9`). These are baseline evidence, not corrected-production acceptance.
+- An exploratory 2020 empty query returns pass because current coverage tracks only the upper watermark; request
+  `17fa5da18ff144a789d43c7f461f4fde`. Route this lower-bound coverage limitation to the existing WI-063 collection
+  coverage outcome; it is not evidence that 2020 history is complete and does not change this identity repair scope.
+- Local production-backup read-port replay returns the expected two RIA events. See
+  [rehearsal](../../governance/project/evidence/wi064/local-rehearsal-2026-10-18.json),
+  [read-port evidence](../../governance/project/evidence/wi064/local-read-port-2026-10-18.json), and
+  [reviewable production plan](../operations/wi-064-identity-repair-2026-10-18.md).
+- Protected release runner and normal GitHub Actions `wi064` target prepare pre/post private GCS backup/fresh
+  restore, preflight clone verification, migration-only source-preserving reconciliation and prior-view rollback.
+  Only the existing two trade Job images are updated, with exact Job export rollback on failure. Remote OAuth,
+  routes, schedules, held/watchlist operating paths and source activation are unchanged.
+
+- Final isolated gate 2026-10-18: quick passed; full passed **885 tests**, one preexisting Authlib deprecation warning. Protected runner also executed end-to-end on the actual production-backup local clone with an in-memory object store: 281 current rows/19 aliases, 79 table fingerprints preserved, complete pre/post 80-object backup/fresh-restore rounds. This is not a production/GCS or OAuth release claim. Status `verified` leaves production approval and corrected actual-client/owner acceptance open; it does not close WI-064.
+
+- Owner approved remaining WI-064 integration and production reflection in this chat on 2026-10-18. Proceed through the normal isolated PR/CI/master production workflow; preserve unrelated work and collect actual corrected OAuth evidence before closeout.
+
+- Isolated integration on latest master `1565464` passed the full gate: **876 tests**, one existing Authlib warning. Shared-tree 885 included unrelated isolated tests; only WI-064 code/contracts/evidence are included in this release branch. Original checkout/index were not modified by integration.

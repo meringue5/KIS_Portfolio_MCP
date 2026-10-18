@@ -3383,6 +3383,77 @@ def _deploy_wi066(
     return 1
 
 
+def _deploy_wi064(args: argparse.Namespace, *, env: dict[str, str], project: str) -> int:
+    """Repair DB-only read projections, then update only existing trade Job images."""
+    required = ["KIS_DB_MODE", "MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN", "KIS_GCS_BUCKET"]
+    if _validate_required(env, required, secret_mode=args.secret_mode) or env.get("KIS_DB_MODE") != "motherduck":
+        print("WI-064 requires MotherDuck and private recovery bucket configuration.")
+        return 1
+    jobs = [env.get("KIS_TRADE_INCREMENTAL_DOMESTIC_JOB", DEFAULT_TRADE_INCREMENTAL_DOMESTIC_JOB),
+            env.get("KIS_TRADE_INCREMENTAL_OVERSEAS_JOB", DEFAULT_TRADE_INCREMENTAL_OVERSEAS_JOB)]
+    previous_jobs = []
+    if not args.dry_run:
+        for job in jobs:
+            described = _run_capture(["gcloud", "run", "jobs", "describe", job,
+                "--region", args.region, "--project", project, "--format=json"], dry_run=False)
+            if described.returncode:
+                return 1
+            try:
+                prior_image = _first_nested_value(json.loads(described.stdout), "image")
+            except json.JSONDecodeError:
+                return 1
+            if not isinstance(prior_image, str) or "@sha256:" not in prior_image:
+                print("WI-064 requires immutable prior Job images for rollback.")
+                return 1
+            exported = _run_capture(["gcloud", "run", "jobs", "describe", job,
+                "--region", args.region, "--project", project, "--format=export"], dry_run=False)
+            if exported.returncode or not exported.stdout.strip():
+                print("WI-064 requires exact pre-release Job exports.")
+                return 1
+            previous_jobs.append({"kind": "job", "name": job, "previous_export": exported.stdout})
+    image = _build_release_image(args, project=project)
+    git_sha = os.environ.get("GITHUB_SHA", "")
+    if not image or "@sha256:" not in image or (not args.dry_run and len(git_sha) < 7):
+        print("WI-064 requires immutable image and Git SHA provenance.")
+        return 1
+    plain, secrets = _split_runtime_env(env=env, payload={
+        "KIS_DB_MODE": "motherduck", "MOTHERDUCK_DATABASE": env["MOTHERDUCK_DATABASE"],
+        "KIS_GCP_PROJECT": project, "KIS_GCS_BUCKET": env["KIS_GCS_BUCKET"],
+        "KIS_RELEASE_IMAGE_DIGEST": image.split("@", 1)[1], "KIS_RELEASE_GIT_SHA": git_sha,
+    }, required=required, secret_mode=args.secret_mode, include_account_secrets=False)
+    env_path = _write_env_yaml(plain)
+    migration_job = args.job or env.get("KIS_WI064_JOB_NAME", "kis-portfolio-wi064")
+    service_account = env.get("KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",
+                              f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com")
+    try:
+        if _run(["gcloud", "run", "jobs", "deploy", migration_job, "--image", image,
+            "--region", args.region, "--env-vars-file", env_path,
+            "--command", "kis-portfolio-batch",
+            "--args", f"run-wi064-release,--project,{project},--bucket,{env['KIS_GCS_BUCKET']}",
+            "--tasks", "1", "--parallelism", "1", "--task-timeout", "3600s", "--memory", "2Gi",
+            "--max-retries", "0", "--service-account", service_account,
+            *_build_secret_flags(secrets), *_build_label_flags("wi064-migration"),
+            "--project", project], dry_run=args.dry_run):
+            return 1
+        if _run(["gcloud", "run", "jobs", "execute", migration_job,
+            "--region", args.region, "--wait", "--project", project], dry_run=args.dry_run):
+            return 1
+    finally:
+        os.unlink(env_path)
+    changed = []
+    for job in jobs:
+        changed.append(job)
+        if _run(["gcloud", "run", "jobs", "update", job, "--image", image,
+            "--region", args.region, *_build_label_flags("wi064"), "--project", project], dry_run=args.dry_run):
+            if not args.dry_run:
+                restored = _rollback_job_definitions(components=previous_jobs,
+                    job_names=changed, region=args.region, project=project)
+                print(f"WI-064 Job image update failed; prior images restored={restored}. Corrected DB views retained.")
+            return 1
+    print("WI-064 protected migration and existing trade Job image updates complete; actual OAuth acceptance remains required.")
+    return 0
+
+
 def _deploy_wi068(
     args: argparse.Namespace,
     *,
@@ -3827,6 +3898,7 @@ def main() -> int:
             "wi073",
             "wi074",
             "wi066",
+            "wi064",
             "wi068",
             "wi070",
             "wi075",
@@ -4094,6 +4166,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi066(args, env=env, project=project)
+
+    if args.target == "wi064":
+        if not project:
+            print("WI-064 requires GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi064(args, env=env, project=project)
 
     if args.target == "wi068":
         if not project:

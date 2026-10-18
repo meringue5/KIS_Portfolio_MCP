@@ -1,0 +1,34 @@
+{
+  "work_item": "WI-064",
+  "client": "approved Codex OAuth Remote MCP",
+  "production_mutations": 0,
+  "corrected_production_acceptance": false,
+  "positive_baseline": {
+    "request_id": "166c22f174674d0fb2bbb34dba977713",
+    "account_alias": "ria",
+    "window": "2026-08-25",
+    "rows": 4,
+    "expected_unique_orders": 2,
+    "quality": "pass",
+    "duplicate_defect_reproduced": true
+  },
+  "partial": {
+    "request_id": "c9c8caab05894ab9b13d3345bf5a1a32",
+    "window": "2026-10-17..2026-10-18",
+    "quality": "partial",
+    "reason": "collection_watermark_before_query_end"
+  },
+  "error": {
+    "request_id": "ff574f1a0b614b44b03dda9f40e515a9",
+    "code": "invalid_request",
+    "scenario": "start_date_after_end_date"
+  },
+  "coverage_lower_bound_finding": {
+    "request_id": "17fa5da18ff144a789d43c7f461f4fde",
+    "window": "2020-01-01..2020-01-02",
+    "quality": "pass",
+    "rows": 0,
+    "coverage_not_proven": true,
+    "owner_work_item": "WI-063"
+  }
+}

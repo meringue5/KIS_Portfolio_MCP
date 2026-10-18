@@ -306,17 +306,45 @@ class V2WarehouseRepository:
             payload["broker_order_id"], str(payload["executed_at"]), execution_sequence,
         ])
         trade_id = hashlib.sha256(identity.encode()).hexdigest()
+        knowledge_at = payload.get("knowledge_at") or observation[1]
+        revision = int(payload.get("event_version", 1))
+        if revision < 1:
+            raise ValueError("trade revision must be positive")
+        incoming = (side, Decimal(str(payload["quantity"])), Decimal(str(payload["price"])),
+                    payload["currency"], payload.get("quality_status", "pass"))
+        latest = self.connection.execute(
+            """SELECT revision, side, quantity, price, currency, quality_status, knowledge_at
+               FROM silver.trade_event_revisions WHERE source_trade_event_id=?
+               ORDER BY revision DESC LIMIT 1""", [trade_id],
+        ).fetchone()
+        if revision == 1 and latest:
+            # Order-query producers expose cumulative aggregates, not broker revision numbers.
+            # Replays preserve Bronze but do not create revisions; newer changed aggregates do.
+            if tuple(latest[1:6]) == incoming:
+                return trade_id
+            incoming_at = self.connection.execute("SELECT cast(? AS TIMESTAMPTZ)", [knowledge_at]).fetchone()[0]
+            if incoming_at < latest[6]:
+                return trade_id
+            if incoming_at == latest[6]:
+                raise ValueError("conflicting trade observation at the same knowledge time")
+            revision = int(latest[0]) + 1
+        elif latest:
+            prior = self.connection.execute(
+                """SELECT side, quantity, price, currency, quality_status
+                   FROM silver.trade_event_revisions WHERE source_trade_event_id=? AND revision=?""",
+                [trade_id, revision],
+            ).fetchone()
+            if prior:
+                if tuple(prior) != incoming:
+                    raise ValueError("trade revision conflicts with immutable history")
+                return trade_id
         self.connection.execute("""
             INSERT INTO silver.trade_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(account_id, broker_order_id, event_version) DO NOTHING
+            ON CONFLICT DO NOTHING
         """, [trade_id, payload["account_id"], payload["instrument_id"], side,
               payload["executed_at"], payload["quantity"], payload["price"], payload["currency"],
               payload["broker_order_id"], payload.get("event_version", 1), observation_id,
               payload.get("quality_status", "pass")])
-        knowledge_at = payload.get("knowledge_at")
-        if knowledge_at is None:
-            knowledge_at = observation[1]
-        revision = int(payload.get("event_version", 1))
         revision_id = hashlib.sha256(f"trade-revision|{trade_id}|{revision}".encode()).hexdigest()
         self.connection.execute("""
             INSERT INTO silver.trade_event_revisions(
