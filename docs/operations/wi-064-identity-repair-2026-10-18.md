@@ -1,6 +1,6 @@
 # WI-064 identity repair — review and release plan
 
-Status: verified locally; no production migration or deployment performed.
+Status: production repair and actual OAuth scenarios verified; owner acceptance pending. Earlier local/baseline observations below are retained as historical evidence.
 Owner requested the existing WI-064 be fixed on 2026-10-18. No successor ticket replaces it.
 
 ## Approved boundary and repair
@@ -90,3 +90,20 @@ Evidence contains counts/booleans and opaque request IDs; no raw orders, account
 Final quick/full gate passed: **885 tests**, one preexisting Authlib warning. End-to-end protected runner on the production-backup local clone with a memory object store also verified 281 rows/19 aliases and complete pre/post 80-object backup/restore. This verifies execution logic, not real GCS, production migration or post-release OAuth acceptance.
 
 Owner authorization in this chat: "네 나머지 반영을 이어가주세요" (2026-10-18). This authorizes the reviewed WI-064 PR/CI/master production workflow and immediate actual-client acceptance; it does not authorize unrelated release scope.
+
+
+## Applied production release — 2026-10-18
+
+PR #166 / merge `dca956d791ae30bfc547dd5bedecaf3ab7674449`, protected workflow `39105328346` and execution
+`kis-portfolio-wi064-mhb6n` succeeded. Migration 0022 is live. Both existing trade Jobs serve digest
+`sha256:8c7be494048e10168ee273795fc9ce5cf12ae152478bf7b1a3248a6daf7300f6`, with matching release labels and
+unchanged non-image spec. Remote generation/routes and eight Scheduler definitions/targets/states are unchanged.
+
+Protected pre/post private backup and fresh restore preserved all 79 data-table fingerprints. Independent direct
+production comparison preserved 12 source/reference fingerprints and all 262 uninvolved current events, with current
+trade rows 300→281 and duplicate candidates 19→0. Bronze 43,455 and trade/revision 300 each remain; cash 77, lots,
+threads and links 19 each, journal revisions 3 remain unchanged. No source data or stored references were deleted.
+
+Actual approved Codex OAuth now returns two RIA events on 2026-08-25 (request `73b10b6a1a524a9b9306194ad2d356f0`),
+plus the unchanged partial coverage gap and invalid-period error. All actual evidence is linked from WI-064.
+The implementation and operational correction are complete; the Work Item stays `stabilizing` for owner acceptance.

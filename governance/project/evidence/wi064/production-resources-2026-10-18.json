@@ -1,0 +1,23 @@
+{
+  "work_item": "WI-064",
+  "observed_at": "2026-10-18T06:55:54.199371+00:00",
+  "release_sha": "dca956d791ae30bfc547dd5bedecaf3ab7674449",
+  "github_run_id": "39105328346",
+  "jobs": [
+    {
+      "job": "kis-portfolio-trade-incremental-domestic",
+      "image_digest": "sha256:8c7be494048e10168ee273795fc9ce5cf12ae152478bf7b1a3248a6daf7300f6",
+      "labels_match": true,
+      "non_image_spec_exactly_preserved": true
+    },
+    {
+      "job": "kis-portfolio-trade-incremental-overseas",
+      "image_digest": "sha256:8c7be494048e10168ee273795fc9ce5cf12ae152478bf7b1a3248a6daf7300f6",
+      "labels_match": true,
+      "non_image_spec_exactly_preserved": true
+    }
+  ],
+  "remote_generation_and_routes_unchanged": true,
+  "scheduler_count": 8,
+  "schedules_states_and_targets_unchanged": true
+}

@@ -1,0 +1,11 @@
+{
+  "work_item": "WI-064",
+  "check": "live inventory --fail-on-unregistered-drift",
+  "result": "passed",
+  "missing_managed_objects": 0,
+  "registered_legacy_drift_exceptions": 4,
+  "exception_review_blockers": 0,
+  "trade_identity_alias_view": "managed",
+  "production_ceiling": "0022",
+  "legacy_drift_auto_adopted_or_deleted": false
+}

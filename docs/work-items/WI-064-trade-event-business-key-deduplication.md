@@ -1,7 +1,7 @@
 ---
 id: WI-064
 title: Eliminate duplicate current trade events without erasing source history
-status: verified
+status: stabilizing
 type: defect
 owner: owner
 decision_refs: DEC-009, DEC-010, DEC-015
@@ -13,15 +13,18 @@ depends_on: WI-063
 discovered_from: WI-063
 supersedes: none
 rollback_of: none
-execution_scope: isolated
-production_effects: none
+execution_scope: production release verified
+production_effects: applied migration 0022 and updated the two existing trade Job images; source/history and all other operating paths preserved
 architecture_impact: none; repair the existing approved executed-order natural key using source-proven aliases, without a new SSOT or grain
 data_impact: preserve all observations and revisions; correct only canonical current-event projection and evidence
 security_impact: no new public identifiers or raw provider payloads
 cost_impact: DB-only diagnosis and projection work expected
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: governance/project/evidence/wi064/codex-baseline-2026-10-18.json; corrected-production acceptance pending
+real_use_evidence_refs: governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json; governance/project/evidence/wi064/production-data-audit-2026-10-18.json
+stabilization_window: immediate corrected OAuth positive/partial/error and source/reference reconciliation completed on 2026-10-18; owner review pending
+stabilization_exit_refs: governance/project/evidence/wi064/protected-production-release-2026-10-18.json; governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json; explicit owner acceptance pending
+rollback_plan: restore reviewed pre-0022 trade/lot read views while preserving all source/revision rows and migration history; restore exact prior trade Job exports if necessary
 ---
 
 # WI-064 — Eliminate duplicate current trade events without erasing source history
@@ -53,8 +56,8 @@ revision projection need a separate review before a user-facing ledger can be ca
 
 - [x] Every candidate duplicate group is classified from governed source fields without exposing account numbers.
 - [x] Repeated observations resolve to one current economic event while legitimate equal-price fills remain distinct.
-- [ ] Historical and populated-window MCP results reconcile to the corrected Silver projection.
-- [ ] Direct Codex OAuth positive/partial/error scenarios and full repository gate pass.
+- [x] Historical and populated-window MCP results reconcile to the corrected Silver projection.
+- [x] Direct Codex OAuth positive/partial/error scenarios and full repository gate pass.
 
 ## Change impact
 
@@ -97,8 +100,8 @@ revision projection need a separate review before a user-facing ledger can be ca
 
 ## Closeout
 
-- Result: isolated implementation and local rehearsal; production approval/actual corrected OAuth acceptance pending.
-- Remaining risk: user-facing trade counts may be overstated in affected historical windows.
+- Result: production repair and immediate actual OAuth validation complete; stabilizing pending explicit owner acceptance.
+- Remaining risk: source evidence with incomplete/ambiguous broker identity stays separate; unrelated cash fee candidates and historical lower-bound coverage limitations remain explicit. Owner review of corrected actual-client result is pending.
 - Follow-up Work Item: none.
 
 - 2026-10-18: owner explicitly requested fixing WI-064 within its existing outcome. WI-063 is stabilizing; MS-005 is closed. WI-072 is blocked with preservation/resume conditions, making WI-064 the sole implementation WIP. Existing unrelated checkout changes remain unstaged and preserved. Implementation authorization does not bypass production release approval.
@@ -148,3 +151,33 @@ revision projection need a separate review before a user-facing ledger can be ca
 - Owner approved remaining WI-064 integration and production reflection in this chat on 2026-10-18. Proceed through the normal isolated PR/CI/master production workflow; preserve unrelated work and collect actual corrected OAuth evidence before closeout.
 
 - Isolated integration on latest master `1565464` passed the full gate: **876 tests**, one existing Authlib warning. Shared-tree 885 included unrelated isolated tests; only WI-064 code/contracts/evidence are included in this release branch. Original checkout/index were not modified by integration.
+
+
+### Production release and actual client evidence — 2026-10-18
+
+- Owner approved the remaining normal PR/CI/production work in this chat. Isolated [PR #166](https://github.com/meringue5/KIS_Portfolio_MCP/pull/166)
+  merged as `dca956d791ae30bfc547dd5bedecaf3ab7674449`; PR CI `39105134552` and master CI `39105324853` passed.
+- Normal protected [workflow 39105328346](https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/39105328346)
+  succeeded. Execution `kis-portfolio-wi064-mhb6n` applied only `0022`; all 79 managed data-table fingerprints were
+  preserved, with complete pre/post private 80-object backup/upload/download/fresh restore. Exact aggregate evidence:
+  [protected release](../../governance/project/evidence/wi064/protected-production-release-2026-10-18.json).
+- Deployed image digest `sha256:8c7be494048e10168ee273795fc9ce5cf12ae152478bf7b1a3248a6daf7300f6` matches both
+  existing trade Jobs and release SHA/run/source labels. Their non-image runtime specs (args/env/secrets/service
+  account/task settings) are exactly preserved. Remote generation/routes and all eight Scheduler definitions,
+  targets and states are unchanged. No KIS collection, notification or watchlist activation was triggered.
+- Independent direct production audit: 300→281 current rows; 19 proven aliases; zero duplicate candidates; all
+  262 uninvolved current events are byte-value equivalent; 12 separately captured source/reference table fingerprints
+  match pre-release. Bronze 43,455, base trade/revision rows 300 each, cash facts/classifications 77 each,
+  compatibility lots/threads/links 19 each, journal revisions 3. All historical source/revision IDs resolve;
+  existing current lot rows are exactly preserved. [Data audit](../../governance/project/evidence/wi064/production-data-audit-2026-10-18.json)
+  and [resource audit](../../governance/project/evidence/wi064/production-resources-2026-10-18.json).
+- Actual approved Codex OAuth: RIA 2026-08-25 now returns **2** current rows with pass
+  (`73b10b6a1a524a9b9306194ad2d356f0`); uncovered 2026-10-17..18 returns partial
+  (`1d95518152484d3ca71ed75142c4e01c`); reversed dates retain owner-debug invalid_request
+  (`5275f62fc0f549b1bd590c4c53e85a04`). [Actual-client evidence](../../governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json).
+- The operational defect is corrected and immediately verified. Keep `stabilizing`, not `closed`, until the owner
+  accepts the corrected actual-client result. No new Work Item or derived ticket replaces WI-064.
+
+- Live inventory `--fail-on-unregistered-drift` passed: zero missing managed objects, alias view managed, four exact registered legacy drift exceptions and zero review blockers. No drift adoption/deletion. [Inventory evidence](../../governance/project/evidence/wi064/production-inventory-2026-10-18.json).
+
+- Post-release evidence full gate passed again: **876 tests**, one existing Authlib warning; original shared checkout quick gate also passed after synchronizing only WI-064 evidence/status. No unrelated source changes were committed or discarded.
