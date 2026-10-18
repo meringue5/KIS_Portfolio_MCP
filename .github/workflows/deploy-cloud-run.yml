@@ -35,6 +35,7 @@ on:
           - wi073
           - wi074
           - wi066
+          - wi064
           - wi068
           - wi070
           - wi075
@@ -142,6 +143,7 @@ jobs:
       KIS_WI030_S02_JOB_NAME: ${{ vars.KIS_WI030_S02_JOB_NAME || 'kis-portfolio-wi030-s02' }}
       KIS_WI030_S03_JOB_NAME: ${{ vars.KIS_WI030_S03_JOB_NAME || 'kis-portfolio-wi030-s03' }}
       KIS_WI048_S02_JOB_NAME: ${{ vars.KIS_WI048_S02_JOB_NAME || 'kis-portfolio-wi048-s02' }}
+      KIS_WI064_JOB_NAME: ${{ vars.KIS_WI064_JOB_NAME || 'kis-portfolio-wi064' }}
       KIS_WI068_JOB_NAME: ${{ vars.KIS_WI068_JOB_NAME || 'kis-portfolio-wi068' }}
       KIS_WI066_JOB_NAME: ${{ vars.KIS_WI066_JOB_NAME || 'kis-portfolio-wi066' }}
       KIS_WI070_JOB_NAME: ${{ vars.KIS_WI070_JOB_NAME || 'kis-portfolio-wi070' }}
@@ -189,7 +191,7 @@ jobs:
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
-          if [ "${target}" = "wi066" ] || [ "${target}" = "wi068" ]; then
+          if [ "${target}" = "wi064" ] || [ "${target}" = "wi066" ] || [ "${target}" = "wi068" ]; then
             test -n "${KIS_GCS_BUCKET}" || { echo "KIS_GCS_BUCKET var is required."; exit 1; }
             test "${KIS_DB_MODE}" = "motherduck" || { echo "WI-066 requires KIS_DB_MODE=motherduck."; exit 1; }
           fi
@@ -356,6 +358,15 @@ jobs:
             --region "${KIS_DEPLOY_REGION}" \
             --service "${KIS_REMOTE_SERVICE_NAME}" \
             --job "${KIS_WI066_JOB_NAME}" \
+            --secret-mode secret-manager
+
+      - name: Repair WI-064 trade identity and update existing trade Job images
+        if: github.event.inputs.target == 'wi064'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi064 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --job "${KIS_WI064_JOB_NAME}" \
             --secret-mode secret-manager
 
       - name: Apply WI-068 reference recovery and deploy Remote routes

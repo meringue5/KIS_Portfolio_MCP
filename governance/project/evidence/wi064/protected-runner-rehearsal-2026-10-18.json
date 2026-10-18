@@ -1,0 +1,26 @@
+{
+  "status": "verified",
+  "work_item": "WI-064",
+  "applied_migrations": [
+    "0022"
+  ],
+  "projection": {
+    "current_rows": 281,
+    "aliases": 19
+  },
+  "preserved_data_tables": 79,
+  "source_history_preserved": true,
+  "pre_backup": {
+    "index_sha256": "fcfa3643b885ad9710e0a9a351d7d26d8615771a516435ecbabeb4ba0e785bee",
+    "object_count": 80,
+    "byte_size": 22131380
+  },
+  "post_backup": {
+    "index_sha256": "29d4498783ceb81e50860d7b6946f11a179c468357581cda236bd7e668eff554",
+    "object_count": 80,
+    "byte_size": 22131546
+  },
+  "actual_oauth_acceptance": "required after release; not established by this Job",
+  "evidence_kind": "production-backup-LOCAL-protected-runner-with-MEMORY-object-store",
+  "production_mutations": 0
+}

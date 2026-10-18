@@ -762,6 +762,7 @@ sequence = 3
 [[work_items]]
 id = "WI-064"
 identity = "trade-event-business-key-deduplication"
+# 2026-10-18 owner approved WI-064 implementation and production release; WI-063 stabilizing satisfies the start dependency.
 title = "Eliminate duplicate current trade events without erasing source history"
 milestone_id = "MS-008"
 delivery_refs = []

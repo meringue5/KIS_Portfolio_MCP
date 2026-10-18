@@ -621,3 +621,5 @@ Google Cloud 권장 인증 방식:
 Custom domain, consent UI refinement or any order capability is a new change intake, not unfinished deployment work.
 The current product deliberately exposes no order tool. Validate future Remote changes with the same OAuth/401/client
 smoke and immutable release contract.
+
+WI-064 trade identity repair uses the prepared normal workflow target `wi064`: protected backup/fresh-restore migration 0022, then image-only updates of the existing two trade Jobs. It leaves Remote routes and schedules unchanged. Production approval, source-preservation verification and actual OAuth acceptance are specified in [the WI-064 plan](operations/wi-064-identity-repair-2026-10-18.md); local rehearsal does not authorize dispatch.

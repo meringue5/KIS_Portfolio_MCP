@@ -83,7 +83,7 @@ DuckDB 파일로 복원하여 Job 종료 전 aggregate reconciliation을 다시 
 - Private content-addressed object bytes: 위 metadata가 가리키는 실제 원문·추출물. MotherDuck metadata만으로
   원문 backup이 됐다고 간주하지 않는다.
 - Rebuild/excluded: `silver.instrument_versions_effective`, `silver.instruments_current`,
-  `silver.trade_events_current`, `silver.cash_flow_events_current`, `silver.purchase_lots_current`,
+  `silver.trade_event_identity_aliases`, `silver.trade_events_current`, `silver.cash_flow_events_current`, `silver.purchase_lots_current`,
   `silver.position_episodes_current`, `silver.purchase_lot_states_current`, `silver.sell_allocations_current`,
   `silver.trade_thread_risk_plans_current`,
   `silver.corporate_actions_current`,
@@ -214,3 +214,5 @@ The protected `wi068` release pins the owner-reviewed input SHA, performs pre/po
 restore, checks append-only replay and unchanged native state/WI-066 quarantine. Older `0020` backups restore their
 exact migration prefix without inventing the reference table. No raw source locator appears in release logs.
 Rollback restores prior Remote stable/tag routes; reference/source versions remain retained, never deleted.
+
+WI-064 migration `0022` changes rebuild-only trade/lot projections and adds the derived identity-alias view. No Parquet table is added or removed. Preserve a complete pre-0022 migration-prefix backup; fresh restore must reproduce the old view before applying 0022. Post-0022 restore must reproduce linked current counts while all source/revision/reference table fingerprints match. View rollback restores the prior trade and lot definitions; source history is never removed.
