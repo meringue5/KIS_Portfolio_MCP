@@ -1,0 +1,1105 @@
+{
+  "work_item": "WI-063-S02",
+  "observed_at": "2026-10-18T15:57:20.243301+00:00",
+  "evidence_kind": "candidate-read-port-on-production-read-only-transaction",
+  "production_mutations": 0,
+  "source_calls": 0,
+  "proof_count": 376,
+  "source_intervals": [
+    {
+      "account": "brokerage",
+      "market": "KRX",
+      "operation": "domestic-order-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-10-16"
+        ]
+      ]
+    },
+    {
+      "account": "brokerage",
+      "market": "NAS",
+      "operation": "overseas-order-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-10-15"
+        ]
+      ]
+    },
+    {
+      "account": "brokerage",
+      "market": "NAS",
+      "operation": "overseas-transaction-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-10-15"
+        ]
+      ]
+    },
+    {
+      "account": "irp",
+      "market": "KRX",
+      "operation": "domestic-order-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-07-14"
+        ]
+      ]
+    },
+    {
+      "account": "isa",
+      "market": "KRX",
+      "operation": "domestic-order-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-10-16"
+        ]
+      ]
+    },
+    {
+      "account": "pension",
+      "market": "KRX",
+      "operation": "domestic-order-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-10-16"
+        ]
+      ]
+    },
+    {
+      "account": "ria",
+      "market": "KRX",
+      "operation": "domestic-order-history",
+      "intervals": [
+        [
+          "2023-08-28",
+          "2026-10-16"
+        ]
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "case": "old-false-pass",
+      "account": "ria",
+      "start": "2020-01-01",
+      "end": "2020-01-02",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2020-01-01",
+        "end_date": "2020-01-02",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [
+              {
+                "start_date": "2020-01-01",
+                "end_date": "2020-01-02"
+              }
+            ],
+            "uncovered_interval_count": 1
+          }
+        ]
+      },
+      "missing": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_coverage_before_start",
+          "account_alias": "ria",
+          "market": "KRX"
+        }
+      ]
+    },
+    {
+      "case": "populated",
+      "account": "ria",
+      "start": "2026-08-25",
+      "end": "2026-08-25",
+      "quality": {
+        "status": "pass",
+        "row_count": 2
+      },
+      "query": {
+        "start_date": "2026-08-25",
+        "end_date": "2026-08-25",
+        "result_status": "matched",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing": []
+    },
+    {
+      "case": "upper-gap",
+      "account": "ria",
+      "start": "2026-10-17",
+      "end": "2026-10-18",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-17",
+        "end_date": "2026-10-18",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [
+              {
+                "start_date": "2026-10-17",
+                "end_date": "2026-10-18"
+              }
+            ],
+            "uncovered_interval_count": 1
+          }
+        ]
+      },
+      "missing": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_watermark_before_query_end",
+          "account_alias": "ria",
+          "market": "KRX"
+        }
+      ]
+    },
+    {
+      "case": "covered-empty",
+      "account": "ria",
+      "start": "2026-10-16",
+      "end": "2026-10-16",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-16",
+        "end_date": "2026-10-16",
+        "result_status": "no_events_in_query_window",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing": []
+    },
+    {
+      "case": "brokerage",
+      "account": "brokerage",
+      "start": "2026-10-15",
+      "end": "2026-10-15",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-15",
+        "end_date": "2026-10-15",
+        "result_status": "no_events_in_query_window",
+        "coverage_through": "2026-10-15",
+        "coverage_partitions": [
+          {
+            "account_alias": "brokerage",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "brokerage",
+            "market": "NAS",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-15",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing": []
+    },
+    {
+      "case": "global",
+      "account": null,
+      "start": "2026-10-15",
+      "end": "2026-10-15",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-15",
+        "end_date": "2026-10-15",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-07-14",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "isa",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "brokerage",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "brokerage",
+            "market": "NAS",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-15",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          },
+          {
+            "account_alias": "irp",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-07-14",
+            "uncovered_intervals": [
+              {
+                "start_date": "2026-10-15",
+                "end_date": "2026-10-15"
+              }
+            ],
+            "uncovered_interval_count": 1
+          },
+          {
+            "account_alias": "pension",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_watermark_before_query_end",
+          "account_alias": "irp",
+          "market": "KRX"
+        }
+      ]
+    },
+    {
+      "case": "proven-bridge-window",
+      "account": "ria",
+      "start": "2026-08-28",
+      "end": "2026-09-24",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-08-28",
+        "end_date": "2026-09-24",
+        "result_status": "no_events_in_query_window",
+        "coverage_through": "2026-10-16",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-16",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "missing": []
+    }
+  ],
+  "recent_partition_runs": [
+    {
+      "run_id": "02ea86e0-dec4-4242-9d9d-485ffbfd73f9",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|old|2026-07-11|2026-07-13",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:10:32.425334+09:00",
+      "finished_at": "2026-10-12 16:10:37.650118+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "fb40e87b-781f-4cb4-874e-c94af933de64",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-07-14|2026-10-11",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:10:38.453618+09:00",
+      "finished_at": "2026-10-12 16:10:42.518362+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "4c6e992a-f1c1-47d6-b9e5-df092149afa5",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-12|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:10:43.313675+09:00",
+      "finished_at": "2026-10-12 16:10:47.093266+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "3068f128-b112-4079-97cb-b0f5cd1671fd",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|irp|29|REAL|KRX|old|2026-07-11|2026-07-13",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:10:47.967966+09:00",
+      "finished_at": "2026-10-12 16:10:51.778205+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "81c8eb90-92e4-47de-b77d-bc179ac80bd7",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|old|2026-07-11|2026-07-13",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:10:52.574096+09:00",
+      "finished_at": "2026-10-12 16:10:56.376951+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "aafd764f-814a-4097-bf31-0faea815b564",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-07-14|2026-10-11",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:10:57.174307+09:00",
+      "finished_at": "2026-10-12 16:11:03.244442+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "0c96794e-d5c9-4160-aa66-6b3f99db09c1",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-12|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:04.046730+09:00",
+      "finished_at": "2026-10-12 16:11:07.817628+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "d34b8177-f442-49b4-ad27-bb9db835177b",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|old|2026-07-11|2026-07-13",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:08.621476+09:00",
+      "finished_at": "2026-10-12 16:11:12.469580+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "b5a40f6a-1491-4ac2-808b-b1fd951d2259",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-07-14|2026-10-11",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:13.265284+09:00",
+      "finished_at": "2026-10-12 16:11:19.846385+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "9b64de58-b9f2-4d9b-9b87-e1b48dafacc9",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-12|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:20.645802+09:00",
+      "finished_at": "2026-10-12 16:11:24.461649+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "526a65c1-18dd-4968-9370-77adfa20b35c",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|old|2026-07-11|2026-07-13",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:25.259941+09:00",
+      "finished_at": "2026-10-12 16:11:29.756451+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "d1945fff-0065-4188-aafa-3855d07eced3",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-07-14|2026-10-11",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:30.548666+09:00",
+      "finished_at": "2026-10-12 16:11:36.482556+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "b4cc2718-5b51-43c1-a4e2-36fcbcbf4b20",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-12|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-12 16:11:37.277096+09:00",
+      "finished_at": "2026-10-12 16:11:41.059741+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "7dbb5120-1edd-48af-8996-fbf669ec5ed0",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-14|2026-10-11",
+      "status": "succeeded",
+      "started_at": "2026-10-13 07:35:25.020567+09:00",
+      "finished_at": "2026-10-13 07:35:33.899042+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "1db1a44f-79ff-45f9-9adb-5f2a9c790084",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-12|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-13 07:35:34.691978+09:00",
+      "finished_at": "2026-10-13 07:35:39.021385+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "a44ba94b-b11c-4747-97aa-f9300fab1a76",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-14|2026-10-11",
+      "status": "succeeded",
+      "started_at": "2026-10-13 07:35:39.813174+09:00",
+      "finished_at": "2026-10-13 07:35:47.688253+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "a43b7ae6-43a1-4def-aac2-c3dc8f916bc1",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-12",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-10-12|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-13 07:35:48.480643+09:00",
+      "finished_at": "2026-10-13 07:35:52.513334+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "26d854e7-df85-4737-b399-ce0a0c61f179",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|old|2026-07-14|2026-07-14",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:10:27.902672+09:00",
+      "finished_at": "2026-10-13 16:10:33.430924+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "da32ebf8-5feb-4293-966f-366510cadf73",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:10:34.239597+09:00",
+      "finished_at": "2026-10-13 16:10:38.198163+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "83a80911-381f-4976-8141-2004ded0a867",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-13|2026-10-13",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:10:39.004220+09:00",
+      "finished_at": "2026-10-13 16:10:43.030687+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "e3bfeda3-4ca5-46ac-99e4-553505166ced",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|irp|29|REAL|KRX|old|2026-07-14|2026-07-14",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:10:43.839146+09:00",
+      "finished_at": "2026-10-13 16:10:47.838021+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "e6ac734a-ff25-49a3-a5df-b8dd5acfb767",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|old|2026-07-14|2026-07-14",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:10:48.648885+09:00",
+      "finished_at": "2026-10-13 16:10:52.532083+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "756cfea8-1186-42ca-bd6e-fab5be5c109f",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:10:53.336470+09:00",
+      "finished_at": "2026-10-13 16:11:00.072639+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "85ff7759-f06d-4675-86d6-15e7df014fc6",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-13|2026-10-13",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:00.876761+09:00",
+      "finished_at": "2026-10-13 16:11:04.696665+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "79ed0223-c767-4010-951e-781abcd8b707",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|old|2026-07-14|2026-07-14",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:05.504549+09:00",
+      "finished_at": "2026-10-13 16:11:09.369531+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "436aba64-269d-4a82-ab35-e701914dd184",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:10.176170+09:00",
+      "finished_at": "2026-10-13 16:11:16.424434+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "ad6e3046-c668-472d-a64b-26359434f24a",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-13|2026-10-13",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:17.235086+09:00",
+      "finished_at": "2026-10-13 16:11:21.104928+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "4bc4f237-2bf0-46d8-8be1-2ef8fc50e03a",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|old|2026-07-14|2026-07-14",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:21.913539+09:00",
+      "finished_at": "2026-10-13 16:11:26.116350+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "94ce393d-bc8d-4a89-a938-0b3805b623c1",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:26.919113+09:00",
+      "finished_at": "2026-10-13 16:11:32.709354+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "965f3d73-3844-467c-af99-ecc9fc73d178",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-13|2026-10-13",
+      "status": "succeeded",
+      "started_at": "2026-10-13 16:11:33.516319+09:00",
+      "finished_at": "2026-10-13 16:11:37.329222+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "d60e2699-8bfe-48db-94a4-23adfdcbc396",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-14 07:35:19.863653+09:00",
+      "finished_at": "2026-10-14 07:35:29.215191+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "317ed2c8-9888-4b17-ba35-aae07f3eaf97",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-13|2026-10-13",
+      "status": "succeeded",
+      "started_at": "2026-10-14 07:35:30.010557+09:00",
+      "finished_at": "2026-10-14 07:35:33.911014+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "81e30e86-36ed-4b68-8c86-aac0e6fa9337",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-14 07:35:34.707475+09:00",
+      "finished_at": "2026-10-14 07:35:43.423265+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "f8ec563f-14c1-4d10-ab69-5ed231cb2301",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-13",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-10-13|2026-10-13",
+      "status": "succeeded",
+      "started_at": "2026-10-14 07:35:44.220241+09:00",
+      "finished_at": "2026-10-14 07:35:48.470751+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "56a7286d-497d-474f-a63a-4f3db602046b",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-07|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 14:30:45.315193+09:00",
+      "finished_at": "2026-10-14 14:30:53.913286+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "c24285a0-9046-4a21-a7bc-5f7cb512fc81",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-07|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 14:30:54.715346+09:00",
+      "finished_at": "2026-10-14 14:30:58.720862+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "af2fb22a-2b4a-4a51-ba65-ba8897c714bb",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-07|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 14:30:59.519860+09:00",
+      "finished_at": "2026-10-14 14:31:03.581588+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "fc409304-6faa-4880-be89-2be4b07cb141",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-07|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 14:31:04.386015+09:00",
+      "finished_at": "2026-10-14 14:31:08.263684+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "ee33a87e-d85c-43b9-b956-50714d0b1753",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-14|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 16:10:22.952400+09:00",
+      "finished_at": "2026-10-14 16:10:28.104573+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "4c5e71d5-e2b3-44f0-831a-34a30b21ddab",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-14|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 16:10:28.908804+09:00",
+      "finished_at": "2026-10-14 16:10:32.827836+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "3157c00d-6e49-42c3-8318-9f97ce75e5be",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-14|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 16:10:33.629797+09:00",
+      "finished_at": "2026-10-14 16:10:37.408626+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "6c72038c-d646-4893-a5b1-18e83d279396",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-14",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-14|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-14 16:10:38.210898+09:00",
+      "finished_at": "2026-10-14 16:10:41.805768+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "034ddfb8-f2ed-47ed-b22c-7f0764b1e0fc",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-14",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-15 07:35:19.079209+09:00",
+      "finished_at": "2026-10-15 07:35:28.262094+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "104ab7d9-2acf-47b8-93d4-4d4e72eba705",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-14",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-13|2026-10-14",
+      "status": "succeeded",
+      "started_at": "2026-10-15 07:35:29.063112+09:00",
+      "finished_at": "2026-10-15 07:35:33.025190+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "30679156-d56d-4b15-8ccb-67b7a7fd9a4d",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-14",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+      "status": "failed",
+      "started_at": "2026-10-15 07:35:33.826794+09:00",
+      "finished_at": "2026-10-15 07:35:36.706495+09:00",
+      "source_calls": 0,
+      "successful_stages": 0,
+      "passing_quality_rules": 0
+    },
+    {
+      "run_id": "29c2e543-bbe1-4a22-ba62-3e7c8b859de0",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-15",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-15|2026-10-15",
+      "status": "succeeded",
+      "started_at": "2026-10-15 16:10:17.515747+09:00",
+      "finished_at": "2026-10-15 16:10:23.642358+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "71745b6f-97c8-4349-bc0c-f8cfaa355261",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-15",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-15|2026-10-15",
+      "status": "succeeded",
+      "started_at": "2026-10-15 16:10:24.443031+09:00",
+      "finished_at": "2026-10-15 16:10:28.607249+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "18a5d0f0-f070-4be8-bf93-0a5fb7036ed1",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-15",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-15|2026-10-15",
+      "status": "succeeded",
+      "started_at": "2026-10-15 16:10:29.408765+09:00",
+      "finished_at": "2026-10-15 16:10:33.393649+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "544933be-6918-49c5-aff7-cf90142e36ef",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-15",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-15|2026-10-15",
+      "status": "succeeded",
+      "started_at": "2026-10-15 16:10:34.194976+09:00",
+      "finished_at": "2026-10-15 16:10:38.002000+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "6ccdab13-b0e3-4ebf-b8c9-8f5ad8e7288f",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-15",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-16 07:35:23.675570+09:00",
+      "finished_at": "2026-10-16 07:35:33.331634+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "058bb33f-eb50-4e4a-b2c1-cdd77b29863f",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-15",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-13|2026-10-15",
+      "status": "succeeded",
+      "started_at": "2026-10-16 07:35:34.132335+09:00",
+      "finished_at": "2026-10-16 07:35:38.354606+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "a029a948-86de-4c8b-ae7d-f633aee1fd2d",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-15",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+      "status": "succeeded",
+      "started_at": "2026-10-16 07:35:39.159423+09:00",
+      "finished_at": "2026-10-16 07:35:45.810328+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "b4d23173-100d-454e-a867-be1736a34baf",
+      "pipeline_version": "1.0.0",
+      "logical_date": "2026-10-15",
+      "slot": "daily-overseas",
+      "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-10-13|2026-10-15",
+      "status": "succeeded",
+      "started_at": "2026-10-16 07:35:46.615101+09:00",
+      "finished_at": "2026-10-16 07:35:50.731841+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "4226fdf4-7320-4cd3-9021-cfd729e79205",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-16",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-16|2026-10-16",
+      "status": "succeeded",
+      "started_at": "2026-10-16 16:10:23.007140+09:00",
+      "finished_at": "2026-10-16 16:10:28.205623+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "1a30c913-6126-48a9-8e4b-f192af91b30f",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-16",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-16|2026-10-16",
+      "status": "succeeded",
+      "started_at": "2026-10-16 16:10:29.002771+09:00",
+      "finished_at": "2026-10-16 16:10:33.112471+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "5eb554ac-3840-4464-ab17-fd0b98a62eb5",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-16",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-16|2026-10-16",
+      "status": "succeeded",
+      "started_at": "2026-10-16 16:10:33.911521+09:00",
+      "finished_at": "2026-10-16 16:10:37.834073+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    },
+    {
+      "run_id": "481c9043-318e-4ee1-a718-f5896bc78606",
+      "pipeline_version": "1.0.2",
+      "logical_date": "2026-10-16",
+      "slot": "daily-domestic",
+      "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-16|2026-10-16",
+      "status": "succeeded",
+      "started_at": "2026-10-16 16:10:38.633277+09:00",
+      "finished_at": "2026-10-16 16:10:42.429999+09:00",
+      "source_calls": 1,
+      "successful_stages": 3,
+      "passing_quality_rules": 2
+    }
+  ]
+}

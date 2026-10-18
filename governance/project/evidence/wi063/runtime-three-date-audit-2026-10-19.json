@@ -1,0 +1,470 @@
+{
+  "work_item": "WI-063-S02",
+  "scope": "last three completed applicable scheduler dates; KST 2026-10-14..16; overseas logical dates 2026-10-13..15",
+  "evidence_kind": "read-only job execution IDs + creator + retained pipeline stages/quality/publish + Cloud Logging",
+  "source_calls_started_by_audit": 0,
+  "production_mutations": 0,
+  "executions": [
+    {
+      "scope": "domestic",
+      "execution": "kis-portfolio-trade-incremental-domestic-kxlqf",
+      "created_at": "2026-10-16T07:10:02.879982Z",
+      "completed": true,
+      "scheduled_invocation": true,
+      "task_retries": 0,
+      "pipeline_runs": [
+        {
+          "run_id": "4226fdf4-7320-4cd3-9021-cfd729e79205",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-16",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-16|2026-10-16",
+          "status": "succeeded",
+          "started_at": "2026-10-16 16:10:23.007140+09:00",
+          "finished_at": "2026-10-16 16:10:28.205623+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "1a30c913-6126-48a9-8e4b-f192af91b30f",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-16",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-16|2026-10-16",
+          "status": "succeeded",
+          "started_at": "2026-10-16 16:10:29.002771+09:00",
+          "finished_at": "2026-10-16 16:10:33.112471+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "5eb554ac-3840-4464-ab17-fd0b98a62eb5",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-16",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-16|2026-10-16",
+          "status": "succeeded",
+          "started_at": "2026-10-16 16:10:33.911521+09:00",
+          "finished_at": "2026-10-16 16:10:37.834073+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "481c9043-318e-4ee1-a718-f5896bc78606",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-16",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-16|2026-10-16",
+          "status": "succeeded",
+          "started_at": "2026-10-16 16:10:38.633277+09:00",
+          "finished_at": "2026-10-16 16:10:42.429999+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        }
+      ],
+      "upstream_failed_physical_attempts": 0,
+      "log_pipeline_run_ids": [],
+      "source_failure": null
+    },
+    {
+      "scope": "domestic",
+      "execution": "kis-portfolio-trade-incremental-domestic-d789k",
+      "created_at": "2026-10-15T07:10:02.133662Z",
+      "completed": true,
+      "scheduled_invocation": true,
+      "task_retries": 0,
+      "pipeline_runs": [
+        {
+          "run_id": "29c2e543-bbe1-4a22-ba62-3e7c8b859de0",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-15",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-15|2026-10-15",
+          "status": "succeeded",
+          "started_at": "2026-10-15 16:10:17.515747+09:00",
+          "finished_at": "2026-10-15 16:10:23.642358+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "71745b6f-97c8-4349-bc0c-f8cfaa355261",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-15",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-15|2026-10-15",
+          "status": "succeeded",
+          "started_at": "2026-10-15 16:10:24.443031+09:00",
+          "finished_at": "2026-10-15 16:10:28.607249+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "18a5d0f0-f070-4be8-bf93-0a5fb7036ed1",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-15",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-15|2026-10-15",
+          "status": "succeeded",
+          "started_at": "2026-10-15 16:10:29.408765+09:00",
+          "finished_at": "2026-10-15 16:10:33.393649+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "544933be-6918-49c5-aff7-cf90142e36ef",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-15",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-15|2026-10-15",
+          "status": "succeeded",
+          "started_at": "2026-10-15 16:10:34.194976+09:00",
+          "finished_at": "2026-10-15 16:10:38.002000+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        }
+      ],
+      "upstream_failed_physical_attempts": 0,
+      "log_pipeline_run_ids": [],
+      "source_failure": null
+    },
+    {
+      "scope": "domestic",
+      "execution": "kis-portfolio-trade-incremental-domestic-8twgd",
+      "created_at": "2026-10-14T07:10:01.777395Z",
+      "completed": true,
+      "scheduled_invocation": true,
+      "task_retries": 0,
+      "pipeline_runs": [
+        {
+          "run_id": "ee33a87e-d85c-43b9-b956-50714d0b1753",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-14",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|brokerage|01|REAL|KRX|recent|2026-10-14|2026-10-14",
+          "status": "succeeded",
+          "started_at": "2026-10-14 16:10:22.952400+09:00",
+          "finished_at": "2026-10-14 16:10:28.104573+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "4c5e71d5-e2b3-44f0-831a-34a30b21ddab",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-14",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|isa|01|REAL|KRX|recent|2026-10-14|2026-10-14",
+          "status": "succeeded",
+          "started_at": "2026-10-14 16:10:28.908804+09:00",
+          "finished_at": "2026-10-14 16:10:32.827836+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "3157c00d-6e49-42c3-8318-9f97ce75e5be",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-14",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|pension|22|REAL|KRX|recent|2026-10-14|2026-10-14",
+          "status": "succeeded",
+          "started_at": "2026-10-14 16:10:33.629797+09:00",
+          "finished_at": "2026-10-14 16:10:37.408626+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "6c72038c-d646-4893-a5b1-18e83d279396",
+          "pipeline_version": "1.0.2",
+          "logical_date": "2026-10-14",
+          "slot": "daily-domestic",
+          "partition_key": "1.0.0|domestic-order-history|ria|01|REAL|KRX|recent|2026-10-14|2026-10-14",
+          "status": "succeeded",
+          "started_at": "2026-10-14 16:10:38.210898+09:00",
+          "finished_at": "2026-10-14 16:10:41.805768+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        }
+      ],
+      "upstream_failed_physical_attempts": 0,
+      "log_pipeline_run_ids": [],
+      "source_failure": null
+    },
+    {
+      "scope": "overseas",
+      "execution": "kis-portfolio-trade-incremental-overseas-ntt7r",
+      "created_at": "2026-10-15T22:35:01.668456Z",
+      "completed": true,
+      "scheduled_invocation": true,
+      "task_retries": 0,
+      "pipeline_runs": [
+        {
+          "run_id": "6ccdab13-b0e3-4ebf-b8c9-8f5ad8e7288f",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-15",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-15|2026-10-12",
+          "status": "succeeded",
+          "started_at": "2026-10-16 07:35:23.675570+09:00",
+          "finished_at": "2026-10-16 07:35:33.331634+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "058bb33f-eb50-4e4a-b2c1-cdd77b29863f",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-15",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-13|2026-10-15",
+          "status": "succeeded",
+          "started_at": "2026-10-16 07:35:34.132335+09:00",
+          "finished_at": "2026-10-16 07:35:38.354606+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "a029a948-86de-4c8b-ae7d-f633aee1fd2d",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-15",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+          "status": "succeeded",
+          "started_at": "2026-10-16 07:35:39.159423+09:00",
+          "finished_at": "2026-10-16 07:35:45.810328+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "b4d23173-100d-454e-a867-be1736a34baf",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-15",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-10-13|2026-10-15",
+          "status": "succeeded",
+          "started_at": "2026-10-16 07:35:46.615101+09:00",
+          "finished_at": "2026-10-16 07:35:50.731841+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        }
+      ],
+      "upstream_failed_physical_attempts": 0,
+      "log_pipeline_run_ids": [],
+      "source_failure": null
+    },
+    {
+      "scope": "overseas",
+      "execution": "kis-portfolio-trade-incremental-overseas-klvld",
+      "created_at": "2026-10-14T22:35:01.759983Z",
+      "completed": false,
+      "scheduled_invocation": true,
+      "task_retries": 0,
+      "pipeline_runs": [
+        {
+          "run_id": "034ddfb8-f2ed-47ed-b22c-7f0764b1e0fc",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-14",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-15|2026-10-12",
+          "status": "succeeded",
+          "started_at": "2026-10-15 07:35:19.079209+09:00",
+          "finished_at": "2026-10-15 07:35:28.262094+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "104ab7d9-2acf-47b8-93d4-4d4e72eba705",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-14",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-13|2026-10-14",
+          "status": "succeeded",
+          "started_at": "2026-10-15 07:35:29.063112+09:00",
+          "finished_at": "2026-10-15 07:35:33.025190+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "30679156-d56d-4b15-8ccb-67b7a7fd9a4d",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-14",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+          "status": "failed",
+          "started_at": "2026-10-15 07:35:33.826794+09:00",
+          "finished_at": "2026-10-15 07:35:36.706495+09:00",
+          "source_calls": 0,
+          "successful_stages": 0,
+          "passing_quality_rules": 0
+        }
+      ],
+      "upstream_failed_physical_attempts": 3,
+      "log_pipeline_run_ids": [
+        "30679156-d56d-4b15-8ccb-67b7a7fd9a4d"
+      ],
+      "source_failure": "HTTP 500 EGW00123 on overseas transaction source; three bounded attempts"
+    },
+    {
+      "scope": "overseas",
+      "execution": "kis-portfolio-trade-incremental-overseas-jkbtr",
+      "created_at": "2026-10-13T22:35:01.697224Z",
+      "completed": true,
+      "scheduled_invocation": true,
+      "task_retries": 0,
+      "pipeline_runs": [
+        {
+          "run_id": "d60e2699-8bfe-48db-94a4-23adfdcbc396",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-13",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-07-15|2026-10-12",
+          "status": "succeeded",
+          "started_at": "2026-10-14 07:35:19.863653+09:00",
+          "finished_at": "2026-10-14 07:35:29.215191+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "317ed2c8-9888-4b17-ba35-aae07f3eaf97",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-13",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-order-history|brokerage|01|REAL|NAS|order-aggregate|2026-10-13|2026-10-13",
+          "status": "succeeded",
+          "started_at": "2026-10-14 07:35:30.010557+09:00",
+          "finished_at": "2026-10-14 07:35:33.911014+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "81e30e86-36ed-4b68-8c86-aac0e6fa9337",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-13",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-07-15|2026-10-12",
+          "status": "succeeded",
+          "started_at": "2026-10-14 07:35:34.707475+09:00",
+          "finished_at": "2026-10-14 07:35:43.423265+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        },
+        {
+          "run_id": "f8ec563f-14c1-4d10-ab69-5ed231cb2301",
+          "pipeline_version": "1.0.0",
+          "logical_date": "2026-10-13",
+          "slot": "daily-overseas",
+          "partition_key": "1.0.0|overseas-transaction-history|brokerage|01|REAL|NAS|period-transaction|2026-10-13|2026-10-13",
+          "status": "succeeded",
+          "started_at": "2026-10-14 07:35:44.220241+09:00",
+          "finished_at": "2026-10-14 07:35:48.470751+09:00",
+          "source_calls": 1,
+          "successful_stages": 3,
+          "passing_quality_rules": 2
+        }
+      ],
+      "upstream_failed_physical_attempts": 0,
+      "log_pipeline_run_ids": [],
+      "source_failure": null
+    }
+  ],
+  "schedulers": [
+    {
+      "name": "kis-portfolio-trade-incremental-domestic-1610",
+      "state": "ENABLED",
+      "schedule": "10 16 * * 1-5",
+      "last_attempt": "2026-10-16T07:10:01.934902Z",
+      "target": "kis-portfolio-trade-incremental-domestic:run"
+    },
+    {
+      "name": "kis-portfolio-trade-incremental-overseas-0735",
+      "state": "ENABLED",
+      "schedule": "35 7 * * 1-5",
+      "last_attempt": "2026-10-15T22:35:01.571547Z",
+      "target": "kis-portfolio-trade-incremental-overseas:run"
+    },
+    {
+      "name": "kis-portfolio-domestic-order-history-1535",
+      "state": "PAUSED",
+      "schedule": "35 15 * * 1-5",
+      "last_attempt": null,
+      "target": "kis-portfolio-domestic-order-history:run"
+    },
+    {
+      "name": "kis-portfolio-overseas-transaction-history-0735",
+      "state": "PAUSED",
+      "schedule": "35 7 * * 1-5",
+      "last_attempt": null,
+      "target": "kis-portfolio-overseas-transaction-history:run"
+    }
+  ],
+  "legacy_last_executions": {
+    "domestic": [
+      {
+        "execution": "kis-portfolio-domestic-order-history-5csxp",
+        "created_at": "2026-09-29T06:35:05.811509Z"
+      },
+      {
+        "execution": "kis-portfolio-domestic-order-history-h6gl6",
+        "created_at": "2026-09-28T06:35:05.863846Z"
+      },
+      {
+        "execution": "kis-portfolio-domestic-order-history-gl4rz",
+        "created_at": "2026-09-25T06:35:05.751522Z"
+      },
+      {
+        "execution": "kis-portfolio-domestic-order-history-bddgk",
+        "created_at": "2026-09-24T06:35:05.817070Z"
+      },
+      {
+        "execution": "kis-portfolio-domestic-order-history-29587",
+        "created_at": "2026-09-23T06:35:05.889619Z"
+      }
+    ],
+    "overseas": [
+      {
+        "execution": "kis-portfolio-overseas-transaction-history-6d8cx",
+        "created_at": "2026-09-28T22:35:03.983709Z"
+      },
+      {
+        "execution": "kis-portfolio-overseas-transaction-history-wrjkh",
+        "created_at": "2026-09-27T22:35:03.840256Z"
+      },
+      {
+        "execution": "kis-portfolio-overseas-transaction-history-4l6jv",
+        "created_at": "2026-09-24T22:35:03.882713Z"
+      },
+      {
+        "execution": "kis-portfolio-overseas-transaction-history-vh78c",
+        "created_at": "2026-09-23T22:35:03.853838Z"
+      },
+      {
+        "execution": "kis-portfolio-overseas-transaction-history-2sfbf",
+        "created_at": "2026-09-22T22:35:03.887433Z"
+      }
+    ]
+  },
+  "failed_run_preserved": "30679156-d56d-4b15-8ccb-67b7a7fd9a4d",
+  "explanation": "One scheduler invocation per scope/date; domestic 10/14 also has owner-approved WI-074 recovery l6qml and rejected preflight zrx26, neither scheduler-created. Stage rows are partitions, not invocation counts. Failed attempts are counted from correlated HTTP logs, since the failed stage source_calls summary is zero. Earlier and later independent successful proofs cover the failed historical range; failed run is never coverage evidence.",
+  "source_scope_gaps": [
+    "IRP recent KRX source unavailable; historical coverage ends 2026-07-14",
+    "No other overseas account/exchange source is configured by the approved collection"
+  ]
+}

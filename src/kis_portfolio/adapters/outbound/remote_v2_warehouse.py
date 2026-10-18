@@ -17,6 +17,7 @@ from kis_portfolio.application.portfolio_quality import (
     evaluate_portfolio_capabilities,
 )
 from kis_portfolio.common.values import rows_to_dicts
+from kis_portfolio.services.trade_coverage import trade_query_coverage
 from kis_portfolio.services.remote_read_surface import (
     V2_READ_TOOL_NAMES,
     DataCatalogRequest,
@@ -515,72 +516,21 @@ class WarehouseReadQueryPort:
             """SELECT count(*) AS row_count, max(knowledge_at) AS latest_knowledge_at
                FROM silver.trade_events_current"""
         )[0]
-        incremental_watermarks = self._rows(
-            """SELECT partition_key, try_cast(watermark_value AS DATE) AS coverage_through,
-                      updated_at
-               FROM control.watermarks
-               WHERE pipeline_id='pipeline.trade-incremental-v2'
-                 AND watermark_type='trade_query_coverage_v1'"""
+        coverage_state = trade_query_coverage(
+            self.connection, account_alias=request.account_alias,
+            start_date=request.start_date, end_date=request.end_date,
         )
-        if incremental_watermarks:
-            expected_key = (
-                f"account:{request.account_alias}"
-                if request.account_alias is not None else "all-accounts"
-            )
-            exact = [row for row in incremental_watermarks if row["partition_key"] == expected_key]
-            informative = exact or [
-                row for row in incremental_watermarks
-                if str(row["partition_key"]).startswith("account:")
-            ]
-            coverage_state = {
-                "coverage_through": min(
-                    (row["coverage_through"] for row in informative if row["coverage_through"] is not None),
-                    default=None,
-                ),
-                "updated_at": max(
-                    (row["updated_at"] for row in informative if row["updated_at"] is not None),
-                    default=None,
-                ),
-                "exact_scope": bool(exact),
-            }
-        else:
-            coverage_state = self._rows(
-                """SELECT min(try_cast(watermark_value AS DATE)) AS coverage_through,
-                          max(updated_at) AS updated_at
-                   FROM control.watermarks
-                   WHERE pipeline_id='pipeline.trade-cash-backfill-v2'
-                     AND watermark_type='source_end_date_v1'"""
-            )[0]
-            coverage_state["exact_scope"] = True
         dataset_has_rows = int(dataset_state["row_count"] or 0) > 0
         coverage_through = coverage_state["coverage_through"]
-        coverage_date = (
-            date.fromisoformat(coverage_through)
-            if isinstance(coverage_through, str)
-            else coverage_through
-        )
-        coverage_complete = bool(
-            coverage_state["exact_scope"]
-            and coverage_date is not None
-            and coverage_date >= request.end_date
-        )
+        coverage_complete = coverage_state["complete"]
         result_status = (
             "matched" if rows and coverage_complete else
             "matched_with_coverage_gap" if rows else
             "no_events_in_query_window" if coverage_complete else
-            "collection_coverage_gap" if dataset_has_rows or coverage_through else
+            "collection_coverage_gap" if dataset_has_rows or coverage_state["updated_at"] else
             "no_governed_rows"
         )
-        missing: list[dict[str, Any]] = []
-        if not coverage_complete:
-            missing.append({
-                "dataset_id": "dataset.trade-event",
-                "reason": (
-                    "collection_watermark_before_query_end"
-                    if coverage_through is not None
-                    else "collection_watermark_missing"
-                ),
-            })
+        missing = coverage_state["missing"]
         result = self._envelope(
             data={
                 "query": {
@@ -588,6 +538,7 @@ class WarehouseReadQueryPort:
                     "end_date": request.end_date,
                     "result_status": result_status,
                     "coverage_through": coverage_through,
+                    "coverage_partitions": coverage_state["partitions"],
                 },
                 "events": rows,
                 "next_cursor": None,
@@ -603,7 +554,7 @@ class WarehouseReadQueryPort:
             missing_coverage=missing,
             quality_status="pass" if coverage_complete else "partial",
         )
-        if dataset_has_rows or coverage_through is not None:
+        if dataset_has_rows or coverage_state["updated_at"] is not None:
             result["freshness"]["status"] = "available"
         return result
 

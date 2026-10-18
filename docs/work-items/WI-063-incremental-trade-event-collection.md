@@ -58,7 +58,7 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 - [x] The reviewed producer collects every approved current account/market partition within a bounded call budget.
 - [x] A successful partition advances an explicit contiguous source coverage watermark only after quality/publish.
-- [x] Empty-window trade-ledger pass is possible only when every requested partition covers the query end date.
+- [ ] Empty-window trade-ledger pass requires every date in the requested interval, including its start and internal gaps, to be proved for every requested account/market partition. S02 repository verification is complete; corrected production OAuth replay remains pending.
 - [x] Source failure degrades trade features without blocking portfolio overview, market data or verified partials.
 - [x] Immediate replay and actual Codex OAuth MCP positive/partial/error scenarios pass after guarded deployment.
 
@@ -79,6 +79,8 @@ FX rather than order history and does not advance a trade source coverage waterm
 4. Verify direct MCP current-window behavior without waiting for a future trade or scheduler slot.
 
 ## Sub-items
+
+- `WI-063-S02` (`verified`, `work_lane: stabilization_recovery`, `execution_scope: isolated`, `production_effects: none`) — correct whole-interval account/market coverage using successful source partition, quality and publish evidence. Owner authorized implementation on 2026-10-19. No architecture, source, grain, key, retention, DDL or backup-set change. Existing upper watermarks remain resume diagnostics only; no source calls or backfill are authorized by a read.
 
 - `WI-063-S01` (`stabilizing`) — correct the production cutover after stabilization showed that the legacy overseas
   transaction scheduler and the new incremental overseas scheduler both ran at 07:35 KST. The legacy Job refreshed
@@ -135,3 +137,34 @@ FX rather than order history and does not advance a trade source coverage waterm
   future source failures must remain isolated and visible. Historical duplicate current rows are a separate issue.
 - Follow-up Work Item: proposed WI-064 owns source-grounded current-ledger business-key deduplication without
   changing WI-063 acceptance or erasing append-only observations.
+
+
+## WI-063-S02 — Whole-interval corrective phase, 2026-10-19
+
+Classification: existing-outcome defect; `work_lane: stabilization_recovery`, `discovered_from: WI-063`.
+Architecture impact: none; approved source, identities, grain, key, retention, consumer scope and trust boundary unchanged.
+Current execution scope: isolated repository and read-only production audit; production effects: none.
+
+Actual OAuth reproduced the 2020 false pass (request `20e044b5a7cc431ea6d53e5b2184e508`). The
+[corrective verification and release package](../operations/wi-063-interval-coverage-2026-10-19.md) links the independent
+regression oracles, source proof audit, runtime execution IDs and precise acceptance/rollback sequence.
+
+The reader now validates source partition identity and interval, complete collection/reconciliation, both quality rules,
+lineage and successful publish. It merges adjacent intervals per source and intersects required sources per account/market.
+Watermarks and existing trade rows never establish absence. Producer 1.0.3 also emits explicit interval metadata and
+preserves the upper watermark and its associated run on older replays. Existing 120-day, no-gap and source-isolation guards remain.
+No DDL, migration, new object, backup-set, source activation, backfill or external send is needed.
+
+Read-only candidate verification on production proves 376 source partitions, RIA coverage beginning 2023-08-28,
+2020 partial, RIA 8/25 two rows/pass, covered empty/pass and upper-gap/partial. The recent runtime audit covers
+KST 10/14..16: domestic three successful scheduled executions; overseas two successes and one retained HTTP 500
+failure with three bounded physical attempts. All configured account/market scopes are accounted for; IRP recent
+history remains unavailable. Later independent success does not erase the failed run. Both legacy schedulers are paused,
+and actual legacy/new execution IDs show no scheduled overlap in the sample.
+
+S02 is repository-verified and ready for protected release; the parent and S01 remain stabilizing. Do not mark the
+parent closed until the corrected image serves both approved Remote routes, actual Codex positive/empty/partial/error
+and 2020 regression pass, and the owner accepts the bounded recurring outcome. No new Claude gate is imposed on
+WI-063: its existing acceptance client is Codex OAuth. A repeatable Claude scenario is supplied for optional cross-client use.
+
+Repository gate: quick/full PASS; 908 tests, one existing Authlib warning. Six protected release regressions and the CLI dry-run pass; [validation summary](../../governance/project/evidence/wi063/validation-2026-10-19.json). No production release has occurred in S02.

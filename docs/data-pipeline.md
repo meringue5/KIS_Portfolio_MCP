@@ -462,3 +462,9 @@ Domestic order history explicitly sends `EXCG_ID_DVSN_CD=ALL` so KRX, NXT and SO
 Start resolution uses the minimum quality-published query coverage across every callable account-market in the requested domestic/overseas/all scope. Incomplete or missing scope evidence falls back conservatively to prior source coverage; no-gap and 120-day replay guards remain enforced. Complementary historical/recent source-route end dates must not be mistaken for scope-level completeness.
 
 WI-064 migration 0022 implements the existing executed-order natural key through source-proven legacy/current aliases, with immutable revisions retained. Current reads select latest-per-source then latest knowledge across aliases; valid buy compatibility lots prefer the legacy anchor. Replayed source aggregates stay idempotent; newer changed aggregates append revisions. See [data catalog](data-catalog.md) and [release/rollback evidence](operations/wi-064-identity-repair-2026-10-18.md). No source activation, schedule or raw-history deletion is introduced.
+
+
+WI-063-S02: trade query completeness consumes retained exact source partition intervals plus successful
+collection/reconciliation, quality, lineage and publish evidence; see [catalog](data-catalog.md#wi-063-s02-trade-interval-proof-2026-10-19).
+Pipeline 1.0.3 emits explicit `coverage_interval` in publish JSON; historical evidence is verified in place with no
+backfill or inferred start date. Older replays cannot regress upper watermarks or replace their later-run provenance.

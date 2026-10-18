@@ -1,0 +1,78 @@
+{
+  "work_item": "WI-063-S02",
+  "evidence_kind": "actual approved Codex OAuth production baseline - not corrected deployment acceptance",
+  "cases": [
+    {
+      "case": "old-false-pass",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2020-01-01",
+        "end_date": "2020-01-02",
+        "limit": 20
+      },
+      "request_id": "20e044b5a7cc431ea6d53e5b2184e508",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "missing_coverage": [],
+      "result_status": "no_events_in_query_window",
+      "oracle": "FAIL - expected partial; pre-release production baseline"
+    },
+    {
+      "case": "populated",
+      "request_id": "77ef7c9e5ecf4fcb8884ff98f914e6c1",
+      "quality": {
+        "status": "pass",
+        "row_count": 2
+      },
+      "query": {
+        "start_date": "2026-08-25",
+        "end_date": "2026-08-25",
+        "result_status": "matched",
+        "coverage_through": "2026-10-16"
+      },
+      "missing_coverage": []
+    },
+    {
+      "case": "upper-gap",
+      "request_id": "f6ed0d1124eb4f5ca749e95b9d6fd923",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-17",
+        "end_date": "2026-10-18",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-10-16"
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_watermark_before_query_end"
+        }
+      ]
+    },
+    {
+      "case": "covered-empty",
+      "request_id": "f04216a683894535ac61827c95913542",
+      "quality": {
+        "status": "pass",
+        "row_count": 0
+      },
+      "query": {
+        "start_date": "2026-10-16",
+        "end_date": "2026-10-16",
+        "result_status": "no_events_in_query_window",
+        "coverage_through": "2026-10-16"
+      },
+      "missing_coverage": []
+    },
+    {
+      "case": "invalid-range",
+      "isError": true,
+      "error": "Error executing tool get-trade-ledger: {\"error\":{\"code\":\"invalid_request\",\"detail\":\"request:value_error:Value error, start_date must not be after end_date\",\"exception_type\":\"ValidationError\",\"request_id\":\"a0d00b8ca6214a5db52e166a2735799a\",\"visibility\":\"owner_debug\"}}"
+    }
+  ]
+}

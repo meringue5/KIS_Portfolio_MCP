@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "labels": {
+      "cloud.googleapis.com/location": "asia-northeast3",
+      "deploy-source": "github-actions",
+      "deploy-target": "wi065",
+      "git-sha": "be4e80a11465fa93597b7714e52b6094a59f2a12",
+      "github-run-id": "38547709115",
+      "run.googleapis.com/satisfiesPzs": "true"
+    }
+  },
+  "status": {
+    "traffic": [
+      {
+        "latestRevision": true,
+        "percent": 100,
+        "revisionName": "kis-portfolio-remote-00063-mcr",
+        "tag": "wi046-v2",
+        "url": "https://wi046-v2---kis-portfolio-remote-5q2yi575la-du.a.run.app"
+      },
+      {
+        "revisionName": "kis-portfolio-remote-00065-ley",
+        "tag": "wi060",
+        "url": "https://wi060---kis-portfolio-remote-5q2yi575la-du.a.run.app"
+      }
+    ]
+  }
+}

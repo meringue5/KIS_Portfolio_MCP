@@ -31,6 +31,7 @@ on:
           - wi055-s04
           - wi060
           - wi063
+          - wi063-s02
           - wi065
           - wi073
           - wi074
@@ -187,7 +188,7 @@ jobs:
             test -n "${KIS_AUTH_ISSUER_URL}" || { echo "KIS_AUTH_ISSUER_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
-          if [ "${target}" = "wi063" ] || [ "${target}" = "wi065" ] || [ "${target}" = "wi073" ] || [ "${target}" = "wi066" ] || [ "${target}" = "wi068" ]; then
+          if [ "${target}" = "wi063" ] || [ "${target}" = "wi063-s02" ] || [ "${target}" = "wi065" ] || [ "${target}" = "wi073" ] || [ "${target}" = "wi066" ] || [ "${target}" = "wi068" ]; then
             test -n "${KIS_AUTH_BASE_URL}" || { echo "KIS_AUTH_BASE_URL var is required."; exit 1; }
             test -n "${KIS_RESOURCE_SERVER_URL}" || { echo "KIS_RESOURCE_SERVER_URL var is required."; exit 1; }
           fi
@@ -338,6 +339,14 @@ jobs:
         if: github.event.inputs.target == 'wi073'
         run: |
           uv run python scripts/deploy_cloud_run.py wi073 \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --region "${KIS_DEPLOY_REGION}" \
+            --secret-mode secret-manager
+
+      - name: Deploy WI-063 interval coverage correction without replay
+        if: github.event.inputs.target == 'wi063-s02'
+        run: |
+          uv run python scripts/deploy_cloud_run.py wi063-s02 \
             --project "${GOOGLE_CLOUD_PROJECT}" \
             --region "${KIS_DEPLOY_REGION}" \
             --secret-mode secret-manager
