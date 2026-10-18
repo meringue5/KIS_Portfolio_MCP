@@ -1,7 +1,7 @@
 ---
 id: WI-063
 title: Restore governed incremental trade-event collection and coverage evidence
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-009, DEC-010, DEC-015, DEC-030, DEC-044, DEC-059, DEC-060, ADR-032
@@ -21,9 +21,9 @@ security_impact: preserve account aliases only in public responses and existing 
 cost_impact: bounded KIS order-history calls must be measured before activation
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: S02 PR #168 and protected run 39144314352 plus nine actual Codex OAuth cases in governance/project/evidence/wi063/codex-production-acceptance-2026-10-19.json; PR #137 and #138, protected deploy runs 35900350370 and 36595665194, immediate executions and direct Codex OAuth MCP replay recorded below
+real_use_evidence_refs: owner-acceptance-2026-10-19.json and S02 PR #168 and protected run 39144314352 plus nine actual Codex OAuth cases in governance/project/evidence/wi063/codex-production-acceptance-2026-10-19.json; PR #137 and #138, protected deploy runs 35900350370 and 36595665194, immediate executions and direct Codex OAuth MCP replay recorded below
 stabilization_window: immediate post-cutover scheduler execution plus bounded recurring-run and owner acceptance review
-stabilization_exit_refs: immutable release evidence, four scheduler states, successful overseas execution, direct MCP positive/partial/error outputs and owner acceptance
+stabilization_exit_refs: governance/project/evidence/wi063/owner-acceptance-2026-10-19.json, codex-production-acceptance-2026-10-19.json, runtime-three-date-audit-2026-10-19.json, production-resources-2026-10-19.json and protected-production-release-2026-10-19.json
 rollback_plan: pause both new schedulers and resume only the preserved legacy schedulers through the protected release rollback path; never delete ledger observations
 ---
 
@@ -58,7 +58,7 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 - [x] The reviewed producer collects every approved current account/market partition within a bounded call budget.
 - [x] A successful partition advances an explicit contiguous source coverage watermark only after quality/publish.
-- [x] Empty-window trade-ledger pass requires every date in the requested interval, including its start and internal gaps, to be proved for every requested account/market partition. S02 full 908 and corrected production OAuth 9/9 pass; owner acceptance remains the final parent closure exit.
+- [x] Empty-window trade-ledger pass requires every date in the requested interval, including its start and internal gaps, to be proved for every requested account/market partition. S02 full 908 and corrected production OAuth 9/9 pass; owner accepted the specific deployed results and bounded recurring evidence on 2026-10-19.
 - [x] Source failure degrades trade features without blocking portfolio overview, market data or verified partials.
 - [x] Immediate replay and actual Codex OAuth MCP positive/partial/error scenarios pass after guarded deployment.
 
@@ -80,9 +80,9 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 ## Sub-items
 
-- `WI-063-S02` (`stabilizing`, `work_lane: stabilization_recovery`, `execution_scope: approved production patch release and actual-client verification`, `production_effects: two existing Job images and both Remote routes updated without source replay or DDL`) — correct whole-interval account/market coverage using successful source partition, quality and publish evidence. Owner authorized implementation on 2026-10-19. No architecture, source, grain, key, retention, DDL or backup-set change. Existing upper watermarks remain resume diagnostics only; no source calls or backfill are authorized by a read.
+- `WI-063-S02` (`closed`, `work_lane: stabilization_recovery`, `execution_scope: approved production patch release and actual-client verification`, `production_effects: two existing Job images and both Remote routes updated without source replay or DDL`) — correct whole-interval account/market coverage using successful source partition, quality and publish evidence. Owner authorized implementation on 2026-10-19. No architecture, source, grain, key, retention, DDL or backup-set change. Existing upper watermarks remain resume diagnostics only; no source calls or backfill are authorized by a read.
 
-- `WI-063-S01` (`stabilizing`) — correct the production cutover after stabilization showed that the legacy overseas
+- `WI-063-S01` (`closed`) — correct the production cutover after stabilization showed that the legacy overseas
   transaction scheduler and the new incremental overseas scheduler both ran at 07:35 KST. The legacy Job refreshed
   a separate token cache while the incremental Job was using its prior token, producing four consecutive
   `http_status=403` failures. Preserve both legacy Jobs for rollback, pause both legacy trade schedulers, keep only the
@@ -192,3 +192,23 @@ prove all 12 source/reference table fingerprints unchanged, current trade rows 2
 WI-064 identity work is preserved; WI-067 is not reopened. S02 moves verified → stabilizing, and parent/S01 remain
 stabilizing pending owner acceptance of these specific corrected results and the explained three-date runtime sample.
 Deployment approval is recorded separately from acceptance of the subsequent results; no new mandatory Claude or future-slot gate is added.
+
+
+## Owner acceptance and final closeout — 2026-10-19
+
+After the protected release and actual OAuth results were presented, the owner explicitly replied
+“네 인수하고 정리합시다” and authorized publishing the post-release operational/OAuth evidence and closure to
+the same GitHub repository. [Owner acceptance](../../governance/project/evidence/wi063/owner-acceptance-2026-10-19.json)
+closes WI-063, WI-063-S01 and WI-063-S02. This is acceptance of the specific deployed 9/9 results and the explained
+three-date sample, separate from earlier deployment approval. No new release, source replay, DDL or send occurs.
+
+Exit evidence: run 39144314352; immutable image and converged Remote routes; actual Codex positive/covered-empty/
+partial/error and 2020 regression; full 908 tests; exact source interval proof; no legacy/new scheduled overlap;
+12 unchanged source/reference fingerprints and preserved historical failure. Owner accepts recent IRP as an explicit
+source gap and the explained retained overseas HTTP 500 as historical failure, not successful collection. These limits
+remain visible to consumers and do not authorize false complete-history or financial-performance claims.
+
+Ongoing monitoring/rollback remains with the existing owner and independent trade Jobs/Schedulers. Retained prior
+Job exports and Remote stable/tag revisions support rollback without deleting facts, reducing watermarks or erasing
+failed history. Any new same-outcome defect is appended under the Project OS recovery/operations policy. No other
+Work Item or milestone is closed, reopened, or renumbered by this closeout; original shared-checkout changes remain preserved.

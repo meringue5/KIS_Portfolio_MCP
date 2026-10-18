@@ -1,8 +1,8 @@
 # WI-063-S02 interval coverage correction — 2026-10-19
 
 The lower-bound false pass is fixed and deployed through the owner-approved protected release. Actual Codex OAuth
-passes all nine post-release oracles. Parent WI-063, S01 and S02 remain stabilizing pending owner acceptance of the
-corrected results and explained recurring sample. The candidate/baseline sections below preserve pre-release evidence.
+passes all nine post-release oracles. The owner explicitly accepted the corrected results and explained recurring
+sample on 2026-10-19; WI-063, S01 and S02 are closed. The candidate/baseline sections below preserve pre-release evidence.
 
 ## Independent oracles and implementation
 
@@ -161,3 +161,17 @@ and [resource comparison](../../governance/project/evidence/wi063/production-res
 
 Remaining exit is owner acceptance of these displayed corrected results and the already-explained recurring sample.
 S02 advances to stabilizing; parent/S01 stay stabilizing. No new Claude or mandatory future-slot wait is introduced.
+
+
+## Owner-accepted closure — 2026-10-19
+
+The owner replied “네 인수하고 정리합시다” after the deployed 9/9 results and source-preservation outcome were
+presented, accepting the results and authorizing publication of these post-release operational/OAuth evidence files
+to the same repository. [Acceptance record](../../governance/project/evidence/wi063/owner-acceptance-2026-10-19.json)
+closes WI-063 and both corrective sub-items. Earlier pending-acceptance statements above are historical snapshots.
+Recent IRP remains an explicit unsupported-source gap; the overseas HTTP 500 remains failed history with its later
+independent coverage proof. Owner acceptance does not turn either into fabricated successful coverage.
+
+Existing Jobs/Schedulers and owner retain monitoring responsibility and source-preserving rollback; no source run,
+DDL, notification or additional deployment is part of closeout. Other Work Items/milestones and the original dirty
+shared checkout are preserved. The isolated managed worktree can be archived after the evidence/closeout PR merges.

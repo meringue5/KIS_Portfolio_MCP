@@ -1296,7 +1296,7 @@ status = "closed"
 id = "WI-063-S01"
 parent_id = "WI-063"
 title = "Eliminate legacy/new trade scheduler overlap and verify recurring overseas recovery"
-status = "stabilizing"
+status = "closed"
 
 [[subitems]]
 id = "WI-066-S01"
@@ -1334,4 +1334,4 @@ sequence = 11
 id = "WI-063-S02"
 parent_id = "WI-063"
 title = "Prove complete trade query intervals from exact published source partitions"
-status = "stabilizing"
+status = "closed"
