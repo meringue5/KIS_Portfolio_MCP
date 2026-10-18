@@ -21,7 +21,7 @@ security_impact: preserve account aliases only in public responses and existing 
 cost_impact: bounded KIS order-history calls must be measured before activation
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: PR #137 and #138, protected deploy runs 35900350370 and 36595665194, immediate executions and direct Codex OAuth MCP replay recorded below
+real_use_evidence_refs: S02 PR #168 and protected run 39144314352 plus nine actual Codex OAuth cases in governance/project/evidence/wi063/codex-production-acceptance-2026-10-19.json; PR #137 and #138, protected deploy runs 35900350370 and 36595665194, immediate executions and direct Codex OAuth MCP replay recorded below
 stabilization_window: immediate post-cutover scheduler execution plus bounded recurring-run and owner acceptance review
 stabilization_exit_refs: immutable release evidence, four scheduler states, successful overseas execution, direct MCP positive/partial/error outputs and owner acceptance
 rollback_plan: pause both new schedulers and resume only the preserved legacy schedulers through the protected release rollback path; never delete ledger observations
@@ -58,7 +58,7 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 - [x] The reviewed producer collects every approved current account/market partition within a bounded call budget.
 - [x] A successful partition advances an explicit contiguous source coverage watermark only after quality/publish.
-- [ ] Empty-window trade-ledger pass requires every date in the requested interval, including its start and internal gaps, to be proved for every requested account/market partition. S02 repository verification is complete; corrected production OAuth replay remains pending.
+- [x] Empty-window trade-ledger pass requires every date in the requested interval, including its start and internal gaps, to be proved for every requested account/market partition. S02 full 908 and corrected production OAuth 9/9 pass; owner acceptance remains the final parent closure exit.
 - [x] Source failure degrades trade features without blocking portfolio overview, market data or verified partials.
 - [x] Immediate replay and actual Codex OAuth MCP positive/partial/error scenarios pass after guarded deployment.
 
@@ -80,7 +80,7 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 ## Sub-items
 
-- `WI-063-S02` (`verified`, `work_lane: stabilization_recovery`, `execution_scope: isolated`, `production_effects: none`) — correct whole-interval account/market coverage using successful source partition, quality and publish evidence. Owner authorized implementation on 2026-10-19. No architecture, source, grain, key, retention, DDL or backup-set change. Existing upper watermarks remain resume diagnostics only; no source calls or backfill are authorized by a read.
+- `WI-063-S02` (`stabilizing`, `work_lane: stabilization_recovery`, `execution_scope: approved production patch release and actual-client verification`, `production_effects: two existing Job images and both Remote routes updated without source replay or DDL`) — correct whole-interval account/market coverage using successful source partition, quality and publish evidence. Owner authorized implementation on 2026-10-19. No architecture, source, grain, key, retention, DDL or backup-set change. Existing upper watermarks remain resume diagnostics only; no source calls or backfill are authorized by a read.
 
 - `WI-063-S01` (`stabilizing`) — correct the production cutover after stabilization showed that the legacy overseas
   transaction scheduler and the new incremental overseas scheduler both ran at 07:35 KST. The legacy Job refreshed
@@ -143,7 +143,7 @@ FX rather than order history and does not advance a trade source coverage waterm
 
 Classification: existing-outcome defect; `work_lane: stabilization_recovery`, `discovered_from: WI-063`.
 Architecture impact: none; approved source, identities, grain, key, retention, consumer scope and trust boundary unchanged.
-Current execution scope: isolated repository and read-only production audit; production effects: none.
+Current execution scope: owner-approved production patch release and actual-client verification; production effects: two existing Job images and both Remote routes updated. Earlier isolated repository phase is preserved below; no source replay, DDL, secret or Scheduler change.
 
 Actual OAuth reproduced the 2020 false pass (request `20e044b5a7cc431ea6d53e5b2184e508`). The
 [corrective verification and release package](../operations/wi-063-interval-coverage-2026-10-19.md) links the independent
@@ -162,9 +162,33 @@ failure with three bounded physical attempts. All configured account/market scop
 history remains unavailable. Later independent success does not erase the failed run. Both legacy schedulers are paused,
 and actual legacy/new execution IDs show no scheduled overlap in the sample.
 
-S02 is repository-verified and ready for protected release; the parent and S01 remain stabilizing. Do not mark the
+Pre-release snapshot: S02 was repository-verified and ready for protected release; the parent and S01 remained stabilizing. The subsequently approved release is recorded below. Do not mark the
 parent closed until the corrected image serves both approved Remote routes, actual Codex positive/empty/partial/error
 and 2020 regression pass, and the owner accepts the bounded recurring outcome. No new Claude gate is imposed on
 WI-063: its existing acceptance client is Codex OAuth. A repeatable Claude scenario is supplied for optional cross-client use.
 
-Repository gate: quick/full PASS; 908 tests, one existing Authlib warning. Six protected release regressions and the CLI dry-run pass; [validation summary](../../governance/project/evidence/wi063/validation-2026-10-19.json). No production release has occurred in S02.
+Repository gate: quick/full PASS; 908 tests, one existing Authlib warning. Six protected release regressions and the CLI dry-run pass; [validation summary](../../governance/project/evidence/wi063/validation-2026-10-19.json). No production release had occurred at that pre-release snapshot; the approved production outcome is appended below.
+
+
+## Approved S02 release and actual-client results — 2026-10-19
+
+The owner explicitly approved production deployment in this chat. PR #168 merged as
+`8ba01d81b5cd0d8c48f8c6a770f4abe55a53341a`; protected `wi063-s02` run
+[39144314352](https://github.com/meringue5/KIS_Portfolio_MCP/actions/runs/39144314352) succeeded after its own full gate
+(908 passed, one existing Authlib warning). Both existing trade Jobs and Remote use immutable image
+`sha256:f2099627e6936013a471b05eaa525e7a27ffd67ac467c72a4d8d24deaa19cd39`; stable and `wi046-v2`
+converge on `kis-portfolio-remote-00064-ndw`. Release labels, non-image configuration, other tags, all eight Scheduler
+states/targets and both Jobs' latest execution IDs were verified. No Job/source/backfill/migration or external send was started.
+
+[Actual Codex OAuth acceptance](../../governance/project/evidence/wi063/codex-production-acceptance-2026-10-19.json)
+passes **9/9** independent oracles: RIA 2020 zero/partial/before-start with exact uncovered dates; RIA 8/25 two/pass;
+covered-empty pass; upper-gap partial; brokerage domestic/overseas pass; global IRP partial; bounded invalid_request;
+unaffected overview pass/32; and the historical failed pipeline run still failed/visible. The corrected 2020 request is
+`a637c9975f5c409eae7e3e9b8c3a831a`.
+
+[Resource verification](../../governance/project/evidence/wi063/production-resources-2026-10-19.json) and
+[release/preservation summary](../../governance/project/evidence/wi063/protected-production-release-2026-10-19.json)
+prove all 12 source/reference table fingerprints unchanged, current trade rows 281, aliases 19 and schema ceiling 0022.
+WI-064 identity work is preserved; WI-067 is not reopened. S02 moves verified → stabilizing, and parent/S01 remain
+stabilizing pending owner acceptance of these specific corrected results and the explained three-date runtime sample.
+Deployment approval is recorded separately from acceptance of the subsequent results; no new mandatory Claude or future-slot gate is added.

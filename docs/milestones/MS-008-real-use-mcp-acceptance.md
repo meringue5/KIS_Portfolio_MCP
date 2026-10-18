@@ -83,3 +83,5 @@ gaps found there must be classified and routed to an owned follow-up.
 - 2026-10-18: WI-064 PR #166 / workflow 39105328346 applied the source-preserving 0022 projection repair. Direct OAuth 4→2 and production 300→281/19→0 reconcile; owner acceptance remains pending without replacing the Work Item or rewinding the milestone.
 
 | 2026-10-19.1 | 2026-10-19 | Actual OAuth 2020 false pass exposed missing lower-bound and gap proof; WI-063-S02 validates exact source/quality/publish intervals and preserves watermark monotonicity | Append same-outcome corrective sub-item; verified repository phase, parent remains stabilizing; protected patch release and owner acceptance pending |
+
+| 2026-10-19.2 | 2026-10-19 | Owner approved PR #168 merge and protected wi063-s02 release; run 39144314352 passed, both Remote routes converge and actual Codex OAuth passes 9/9 including 2020 partial | S02 stabilizing; parent/S01 preserve history and await owner result acceptance; no source replay, DDL or unrelated closure |

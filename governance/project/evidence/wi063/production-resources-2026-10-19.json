@@ -1,0 +1,32 @@
+{
+  "work_item": "WI-063-S02",
+  "observed_at": "2026-10-18T16:22:26.994351+00:00",
+  "release_sha": "8ba01d81b5cd0d8c48f8c6a770f4abe55a53341a",
+  "github_run_id": "39144314352",
+  "jobs": [
+    {
+      "scope": "domestic",
+      "image_digest": "sha256:f2099627e6936013a471b05eaa525e7a27ffd67ac467c72a4d8d24deaa19cd39",
+      "labels_verified": true,
+      "non_image_config_preserved": true,
+      "latest_execution_unchanged": true
+    },
+    {
+      "scope": "overseas",
+      "image_digest": "sha256:f2099627e6936013a471b05eaa525e7a27ffd67ac467c72a4d8d24deaa19cd39",
+      "labels_verified": true,
+      "non_image_config_preserved": true,
+      "latest_execution_unchanged": true
+    }
+  ],
+  "remote": {
+    "stable_revision": "kis-portfolio-remote-00064-ndw",
+    "compatibility_revision": "kis-portfolio-remote-00064-ndw",
+    "image_digest": "sha256:f2099627e6936013a471b05eaa525e7a27ffd67ac467c72a4d8d24deaa19cd39",
+    "labels_verified": true,
+    "non_image_spec_preserved": true,
+    "other_tags_preserved": true
+  },
+  "scheduler_count": 8,
+  "schedulers_unchanged": true
+}

@@ -1,0 +1,30 @@
+{
+  "work_item": "WI-063-S02",
+  "release_sha": "8ba01d81b5cd0d8c48f8c6a770f4abe55a53341a",
+  "github_run_id": "39144314352",
+  "owner_authorization": "2026-10-19 in this chat: 네 배포해요; explicit permission to merge PR 168 and execute reviewed protected release",
+  "release_conclusion": "success",
+  "release_full_gate": {
+    "passed": 908,
+    "warnings": 1,
+    "seconds": 142.29
+  },
+  "immutable_image_digest": "sha256:f2099627e6936013a471b05eaa525e7a27ffd67ac467c72a4d8d24deaa19cd39",
+  "remote_revision": "kis-portfolio-remote-00064-ndw",
+  "stable_and_compatibility_converged": true,
+  "preserved_data_tables": 12,
+  "source_fingerprints_unchanged": true,
+  "current_trade_rows": 281,
+  "source_proven_aliases": 19,
+  "schema_ceiling": "0022",
+  "migrations_executed": 0,
+  "source_jobs_executed_by_release": 0,
+  "source_calls_by_acceptance": 0,
+  "scheduler_changes": 0,
+  "external_sends": 0,
+  "actual_codex_oracles_passed": 9,
+  "actual_codex_oracles_failed": 0,
+  "parent_status": "stabilizing",
+  "subitem_status": "stabilizing",
+  "remaining_exit": "owner acceptance of the displayed corrected actual OAuth results and explained bounded recurring sample; no new Claude gate or mandatory clock wait"
+}
