@@ -81,3 +81,5 @@ gaps found there must be classified and routed to an owned follow-up.
 - 2026-10-18: owner prioritized existing WI-064 and approved its normal PR/CI/production release. The original shared checkout preserves blocked WI-072 and other uncommitted artifacts; they are not bundled in this isolated release. No identity/dependency renumbering or milestone rewind.
 
 - 2026-10-18: WI-064 PR #166 / workflow 39105328346 applied the source-preserving 0022 projection repair. Direct OAuth 4→2 and production 300→281/19→0 reconcile; owner acceptance remains pending without replacing the Work Item or rewinding the milestone.
+
+| 2026-10-19.1 | 2026-10-19 | Actual OAuth 2020 false pass exposed missing lower-bound and gap proof; WI-063-S02 validates exact source/quality/publish intervals and preserves watermark monotonicity | Append same-outcome corrective sub-item; verified repository phase, parent remains stabilizing; protected patch release and owner acceptance pending |

@@ -34,7 +34,7 @@ from kis_portfolio.services.trade_cash_backfill_source import KisTradeCashBackfi
 
 
 PIPELINE_ID = "pipeline.trade-incremental-v2"
-PIPELINE_VERSION = "1.0.2"
+PIPELINE_VERSION = "1.0.3"
 INCREMENTAL_SLOT = "daily"
 MAX_REPLAY_DAYS = 120
 MAX_PHYSICAL_CALLS = 48
@@ -200,8 +200,9 @@ def run_trade_incremental(
             """
             INSERT INTO control.watermarks VALUES (?, ?, ?, ?, ?, current_timestamp)
             ON CONFLICT(pipeline_id, partition_key, watermark_type) DO UPDATE SET
-                watermark_value=excluded.watermark_value,
-                run_id=excluded.run_id,
+                watermark_value=greatest(control.watermarks.watermark_value, excluded.watermark_value),
+                run_id=CASE WHEN excluded.watermark_value >= control.watermarks.watermark_value
+                    THEN excluded.run_id ELSE control.watermarks.run_id END,
                 updated_at=excluded.updated_at
             """,
             [
@@ -237,8 +238,9 @@ def run_trade_incremental(
             """
             INSERT INTO control.watermarks VALUES (?, ?, ?, ?, ?, current_timestamp)
             ON CONFLICT(pipeline_id, partition_key, watermark_type) DO UPDATE SET
-                watermark_value=excluded.watermark_value,
-                run_id=excluded.run_id,
+                watermark_value=greatest(control.watermarks.watermark_value, excluded.watermark_value),
+                run_id=CASE WHEN excluded.watermark_value >= control.watermarks.watermark_value
+                    THEN excluded.run_id ELSE control.watermarks.run_id END,
                 updated_at=excluded.updated_at
             """,
             [
@@ -256,8 +258,9 @@ def run_trade_incremental(
             """
             INSERT INTO control.watermarks VALUES (?, 'all-accounts', ?, ?, ?, current_timestamp)
             ON CONFLICT(pipeline_id, partition_key, watermark_type) DO UPDATE SET
-                watermark_value=excluded.watermark_value,
-                run_id=excluded.run_id,
+                watermark_value=greatest(control.watermarks.watermark_value, excluded.watermark_value),
+                run_id=CASE WHEN excluded.watermark_value >= control.watermarks.watermark_value
+                    THEN excluded.run_id ELSE control.watermarks.run_id END,
                 updated_at=excluded.updated_at
             """,
             [

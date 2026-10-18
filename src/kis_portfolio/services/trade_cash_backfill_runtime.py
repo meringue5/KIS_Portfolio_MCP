@@ -294,6 +294,15 @@ def execute_trade_cash_backfill(
                     "partition_key": current.key,
                     "watermark_type": watermark_type,
                     "watermark_value": value,
+                    "coverage_interval": {
+                        "version": 1,
+                        "account_alias": current.account_label,
+                        "market": current.exchange or "KRX",
+                        "source_operation": current.source_operation,
+                        "source_route": current.source_route,
+                        "start_date": current.start_date.isoformat(),
+                        "end_date": current.end_date.isoformat(),
+                    },
                 }
             )
 

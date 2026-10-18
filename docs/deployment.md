@@ -623,3 +623,10 @@ The current product deliberately exposes no order tool. Validate future Remote c
 smoke and immutable release contract.
 
 WI-064 trade identity repair uses the prepared normal workflow target `wi064`: protected backup/fresh-restore migration 0022, then image-only updates of the existing two trade Jobs. It leaves Remote routes and schedules unchanged. Production approval, source-preservation verification and actual OAuth acceptance are specified in [the WI-064 plan](operations/wi-064-identity-repair-2026-10-18.md); local rehearsal does not authorize dispatch.
+
+
+WI-063-S02 protected patch target `wi063-s02` builds one immutable image, updates only the two existing trade Job
+images/labels, and reuses the stable plus `wi046-v2` Remote rollout guard. It executes no Job, source replay,
+DDL/migration, Scheduler or secret/config change. Capture exact prior Job exports and both Remote route revisions
+before changing anything; failure restores both Jobs and Remote routes. The [release package](operations/wi-063-interval-coverage-2026-10-19.md)
+owns the owner approval, immediate actual-client oracles and rollback limitations.

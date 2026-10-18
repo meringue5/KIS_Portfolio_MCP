@@ -668,16 +668,11 @@ async def test_trade_ledger_distinguishes_empty_window_from_absent_dataset():
     connection = duckdb.connect(":memory:")
     MigrationRunner(connection).apply()
     connection.execute(
-        "INSERT INTO silver.accounts VALUES ('acct-a','alpha','brokerage','KRW',?,NULL,'{}')",
+        "INSERT INTO silver.accounts VALUES ('acct-a','ria','brokerage','KRW',?,NULL,'{}')",
         [NOW],
     )
-    connection.execute(
-        """INSERT INTO control.watermarks VALUES (
-            'pipeline.trade-cash-backfill-v2','all-accounts',
-            'source_end_date_v1','2026-08-28','run-1',?
-        )""",
-        [NOW],
-    )
+    from test_trade_coverage_intervals import collect
+    collect(connection, start="2026-08-25", end="2026-08-28")
     connection.execute(
         """
         INSERT INTO silver.trade_event_revisions(
@@ -699,7 +694,7 @@ async def test_trade_ledger_distinguishes_empty_window_from_absent_dataset():
 
     gap_result = await application.execute(
         "get-trade-ledger",
-        TradeLedgerRequest(start_date=date(2026, 9, 1), end_date=date(2026, 9, 11)),
+        TradeLedgerRequest(start_date=date(2026, 9, 1), end_date=date(2026, 9, 11), account_alias="ria"),
         ACTOR,
     )
 
@@ -710,16 +705,13 @@ async def test_trade_ledger_distinguishes_empty_window_from_absent_dataset():
     assert gap_result["missing_coverage"] == [{
         "dataset_id": "dataset.trade-event",
         "reason": "collection_watermark_before_query_end",
+        "account_alias": "ria", "market": "KRX",
     }]
 
-    connection.execute(
-        """UPDATE control.watermarks SET watermark_value='2026-09-11', updated_at=?
-           WHERE pipeline_id='pipeline.trade-cash-backfill-v2'""",
-        [NOW],
-    )
+    collect(connection, start="2026-08-29", end="2026-09-11")
     result = await application.execute(
         "get-trade-ledger",
-        TradeLedgerRequest(start_date=date(2026, 9, 1), end_date=date(2026, 9, 11)),
+        TradeLedgerRequest(start_date=date(2026, 9, 1), end_date=date(2026, 9, 11), account_alias="ria"),
         ACTOR,
     )
 
@@ -738,13 +730,8 @@ async def test_trade_ledger_uses_incremental_account_coverage_without_overclaimi
         "INSERT INTO silver.accounts VALUES ('acct-a','brokerage','brokerage','KRW',?,NULL,'{}')",
         [NOW],
     )
-    connection.execute(
-        """INSERT INTO control.watermarks VALUES (
-            'pipeline.trade-incremental-v2','account:brokerage',
-            'trade_query_coverage_v1','2026-09-24','run-1',?
-        )""",
-        [NOW],
-    )
+    from test_trade_coverage_intervals import collect
+    collect(connection, start="2026-09-24", end="2026-09-24", label="brokerage", scope="all")
     application = RemoteReadApplication(
         WarehouseReadQueryPort(connection), expected_resource=RESOURCE
     )

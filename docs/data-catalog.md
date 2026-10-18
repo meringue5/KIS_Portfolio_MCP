@@ -368,3 +368,23 @@ is not reinserted for a correction. Backup tables remain unchanged; migration-pr
 [WI-064 rehearsal and release plan](operations/wi-064-identity-repair-2026-10-18.md) owns operational evidence.
 
 WI-064 protected workflow `39105328346` applied `0022` on 2026-10-18. This changes rebuild-only trade identity/current-lot projections and preserves every source/revision/reference table: 300→281 current events, 19 proven aliases, no remaining duplicate candidates. Pre/post complete private backup/fresh restore preserved all 79 data-table fingerprints. Both existing trade Job images were updated; Remote routes and Scheduler definitions were preserved. Actual Codex OAuth positive/partial/error passed; owner acceptance remains in WI-064.
+
+
+### WI-063-S02 trade interval proof (2026-10-19)
+
+`control.pipeline_runs.partition_key` v1 records operation, account alias, product code, account type, market,
+route and exact source start/end. `control.pipeline_stage_runs` collection evidence retains plan/budget hash,
+row reconciliation and complete pagination; `control.quality_results` retains both source-row and pagination rules;
+`control.lineage_edges` ties the source operation to trade normalization. Only successful collection, quality,
+publish and terminal run together prove that exact interval. Empty responses require these control proofs and
+need no fabricated Bronze row. Nonempty Bronze observations remain immutable and idempotent; their original run
+association need not move on reread. Pipeline 1.0.3 adds `coverage_interval` version 1 to existing publish JSON.
+Historical v1 keys remain usable only with the same independent complete proof chain. No new table/view/column,
+migration, machine allowlist, sensitivity, retention or Parquet backup set is introduced; existing control tables
+already back up this evidence. First/last trade dates and upper resume watermarks prove no absent history.
+
+Remote trade completeness unions adjacent successful intervals per operation, intersects the approved operation
+set per market (KRX order history; NAS order **and** transaction history), then requires every requested date for
+all requested account/market scopes. Approved global scope is the five ACCOUNT_SPECS aliases and brokerage NAS;
+recent IRP remains a named gap. `coverage_start`/`coverage_through` are outer bounds, not a completeness claim;
+`uncovered_intervals` (first 20 plus total count) and quality/missing_coverage own the consumer decision.

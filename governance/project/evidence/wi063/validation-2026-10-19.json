@@ -1,0 +1,43 @@
+{
+  "work_item": "WI-063-S02",
+  "base_sha": "3a39ff37e6ba0abb724537fa9a0ee33de2bb36e2",
+  "pre_fix_independent_oracles": {
+    "failed": 15,
+    "passed": 4,
+    "log_sha256": "b615d6d88759b89e274f2086a473ecc635f8885276bf4d5a353ede8fdc34f646"
+  },
+  "quick": "pass",
+  "full": {
+    "passed": 908,
+    "warnings": 1,
+    "warning": "existing Authlib deprecation",
+    "seconds": 45.23,
+    "command": "PATH=\"$PWD/.venv/bin:$PATH\" UV_CACHE_DIR=/private/tmp/kis-closure-uv-cache bash scripts/check.sh full"
+  },
+  "protected_release_tests": {
+    "passed": 6,
+    "boundaries": [
+      "second Job failure",
+      "Remote image update failure",
+      "traffic promotion failure",
+      "smoke failure",
+      "missing rollback revisions"
+    ]
+  },
+  "dry_run": {
+    "status": "pass",
+    "production_mutations": 0,
+    "source_calls": 0,
+    "commands": [
+      "build immutable image",
+      "update two existing Job images",
+      "update Remote image",
+      "promote stable and wi046-v2 tag"
+    ]
+  },
+  "actual_codex_baseline": "positive/covered-empty/upper-gap/error passed; 2020 false pass reproduced before release",
+  "candidate_production_read": "2020 partial; populated two/pass; empty pass; upper gap partial; global IRP partial",
+  "release_status": "not approved or executed",
+  "closure_status": "parent stabilizing; S02 repository verified; corrected production OAuth replay and owner acceptance pending",
+  "shared_checkout": "all original tracked/untracked files preserved; dedicated managed worktree, branch and venv used"
+}

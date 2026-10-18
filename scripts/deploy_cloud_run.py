@@ -3106,11 +3106,58 @@ def _deploy_wi074(args: argparse.Namespace, *, env: dict[str, str], project: str
     ], dry_run=args.dry_run)
 
 
+def _deploy_wi063_s02(args: argparse.Namespace, *, env: dict[str, str], project: str) -> int:
+    """Patch existing trade Jobs and both Remote routes; no source execution or DDL."""
+    if any(not env.get(key, "").strip() for key in ("KIS_AUTH_BASE_URL", "KIS_RESOURCE_SERVER_URL")):
+        print("WI-063-S02 requires Remote auth/resource configuration.")
+        return 1
+    service = env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    traffic = [] if args.dry_run else _service_traffic(project=project, region=args.region, service=service)
+    serving = next((x.get("revisionName") for x in traffic or [] if int(x.get("percent") or 0) == 100), None)
+    tagged = next((x.get("revisionName") for x in traffic or [] if x.get("tag") == DEFAULT_WI046_REMOTE_TAG), None)
+    if not args.dry_run and (not serving or not tagged):
+        print("WI-063-S02 requires prior stable and compatibility revisions.")
+        return 1
+    jobs = [env.get("KIS_TRADE_INCREMENTAL_DOMESTIC_JOB", DEFAULT_TRADE_INCREMENTAL_DOMESTIC_JOB),
+            env.get("KIS_TRADE_INCREMENTAL_OVERSEAS_JOB", DEFAULT_TRADE_INCREMENTAL_OVERSEAS_JOB)]
+    previous = []
+    if not args.dry_run:
+        for job in jobs:
+            exported = _run_capture(["gcloud", "run", "jobs", "describe", job,
+                "--region", args.region, "--project", project, "--format=export"], dry_run=False)
+            if exported.returncode or not exported.stdout.strip():
+                print("WI-063-S02 requires exact pre-release Job exports.")
+                return 1
+            previous.append({"kind": "job", "name": job, "previous_export": exported.stdout})
+    image = _build_release_image(args, project=project)
+    if not image or "@sha256:" not in image:
+        return 1
+    changed = []
+    code = 0
+    for job in jobs:
+        changed.append(job)
+        code = _run(["gcloud", "run", "jobs", "update", job, "--image", image,
+            "--region", args.region, *_build_label_flags("wi063-s02"), "--project", project], dry_run=args.dry_run)
+        if code:
+            break
+    if not code:
+        code = _deploy_wi065(args, env=env, project=project, release_image=image)
+    if code and not args.dry_run:
+        jobs_restored = _rollback_job_definitions(components=previous, job_names=changed,
+                                                region=args.region, project=project)
+        routes_restored = _run(["gcloud", "run", "services", "update-traffic", service,
+            "--update-tags", f"{DEFAULT_WI046_REMOTE_TAG}={tagged}",
+            "--to-revisions", f"{serving}=100", "--region", args.region, "--project", project], dry_run=False) == 0
+        print(f"WI-063-S02 failed; jobs_restored={jobs_restored}, routes_restored={routes_restored}.")
+    return code
+
+
 def _deploy_wi065(
     args: argparse.Namespace,
     *,
     env: dict[str, str],
     project: str,
+    release_image: str | None = None,
 ) -> int:
     """Deploy one Remote revision and move stable plus Claude compatibility routes together."""
 
@@ -3152,7 +3199,7 @@ def _deploy_wi065(
         print("WI-065 rollback precondition failed; serving or compatibility revision is missing.")
         return 1
 
-    image = _build_release_image(args, project=project)
+    image = release_image or _build_release_image(args, project=project)
     if not image or "@sha256:" not in image:
         print("Failed to resolve the immutable WI-065 image digest.")
         return 1
@@ -3894,6 +3941,7 @@ def main() -> int:
             "wi055-s04",
             "wi060",
             "wi063",
+            "wi063-s02",
             "wi065",
             "wi073",
             "wi074",
@@ -4148,6 +4196,12 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi063(args, env=env, project=project)
+
+    if args.target == "wi063-s02":
+        if not project:
+            print("WI-063-S02 requires GOOGLE_CLOUD_PROJECT")
+            return 1
+        return _deploy_wi063_s02(args, env=env, project=project)
 
     if args.target == "wi074":
         if not project:
