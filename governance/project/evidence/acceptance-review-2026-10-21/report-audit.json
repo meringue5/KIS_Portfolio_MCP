@@ -1,0 +1,180 @@
+{
+  "date": "2026-10-21",
+  "source": "MotherDuck read-only + current master no-send render",
+  "source_calls": 0,
+  "sends": 0,
+  "reports": [
+    {
+      "date": "2026-10-19",
+      "slot": "kr-1000",
+      "report_quality": "pass",
+      "complete_total_present": true,
+      "asset_allocation_reconciles": true,
+      "account_allocation_reconciles": true,
+      "photo": true,
+      "unavailable_codes": [],
+      "gold_rows": 32,
+      "accounts": 5,
+      "overseas_identifier_rows": 4,
+      "all_rows_pass": true,
+      "send_evidence": [
+        {
+          "run_status": "succeeded",
+          "stage_status": "succeeded",
+          "outcome": "sent",
+          "caption_hash_matches": true,
+          "chart_hash_matches": true,
+          "evidence_keys": [
+            "chart_hash",
+            "error_code",
+            "outcome",
+            "presentation_version",
+            "quality_status",
+            "report_hash",
+            "response_ref_hash"
+          ]
+        }
+      ],
+      "build_evidence": {
+        "quality_status": "pass",
+        "blocker_codes": [],
+        "prior_date": "2026-10-16",
+        "account_alias_count": 5,
+        "asset_bucket_count": 3,
+        "positive_count": 1,
+        "negative_count": 5,
+        "top_impact_count": 5,
+        "reconciliation_status": "pass"
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "slot": "kr-1600",
+      "report_quality": "pass",
+      "complete_total_present": true,
+      "asset_allocation_reconciles": true,
+      "account_allocation_reconciles": true,
+      "photo": true,
+      "unavailable_codes": [],
+      "gold_rows": 32,
+      "accounts": 5,
+      "overseas_identifier_rows": 4,
+      "all_rows_pass": true,
+      "send_evidence": [
+        {
+          "run_status": "succeeded",
+          "stage_status": "succeeded",
+          "outcome": "sent",
+          "caption_hash_matches": true,
+          "chart_hash_matches": true,
+          "evidence_keys": [
+            "chart_hash",
+            "error_code",
+            "outcome",
+            "presentation_version",
+            "quality_status",
+            "report_hash",
+            "response_ref_hash"
+          ]
+        }
+      ],
+      "build_evidence": {
+        "quality_status": "pass",
+        "blocker_codes": [],
+        "prior_date": "2026-10-16",
+        "account_alias_count": 5,
+        "asset_bucket_count": 3,
+        "positive_count": 5,
+        "negative_count": 5,
+        "top_impact_count": 5,
+        "reconciliation_status": "pass"
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "slot": "kr-1000",
+      "report_quality": "pass",
+      "complete_total_present": true,
+      "asset_allocation_reconciles": true,
+      "account_allocation_reconciles": true,
+      "photo": true,
+      "unavailable_codes": [],
+      "gold_rows": 32,
+      "accounts": 5,
+      "overseas_identifier_rows": 4,
+      "all_rows_pass": true,
+      "send_evidence": [
+        {
+          "run_status": "succeeded",
+          "stage_status": "succeeded",
+          "outcome": "sent",
+          "caption_hash_matches": true,
+          "chart_hash_matches": true,
+          "evidence_keys": [
+            "chart_hash",
+            "error_code",
+            "outcome",
+            "presentation_version",
+            "quality_status",
+            "report_hash",
+            "response_ref_hash"
+          ]
+        }
+      ],
+      "build_evidence": {
+        "quality_status": "pass",
+        "blocker_codes": [],
+        "prior_date": "2026-10-19",
+        "account_alias_count": 5,
+        "asset_bucket_count": 3,
+        "positive_count": 5,
+        "negative_count": 5,
+        "top_impact_count": 5,
+        "reconciliation_status": "pass"
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "slot": "kr-1600",
+      "report_quality": "pass",
+      "complete_total_present": true,
+      "asset_allocation_reconciles": true,
+      "account_allocation_reconciles": true,
+      "photo": true,
+      "unavailable_codes": [],
+      "gold_rows": 32,
+      "accounts": 5,
+      "overseas_identifier_rows": 4,
+      "all_rows_pass": true,
+      "send_evidence": [
+        {
+          "run_status": "succeeded",
+          "stage_status": "succeeded",
+          "outcome": "sent",
+          "caption_hash_matches": true,
+          "chart_hash_matches": true,
+          "evidence_keys": [
+            "chart_hash",
+            "error_code",
+            "outcome",
+            "presentation_version",
+            "quality_status",
+            "report_hash",
+            "response_ref_hash"
+          ]
+        }
+      ],
+      "build_evidence": {
+        "quality_status": "pass",
+        "blocker_codes": [],
+        "prior_date": "2026-10-19",
+        "account_alias_count": 5,
+        "asset_bucket_count": 3,
+        "positive_count": 3,
+        "negative_count": 5,
+        "top_impact_count": 5,
+        "reconciliation_status": "pass"
+      }
+    }
+  ]
+}

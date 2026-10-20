@@ -1,7 +1,7 @@
 ---
 id: WI-065
 title: Restore the Claude recent-asset-change MCP workflow on the current Remote revision
-status: stabilizing
+status: closed
 type: incident
 owner: owner
 decision_refs: DEC-029, DEC-031, DEC-032, DEC-038, DEC-057, DEC-058, ADR-015, ADR-028, ADR-029, ADR-030
@@ -13,7 +13,7 @@ depends_on: WI-063
 discovered_from: WI-063
 supersedes: none
 rollback_of: none
-execution_scope: protected production Remote release and immediate actual-client verification
+execution_scope: closed after protected release, actual Codex replay and owner-Claude acceptance; documentation only
 production_effects: update the kis-portfolio-remote image, stable traffic and wi046-v2 compatibility tag together
 architecture_impact: none; repair the approved read contract and canonical Remote release path without changing tools scopes or trust boundaries
 data_impact: read-only quality vocabulary normalization over existing append-only daily states; no schema write migration or source activation
@@ -21,9 +21,9 @@ security_impact: retain owner-debug redaction OAuth resource binding and exact H
 cost_impact: zero source calls and no standing resource change
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: owner Claude asset-change session, PRs #140/#141, deploy run 36664435767, Remote revision 00057-52l and direct Codex OAuth replay on 2026-09-30
+real_use_evidence_refs: owner Claude asset-change session, PRs #140/#141, deploy run 36664435767, Remote revision 00057-52l and direct Codex OAuth replay on 2026-09-30; governance/project/evidence/acceptance-review-2026-10-21/claude-owner-acceptance.json
 stabilization_window: immediate owner replay of the original Claude recent-asset-change prompt after Remote revision 00057-52l
-stabilization_exit_refs: protected run 36664435767, stable/tag routing evidence, direct Codex OAuth positive/partial/error outputs and owner Claude acceptance
+stabilization_exit_refs: protected run 36664435767, stable/tag routing evidence, direct Codex OAuth positive/partial/error outputs and owner Claude acceptance; owner-Claude positive/partial/error accepted 2026-10-21
 rollback_plan: restore the captured pre-release stable revision 00056 and wi046-v2 tag revision 00048 through the protected rollback path without rewriting data
 ---
 
@@ -76,7 +76,7 @@ success spellings rather than reverse which half is falsely degraded.
       yields partial quality and suppresses the group total.
 - [x] Release tests fail if the Claude compatibility route can remain pinned to an older Remote revision.
 - [x] Focused, quick and full gates pass before any release request.
-- [ ] Actual Claude positive, partial and error scenarios pass on the released current revision without waiting for a
+- [x] Actual Claude positive, partial and error scenarios pass on the released current revision without waiting for a
       scheduled slot.
 
 ## Change impact
@@ -141,7 +141,7 @@ success spellings rather than reverse which half is falsely degraded.
 - Redacted post-release logs on revision `00057-52l` recorded the Codex MCP traffic and the exact owner-debug error
   probe. No data write, source call, Telegram send, batch or scheduler mutation occurred.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: repository implementation, protected Remote release and direct Codex OAuth replay passed; WI-065 is
   stabilizing while the owner repeats the original Claude prompt through the updated compatibility route.
@@ -150,3 +150,18 @@ success spellings rather than reverse which half is falsely degraded.
 - Follow-up Work Items: WI-064 remains independently proposed for trade-event business-key deduplication. WI-066 is
   separately active for the legacy total-asset completeness defect discovered by longitudinal real-use testing;
   it does not reopen or expand WI-065's Remote read and release outcome.
+
+## Closeout
+
+- [Direct owner result](../../governance/project/evidence/acceptance-review-2026-10-21/claude-owner-acceptance.json):
+  actual Claude normal/native queries, legacy incomplete-total suppression and invalid-input explanation all PASS.
+- October19/20 six daily-slot rows pass without missing coverage. Default pipeline query observes15/15 due runs,
+  while its aggregate failed quality honestly retains the historical October15 failed run. This is not a current
+  response regression and is not relabelled pass.
+- July24 total remains NULL/legacy_unassessed with explicit gap; Claude does not infer a crash/recovery rate
+  from missing feeder evidence. Invalid lookback=33 names field, maximum31 and input33.
+- Library-format argument validation is an accepted nonblocking presentation observation; no new response
+  schema or tool scope is added to force closure. Existing owner-debug application errors remain separately tested.
+- Result: closed on actual client behavior and owner acceptance, supplementing prior deployed/code/Codex evidence.
+  Earlier pending statements above remain historical checkpoints superseded by this final outcome.
+- Production changes, source calls, data writes and notifications in this closeout: zero.

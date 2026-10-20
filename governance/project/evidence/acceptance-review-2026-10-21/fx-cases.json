@@ -1,0 +1,21 @@
+{
+  "status": "pass",
+  "cases": [
+    {
+      "scenario": "exact_date_within_threshold",
+      "result": "pass"
+    },
+    {
+      "scenario": "cross_source_disagreement",
+      "result": "cross_source_deviation_exceeded"
+    },
+    {
+      "scenario": "stale_primary_reference",
+      "result": "reference_missing_or_stale"
+    },
+    {
+      "scenario": "empty_provider_response",
+      "result": "rejected"
+    }
+  ]
+}

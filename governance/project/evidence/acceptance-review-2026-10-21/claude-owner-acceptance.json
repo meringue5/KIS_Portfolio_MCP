@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "work_items": [
+    "WI-065",
+    "WI-066",
+    "WI-066-S01"
+  ],
+  "client": "owner Claude KIS Portfolio connector",
+  "owner_result": [
+    {
+      "case": "normal queries",
+      "verdict": "PASS",
+      "evidence": "2026-10-19..20 six native history rows pass; pipeline15/15 observed. Aggregate failed preserves historical10/15 failure."
+    },
+    {
+      "case": "incomplete history suppression",
+      "verdict": "PASS",
+      "evidence": "2026-07-24 total null, legacy_unassessed and missing coverage; no leaked total or inferred drawdown."
+    },
+    {
+      "case": "invalid request",
+      "verdict": "PASS",
+      "evidence": "lookback_days field, upper bound and input value explained."
+    }
+  ],
+  "accepted_nonblocking_observation": "Argument validation uses library wording rather than application-specific error envelope; concrete boundary is still diagnosable. No response-contract change requested.",
+  "owner_reply_source": "direct owner report of actual Claude execution in current chat",
+  "acceptance_scope": "original recent-asset workflow and truthful legacy recovery interpretation; no return reconstructed over the gap",
+  "source_calls": 0,
+  "data_writes": 0
+}

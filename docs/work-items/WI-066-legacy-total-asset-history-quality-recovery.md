@@ -1,7 +1,7 @@
 ---
 id: WI-066
 title: Quarantine incomplete legacy total-asset history and restore truthful longitudinal analysis
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-003, DEC-005, DEC-006, DEC-015, DEC-030, DEC-038, DEC-045, DEC-046, ADR-023
@@ -13,7 +13,7 @@ depends_on: WI-065
 discovered_from: WI-065
 supersedes: none
 rollback_of: none
-execution_scope: protected production migration and WI-066-S01 schema release complete; Codex ecological acceptance passed after billing recovery and owner-Claude replay remains the stabilization exit
+execution_scope: closed after protected release, actual Codex replay and owner-Claude acceptance; documentation only
 production_effects: private pre/post backup and fresh restore, view-only migration 0020, and one Remote revision serving stable plus wi046-v2; no source calls or row rewrite
 architecture_impact: none; enforce the approved legacy quality contract without changing SSOT, grain, public tools or trust boundaries
 data_impact: production migration 0020 replaced only the derived read view; all 3273 portfolio state rows were fingerprint-preserved and retained v1-latest totals remain stored but quarantined
@@ -21,9 +21,9 @@ security_impact: none; retain confidential portfolio-data handling and aggregate
 cost_impact: bounded Cloud Builds, one single-task Cloud Run migration Job at an explicit 2 GiB memory limit, one Remote revision and two private backups capped at 10 GiB each
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: runs 37693993263 and 37842065536; Remote 00059-d7z; Codex ecological replay passed positive/partial/error behavior after billing recovery; owner-Claude replay pending
+real_use_evidence_refs: runs 37693993263 and 37842065536; Remote 00059-d7z; Codex ecological replay passed positive/partial/error behavior after billing recovery; owner-Claude positive/partial/error PASS accepted Oct21; governance/project/evidence/acceptance-review-2026-10-21/claude-owner-acceptance.json
 stabilization_window: WI-066-S01 schema correction followed by the same owner question through authenticated Codex and Claude after billing recovery
-stabilization_exit_refs: protected production run, pre/post backup and fresh-restore evidence, migration 0020, exact Remote labels/routes, Codex replay and owner-Claude acceptance
+stabilization_exit_refs: protected production run, pre/post backup and fresh-restore evidence, migration 0020, exact Remote labels/routes, Codex replay and owner-Claude acceptance; owner-Claude positive/partial/error accepted 2026-10-21
 rollback_plan: restore stable and wi046-v2 traffic to the captured prior revisions on Remote smoke failure; use a successor migration for a read-model rollback while retaining migration history and all original V1/V2 rows
 ---
 
@@ -91,7 +91,7 @@ labels are `pass` or `passed`.
 - [x] Any recoverable historical correction is append-only, source-grounded, idempotent, reconciled, privately backed
       up and restorable; irrecoverable dates remain explicit gaps.
 - [x] Focused, quick and full gates pass before release consideration.
-- [ ] Actual Codex and owner-Claude OAuth calls immediately reproduce positive, partial and error behavior without
+- [x] Actual Codex and owner-Claude OAuth calls immediately reproduce positive, partial and error behavior without
       waiting for a future scheduler slot.
 
 ## Change impact
@@ -136,7 +136,7 @@ labels are `pass` or `passed`.
 
 ## Sub-items
 
-- `WI-066-S01` (`stabilizing`): Claude selected `weekly` because the public MCP schema advertised it even though the
+- `WI-066-S01` (`closed`): Claude selected `weekly` because the public MCP schema advertised it even though the
   warehouse implemented daily reads only. Make the planning contract truthful and require the same natural-language
   owner question, not isolated tool calls, as acceptance. The owner restored the expired-card billing account on
   2026-10-09. The protected release and Codex ecological replay then passed; owner-Claude replay is still required.
@@ -234,7 +234,7 @@ labels are `pass` or `passed`.
 - No source call, stored-row mutation, deletion, external notification or destructive operation occurred during the
   release. Only migration history/read view, private recovery objects and the approved Remote revision/routes changed.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: the legacy quarantine and truthful daily-only schema are released. WI-066 and correction `WI-066-S01`
   remain `stabilizing`: Codex answered the ecological question without fabricating continuity across the legacy gap,
@@ -243,3 +243,19 @@ labels are `pass` or `passed`.
   client behavior is not inferred from the successful Codex replay.
 - Follow-up Work Item: `WI-066-S01` owns this same-outcome correction. Any independent source/backfill outcome still
   requires a separate Work Item.
+
+## Closeout
+
+- [Direct owner result](../../governance/project/evidence/acceptance-review-2026-10-21/claude-owner-acceptance.json):
+  actual Claude normal/native queries, legacy incomplete-total suppression and invalid-input explanation all PASS.
+- October19/20 six daily-slot rows pass without missing coverage. Default pipeline query observes15/15 due runs,
+  while its aggregate failed quality honestly retains the historical October15 failed run. This is not a current
+  response regression and is not relabelled pass.
+- July24 total remains NULL/legacy_unassessed with explicit gap; Claude does not infer a crash/recovery rate
+  from missing feeder evidence. Invalid lookback=33 names field, maximum31 and input33.
+- Library-format argument validation is an accepted nonblocking presentation observation; no new response
+  schema or tool scope is added to force closure. Existing owner-debug application errors remain separately tested.
+- Result: closed on actual client behavior and owner acceptance, supplementing prior deployed/code/Codex evidence.
+  For WI-066 this also closes WI-066-S01's same-question/schema correction. Earlier pending statements above
+  remain historical checkpoints superseded by this final outcome.
+- Production changes, source calls, data writes and notifications in this closeout: zero.

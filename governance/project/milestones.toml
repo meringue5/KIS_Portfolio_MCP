@@ -151,7 +151,7 @@ work_item_ids = ["WI-058"]
 [[milestones]]
 id = "MS-006"
 title = "Scheduled portfolio collection and Telegram recovery"
-status = "stabilizing"
+status = "closed"
 depends_on = ["MS-005"]
 implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
@@ -164,7 +164,7 @@ work_item_ids = ["WI-059", "WI-070", "WI-076"]
 [[milestones]]
 id = "MS-007"
 title = "Resilient partial portfolio usability and data-source isolation"
-status = "stabilizing"
+status = "closed"
 depends_on = ["MS-005"]
 implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
@@ -882,7 +882,7 @@ sequence = 3
 id = "WI-075-S01"
 parent_id = "WI-075"
 title = "Keep the complete current owner-report layout when comparison is unavailable"
-status = "stabilizing"
+status = "closed"
 
 [[subitems]]
 id = "WI-060-S01"
@@ -912,7 +912,7 @@ status = "closed"
 id = "WI-059-S01"
 parent_id = "WI-059"
 title = "Reproduce missing-prior report cascade and enforce FX/report readiness without waiting for a slot"
-status = "stabilizing"
+status = "closed"
 
 [[subitems]]
 id = "WI-058-S01"
@@ -1302,7 +1302,7 @@ status = "closed"
 id = "WI-066-S01"
 parent_id = "WI-066"
 title = "Make longitudinal MCP planning truthful and repeat the owner recovery question in actual clients"
-status = "stabilizing"
+status = "closed"
 
 [[work_items]]
 id = "WI-073"

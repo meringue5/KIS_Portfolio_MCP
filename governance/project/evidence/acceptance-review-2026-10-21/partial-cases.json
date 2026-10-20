@@ -1,0 +1,48 @@
+{
+  "status": "pass",
+  "cases": [
+    {
+      "scenario": "missing_prior_does_not_poison_current",
+      "complete_total_available": true,
+      "verified_krw_listed_positions_krw": "250",
+      "verified_krw_listed_positions_count": 1,
+      "missing_reasons": []
+    },
+    {
+      "scenario": "stale_fx_preserves_krw_subset",
+      "complete_total_available": false,
+      "verified_krw_listed_positions_krw": "250",
+      "verified_krw_listed_positions_count": 1,
+      "missing_reasons": [
+        "fx_input_stale"
+      ]
+    },
+    {
+      "scenario": "missing_account_preserves_observed_subset",
+      "complete_total_available": false,
+      "verified_krw_listed_positions_krw": "250",
+      "verified_krw_listed_positions_count": 1,
+      "missing_reasons": [
+        "account_coverage_gap"
+      ]
+    },
+    {
+      "scenario": "degraded_row_is_not_verified",
+      "complete_total_available": false,
+      "verified_krw_listed_positions_krw": "0",
+      "verified_krw_listed_positions_count": 0,
+      "missing_reasons": [
+        "degraded_components"
+      ]
+    },
+    {
+      "scenario": "missing_current_is_unavailable",
+      "complete_total_available": false,
+      "verified_krw_listed_positions_krw": "0",
+      "verified_krw_listed_positions_count": 0,
+      "missing_reasons": [
+        "missing_current_state"
+      ]
+    }
+  ]
+}
