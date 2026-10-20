@@ -37,7 +37,7 @@ total-asset report configuration without replaying historical messages or weaken
 | 2026-09-16.1 | 2026-09-16 | Opened WI-059 after the first post-release 10:00 run failed at price quality and the generic Job deployment removed Telegram delivery configuration | New append-only corrective milestone; MS-005 remains closed |
 
 - 2026-10-21: WI-059/S01 closed on four numeric-report receipts and source/quality/hash reconciliation.
-  WI-070 detail-signal acceptance remains independent; MS-006 stays stabilizing until its exit is complete.
+  WI-070 detail receipt was independently confirmed later on the same date; both exits are complete and MS-006 is closed.
 
 ## Accepted handoff — 2026-10-21
 

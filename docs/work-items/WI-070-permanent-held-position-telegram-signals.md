@@ -22,7 +22,7 @@ security_impact: preserve owner-only destination aliases, Secret Manager referen
 cost_impact: no new source or service; bounded evaluation remains inside the three existing scale-to-zero Jobs
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic positive/no-send/error scenarios; GitHub run 38359853705; Rich smoke execution kis-portfolio-wi070-vbk5w sent; activation execution kis-portfolio-wi070-ccmf6 passed; owner receipt and next eligible scheduled transition pending; governance/project/evidence/acceptance-review-2026-10-21/signal-owner-acceptance.json
+real_use_evidence_refs: deterministic positive/no-send/error scenarios; GitHub run 38359853705; Rich smoke execution kis-portfolio-wi070-vbk5w sent; activation execution kis-portfolio-wi070-ccmf6 passed; Oct19 permanent detail sent once; Oct21 owner receipt accepted; governance/project/evidence/acceptance-review-2026-10-21/signal-owner-acceptance.json
 stabilization_window: immediate activation/baseline evidence plus the next eligible scheduled transition and owner receipt
 stabilization_exit_refs: protected release identity, rule approval/revocation ledger, three-Job candidate counts, delivery ledger and owner-visible Telegram acceptance; 2026-10-21 owner confirmed exact post-baseline detail message
 rollback_plan: disable KIS_TELEGRAM_REAL_USE_ENABLED or restore the prior Job revision; preserve immutable rule/candidate/delivery history and do not replay missed slots
@@ -125,7 +125,7 @@ to create candidates/transitions, proving that the monitoring input path had not
 - Jobs `kis-portfolio-owned-core-v2-1000`, `-1430` and `-1600` carry the same digest, merge SHA/run labels,
   real-use and delivery enabled, owner destination approved, and the existing V2 total-asset report preserved.
 - First post-activation production candidate counts and owner receipt of the next eligible held-position transition:
-  pending stabilization evidence; no manual historical slot was executed.
+  initially pending at release; now satisfied by Oct19/20 runtime evidence and Oct21 owner receipt below. No manual historical slot was executed.
 
 ## Historical closeout checkpoint (superseded 2026-10-21)
 
