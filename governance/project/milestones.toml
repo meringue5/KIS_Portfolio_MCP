@@ -1335,3 +1335,9 @@ id = "WI-063-S02"
 parent_id = "WI-063"
 title = "Prove complete trade query intervals from exact published source partitions"
 status = "closed"
+
+[[subitems]]
+id = "WI-068-S01"
+parent_id = "WI-068"
+title = "Revalidate retained source components for the bounded reference-only recovery"
+status = "closed"
