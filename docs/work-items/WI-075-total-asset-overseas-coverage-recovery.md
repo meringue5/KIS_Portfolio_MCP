@@ -22,7 +22,7 @@ security_impact: none; existing Secret Manager references and owner-only destina
 cost_impact: exceptional later-slot overseas recovery only when the same-day anchor is missing; existing call cap remains 65
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic recovery and fail-closed fixtures; PR 162; GitHub run 38759300465; finance-free smoke execution kis-portfolio-wi030-s03-wnqxq passed; next complete owner report pending; governance/project/evidence/acceptance-review-2026-10-21/report-owner-acceptance.json
+real_use_evidence_refs: deterministic recovery and fail-closed fixtures; PR 162; GitHub run 38759300465; finance-free smoke execution kis-portfolio-wi030-s03-wnqxq passed; four Oct19/20 owner reports received and accepted Oct21; governance/project/evidence/acceptance-review-2026-10-21/report-owner-acceptance.json
 stabilization_window: protected release plus the next 10:00 and 16:00 owner-report slots including one controlled missing-anchor scenario
 stabilization_exit_refs: exact image and Job labels, overseas-anchor quality evidence, complete component count and owner receipt; 2026-10-21 actual owner numeric-report receipt/presentation accepted
 rollback_plan: restore the prior three-Job image or disable only the owner report; retain run, Gold and delivery evidence without replay

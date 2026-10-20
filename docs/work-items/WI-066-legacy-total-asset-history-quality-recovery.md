@@ -21,7 +21,7 @@ security_impact: none; retain confidential portfolio-data handling and aggregate
 cost_impact: bounded Cloud Builds, one single-task Cloud Run migration Job at an explicit 2 GiB memory limit, one Remote revision and two private backups capped at 10 GiB each
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: runs 37693993263 and 37842065536; Remote 00059-d7z; Codex ecological replay passed positive/partial/error behavior after billing recovery; owner-Claude replay pending; governance/project/evidence/acceptance-review-2026-10-21/claude-owner-acceptance.json
+real_use_evidence_refs: runs 37693993263 and 37842065536; Remote 00059-d7z; Codex ecological replay passed positive/partial/error behavior after billing recovery; owner-Claude positive/partial/error PASS accepted Oct21; governance/project/evidence/acceptance-review-2026-10-21/claude-owner-acceptance.json
 stabilization_window: WI-066-S01 schema correction followed by the same owner question through authenticated Codex and Claude after billing recovery
 stabilization_exit_refs: protected production run, pre/post backup and fresh-restore evidence, migration 0020, exact Remote labels/routes, Codex replay and owner-Claude acceptance; owner-Claude positive/partial/error accepted 2026-10-21
 rollback_plan: restore stable and wi046-v2 traffic to the captured prior revisions on Remote smoke failure; use a successor migration for a read-model rollback while retaining migration history and all original V1/V2 rows
