@@ -1,7 +1,7 @@
 ---
 id: WI-064
 title: Eliminate duplicate current trade events without erasing source history
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-009, DEC-010, DEC-015
@@ -13,7 +13,7 @@ depends_on: WI-063
 discovered_from: WI-063
 supersedes: none
 rollback_of: none
-execution_scope: production release verified
+execution_scope: closed owner-accepted production identity repair; documentation synchronization only
 production_effects: applied migration 0022 and updated the two existing trade Job images; source/history and all other operating paths preserved
 architecture_impact: none; repair the existing approved executed-order natural key using source-proven aliases, without a new SSOT or grain
 data_impact: preserve all observations and revisions; correct only canonical current-event projection and evidence
@@ -22,8 +22,8 @@ cost_impact: DB-only diagnosis and projection work expected
 user_visible_impact: yes
 real_use_acceptance: required
 real_use_evidence_refs: governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json; governance/project/evidence/wi064/production-data-audit-2026-10-18.json
-stabilization_window: immediate corrected OAuth positive/partial/error and source/reference reconciliation completed on 2026-10-18; owner review pending
-stabilization_exit_refs: governance/project/evidence/wi064/protected-production-release-2026-10-18.json; governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json; explicit owner acceptance pending
+stabilization_window: immediate corrected OAuth positive/partial/error and source/reference reconciliation completed on 2026-10-18; owner acceptance recorded in accepted-closeout-2026-10-21.json
+stabilization_exit_refs: governance/project/evidence/wi064/protected-production-release-2026-10-18.json; governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json; governance/project/evidence/accepted-closeout-2026-10-21.json
 rollback_plan: restore reviewed pre-0022 trade/lot read views while preserving all source/revision rows and migration history; restore exact prior trade Job exports if necessary
 ---
 
@@ -181,3 +181,17 @@ revision projection need a separate review before a user-facing ledger can be ca
 - Live inventory `--fail-on-unregistered-drift` passed: zero missing managed objects, alias view managed, four exact registered legacy drift exceptions and zero review blockers. No drift adoption/deletion. [Inventory evidence](../../governance/project/evidence/wi064/production-inventory-2026-10-18.json).
 
 - Post-release evidence full gate passed again: **876 tests**, one existing Authlib warning; original shared checkout quick gate also passed after synchronizing only WI-064 evidence/status. No unrelated source changes were committed or discarded.
+
+## Accepted closeout synchronized — 2026-10-21
+
+- Classification: maintenance of the existing outcome's acceptance record, authorized by the owner to publish
+  the already accepted closure and proceed to the remaining review sequence. No new implementation work.
+- [Owner acceptance and actual-client replay](../../governance/project/evidence/accepted-closeout-2026-10-21.json)
+  is the final disposition; earlier intake/stabilizing paragraphs above remain historical checkpoints.
+- No production migration, source collection, monetary update, notification or deployment was required for this
+  record synchronization. The dirty shared checkout and unrelated work remain untouched.
+
+- Result: closed; protected 0022 repair, source/reference preservation and actual OAuth positive/partial/error
+  passed. Owner recognized reflection complete on 2026-10-18 and authorized record publication on 2026-10-21.
+- Current independent replay: RIA 2026-08-25 exactly two rows/pass; before-start 2020 empty window partial;
+  reversed range invalid_request. WI-063 coverage correction is independently accepted and closed.

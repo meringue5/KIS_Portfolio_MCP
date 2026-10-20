@@ -17,11 +17,11 @@ gaps found there must be classified and routed to an owned follow-up.
 | 1 | WI-061 real-use completion gate | none | closed |
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
 | 3 | WI-063 incremental trade-event collection | WI-062 | closed; owner accepted 2026-10-19 |
-| 4 | WI-064 trade-event business-key deduplication | WI-063 | stabilizing; production/actual OAuth verified, owner acceptance pending |
+| 4 | WI-064 trade-event business-key deduplication | WI-063 | closed; existing owner acceptance synchronized 2026-10-21 |
 | 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
 | 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
 | 7 | WI-067 calendar-aware pipeline run status | WI-066 | closed |
-| 8 | WI-068 retained legacy history recovery | WI-066 | stabilizing |
+| 8 | WI-068 retained legacy history recovery | WI-066 | closed; owner-accepted noncanonical reference boundary |
 
 ## Gates
 
@@ -87,3 +87,7 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2026-10-19.2 | 2026-10-19 | Owner approved PR #168 merge and protected wi063-s02 release; run 39144314352 passed, both Remote routes converge and actual Codex OAuth passes 9/9 including 2020 partial | S02 stabilizing; parent/S01 preserve history and await owner result acceptance; no source replay, DDL or unrelated closure |
 
 | 2026-10-19.3 | 2026-10-19 | Owner explicitly accepted deployed OAuth 9/9, bounded recurring sample and preserved source/failure evidence, and approved publishing closeout | Close WI-063/S01/S02 only; retain original identities and all failure history; MS-008 and unrelated acceptance gates remain unchanged |
+
+- 2026-10-21: synchronize previously accepted WI-064 and WI-068/WI-068-S01 closures with current master.
+  No requirement/dependency/identity changes or production actions; WI-063/067 closures remain preserved.
+  MS-008 remains in_progress because other independent acceptance/design work remains.

@@ -1,7 +1,7 @@
 ---
 id: WI-068
 title: Recover retained legacy portfolio history for bounded longitudinal use
-status: stabilizing
+status: closed
 type: architecture
 owner: owner
 decision_refs: DEC-062, ADR-033
@@ -13,7 +13,7 @@ depends_on: WI-066
 discovered_from: WI-066
 supersedes: none
 rollback_of: none
-execution_scope: verified protected production recovery; actual owner-client stabilization
+execution_scope: closed owner-accepted bounded noncanonical reference recovery; documentation synchronization only
 production_effects: applied migration 0021, 27 append-only reference/coverage rows and explicit Remote opt-in; original/native data unchanged
 architecture_impact: approved owner-only noncanonical reference dataset and explicit opt-in projection; canonical defaults unchanged
 data_impact: approved additive migration 0021 and pinned noncanonical reference import; retained V1/native V2 immutable, no canonical promotion
@@ -21,9 +21,9 @@ security_impact: historical portfolio payload remains confidential and owner-onl
 cost_impact: expected storage-local analysis with no new paid source; any new always-on service or material query cost requires approval
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: governance/project/evidence/wi068/codex-real-use-2026-10-13.json; actual Codex positive, two partial, error, default and native-current probes
+real_use_evidence_refs: governance/project/evidence/wi068/codex-real-use-2026-10-13.json; actual Codex positive, two partial, error, default and native-current probes; governance/project/evidence/accepted-closeout-2026-10-21.json
 stabilization_window: immediate direct Codex positive/partial/error plus owner-Claude same-question replay
-stabilization_exit_refs: protected migration/import/restore and direct Codex replay passed; owner-Claude same-question replay and owner acceptance pending
+stabilization_exit_refs: protected migration/import/restore and actual Codex replay passed; owner accepted current source verification on 2026-10-14 without requiring another Claude replay; accepted-closeout-2026-10-21.json
 rollback_plan: disable reference opt-in by restoring prior Remote revision/tag; retain append-only reference and original data
 ---
 
@@ -144,8 +144,8 @@ WI-066 quarantine, native-V2 priority and unavailable Aug 6/25 boundaries remain
 
 ## Sub-items
 
-- `none` at intake. Implementation corrections within the approved outcome may become `WI-068-SNN`; independent
-  query-selection or new-source outcomes require separate Work Items.
+- `WI-068-S01` (`closed`) — bounded source/component revalidation within the approved reference-only outcome;
+  owner accepted existing source verification and actual Codex replay on 2026-10-14. No canonical promotion.
 
 ## Stabilization plan
 
@@ -287,3 +287,20 @@ The three immediate positive/partial/error cases are reproducible without anothe
 - [Live catalog gate](../../governance/project/evidence/wi068/live-catalog-2026-10-13.json): new reference table
   managed; missing managed objects 0, unregistered drift 0. Four existing preservation-only drift exceptions still
   match current fingerprints/expiry; no auto-adoption or contract relaxation. Final evidence full gate 835 passed (39.52s).
+
+## Accepted closeout synchronized — 2026-10-21
+
+- Classification: maintenance of the existing outcome's acceptance record, authorized by the owner to publish
+  the already accepted closure and proceed to the remaining review sequence. No new implementation work.
+- [Owner acceptance and actual-client replay](../../governance/project/evidence/accepted-closeout-2026-10-21.json)
+  is the final disposition; earlier intake/stabilizing paragraphs above remain historical checkpoints.
+- No production migration, source collection, monetary update, notification or deployment was required for this
+  record synchronization. The dirty shared checkout and unrelated work remain untouched.
+
+- Result: closed for the owner-approved 25 valued reference dates (14 recorded, 11 estimated), plus two
+  unavailable dates 2026-08-06/25. References remain noncanonical and are not cash-flow-adjusted performance.
+- Owner explicitly accepted existing source/component verification and actual Codex replay on 2026-10-14; a new
+  Claude replay was not required by that acceptance. Source clock, settlement/cash/retrospective FX assumptions
+  remain accepted limitations; no completeness or canonical-return claim was added.
+- Current actual OAuth replay: default legacy day stays quarantined, explicit July24 opt-in returns one
+  estimated_reference/canonical=false, Aug6 remains unavailable and invalid range is invalid_request.

@@ -1,0 +1,285 @@
+{
+  "date": "2026-10-21",
+  "kind": "documentation-only owner-accepted outcome synchronization",
+  "owner_authorization": "네 그 순서대로 진행합시다.",
+  "work_items": {
+    "WI-064": {
+      "acceptance_date": "2026-10-18",
+      "scope": "source-proven trade identity repair; production and actual OAuth independently validated",
+      "source_evidence": [
+        "governance/project/evidence/wi064/production-data-audit-2026-10-18.json",
+        "governance/project/evidence/wi064/codex-production-acceptance-2026-10-18.json"
+      ]
+    },
+    "WI-068": {
+      "acceptance_date": "2026-10-14",
+      "owner_decision": "accept_current_source_verification_and_actual_codex_replay_then_close",
+      "scope": {
+        "valued_reference_dates": 25,
+        "recorded_reference_dates": 14,
+        "estimated_reference_dates": 11,
+        "unavailable_dates": [
+          "2026-08-06",
+          "2026-08-25"
+        ],
+        "canonical": false,
+        "cash_flow_adjusted_performance": false
+      },
+      "accepted_limits": [
+        "settlement cash not independently reconciled to a complete cash ledger",
+        "original source clock and mixed observation times remain",
+        "external retrospective FX and zero-overseas-cash assumptions labelled",
+        "reference-only total levels never canonical investment returns"
+      ],
+      "new_claude_replay_required": false
+    }
+  },
+  "read_only_actual_client": [
+    {
+      "id": "wi064_positive",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2026-08-25",
+        "end_date": "2026-08-25",
+        "limit": 100
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "6da56da180d14c068a241966b6069373",
+      "quality": {
+        "status": "pass",
+        "row_count": 2
+      },
+      "missing_coverage": [],
+      "data_keys": [
+        "query",
+        "events",
+        "next_cursor"
+      ],
+      "query": {
+        "start_date": "2026-08-25",
+        "end_date": "2026-08-25",
+        "result_status": "matched",
+        "coverage_through": "2026-10-20",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-20",
+            "uncovered_intervals": [],
+            "uncovered_interval_count": 0
+          }
+        ]
+      },
+      "event_count": 2,
+      "reference_count": 0,
+      "reference_labels": [],
+      "reference_keys": []
+    },
+    {
+      "id": "wi064_partial",
+      "args": {
+        "account_alias": "ria",
+        "start_date": "2020-01-01",
+        "end_date": "2020-01-02",
+        "limit": 20
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "7c8b145be3324b10bb9ffb92d577978a",
+      "quality": {
+        "status": "partial",
+        "row_count": 0
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.trade-event",
+          "reason": "collection_coverage_before_start",
+          "account_alias": "ria",
+          "market": "KRX"
+        }
+      ],
+      "data_keys": [
+        "query",
+        "events",
+        "next_cursor"
+      ],
+      "query": {
+        "start_date": "2020-01-01",
+        "end_date": "2020-01-02",
+        "result_status": "collection_coverage_gap",
+        "coverage_through": "2026-10-20",
+        "coverage_partitions": [
+          {
+            "account_alias": "ria",
+            "market": "KRX",
+            "coverage_start": "2023-08-28",
+            "coverage_through": "2026-10-20",
+            "uncovered_intervals": [
+              {
+                "start_date": "2020-01-01",
+                "end_date": "2020-01-02"
+              }
+            ],
+            "uncovered_interval_count": 1
+          }
+        ]
+      },
+      "event_count": 0,
+      "reference_count": 0,
+      "reference_labels": [],
+      "reference_keys": []
+    },
+    {
+      "id": "wi064_error",
+      "args": {
+        "start_date": "2026-10-21",
+        "end_date": "2026-10-20"
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "60811325701d46efac73325a1f465804",
+      "reference_count": 0,
+      "reference_labels": [],
+      "reference_keys": [],
+      "error_code": "invalid_request"
+    },
+    {
+      "id": "wi068_default",
+      "args": {
+        "start_date": "2026-07-24",
+        "end_date": "2026-07-24",
+        "limit": 100
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "cf7630b6249b4ca6bb9fcc2b8898e324",
+      "quality": {
+        "status": "partial",
+        "row_count": 1
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        }
+      ],
+      "data_keys": [
+        "grain",
+        "history"
+      ],
+      "history_count": 1,
+      "reference_count": 0,
+      "reference_labels": [],
+      "reference_keys": []
+    },
+    {
+      "id": "wi068_reference",
+      "args": {
+        "start_date": "2026-07-24",
+        "end_date": "2026-07-24",
+        "include_legacy_reference": true,
+        "limit": 100
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "8ec9efbce36d48d39e173a42e356f518",
+      "quality": {
+        "status": "partial",
+        "row_count": 2
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        },
+        {
+          "dataset_id": "dataset.portfolio-legacy-total-reference",
+          "reason": "noncanonical_reference_levels_not_performance"
+        }
+      ],
+      "data_keys": [
+        "grain",
+        "history",
+        "reference_history"
+      ],
+      "history_count": 1,
+      "reference_count": 1,
+      "reference_labels": [
+        "estimated_reference"
+      ],
+      "reference_keys": [
+        "observation_date",
+        "recorded_total_krw",
+        "reference_total_krw",
+        "valuation_kind",
+        "assumptions",
+        "coverage_reasons",
+        "recovery_version",
+        "knowledge_at",
+        "fx_provider",
+        "fx_series",
+        "fx_rate_date",
+        "fx_rate_type",
+        "fx_age_days",
+        "canonical",
+        "lineage_ref"
+      ],
+      "all_references_noncanonical": true
+    },
+    {
+      "id": "wi068_reference_gap",
+      "args": {
+        "start_date": "2026-08-06",
+        "end_date": "2026-08-06",
+        "include_legacy_reference": true,
+        "limit": 100
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "aa256ae5a2b84bb2aef0d83ff2d258e0",
+      "quality": {
+        "status": "partial",
+        "row_count": 1
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        },
+        {
+          "dataset_id": "dataset.portfolio-legacy-total-reference",
+          "observation_date": "2026-08-06",
+          "reason": "legacy_total_unavailable",
+          "coverage_reasons": [
+            "legacy_noncanonical",
+            "not_cash_flow_adjusted_return",
+            "original_fetch_clock_not_repaired",
+            "overseas_position_observation_absent"
+          ]
+        }
+      ],
+      "data_keys": [
+        "grain",
+        "history",
+        "reference_history"
+      ],
+      "history_count": 1,
+      "reference_count": 0,
+      "reference_labels": [],
+      "reference_keys": []
+    },
+    {
+      "id": "wi068_error",
+      "args": {
+        "start_date": "2026-10-21",
+        "end_date": "2026-10-20",
+        "limit": 10
+      },
+      "client": "Codex OAuth Remote MCP",
+      "request_id": "d710a27feaaf4830b3a49fa9fb71a611",
+      "reference_count": 0,
+      "reference_labels": [],
+      "reference_keys": [],
+      "error_code": "invalid_request"
+    }
+  ],
+  "production_mutations": 0,
+  "source_calls": 0,
+  "notifications_sent": 0
+}
