@@ -1,7 +1,7 @@
 ---
 id: WI-070
 title: Restore permanent held-position Telegram signal delivery
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-051, DEC-052, DEC-053, DEC-061, ADR-021, ADR-023
@@ -14,7 +14,7 @@ discovered_from: WI-059, WI-030
 supersedes: none
 rollback_of: none
 work_lane: stabilization_recovery
-execution_scope: protected production release and stabilization observation
+execution_scope: closed after permanent-rule production observation, one detail delivery and explicit owner receipt
 production_effects: permanent held-position rule activated; three existing owned-core Jobs updated to one immutable image digest
 architecture_impact: none; preserve the existing batch, alert warehouse and outbound Telegram boundaries
 data_impact: append immutable rule and approval revisions plus future candidates/state/delivery evidence; no historical replay or row rewrite
@@ -22,9 +22,9 @@ security_impact: preserve owner-only destination aliases, Secret Manager referen
 cost_impact: no new source or service; bounded evaluation remains inside the three existing scale-to-zero Jobs
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic positive/no-send/error scenarios; GitHub run 38359853705; Rich smoke execution kis-portfolio-wi070-vbk5w sent; activation execution kis-portfolio-wi070-ccmf6 passed; owner receipt and next eligible scheduled transition pending
+real_use_evidence_refs: deterministic positive/no-send/error scenarios; GitHub run 38359853705; Rich smoke execution kis-portfolio-wi070-vbk5w sent; activation execution kis-portfolio-wi070-ccmf6 passed; owner receipt and next eligible scheduled transition pending; governance/project/evidence/acceptance-review-2026-10-21/signal-owner-acceptance.json
 stabilization_window: immediate activation/baseline evidence plus the next eligible scheduled transition and owner receipt
-stabilization_exit_refs: protected release identity, rule approval/revocation ledger, three-Job candidate counts, delivery ledger and owner-visible Telegram acceptance
+stabilization_exit_refs: protected release identity, rule approval/revocation ledger, three-Job candidate counts, delivery ledger and owner-visible Telegram acceptance; 2026-10-21 owner confirmed exact post-baseline detail message
 rollback_plan: disable KIS_TELEGRAM_REAL_USE_ENABLED or restore the prior Job revision; preserve immutable rule/candidate/delivery history and do not replay missed slots
 ---
 
@@ -56,12 +56,12 @@ to create candidates/transitions, proving that the monitoring input path had not
 
 ## Acceptance criteria
 
-- [ ] Production evaluation no longer returns `expired` after the permanent rule's `valid_from`.
+- [x] Production evaluation no longer returns `expired` after the permanent rule's `valid_from`.
 - [x] First active observation is baseline-only and does not create a Telegram delivery in deterministic verification.
 - [x] A later pass-quality watch-or-higher transition creates one eligible Rich Message and one terminal attempt in deterministic verification.
 - [x] Replay, quality failure, unsupported slot and transport error remain bounded and do not duplicate delivery in deterministic verification.
 - [x] Only current `quantity > 0` held instruments are selected; unheld watchlists are not silently added.
-- [ ] Protected release, provider-confirmed evidence and owner-visible receipt pass before closure.
+- [x] Protected release, provider-confirmed evidence and owner-visible receipt pass before closure.
 
 ## Change impact
 
@@ -127,9 +127,25 @@ to create candidates/transitions, proving that the monitoring input path had not
 - First post-activation production candidate counts and owner receipt of the next eligible held-position transition:
   pending stabilization evidence; no manual historical slot was executed.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: stabilizing after protected production release and permanent rule activation.
 - Remaining risk: the next scheduled observation must prove non-expired production evaluation and establish the
   baseline; a later eligible held-position transition and owner receipt remain the user-visible exit evidence.
 - Follow-up Work Item: unheld watchlist monitoring only if separately approved.
+
+## Closeout
+
+- Result: closed after permanent rule activation, bounded live observation and explicit owner acceptance on
+  2026-10-21. The precise post-baseline detail header was reconstructed read-only from the sent candidate; the
+  owner confirmed that detail was received and appropriate. It is distinct from the already-accepted WI-076 summary.
+- [Runtime evidence](../../governance/project/evidence/acceptance-review-2026-10-21/signal-audit.json): active
+  permanent-2026-10-13.1 with no expiry; all Oct19/20 candidates pass; Oct19 10:00 detail sent1, duplicate successful
+  dispatch0. Existing baseline/no-change/replay/error tests remain passing; no historical detail was replayed.
+- [Held scope](../../governance/project/evidence/acceptance-review-2026-10-21/held-scope.json): every sampled
+  permanent candidate maps to a same-date/source-slot positive-quantity held position. No unheld watchlist activation.
+- [Direct owner detail receipt](../../governance/project/evidence/acceptance-review-2026-10-21/signal-owner-acceptance.json)
+  completes the user-visible exit; regular summary receipt was not used to infer detail receipt.
+- Current operation retains immutable rules, independent disable/rollback flags, fail-closed quality and terminal
+  delivery history. No unresolved same-outcome defect blocks this accepted scope. New product scope remains separate.
+- Review production changes, data writes, source calls and notifications: zero.

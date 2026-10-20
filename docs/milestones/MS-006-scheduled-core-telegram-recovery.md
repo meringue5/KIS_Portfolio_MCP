@@ -1,6 +1,6 @@
 # MS-006 — Scheduled collection and Telegram recovery
 
-> 상태: stabilizing
+> 상태: closed; numeric report and distinct permanent-detail receipt accepted
 > 선행 milestone: MS-005
 > machine registry: `governance/project/milestones.toml`
 
@@ -14,7 +14,7 @@ total-asset report configuration without replaying historical messages or weaken
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
 | 1 | WI-059 scheduled core and Telegram recovery | WI-058, WI-055 | closed; numeric-report receipt/presentation accepted 2026-10-21 |
-| 2 | WI-070 permanent held-position Telegram signals | WI-059 | stabilizing; permanent rule released and eligible transition receipt remains separately monitored |
+| 2 | WI-070 permanent held-position Telegram signals | WI-059 | closed; actual permanent-detail receipt accepted 2026-10-21 |
 | 3 | WI-076 three-slot held-signal status | WI-070 | closed; all three 2026-10-19 reports succeeded and owner accepted receipt on 2026-10-21 |
 
 ## Gates
@@ -38,3 +38,10 @@ total-asset report configuration without replaying historical messages or weaken
 
 - 2026-10-21: WI-059/S01 closed on four numeric-report receipts and source/quality/hash reconciliation.
   WI-070 detail-signal acceptance remains independent; MS-006 stays stabilizing until its exit is complete.
+
+## Accepted handoff — 2026-10-21
+
+WI-059/S01 numeric report recovery and WI-070 permanent-detail signal delivery both have provider/runtime evidence
+and direct owner receipt acceptance. Close MS-006 without rewinding earlier milestones. WI-076 regular summaries
+were independently accepted; their receipt was not substituted for the exact WI-070 detail. Existing fixed Jobs,
+quality gates, immutable rule and rollback controls transfer to ordinary operations; no missed message is replayed.
