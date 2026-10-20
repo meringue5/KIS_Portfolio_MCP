@@ -1,7 +1,7 @@
 ---
 id: WI-076
 title: Deliver held-position signal status at all three governed slots
-status: stabilizing
+status: closed
 type: defect
 owner: owner
 decision_refs: DEC-006, DEC-053, DEC-061, DEC-063
@@ -22,7 +22,7 @@ security_impact: owner-only destination; report contains redacted instrument lab
 cost_impact: at most one additional Telegram operation per governed slot and three per applicable day; no new KIS calls
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: deterministic positive/no-change/partial/error scenarios; finance-free transport smoke kis-portfolio-wi030-s03-snbfr; next applicable 10:00, 14:30 and 16:00 owner receipts pending
+real_use_evidence_refs: deterministic positive/no-change/partial/error scenarios; finance-free transport smoke kis-portfolio-wi030-s03-snbfr; governance/project/evidence/wi076/owner-acceptance-2026-10-19.json; owner acceptance 2026-10-21
 stabilization_window: protected release plus immediate actual positive/no-change/error scenarios and the next three governed slots
 stabilization_exit_refs: one terminal report per date-slot, current active-signal count, no duplicate detail alerts, provider outcome and owner receipt
 rollback_plan: disable only KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED or restore the prior three-Job image; preserve candidates, detail delivery and report evidence
@@ -61,7 +61,7 @@ event-time monitoring is unavailable, not merely an internal evaluation cadence.
 - [x] Same date-slot replay does not send again; interrupted/ambiguous send becomes terminal unknown.
 - [x] Disabled, unsafe or missing evaluation evidence fails before a provider request.
 - [x] Protected one-image release preserves total-asset reporting and all three Jobs.
-- [ ] Actual private Telegram positive/no-change/error scenarios and owner receipt pass before closure.
+- [x] Actual private Telegram positive/no-change/error scenarios and owner receipt pass before closure.
 
 ## Change impact
 
@@ -116,10 +116,17 @@ event-time monitoring is unavailable, not merely an internal evaluation cadence.
   destination, real-use delivery, V2 owner report and `KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED=true` on all three.
 - Finance-free Rich transport execution `kis-portfolio-wi030-s03-snbfr` completed successfully on the same image
   with `deploy-target=wi076-rich-transport-smoke`. No historical financial slot was replayed.
+- On 2026-10-19 the three scheduled executions `...-1000-btqc5`, `...-1430-slj7s` and `...-1600-5slt5`
+  each completed with one succeeded task on the released SHA and deploy target. Their slot reports recorded `sent`
+  with evaluated/changed/active counts `21/1/9`, `17/0/8` and `17/0/8`; all three recorded zero quality
+  suppressions. The 10:00 detailed transition sent once, while the two zero-transition slots sent no duplicate detail.
+- On 2026-10-21 the owner confirmed that all three 2026-10-19 Telegram summaries arrived as intended. The redacted
+  acceptance record is `governance/project/evidence/wi076/owner-acceptance-2026-10-19.json`.
 
 ## Closeout
 
-- Result: stabilizing after protected production release, live Job reconciliation and successful finance-free transport smoke.
-- Remaining risk: because release completed on Saturday, the next applicable 10:00, 14:30 and 16:00 runs must prove
-  one-per-slot provider delivery, preserved detail de-duplication and owner usefulness; no historical report is replayed.
+- Result: closed after protected release, three successful scheduled reports, preserved detail de-duplication and
+  explicit owner acceptance.
+- Remaining risk: ongoing provider or source failures remain normal operations concerns covered by the existing
+  fail-closed evidence and rollback flag; no unresolved defect invalidates this outcome.
 - Follow-up Work Item: true event-time monitoring only after a separately approved source/cost design.
