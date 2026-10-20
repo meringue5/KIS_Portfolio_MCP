@@ -1,0 +1,56 @@
+{
+  "work_item_id": "WI-076",
+  "logical_date": "2026-10-19",
+  "owner_confirmation_date": "2026-10-21",
+  "classification": "usable",
+  "owner_confirmation": "The owner confirmed receiving the 10:00, 14:30, and 16:00 Telegram summaries as intended.",
+  "release": {
+    "git_sha": "f5b9dc44d94bb6faf5e66467640f554b844b3bbb",
+    "github_run_id": "39044692160",
+    "deploy_target": "wi076-three-slot-signal-status",
+    "image_digest": "sha256:fc187a3bd5770a8d808cd53e431855a8fffd3a7112e42904abeab2c185e2b195"
+  },
+  "executions": [
+    {
+      "slot": "kr-1000",
+      "execution": "kis-portfolio-owned-core-v2-1000-btqc5",
+      "execution_succeeded_count": 1,
+      "report_outcome": "sent",
+      "evaluated_count": 21,
+      "changed_count": 1,
+      "active_count": 9,
+      "quality_suppressed_count": 0,
+      "detailed_alert_sent_count": 1
+    },
+    {
+      "slot": "kr-1430",
+      "execution": "kis-portfolio-owned-core-v2-1430-slj7s",
+      "execution_succeeded_count": 1,
+      "report_outcome": "sent",
+      "evaluated_count": 17,
+      "changed_count": 0,
+      "active_count": 8,
+      "quality_suppressed_count": 0,
+      "detailed_alert_sent_count": 0
+    },
+    {
+      "slot": "kr-1600",
+      "execution": "kis-portfolio-owned-core-v2-1600-5slt5",
+      "execution_succeeded_count": 1,
+      "report_outcome": "sent",
+      "evaluated_count": 17,
+      "changed_count": 0,
+      "active_count": 8,
+      "quality_suppressed_count": 0,
+      "detailed_alert_sent_count": 0
+    }
+  ],
+  "acceptance": {
+    "one_report_per_slot": true,
+    "positive_transition_slot": true,
+    "zero_transition_slots": 2,
+    "quality_suppression_observed": false,
+    "owner_receipt_confirmed": true,
+    "historical_replay_used": false
+  }
+}

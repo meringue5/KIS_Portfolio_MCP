@@ -14,7 +14,8 @@ total-asset report configuration without replaying historical messages or weaken
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
 | 1 | WI-059 scheduled core and Telegram recovery | WI-058, WI-055 | stabilizing; deployed, awaiting first post-release slots and owner receipt |
-| 2 | WI-070 permanent held-position Telegram signals | WI-059 | in progress; corrective stabilization recovery after the bounded rule expired |
+| 2 | WI-070 permanent held-position Telegram signals | WI-059 | stabilizing; permanent rule released and eligible transition receipt remains separately monitored |
+| 3 | WI-076 three-slot held-signal status | WI-070 | closed; all three 2026-10-19 reports succeeded and owner accepted receipt on 2026-10-21 |
 
 ## Gates
 
@@ -28,6 +29,7 @@ total-asset report configuration without replaying historical messages or weaken
 
 | Version | Date | Change | Identity impact |
 | --- | --- | --- | --- |
+| 2026-10-21.1 | 2026-10-21 | Closed WI-076 after the released Jobs sent the 2026-10-19 10:00, 14:30 and 16:00 reports and the owner confirmed all three receipts | Existing recovery outcome preserved; MS-006 remains stabilizing for its other declared exit items |
 | 2026-10-13.1 | 2026-10-13 | Appended WI-070 after live logs proved all three Jobs and Telegram transport were healthy but the bounded production-value rule had expired, producing zero external candidates | Existing Telegram-recovery outcome preserved; no new milestone; unheld watchlist remains excluded |
 | 2026-09-17.2 | 2026-09-17 | WI-059-S01 PR #120 and protected run `35172054518` corrected FX landing and report preflight; release is stabilizing, while owner rejected the all-or-nothing information design and opened WI-060/MS-007 | Recovery history preserved; new architecture outcome is separate and production-gated |
 | 2026-09-17.1 | 2026-09-17 | Appended WI-059-S01 after the first post-release 10:00 run succeeded but the owner report was blocked by the missing 2026-09-16 same-slot state; read-only inspection also found ungoverned stale FX in pass-marked Gold | Parent remains stabilizing; one isolated corrective sub-item is in progress; no historical send replay |
