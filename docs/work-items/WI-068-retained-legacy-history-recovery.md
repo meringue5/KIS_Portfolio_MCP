@@ -225,7 +225,7 @@ WI-066 quarantine, native-V2 priority and unavailable Aug 6/25 boundaries remain
   no DDL, production write, backfill, public API code or deployment occurred. Exact production boundary awaits owner ADR. Quick and full shared gates pass (815 tests, one warning).
 - Implementation, contract and release evidence: pending a later owner-approved phase.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: proposed architecture/data-recovery intake only; no implementation or production effect authorized.
 - Remaining risk: retained artifacts may be incomplete, mutually inconsistent, unavailable to the current runtime or
@@ -288,7 +288,7 @@ The three immediate positive/partial/error cases are reproducible without anothe
   managed; missing managed objects 0, unregistered drift 0. Four existing preservation-only drift exceptions still
   match current fingerprints/expiry; no auto-adoption or contract relaxation. Final evidence full gate 835 passed (39.52s).
 
-## Accepted closeout synchronized — 2026-10-21
+## Closeout
 
 - Classification: maintenance of the existing outcome's acceptance record, authorized by the owner to publish
   the already accepted closure and proceed to the remaining review sequence. No new implementation work.

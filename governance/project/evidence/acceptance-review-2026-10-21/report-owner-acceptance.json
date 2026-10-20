@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "work_items": [
+    "WI-059",
+    "WI-059-S01",
+    "WI-060",
+    "WI-075",
+    "WI-075-S01"
+  ],
+  "question": "10월 19·20일 10:00·16:00의 총자산 이미지 보고서 수신 및 총액·계좌/자산 구성·전일 비교 표시 인수",
+  "owner_reply": "모두 받았고 표시도 적절함",
+  "sample_dates": [
+    "2026-10-19",
+    "2026-10-20"
+  ],
+  "slots": [
+    "kr-1000",
+    "kr-1600"
+  ],
+  "source": "direct owner reply in current chat, after four provider sends and matching caption/chart hashes were presented",
+  "accepted_scope": "scheduled numeric portfolio report, complete and partial capability presentation; not a generic acceptance of separate Claude history or detail-signal outcomes",
+  "source_calls": 0,
+  "notifications_sent_by_review": 0
+}

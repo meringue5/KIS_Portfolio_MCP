@@ -1,6 +1,6 @@
 # MS-007 — Resilient partial portfolio usability
 
-> 상태: stabilizing (protected production release complete; real-use acceptance pending)
+> 상태: closed (protected release, actual-client verification and owner report acceptance complete)
 > 선행 milestone: MS-005 closed; MS-006 is discovery context, not a prerequisite
 > machine registry: `governance/project/milestones.toml`
 
@@ -13,7 +13,7 @@ facts and scoped KRW subsets useful when comparison history, FX or optional anal
 
 | Sequence | Work Item | Depends on | Status |
 | ---: | --- | --- | --- |
-| 1 | WI-060 capability-isolated portfolio usability | none; discovered from WI-059 | stabilizing; production active, owner acceptance pending |
+| 1 | WI-060 capability-isolated portfolio usability | none; discovered from WI-059 | closed; owner report acceptance 2026-10-21 |
 
 ## Gates
 
@@ -47,3 +47,10 @@ facts and scoped KRW subsets useful when comparison history, FX or optional anal
 | 2026-09-23.7 | 2026-09-23 | PR #131/run `35810401697` served the date normalization and an immediate authenticated Codex overview returned a passing 32-row total | Close WI-060-S03; keep MS-007/WI-060 stabilizing only for owner-visible scheduled report acceptance |
 | 2026-09-23.8 | 2026-09-23 | Immediate Codex negative tests proved stable server codes are collapsed into generic SDK errors | Append WI-060-S04; expose redacted owner-debug errors now and defer a restrictive external profile until public multi-user conversion |
 | 2026-09-23.9 | 2026-09-23 | PR #133 and Remote run `35838679947` deployed owner-debug errors; direct Codex negative replay exposed all three expected codes and request IDs | Close WI-060-S04; keep MS-007/WI-060 stabilizing only for owner-visible scheduled report acceptance |
+
+## Accepted handoff — 2026-10-21
+
+WI-060's complete/partial capability fixtures and actual MCP proof are supplemented by four provider-confirmed
+matching numeric reports and direct owner receipt/presentation acceptance. The independent MS-007 outcome is closed;
+no requirement or data-quality boundary changed. Existing partial/FX fail-closed guards and rollback remain normal
+operations responsibilities. WI-059/MS-006 and other client-history outcomes are not prerequisites.

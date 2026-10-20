@@ -98,7 +98,7 @@ revision projection need a separate review before a user-facing ledger can be ca
 - Direct MCP RIA query for 2026-08-25 returned four rows representing two identical business-key pairs.
 - Production aggregate on 2026-09-30 counted 19 duplicate business-key groups.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: production repair and immediate actual OAuth validation complete; stabilizing pending explicit owner acceptance.
 - Remaining risk: source evidence with incomplete/ambiguous broker identity stays separate; unrelated cash fee candidates and historical lower-bound coverage limitations remain explicit. Owner review of corrected actual-client result is pending.
@@ -182,7 +182,7 @@ revision projection need a separate review before a user-facing ledger can be ca
 
 - Post-release evidence full gate passed again: **876 tests**, one existing Authlib warning; original shared checkout quick gate also passed after synchronizing only WI-064 evidence/status. No unrelated source changes were committed or discarded.
 
-## Accepted closeout synchronized — 2026-10-21
+## Closeout
 
 - Classification: maintenance of the existing outcome's acceptance record, authorized by the owner to publish
   the already accepted closure and proceed to the remaining review sequence. No new implementation work.

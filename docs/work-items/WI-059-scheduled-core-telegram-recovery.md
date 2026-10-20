@@ -1,7 +1,7 @@
 ---
 id: WI-059
 title: Restore 10:00 quality and scheduled Telegram delivery after the V2 core deployment
-status: stabilizing
+status: closed
 type: incident
 owner: owner
 decision_refs: DEC-051, DEC-053, DEC-055, ADR-021, ADR-023
@@ -13,14 +13,14 @@ depends_on: WI-058, WI-055
 discovered_from: WI-058, WI-055
 supersedes: none
 rollback_of: none
-execution_scope: production
+execution_scope: closed after deployed correction, read-only replay and actual owner report acceptance; no new production action
 production_effects: deploy
 architecture_impact: none; restore existing fixed-slot Job, quality and outbound boundaries
 data_impact: correct price request-coverage counting without changing stored rows, grain, source or retention
 security_impact: restore approved owner-only Telegram flags and pinned secret references without exposing values
 cost_impact: no new resources or source calls; existing photo smoke and scheduled messages resume
 stabilization_window: first post-release 10:00 and 16:00 scheduled runs plus owner receipt
-stabilization_exit_refs: post-release Job execution, per-run quality result, redacted delivery ledger and owner report
+stabilization_exit_refs: post-release Job execution, per-run quality result, redacted delivery ledger and owner report; 2026-10-21 actual owner numeric-report receipt/presentation accepted
 rollback_plan: use the last known safe image/configuration through a protected release; do not replay historical sends
 ---
 
@@ -61,7 +61,7 @@ deployment did not supply the established outbound configuration or secret refer
 - [x] Focused, quick, full and protected CI gates pass.
 - [x] Three production Jobs share the tested image and restore alert, report, destination and secret-reference settings.
 - [x] First post-release 10:00 core run succeeds with exact per-request quality evidence and bounded delivery outcomes.
-- [ ] Owner confirms client-visible report or a legitimate no-send outcome; no historical send is replayed.
+- [x] Owner confirms client-visible report or a legitimate no-send outcome; no historical send is replayed.
 
 ## Change impact
 
@@ -81,7 +81,7 @@ deployment did not supply the established outbound configuration or secret refer
 
 ## Sub-items
 
-- `WI-059-S01` (`stabilizing`): 2026-09-17 owner-visible 10:00 report was `unavailable` despite the
+- `WI-059-S01` (`closed`): 2026-09-17 owner-visible 10:00 report was `unavailable` despite the
   core run succeeding. Reproduce the missing-prior-slot cascade and stale FX gap with deterministic fixtures,
   add a no-send report-readiness check, and correct existing FX ingestion/quality within the approved contract.
   A current-only numeric report would change DEC-055 and remains outside this sub-item. The owner has since
@@ -142,9 +142,26 @@ deployment did not supply the established outbound configuration or secret refer
   Redacted template inspection confirmed delivery, real-use, owner approval and V2 report enabled; canary and legacy
   digest disabled; destination and pinned bot/chat Secret references present. No Scheduler, DB or recipient changed.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: code and configuration recovery deployed; live stabilization remains open. No missed-message replay.
 - Remaining risk: the first post-release 10:00 run and owner receipt are not yet observed; photo-smoke provider success
   is not proof of a scheduled report or client-visible receipt.
 - Follow-up Work Item: none at intake.
+
+## Closeout
+
+- [Actual owner acceptance](../../governance/project/evidence/acceptance-review-2026-10-21/report-owner-acceptance.json):
+  all four 2026-10-19/20 10:00/16:00 numeric photo reports received, totals/allocations/comparison presentation accepted.
+- [Stored report reconstruction](../../governance/project/evidence/acceptance-review-2026-10-21/report-audit.json):
+  four complete photo reports, five accounts/32 Gold rows each, exact allocation sum reconciliation, provider sent
+  once each and identical regenerated caption/chart hashes. No financial values or images are committed.
+- [Core quality](../../governance/project/evidence/acceptance-review-2026-10-21/signal-audit.json): all six applicable
+  2026-10-19/20 portfolio slots succeeded with same-day-overseas-scope=pass; failed historical runs remain retained.
+- Existing deterministic partial/error coverage was rerun: portfolio matrix 5/5 and FX matrix 4/4. Latest-master
+  full gate before this documentation synchronization passed 908 tests with one existing Authlib warning; the
+  closeout branch repeats the required full gate before publication.
+- Result: closed. The current complete-report and explicit comparison-unavailable/partial boundaries are accepted.
+  Earlier pending/first-slot wording above remains historical and is superseded by this final disposition.
+- Rollback/operations retain their existing owner, immutable release and independent fail-closed flags. This
+  review performs no migration, source run, historical message replay or notification. Other WI acceptance is separate.

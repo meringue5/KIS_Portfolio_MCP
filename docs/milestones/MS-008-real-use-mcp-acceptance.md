@@ -18,8 +18,8 @@ gaps found there must be classified and routed to an owned follow-up.
 | 2 | WI-062 direct Remote MCP remediation | WI-061 | closed |
 | 3 | WI-063 incremental trade-event collection | WI-062 | closed; owner accepted 2026-10-19 |
 | 4 | WI-064 trade-event business-key deduplication | WI-063 | closed; existing owner acceptance synchronized 2026-10-21 |
-| 5 | WI-065 Claude asset-change MCP recovery | WI-063 | stabilizing |
-| 6 | WI-066 legacy total-asset history quality recovery | WI-065 | stabilizing |
+| 5 | WI-065 Claude asset-change MCP recovery | WI-063 | closed; actual owner-Claude PASS 2026-10-21 |
+| 6 | WI-066 legacy total-asset history quality recovery | WI-065 | closed; actual owner-Claude PASS and S01 acceptance 2026-10-21 |
 | 7 | WI-067 calendar-aware pipeline run status | WI-066 | closed |
 | 8 | WI-068 retained legacy history recovery | WI-066 | closed; owner-accepted noncanonical reference boundary |
 
@@ -91,3 +91,7 @@ gaps found there must be classified and routed to an owned follow-up.
 - 2026-10-21: synchronize previously accepted WI-064 and WI-068/WI-068-S01 closures with current master.
   No requirement/dependency/identity changes or production actions; WI-063/067 closures remain preserved.
   MS-008 remains in_progress because other independent acceptance/design work remains.
+
+- 2026-10-21: WI-065 and WI-066/S01 close after direct actual-Claude positive/partial/error PASS.
+  MS-008 is not auto-closed: independently approved WI-071 cash-reconciliation and WI-072 watchlist intake
+  remain preserved in the shared local tracker, not implemented or included in this closeout.

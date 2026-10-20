@@ -1,0 +1,251 @@
+{
+  "read_only": true,
+  "source_calls": 0,
+  "external_sends": 0,
+  "core_quality": [
+    {
+      "logical_date": "2026-10-19",
+      "slot": "kr-1000",
+      "status": "succeeded",
+      "rule_id": "same-day-overseas-scope",
+      "quality": "pass",
+      "n": 1
+    },
+    {
+      "logical_date": "2026-10-19",
+      "slot": "kr-1430",
+      "status": "succeeded",
+      "rule_id": "same-day-overseas-scope",
+      "quality": "pass",
+      "n": 1
+    },
+    {
+      "logical_date": "2026-10-19",
+      "slot": "kr-1600",
+      "status": "succeeded",
+      "rule_id": "same-day-overseas-scope",
+      "quality": "pass",
+      "n": 1
+    },
+    {
+      "logical_date": "2026-10-20",
+      "slot": "kr-1000",
+      "status": "succeeded",
+      "rule_id": "same-day-overseas-scope",
+      "quality": "pass",
+      "n": 1
+    },
+    {
+      "logical_date": "2026-10-20",
+      "slot": "kr-1430",
+      "status": "succeeded",
+      "rule_id": "same-day-overseas-scope",
+      "quality": "pass",
+      "n": 1
+    },
+    {
+      "logical_date": "2026-10-20",
+      "slot": "kr-1600",
+      "status": "succeeded",
+      "rule_id": "same-day-overseas-scope",
+      "quality": "pass",
+      "n": 1
+    }
+  ],
+  "permanent_rule": [
+    {
+      "rule_id": "rule-set.owned-portfolio-monitoring",
+      "version": "permanent-2026-10-13.1",
+      "contract_status": "active",
+      "delivery_mode": "external",
+      "has_no_expiry": true
+    }
+  ],
+  "candidates": [
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1000",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 9
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1000",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 8
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1430",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 9
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1430",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 8
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1600",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 9
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1600",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 8
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "us-close",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 3
+    },
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "us-close",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 1
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "kr-1000",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 9
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "kr-1000",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 8
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "kr-1430",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 9
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "kr-1430",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 8
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "kr-1600",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 9
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "kr-1600",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 8
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "us-close",
+      "quality_status": "pass",
+      "severity": "normal",
+      "n": 3
+    },
+    {
+      "evaluation_date": "2026-10-20",
+      "evaluation_slot": "us-close",
+      "quality_status": "pass",
+      "severity": "watch",
+      "n": 1
+    }
+  ],
+  "delivery": [
+    {
+      "evaluation_date": "2026-10-19",
+      "evaluation_slot": "kr-1000",
+      "outcome": "sent",
+      "n": 1,
+      "candidates": 1,
+      "dispatches": 1
+    }
+  ],
+  "duplicate_successful_dispatches": 0,
+  "slot_reports": [
+    {
+      "logical_date": "2026-10-19",
+      "slot": "kr-1000",
+      "status": "succeeded",
+      "stage_status": "succeeded",
+      "outcome": "sent",
+      "changed": "1",
+      "active": "9",
+      "quality_suppressed": "0"
+    },
+    {
+      "logical_date": "2026-10-19",
+      "slot": "kr-1430",
+      "status": "succeeded",
+      "stage_status": "succeeded",
+      "outcome": "sent",
+      "changed": "0",
+      "active": "8",
+      "quality_suppressed": "0"
+    },
+    {
+      "logical_date": "2026-10-19",
+      "slot": "kr-1600",
+      "status": "succeeded",
+      "stage_status": "succeeded",
+      "outcome": "sent",
+      "changed": "0",
+      "active": "8",
+      "quality_suppressed": "0"
+    },
+    {
+      "logical_date": "2026-10-20",
+      "slot": "kr-1000",
+      "status": "succeeded",
+      "stage_status": "succeeded",
+      "outcome": "sent",
+      "changed": "0",
+      "active": "9",
+      "quality_suppressed": "0"
+    },
+    {
+      "logical_date": "2026-10-20",
+      "slot": "kr-1430",
+      "status": "succeeded",
+      "stage_status": "succeeded",
+      "outcome": "sent",
+      "changed": "0",
+      "active": "8",
+      "quality_suppressed": "0"
+    },
+    {
+      "logical_date": "2026-10-20",
+      "slot": "kr-1600",
+      "status": "succeeded",
+      "stage_status": "succeeded",
+      "outcome": "sent",
+      "changed": "0",
+      "active": "8",
+      "quality_suppressed": "0"
+    }
+  ]
+}

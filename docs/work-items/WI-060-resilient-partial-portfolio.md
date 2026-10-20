@@ -1,7 +1,7 @@
 ---
 id: WI-060
 title: Isolate portfolio capability failures and provide accurate partial results
-status: stabilizing
+status: closed
 type: architecture
 owner: owner
 decision_refs: DEC-055, DEC-057, DEC-058, ADR-015, ADR-021, ADR-023, ADR-024, ADR-028, ADR-029, ADR-030
@@ -13,14 +13,14 @@ depends_on: none
 discovered_from: WI-059, WI-055, WI-058
 supersedes: none
 rollback_of: none
-execution_scope: production
+execution_scope: closed after deployed correction, read-only replay and actual owner report acceptance; no new production action
 production_effects: guarded Remote MCP and three fixed-slot owned-core Job deployment
 architecture_impact: yes; separate capability quality, read-model and report boundaries without changing the V2 trust boundary
 data_impact: approved additive FX source/observation/rate-type contracts are production-active under guarded fallback
 security_impact: retain owner-only destination and masked accounts; add one pinned Korea Eximbank secret readable only by the pipeline identity; admit only structurally validated Codex IPv4 loopback OAuth callbacks; expose bounded redacted owner-debug errors but no credentials, full account numbers, raw payloads or SQL parameters
 cost_impact: free official source; at most one fallback call per managed run and no new standing resource
 stabilization_window: protected source preflight plus immediate real MCP review and first owner-visible scheduled report after release
-stabilization_exit_refs: immutable release workflow, exact Job and Remote image labels, source preflight result, real Claude MCP output, redacted owner receipt
+stabilization_exit_refs: immutable release workflow, exact Job and Remote image labels, source preflight result, real Claude MCP output, redacted owner receipt; 2026-10-21 actual owner numeric-report receipt/presentation accepted
 rollback_plan: preserve the prior Remote traffic split and exact three Job exports; restore them automatically on source preflight, promotion or canonical smoke failure
 ---
 
@@ -72,7 +72,8 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
 - [x] Missing one source or optional macro/ETF look-through never yields a false `pass` and never erases unrelated
   verified components; every numeric subtotal is labeled by coverage, source time and valuation basis.
 - [x] MCP and Telegram fixtures reproduce user-visible complete, partial and unavailable cases without a clock wait.
-- [ ] Real Claude/MCP and owner-visible Telegram review accepts the presentation before production closeout.
+- [x] Actual MCP capability replay and owner-visible Telegram presentation accepted; previous real Codex
+      capability/error evidence plus the current owner report acceptance satisfy the remaining presentation gate.
 - [x] Any secondary FX source has approved rights, cost, source-date/rate-type mapping and deterministic conflict
   handling; no production calls or credentials are added merely to pass tests.
 - [x] Owner-debug MCP errors preserve stable code, redacted detail and request correlation in real Codex calls.
@@ -246,9 +247,26 @@ Gold writes `pass`; its fixture repeats the wrong literal. These are independent
   negative cases. Each client-visible error included `RemoteReadError`, `visibility=owner_debug` and a distinct
   request ID; no credential or account identifier was returned. `WI-060-S04` is therefore closed.
 
-## Closeout
+## Historical closeout checkpoint (superseded 2026-10-21)
 
 - Result: stabilizing; implementation and protected production activation are complete.
 - Remaining risk: the first owner-visible scheduled partial/complete report presentation has not yet been accepted.
   Do not close WI-060 or MS-007 on provider/API success alone.
 - Follow-up Work Item: none yet.
+
+## Closeout
+
+- [Actual owner acceptance](../../governance/project/evidence/acceptance-review-2026-10-21/report-owner-acceptance.json):
+  all four 2026-10-19/20 10:00/16:00 numeric photo reports received, totals/allocations/comparison presentation accepted.
+- [Stored report reconstruction](../../governance/project/evidence/acceptance-review-2026-10-21/report-audit.json):
+  four complete photo reports, five accounts/32 Gold rows each, exact allocation sum reconciliation, provider sent
+  once each and identical regenerated caption/chart hashes. No financial values or images are committed.
+- [Core quality](../../governance/project/evidence/acceptance-review-2026-10-21/signal-audit.json): all six applicable
+  2026-10-19/20 portfolio slots succeeded with same-day-overseas-scope=pass; failed historical runs remain retained.
+- Existing deterministic partial/error coverage was rerun: portfolio matrix 5/5 and FX matrix 4/4. Latest-master
+  full gate before this documentation synchronization passed 908 tests with one existing Authlib warning; the
+  closeout branch repeats the required full gate before publication.
+- Result: closed. The current complete-report and explicit comparison-unavailable/partial boundaries are accepted.
+  Earlier pending/first-slot wording above remains historical and is superseded by this final disposition.
+- Rollback/operations retain their existing owner, immutable release and independent fail-closed flags. This
+  review performs no migration, source run, historical message replay or notification. Other WI acceptance is separate.

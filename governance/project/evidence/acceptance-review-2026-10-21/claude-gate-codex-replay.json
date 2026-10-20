@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-21",
+  "client": "actual Codex OAuth; not a Claude impersonation",
+  "cases": [
+    {
+      "id": "default_pipeline",
+      "args": {},
+      "request_id": "00c4a59b78ca463694d08dbf7d9f7f29",
+      "quality": {
+        "status": "failed",
+        "row_count": 15
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.data-quality-evidence",
+          "reason": "quality_evidence_missing_for_run"
+        }
+      ],
+      "resolved_pipeline": "pipeline.owned-portfolio-core-v2"
+    },
+    {
+      "id": "invalid_lookback",
+      "args": {
+        "lookback_days": 33
+      },
+      "error_code": "argument_validation",
+      "error_detail": "lookback_days must be <=31; input=33",
+      "validation_boundary": "MCP argument schema before application request; no request_id expected"
+    },
+    {
+      "id": "native_history",
+      "args": {
+        "start_date": "2026-10-19",
+        "end_date": "2026-10-20",
+        "limit": 100
+      },
+      "request_id": "1f86dd43d5c24e8986de9839f343bc60",
+      "quality": {
+        "status": "pass",
+        "row_count": 6
+      },
+      "missing_coverage": [],
+      "history_rows": 6
+    },
+    {
+      "id": "legacy_history",
+      "args": {
+        "start_date": "2026-07-24",
+        "end_date": "2026-07-24",
+        "limit": 100
+      },
+      "request_id": "06821fc9bba3483992b81a1ce2e44b88",
+      "quality": {
+        "status": "partial",
+        "row_count": 1
+      },
+      "missing_coverage": [
+        {
+          "dataset_id": "dataset.portfolio-daily-state",
+          "reason": "legacy_history_unassessed"
+        }
+      ],
+      "history_rows": 1,
+      "legacy_total_suppressed": true
+    },
+    {
+      "id": "selector_conflict",
+      "args": {
+        "run_id": "validation-only",
+        "pipeline_id": "portfolio-refresh"
+      },
+      "request_id": "80c3c0459d8b478b8893a0c20e9aaa9f",
+      "error_code": "invalid_request",
+      "error_detail": "request:value_error:Value error, exactly one of run_id or pipeline_id is required"
+    }
+  ]
+}
