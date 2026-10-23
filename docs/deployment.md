@@ -630,3 +630,14 @@ images/labels, and reuses the stable plus `wi046-v2` Remote rollout guard. It ex
 DDL/migration, Scheduler or secret/config change. Capture exact prior Job exports and both Remote route revisions
 before changing anything; failure restores both Jobs and Remote routes. The [release package](operations/wi-063-interval-coverage-2026-10-19.md)
 owns the owner approval, immediate actual-client oracles and rollback limitations.
+
+### WI-071 deferred-first diagnostic transition
+
+Run the protected `Deploy Cloud Run` workflow on approved master with target `wi071`. It builds one immutable
+image, runs a dedicated private-backup/0023/restore/bootstrap Job, updates only the three existing portfolio Job
+images and `KIS_CASH_RECONCILIATION_ENABLED=true`, then updates Remote stable and retained compatibility routes
+from that same image. Exact prior Job exports and Remote routes are captured for rollback. Auth, Scheduler,
+broker collectors and Telegram settings are not changed. No manual portfolio Job or report send is executed.
+On failure restore exact Job definitions and prior stable/tag routes; retain additive schema/evidence. Actual
+owner OAuth `get-data-quality(dataset_id="dataset.cash-balance-reconciliation")` and the next scheduled companion
+run provide acceptance/stabilization evidence; health checks alone are insufficient.

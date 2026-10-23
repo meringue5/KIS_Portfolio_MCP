@@ -1,0 +1,25 @@
+-- DEC-063 / ADR-034: diagnostic evidence only, initial numeric activation prohibited.
+CREATE TABLE IF NOT EXISTS control.cash_balance_reconciliations (
+    interval_id VARCHAR NOT NULL,
+    revision INTEGER NOT NULL CHECK (revision > 0),
+    input_hash VARCHAR NOT NULL UNIQUE,
+    account_alias VARCHAR NOT NULL CHECK (account_alias IN ('ria','isa','brokerage','irp','pension')),
+    currency VARCHAR NOT NULL,
+    t0 TIMESTAMPTZ,
+    t1 TIMESTAMPTZ NOT NULL,
+    knowledge_cutoff TIMESTAMPTZ NOT NULL,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+    producer_run_id VARCHAR NOT NULL,
+    formula_version VARCHAR NOT NULL,
+    outcome VARCHAR NOT NULL CHECK (outcome = 'deferred'),
+    reasons JSON NOT NULL,
+    observed DECIMAL(28,8),
+    expected DECIMAL(28,8),
+    delta DECIMAL(28,8),
+    explained_count INTEGER NOT NULL CHECK (explained_count >= 0),
+    pending_count INTEGER NOT NULL CHECK (pending_count >= 0),
+    PRIMARY KEY(interval_id, revision),
+    CHECK (observed IS NULL AND expected IS NULL AND delta IS NULL),
+    CHECK (t0 IS NULL OR t0 < t1),
+    CHECK (t1 <= knowledge_cutoff)
+);

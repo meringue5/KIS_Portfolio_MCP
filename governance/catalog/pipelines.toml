@@ -483,3 +483,27 @@ quality_gates = ["credential and source contracts active", "native field meaning
 secret_profile = "future dedicated Secret Manager API key reference; absent while proposed and never stored in MotherDuck or manifests"
 cost_class = "routine"
 trigger_policy = "no source call, schedule, valuation consumption or public exposure until owner approves measured semantics and credentials"
+
+
+[[contracts]]
+id = "pipeline.cash-balance-reconciliation-v1"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "Stored-input deferred-only cash diagnosis, isolated after existing successful portfolio runs."
+decision_refs = ["DEC-063", "ADR-034"]
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.cash-transaction-event"]
+output_dataset_ids = ["dataset.cash-balance-reconciliation"]
+stages = ["evaluate-persist"]
+schedule_policy = "existing successful portfolio cadence only; no new Scheduler or broker call"
+calendar_gate = "inherits successful portfolio logical date/slot; no synthesized holiday posting"
+idempotency_key = "pipeline version and source portfolio run id; immutable visible input hash per interval"
+timeout_policy = "six fixed scopes, two cash observations each; 31-day source window"
+retry_policy = "bounded transactional append conflict retry; failed companion pipeline can resume; core success unaffected"
+source_call_budget = "0; stored data only"
+freshness_gates = ["source knowledge and recording cutoff retained", "unknown freshness stays unverified"]
+quality_gates = ["initial numeric output prohibited", "all live scopes deferred", "no external-flow or performance pass"]
+secret_profile = "existing warehouse runtime only; no broker credentials used by this stage"
+cost_class = "routine"
+trigger_policy = "post-success feature-gated companion or protected release bootstrap; no public run arguments"

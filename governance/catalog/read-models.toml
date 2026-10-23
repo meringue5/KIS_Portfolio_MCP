@@ -83,3 +83,24 @@ activation_state = "production"
 max_response_bytes = 262144
 max_page_size = 100
 max_lookback_days = 1095
+
+[[contracts]]
+id = "read_model.cash-reconciliation-preview-v1"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "WI-071 existing authenticated get-data-quality exact dataset route; initial rows deferred only."
+decision_refs = ["DEC-013", "DEC-023", "DEC-063", "ADR-034"]
+input_dataset_ids = ["dataset.cash-balance-reconciliation"]
+registry_input_kinds = []
+consumer_scope = "mcp-read"
+response_schema_ref = "src/kis_portfolio/adapters/outbound/cash_reconciliation_warehouse.py"
+allowed_fields = ["schema_version", "as_of", "source", "freshness", "quality", "missing_coverage", "request_id", "results", "data", "next_cursor", "account_alias", "currency", "t0", "t1", "knowledge_cutoff", "outcome", "reasons", "observed", "expected", "delta", "explained_count", "pending_count", "revision", "lineage_ref", "formula_version", "external_flow_coverage", "performance_eligible"]
+suppressed_fields = ["account_id", "raw_json", "object_uri", "source_record_id", "credential", "error_message", "input_payload"]
+query_policy = "exact dataset.cash-balance-reconciliation through get-data-quality; optional exact producer run; <=31 day cutoff window, <=100 rows, snapshot-bound opaque cursor"
+status_policy = "baseline_only/deferred/pending_settlement/reconciled/unexplained_movement are diagnostic outcomes, never quality pass"
+unavailable_policy = "unknown input or source evidence gives deferred/null numeric fields; invalid query/cursor gives bounded error"
+activation_state = "production"
+max_response_bytes = 262144
+max_page_size = 100
+max_lookback_days = 31

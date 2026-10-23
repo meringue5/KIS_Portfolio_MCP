@@ -183,7 +183,7 @@ implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 overlap_work_item_ids = []
 overlap_mode = "none"
-work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066", "WI-067", "WI-068", "WI-074"]
+work_item_ids = ["WI-061", "WI-062", "WI-063", "WI-064", "WI-065", "WI-066", "WI-067", "WI-068", "WI-071", "WI-074"]
 
 [[work_items]]
 id = "WI-009"
@@ -1341,3 +1341,17 @@ id = "WI-068-S01"
 parent_id = "WI-068"
 title = "Revalidate retained source components for the bounded reference-only recovery"
 status = "closed"
+
+
+[[work_items]]
+id = "WI-071"
+identity = "owner-cash-flow-history-management"
+title = "Reconcile cash balances with trade settlement and surface unexplained movements"
+milestone_id = "MS-008"
+delivery_refs = []
+depends_on = ["WI-010", "WI-042"]
+discovered_from = ["WI-068"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 9

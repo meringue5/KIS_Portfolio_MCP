@@ -74,6 +74,7 @@ from kis_portfolio.services.wi022_s06 import WI022S06Config, WI022S06PhaseError,
 from kis_portfolio.services.wi029_s04 import verify_wi029_s04
 from kis_portfolio.services.wi048_s02 import WI048S02Config, run_wi048_s02
 from kis_portfolio.services.wi064_release import WI064ReleaseConfig, run_wi064_release
+from kis_portfolio.services.wi071_release import WI071ReleaseConfig, run_wi071_release
 from kis_portfolio.services.wi068_release import WI068ReleaseConfig, run_wi068_release
 from kis_portfolio.services.wi066_release import WI066ReleaseConfig, run_wi066_release
 from kis_portfolio.services.wi029_s05 import refresh_wi029_s05_evidence
@@ -314,6 +315,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wi066.add_argument("--project", required=True)
     wi066.add_argument("--bucket", required=True)
+    wi071 = subparsers.add_parser("run-wi071-release", help="Protected diagnostic migration and stored-input bootstrap; no broker calls.")
+    wi071.add_argument("--project", required=True)
+    wi071.add_argument("--bucket", required=True)
     wi064 = subparsers.add_parser("run-wi064-release", help="Back up, repair trade identity views, and verify source-preserving restore.")
     wi064.add_argument("--project", required=True)
     wi064.add_argument("--bucket", required=True)
@@ -870,6 +874,14 @@ def main() -> None:
         raise SystemExit(_run_wi029_s04_verify(args))
     if args.command == "run-wi048-s02":
         raise SystemExit(_run_wi048_s02(args))
+    if args.command == "run-wi071-release":
+        try:
+            result = run_wi071_release(WI071ReleaseConfig(args.project,args.bucket))
+            print(json.dumps(result,default=str))
+            raise SystemExit(0)
+        except Exception:
+            print(json.dumps({"work_item":"WI-071","status":"failed","reason":"protected_release_failed"}))
+            raise SystemExit(1)
     if args.command == "run-wi064-release":
         raise SystemExit(_run_wi064_release(args))
     if args.command == "run-wi068-release":

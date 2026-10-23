@@ -35,7 +35,7 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
-registry의 **80 tables + 28 views = 108 objects**를 관리한다. repository migration ceiling은 `0022`이며,
+registry의 **81 tables + 28 views = 109 objects**를 관리한다. repository migration ceiling은 `0023`이며,
 운영 V2는 checksum migration `0022`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
@@ -142,7 +142,7 @@ Legacy `get_connection()`의 `init_schema()`는 V2 객체를 만들지 않으며
 | `control.macro_series_definitions` | exact macro series contract/version/hash, native metadata, rights, attribution과 inactive activation state | Parquet / internal |
 | `control.pipeline_run_summary` | run/stage terminal-state compatibility view; `dataset.pipeline-run-summary-compat`, 공식 overall quality 아님 | rebuild view / internal |
 
-총 108개 V2 object는 80 tables + 28 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
+총 109개 V2 object는 81 tables + 28 views다. local fresh DuckDB에서는 migration apply, 두 번째 no-op,
 checksum mismatch와 중간 실패 후 resume를 자동검증한다. 운영 MotherDuck 적용은 같은 migration checksum을
 사용하며 기존 `main` writer를 바꾸지 않는다. V1→V2 과거 복사는 별도 migration version과 reconciliation
 evidence 없이는 실행하지 않는다.
@@ -388,3 +388,14 @@ set per market (KRX order history; NAS order **and** transaction history), then 
 all requested account/market scopes. Approved global scope is the five ACCOUNT_SPECS aliases and brokerage NAS;
 recent IRP remains a named gap. `coverage_start`/`coverage_through` are outer bounds, not a completeness claim;
 `uncovered_intervals` (first 20 plus total count) and quality/missing_coverage own the consumer decision.
+
+### WI-071 diagnostic Control evidence (0023)
+
+`control.cash_balance_reconciliations` is confidential append-only noncanonical diagnostic evidence, linked to
+`dataset.cash-balance-reconciliation`. Grain/key: account alias, currency, t0/t1 interval and revision; physical
+PK `(interval_id, revision)` plus unique `input_hash`. Observation t0/t1, evaluation knowledge cutoff and recording
+clock are separate. Producer run and formula version provide opaque lineage. Explicit typed monetary columns
+are constrained NULL, and outcome is constrained `deferred` for this initial release. They cannot become cash
+facts, external-flow coverage or performance inputs. No raw payload, account number, secret or URI is stored here.
+The existing catalog-driven private Parquet backup includes this table; fresh prefix-aware restore applies 0023.
+No automatic deletion. Rollback disables the evaluator flag/restores runtime; schema and evidence are retained.

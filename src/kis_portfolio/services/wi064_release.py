@@ -14,6 +14,7 @@ from kis_portfolio.config import get_db_mode
 from kis_portfolio.db.catalog import v2_backup_table_names
 from kis_portfolio.db.connection import get_connection
 from kis_portfolio.platform.migrations import MigrationRunner
+from kis_portfolio.services.v2_recovery import _applied_migration_prefix
 from kis_portfolio.services.wi066_release import MAX_BACKUP_BYTES, _backup_round_trip, _backup_summary
 
 
@@ -25,7 +26,7 @@ class WI064ReleaseConfig:
 
 def _data_fingerprints(con):
     return {name: con.execute(f'SELECT count(*), bit_xor(hash(t)) FROM {name} t').fetchone()
-            for name in v2_backup_table_names()}
+            for name in _applied_migration_prefix(con)[1]}
 
 
 def _projection(con):

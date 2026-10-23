@@ -890,10 +890,14 @@ def run_owned_portfolio_pipeline(
                 "status": outcome.status, "run_id": outcome.run_id, "source_calls": outcome.source_calls,
                 "finished_at": datetime.now(UTC),
             })
-        return {
+        result = {
             "status": outcome.status, "run_id": outcome.run_id, "reused": outcome.reused,
             "source_calls": outcome.source_calls, "logical_key": logical_key,
         }
+        from kis_portfolio.services.cash_reconciliation_runtime import after_success, enabled
+        if outcome.status == "succeeded" and enabled():
+            result["cash_reconciliation"] = after_success(connection, run_id=outcome.run_id)
+        return result
     finally:
         if state_store and claim:
             state_store.release(f"pipeline:{logical_key}", claim.owner_id, claim.fencing_token)
