@@ -1104,3 +1104,27 @@ freshness_slo = "finite historical recovery window; no recurring producer; last 
 quality_rules = ["never canonical or an input to return/signal metrics", "native V2 precedence", "only observed missing foreign valuation can be added", "known cash preserved; absent overseas cash zero labelled", "missing overseas positions keep reference amount null", "no future dated FX and maximum four calendar day lag", "input hash and provider/date/basis/knowledge lineage required"]
 producer_pipeline_ids = []
 consumer_ids = ["owner private recovery preview", "read_model.portfolio-legacy-total-reference"]
+
+[[contracts]]
+id = "dataset.cash-balance-reconciliation"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "WI-071 isolated noncanonical cash reconciliation evidence; no monetary fact or flow coverage."
+decision_refs = ["DEC-013", "DEC-023", "DEC-063", "ADR-034", "ADR-026", "ADR-032"]
+layer = "control"
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event", "dataset.cash-transaction-event"]
+purpose = "Explain verified native settled-cash intervals or explicitly defer unsupported inputs."
+grain = "account alias, currency, actual observation interval and evaluation revision"
+natural_key = ["account_alias", "currency", "t0", "t1", "revision"]
+time_semantics = "actual posted effects in (t0,t1]; independent knowledge cutoff; late inputs append revisions"
+write_mode = "append-only transactional Control diagnostic revisions; unique input hash and interval revision"
+schema_contract = "control.cash_balance_reconciliations; 0023_cash_balance_reconciliation.sql; deferred-only numeric guard"
+sensitivity = "confidential"
+retention_policy = "append-only diagnostic evidence; no automatic deletion"
+backup_policy = "parquet"
+freshness_slo = "after each successful existing portfolio slot; stale source remains explicitly unverified"
+quality_rules = ["settled basis and actual posting required", "unknown rounding or input coverage defers numeric output", "reconciled never certifies external-flow coverage or performance", "same-economics is not identity", "missing and zero remain distinct"]
+producer_pipeline_ids = ["pipeline.cash-balance-reconciliation-v1"]
+consumer_ids = ["WI-071 diagnostic evaluator", "read_model.cash-reconciliation-preview-v1"]

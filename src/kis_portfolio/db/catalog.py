@@ -274,6 +274,7 @@ V2_DATA_OBJECTS = (
     DataObject("fundamental_concept_mappings_current", "view", "control", "control", "latest mapping projection", "excluded", "internal", "Latest known version of each concept mapping.", "one mapping identity", "mapping_id", "control"),
     DataObject("macro_series_definitions", "table", "control", "control", "immutable definition projection", "parquet", "internal", "Exact approved macro series definitions and contract hashes.", "one series contract version", "series_contract_id, version", "control"),
     DataObject("pipeline_run_summary", "view", "control", "control", "derived view", "excluded", "internal", "Pipeline status read model.", "one pipeline run", "run_id", "control"),
+    DataObject("cash_balance_reconciliations", "table", "control", "control", "append-only diagnostic revisions", "parquet", "confidential", "Deferred-only native cash reconciliation evidence; never monetary facts or flow coverage.", "account currency observation interval and evaluation revision", "interval_id, revision; input_hash unique", "control"),
 )
 
 

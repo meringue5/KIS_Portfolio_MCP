@@ -63,8 +63,8 @@ def test_identity_repair_keeps_history_references_and_corrected_buy_projection(t
                             trade_event_id=legacy, body='Synthetic', authored_at=EXECUTED))
     original_ids = con.execute('SELECT trade_event_revision_id FROM silver.trade_event_revisions ORDER BY 1').fetchall()
     assert con.execute('SELECT count(*) FROM silver.trade_events_current').fetchone() == (2,)
-    assert MigrationRunner(con).apply() == ['0022']
-    assert MigrationRunner(con).apply() == []
+    assert MigrationRunner(con).apply(through='0022') == ['0022']
+    assert MigrationRunner(con).apply(through='0022') == []
     assert con.execute('SELECT count(*) FROM silver.trade_events_current').fetchone() == (1,)
     assert con.execute('SELECT source_trade_event_id FROM silver.trade_events_current').fetchone() == (legacy,)
     assert con.execute('SELECT lot_id FROM silver.purchase_lots_current').fetchone() == (lot,)

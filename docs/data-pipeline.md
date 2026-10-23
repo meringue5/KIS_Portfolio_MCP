@@ -468,3 +468,10 @@ WI-063-S02: trade query completeness consumes retained exact source partition in
 collection/reconciliation, quality, lineage and publish evidence; see [catalog](data-catalog.md#wi-063-s02-trade-interval-proof-2026-10-19).
 Pipeline 1.0.3 emits explicit `coverage_interval` in publish JSON; historical evidence is verified in place with no
 backfill or inferred start date. Older replays cannot regress upper watermarks or replace their later-run provenance.
+
+WI-071 adds `pipeline.cash-balance-reconciliation-v1` after successful owned-portfolio runs, under
+`KIS_CASH_RECONCILIATION_ENABLED`. The companion has a distinct run/stage/quality/lineage ledger, zero source-call
+budget, and consumes two stored cash observations for six fixed scopes. It appends deferred diagnostic revisions
+in Control. Failure returns a bounded unavailable result without failing or replaying the core publish/report.
+No new Scheduler, broker call, Telegram producer or monetary correction is introduced. Initial numeric support is
+prohibited; source-date trade coverage alone never proves actual posted cash completeness.

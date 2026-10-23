@@ -1319,3 +1319,15 @@ DEC-044 승인 이후에는 아래 순서를 Work Item과 DGH gate로 집행하�
 | 2026-08-27 | 요구 승인 | 평단가를 기본으로 유지하고 매수 lot·투자 thread 손익과 매매일지를 병렬 분석하는 개념 계약을 기록함 |
 | 2026-08-27 | 요구 승인 | 최근 3년 일봉 backfill 범위를 승인하고 MotherDuck 용량 사전검토를 기록함 |
 | 2026-08-27 | 초안 생성 | 현재 요구사항 분석 대화에서 확정된 요구와 결정을 통합했으며 구현은 승인하지 않음 |
+
+
+## DEC-063 — Deferred-first cash reconciliation production transition
+
+Approved 2026-10-23 by owner: "네, 그럼 이걸 운영전환을 해보지요" after isolated WI-071 delivery and disclosure
+that all six live scopes remain deferred. Provide persistent native-cash diagnostic revisions, independently
+bounded existing-batch evaluation and existing owner-authenticated data-quality read. No new tool/scope or broker
+collection. Unknown basis/posting/rounding and missing input scope must yield null numeric output. This initial
+release does not enable numeric reconciliation, infer external flow facts, or certify performance coverage.
+Production mutation is limited to additive Control evidence; cash/trade/state facts remain unchanged. Require
+local tests, full governance gates, protected release, private backup/fresh restore, actual-client diagnostic
+positive/partial/error and owner acceptance; preserve source and prior closed outcomes.

@@ -77,7 +77,11 @@ def test_catalog_quality_and_pipeline_read_models_are_approved_but_inactive():
     assert len(reference) == 1
     assert reference[0]["status"] == "active"
     assert "explicit include_legacy_reference opt-in only" in reference[0]["query_policy"]
-    read_models = [item for item in read_models if item not in reference]
+    reconciliation = [item for item in read_models if item['id']=='read_model.cash-reconciliation-preview-v1']
+    assert len(reconciliation)==1 and reconciliation[0]['status']=='active'
+    assert reconciliation[0]['activation_state']=='production'
+    assert reconciliation[0]['max_page_size']==100
+    read_models = [item for item in read_models if item not in reference and item not in reconciliation]
     assert {item["id"] for item in read_models} == {
         "read_model.data-catalog-v1",
         "read_model.data-quality-v1",

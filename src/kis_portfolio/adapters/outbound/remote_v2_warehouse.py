@@ -800,6 +800,25 @@ class WarehouseReadQueryPort:
 
     def _get_data_quality(self, request: DataQualityRequest) -> dict[str, Any]:
         dataset_id = self._resolve_dataset_id(request.dataset_id)
+        if dataset_id == "dataset.cash-balance-reconciliation":
+            from kis_portfolio.services.cash_reconciliation_runtime import enabled
+            from kis_portfolio.adapters.outbound.cash_reconciliation_warehouse import CashReconciliationRepository
+            if not enabled():
+                raise RemoteReadError("cash_reconciliation_inactive")
+            try:
+                projection = CashReconciliationRepository(self.connection).read(
+                    cutoff=request.as_of, lookback_days=request.lookback_days, run_id=request.run_id,
+                    limit=request.limit, cursor=request.cursor)
+            except ValueError as exc:
+                raise RemoteReadError(str(exc)) from None
+            items = projection["data"]["results"]
+            gaps = [{"dataset_id": dataset_id, "reason": "cash_reconciliation_deferred"}]
+            if not items:
+                gaps = [{"dataset_id": dataset_id, "reason": "no_reconciliation_evidence_in_window"}]
+            return self._envelope(data=projection["data"], items=items, dataset_id=dataset_id,
+                as_of=projection["as_of"], lineage_ref="control.cash_balance_reconciliations",
+                quality_status="partial", missing_coverage=gaps,
+                freshness_status="not_assessed")
         rows = self._rows(
             """
             SELECT q.run_id, q.dataset_id, q.rule_id, q.status, q.observed_value,

@@ -216,3 +216,8 @@ exact migration prefix without inventing the reference table. No raw source loca
 Rollback restores prior Remote stable/tag routes; reference/source versions remain retained, never deleted.
 
 WI-064 migration `0022` changes rebuild-only trade/lot projections and adds the derived identity-alias view. No Parquet table is added or removed. Preserve a complete pre-0022 migration-prefix backup; fresh restore must reproduce the old view before applying 0022. Post-0022 restore must reproduce linked current counts while all source/revision/reference table fingerprints match. View rollback restores the prior trade and lot definitions; source history is never removed.
+
+WI-071 migration `0023` adds `control.cash_balance_reconciliations` to the existing catalog-driven confidential
+Parquet allowlist. Protected transition performs pre-backup/fresh restore rehearsal, additive migration,
+stored-input bootstrap and post-backup/fresh restore. Old migration-prefix backups still restore exactly that
+prefix. Diagnostic rows are not financial facts and are retained when the runtime flag is disabled.

@@ -341,3 +341,8 @@ KIS_ACNT_PRDT_CD_{ACCOUNT}=
 ## 작업 큐
 
 자주 바뀌는 예정 작업은 `TODO.md`에서 관리한다. 결정된 설계 원칙은 `SPEC.md`에만 남긴다.
+
+WI-071: `get-data-quality(dataset_id="dataset.cash-balance-reconciliation")` reads typed diagnostic Control
+revisions. Initial production writer/schema permit deferred/NULL monetary columns only. The zero-source-call
+companion pipeline runs after successful portfolio refresh when `KIS_CASH_RECONCILIATION_ENABLED=true`.
+Never replace unknown source basis/posting with flags inferred from valuation residuals or collection watermarks.

@@ -1165,3 +1165,28 @@ ORDER BY snap_date DESC;
 4. **결과 직렬화**: DuckDB cursor의 `description`과 `fetchall()`로 `list[dict]`를 만들고, `date`/`datetime`은 ISO 문자열로 변환한다.
 5. **데이터 부족 처리**: 스냅샷이 window보다 적을 경우 `"데이터가 부족합니다 (현재 N일, 최소 {window}일 필요)"` 메시지 반환
 6. **DB 패키지 역할 경계**: 분석 쿼리는 analytics 모듈에서 실행. `kis_portfolio.db`는 연결, 스키마 초기화, 저장(upsert/insert), 기본 조회 함수만 담당
+
+
+### ADR-034: Cash reconciliation is noncanonical Control evidence with deferred-first production activation
+
+**Status**: approved 2026-10-23 by owner instruction to transition WI-071 to production, following the isolated
+implementation and explicit six-scope source limitations. Requirement owner: DEC-063; implementation: WI-071.
+
+Add `control.cash_balance_reconciliations` as an append-only diagnostic evidence store, one account/currency/
+actual observation interval/input-formula revision. Keep actual observation, evaluation knowledge and recording
+clocks separate; unique input hash makes replay a no-op and transactional revision allocation handles competing
+workers. Existing catalog-driven Parquet backup and verified fresh restore include the additive object.
+
+Evaluate existing stored sources after successful portfolio refresh under an explicit feature flag, outside the
+core pipeline transaction/failure boundary. No additional source call or schedule. Expose a bounded, allowlisted
+projection through the existing authenticated `get-data-quality` exact dataset route, with existing read scope.
+Do not expose raw JSON/URIs/source account ids or change unrelated quality responses.
+
+All initial live scopes remain deferred. The production repository rejects numeric/non-deferred results until
+a later reviewed numeric-source contract is approved. Cash facts, trade corrections, monetary SSOT, external-flow
+coverage and performance eligibility are unchanged. This guard prevents synthetic proofs from activating numeric
+output. Full source basis/posting/opening pending/net-fee-tax/rounding evidence is a separate enablement gate.
+
+Alternatives: ephemeral-only history cannot survive workers/restarts; storing derived cash in the monetary
+ledger would violate source authority; a new tool/scope or scheduler is unnecessary. Rollback disables the flag
+and restores exact runtime definitions, preserving schema/source/evidence. No destructive schema rollback.

@@ -3204,7 +3204,8 @@ def _deploy_wi065(
         print("Failed to resolve the immutable WI-065 image digest.")
         return 1
 
-    scope_flags = []
+    scope_flags = (["--update-env-vars", "KIS_CASH_RECONCILIATION_ENABLED=true"]
+                   if args.target == "wi071" else [])
     if args.target == "wi073":
         allowed = env.get("KIS_AUTH_ALLOWED_SCOPES", "").strip()
         if "mcp:journal.write" not in allowed.split():
@@ -3428,6 +3429,78 @@ def _deploy_wi066(
     restored = _run(rollback_command, dry_run=False) == 0
     print(f"WI-066 Remote smoke failed; prior stable/tag routes restored={restored}.")
     return 1
+
+
+def _deploy_wi071(args: argparse.Namespace, *, env: dict[str, str], project: str) -> int:
+    """Private additive recovery, then image/flag-only updates and both Remote routes."""
+    required = ["KIS_DB_MODE", "MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN", "KIS_GCS_BUCKET"]
+    if (_validate_required(env, required, secret_mode=args.secret_mode)
+            or env.get("KIS_DB_MODE") != "motherduck"
+            or not all(env.get(k) for k in ("KIS_AUTH_BASE_URL","KIS_RESOURCE_SERVER_URL"))):
+        print("WI-071 requires MotherDuck, private recovery and Remote configuration.")
+        return 1
+    service = env.get("KIS_REMOTE_SERVICE_NAME", DEFAULT_REMOTE_SERVICE)
+    traffic = [] if args.dry_run else _service_traffic(project=project, region=args.region, service=service)
+    stable = next((r.get("revisionName") for r in traffic or [] if int(r.get("percent") or 0)==100), None)
+    tagged = next((r.get("revisionName") for r in traffic or [] if r.get("tag")==DEFAULT_WI046_REMOTE_TAG), None)
+    if not args.dry_run and (not stable or not tagged):
+        print("WI-071 requires exact prior stable and compatibility routes.")
+        return 1
+    jobs=[env.get(f"KIS_V2_CORE_JOB_{slot.split('-')[1]}", name) for slot,name in DEFAULT_V2_CORE_JOBS.items()]
+    previous=[]
+    if not args.dry_run:
+        for job in jobs:
+            exported=_run_capture(["gcloud","run","jobs","describe",job,"--region",args.region,
+                "--project",project,"--format=export"],dry_run=False)
+            if exported.returncode or not exported.stdout.strip():
+                print("WI-071 requires exact prior Job exports.")
+                return 1
+            previous.append({"kind":"job","name":job,"previous_export":exported.stdout})
+    image=_build_release_image(args,project=project)
+    sha=os.environ.get("GITHUB_SHA","")
+    if not image or "@sha256:" not in image or (not args.dry_run and len(sha)<7):
+        print("WI-071 immutable provenance missing.")
+        return 1
+    plain,secrets=_split_runtime_env(env=env,payload={
+        "KIS_DB_MODE":"motherduck","MOTHERDUCK_DATABASE":env["MOTHERDUCK_DATABASE"],
+        "KIS_GCP_PROJECT":project,"KIS_GCS_BUCKET":env["KIS_GCS_BUCKET"],
+        "KIS_RELEASE_IMAGE_DIGEST":image.split("@",1)[1],"KIS_RELEASE_GIT_SHA":sha,
+        "KIS_CASH_RECONCILIATION_ENABLED":"true"},required=required,
+        secret_mode=args.secret_mode,include_account_secrets=False)
+    path=_write_env_yaml(plain)
+    job=args.job or env.get("KIS_WI071_JOB_NAME","kis-portfolio-wi071")
+    sa=env.get("KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT",f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com")
+    try:
+        if _run(["gcloud","run","jobs","deploy",job,"--image",image,"--region",args.region,
+            "--env-vars-file",path,"--command","kis-portfolio-batch",
+            "--args",f"run-wi071-release,--project,{project},--bucket,{env['KIS_GCS_BUCKET']}",
+            "--tasks","1","--parallelism","1","--task-timeout","3600s","--memory","2Gi",
+            "--max-retries","0","--service-account",sa,*_build_secret_flags(secrets),
+            *_build_label_flags("wi071-migration"),"--project",project],dry_run=args.dry_run):
+            return 1
+        if _run(["gcloud","run","jobs","execute",job,"--region",args.region,"--wait",
+            "--project",project],dry_run=args.dry_run):
+            return 1
+    finally:
+        os.unlink(path)
+    changed=[]
+    code=0
+    for job in jobs:
+        changed.append(job)
+        code=_run(["gcloud","run","jobs","update",job,"--image",image,
+            "--update-env-vars","KIS_CASH_RECONCILIATION_ENABLED=true","--region",args.region,
+            *_build_label_flags("wi071"),"--project",project],dry_run=args.dry_run)
+        if code:
+            break
+    if not code:
+        code=_deploy_wi065(args,env=env,project=project,release_image=image)
+    if code and not args.dry_run:
+        restored=_rollback_job_definitions(components=previous,job_names=changed,region=args.region,project=project)
+        routes=_run(["gcloud","run","services","update-traffic",service,
+            "--update-tags",f"{DEFAULT_WI046_REMOTE_TAG}={tagged}","--to-revisions",f"{stable}=100",
+            "--region",args.region,"--project",project],dry_run=False)==0
+        print(f"WI-071 failed; jobs_restored={restored}, routes_restored={routes}; additive evidence retained.")
+    return code
 
 
 def _deploy_wi064(args: argparse.Namespace, *, env: dict[str, str], project: str) -> int:
@@ -3947,6 +4020,7 @@ def main() -> int:
             "wi074",
             "wi066",
             "wi064",
+            "wi071",
             "wi068",
             "wi070",
             "wi075",
@@ -4221,6 +4295,8 @@ def main() -> int:
             return 1
         return _deploy_wi066(args, env=env, project=project)
 
+    if args.target == "wi071":
+        return _deploy_wi071(args, env=env, project=project)
     if args.target == "wi064":
         if not project:
             print("WI-064 requires GOOGLE_CLOUD_PROJECT")

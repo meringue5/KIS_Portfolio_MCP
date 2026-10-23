@@ -235,3 +235,8 @@ If a DB-stored derived token leaks:
   token cache if key exposure is possible.
 - OAuth token digests are not bearer tokens, but rotate `KIS_AUTH_TOKEN_PEPPER` and force reconnect if pepper exposure
   is possible.
+
+WI-071 reuses the existing owner read OAuth scope and existing warehouse/private-recovery service identities.
+Its production projection contains aliases, diagnostic status and opaque lineage only; no raw source/URI/id or
+credential is exposed. Initial monetary columns are NULL by database constraint. Operational output logs counts
+and stable error codes only. Numeric enablement is a separate reviewed source contract, not an OAuth flag.

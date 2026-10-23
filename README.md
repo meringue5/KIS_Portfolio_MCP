@@ -409,3 +409,8 @@ KIS_DB_MODE=local
 MIT License
 
 이 프로젝트는 `migusdn/KIS_MCP_Server` 포크에서 출발했으며, 원본 역시 MIT License를 사용합니다.
+
+Cash reconciliation diagnostics are available through existing `get-data-quality` with exact dataset
+`dataset.cash-balance-reconciliation` (at most 100 rows/page and 31 days). Initial live scopes are explicitly
+`deferred` with NULL amounts because settled basis/posting evidence is not certified; no external-flow or
+performance coverage is implied. Reuse its opaque `next_cursor` for pagination; no new tool or OAuth scope.
