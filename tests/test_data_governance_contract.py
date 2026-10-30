@@ -81,7 +81,11 @@ def test_catalog_quality_and_pipeline_read_models_are_approved_but_inactive():
     assert len(reconciliation)==1 and reconciliation[0]['status']=='active'
     assert reconciliation[0]['activation_state']=='production'
     assert reconciliation[0]['max_page_size']==100
-    read_models = [item for item in read_models if item not in reference and item not in reconciliation]
+    observations = [item for item in read_models if item['id']=='read_model.cash-observation-history-v1']
+    assert len(observations)==1 and observations[0]['status']=='active'
+    assert observations[0]['activation_state']=='production'
+    assert observations[0]['max_page_size']==100
+    read_models = [item for item in read_models if item not in reference and item not in reconciliation and item not in observations]
     assert {item["id"] for item in read_models} == {
         "read_model.data-catalog-v1",
         "read_model.data-quality-v1",

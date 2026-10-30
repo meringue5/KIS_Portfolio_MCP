@@ -1331,3 +1331,16 @@ release does not enable numeric reconciliation, infer external flow facts, or ce
 Production mutation is limited to additive Control evidence; cash/trade/state facts remain unchanged. Require
 local tests, full governance gates, protected release, private backup/fresh restore, actual-client diagnostic
 positive/partial/error and owner acceptance; preserve source and prior closed outcomes.
+
+
+### Observed cash history addendum, approved 2026-10-30
+
+Owner prioritizes observed cash amount and dated changes, available confirmed trade context and unknown causes,
+including possible owner funding and RP subscription/redemption. The discovery date is not a cash posting date.
+Do not classify an unexplained difference as funding, expense, RP activity or performance. Preserve the original
+settled-reconciliation NULL guard. Implement a separate read-only history over immutable Bronze cash payloads:
+amount/basis/time, comparable previous amount and change, and bounded date-associated trades. The old KRW
+valuation-residual and USD deposit/withdrawable fallback limitations remain explicit. Missing currency rows are
+not zero. Historical zero omissions cannot be repaired from absent records; last-known values carry source age.
+Existing backed-up observations supply persistence; no new table, provider call, collector or schedule.
+Owner authorized production activation on 2026-10-30; require protected release and actual-client replay.

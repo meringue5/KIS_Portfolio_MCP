@@ -193,3 +193,5 @@ WI-070 closes on distinct actual detail receipt, not the already accepted regula
 quality, held-positive scope, one post-baseline sent detail and zero duplicate success are linked in
 [owner/runtime evidence](../governance/project/evidence/acceptance-review-2026-10-21/signal-owner-acceptance.json).
 MS-006 closes after WI-059 and WI-070's separate exits are satisfied. No production write or external send occurred.
+
+| Cash-first dated observations with unknown cause | DEC-063 / ADR-034 observed-history addenda, owner release authorization 2026-10-30 | WI-071 | Query-only immutable cash history and bounded trade context | 12 focused cases and 971 full tests before activation | in_progress; protected activation and actual-client replay pending |

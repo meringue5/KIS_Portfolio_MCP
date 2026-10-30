@@ -104,3 +104,25 @@ activation_state = "production"
 max_response_bytes = 262144
 max_page_size = 100
 max_lookback_days = 31
+
+
+[[contracts]]
+id = "read_model.cash-observation-history-v1"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "Cash-first history, balances and unknown-cause changes."
+decision_refs = ["DEC-063", "ADR-034"]
+input_dataset_ids = ["dataset.cash-observation-history"]
+registry_input_kinds = []
+consumer_scope = "mcp-read"
+response_schema_ref = "src/kis_portfolio/adapters/outbound/cash_observation_history.py"
+allowed_fields = ["schema_version", "as_of", "source", "freshness", "quality", "missing_coverage", "request_id", "data", "results", "latest", "next_cursor", "account_alias", "currency", "observed_at", "observed_date", "known_at", "amount", "basis", "status", "previous_at", "change", "cause", "trade_context", "trade_context_status", "executed_at", "instrument_ref", "side", "quantity", "price", "market", "age_seconds", "observation_gap_seconds", "lineage_ref", "performance_eligible", "warnings"]
+suppressed_fields = ["account_id", "raw_json", "object_uri", "source_record_id", "credential", "broker_order_id", "input_payload"]
+query_policy = "exact dataset.cash-observation-history; <=31 days, <=100 observations; <=10 trade references per interval; snapshot cursor; optional exact producer run"
+status_policy = "always partial, source basis explicit, no complete flow coverage"
+unavailable_policy = "missing or ambiguous observation is unavailable, not zero; baseline has null change; invalid bounds/cursor fail closed"
+activation_state = "production"
+max_response_bytes = 262144
+max_page_size = 100
+max_lookback_days = 31

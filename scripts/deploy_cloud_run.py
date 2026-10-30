@@ -3204,7 +3204,7 @@ def _deploy_wi065(
         print("Failed to resolve the immutable WI-065 image digest.")
         return 1
 
-    scope_flags = (["--update-env-vars", "KIS_CASH_RECONCILIATION_ENABLED=true"]
+    scope_flags = (["--update-env-vars", "KIS_CASH_RECONCILIATION_ENABLED=true,KIS_CASH_OBSERVATION_HISTORY_ENABLED=true"]
                    if args.target == "wi071" else [])
     if args.target == "wi073":
         allowed = env.get("KIS_AUTH_ALLOWED_SCOPES", "").strip()

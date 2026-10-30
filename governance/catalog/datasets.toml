@@ -1128,3 +1128,28 @@ freshness_slo = "after each successful existing portfolio slot; stale source rem
 quality_rules = ["settled basis and actual posting required", "unknown rounding or input coverage defers numeric output", "reconciled never certifies external-flow coverage or performance", "same-economics is not identity", "missing and zero remain distinct"]
 producer_pipeline_ids = ["pipeline.cash-balance-reconciliation-v1"]
 consumer_ids = ["WI-071 diagnostic evaluator", "read_model.cash-reconciliation-preview-v1"]
+
+
+[[contracts]]
+id = "dataset.cash-observation-history"
+version = "1.0.0"
+status = "active"
+owner = "owner"
+description = "Cash observations and dated changes; not settled reconciliation."
+decision_refs = ["DEC-063", "ADR-034"]
+layer = "gold"
+source_ids = []
+input_dataset_ids = ["dataset.portfolio-position-observation", "dataset.trade-event"]
+purpose = "Show last-known cash, observation differences and date-associated trades with unknown cause."
+grain = "account alias, currency, immutable observation identity visible at cutoff"
+natural_key = ["account_alias", "currency", "lineage_ref"]
+time_semantics = "observation discovery time, not posting time; fetched and created clocks precede cutoff"
+write_mode = "read-only rebuild from existing immutable Bronze normalized cash observations"
+schema_contract = "query-only adapter; no physical object or DDL"
+sensitivity = "confidential"
+retention_policy = "source retention; no new deletion"
+backup_policy = "rebuild"
+freshness_slo = "last-known observation age explicit; missing is not zero"
+quality_rules = ["never settled reconciliation or complete flow coverage", "unknown cause never inferred funding or RP", "trade context never subtracted", "source basis and zero omissions disclosed"]
+producer_pipeline_ids = []
+consumer_ids = ["read_model.cash-observation-history-v1"]
