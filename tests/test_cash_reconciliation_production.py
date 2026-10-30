@@ -128,6 +128,15 @@ def test_deploy_target_updates_only_reviewed_jobs_and_reuses_same_digest(monkeyp
     executes=[c for c in commands if c[:4]==['gcloud','run','jobs','execute']]
     assert len(executes)==1 and executes[0][4]=='kis-portfolio-wi071'
     assert not any('scheduler' in c for c in commands)
+    # Only the authenticated Remote reader needs the new history flag; no producer activation.
+    monkeypatch.undo()
+    monkeypatch.setattr(m,'_run',lambda cmd,**k:commands.append(cmd) or 0)
+    assert m._deploy_wi065(args,env=env,project='fixture',release_image=image)==0
+    services=[c for c in commands if c[:4]==['gcloud','run','services','update']]
+    assert len(services)==1 and services[0][services[0].index('--image')+1]==image
+    flags=services[0][services[0].index('--update-env-vars')+1]
+    assert 'KIS_CASH_OBSERVATION_HISTORY_ENABLED=true' in flags.split(',')
+    assert 'KIS_CASH_RECONCILIATION_ENABLED=true' in flags.split(',')
 
 @pytest.mark.parametrize('fail_phase',[None,'pre','post'])
 def test_protected_transition_preserves_sources_and_verifies_restore(tmp_path,monkeypatch,fail_phase):

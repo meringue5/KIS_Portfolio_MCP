@@ -800,6 +800,21 @@ class WarehouseReadQueryPort:
 
     def _get_data_quality(self, request: DataQualityRequest) -> dict[str, Any]:
         dataset_id = self._resolve_dataset_id(request.dataset_id)
+        if dataset_id == "dataset.cash-observation-history":
+            from kis_portfolio.adapters.outbound.cash_observation_history import CashObservationHistory, enabled
+            if not enabled():
+                raise RemoteReadError("cash_observation_history_inactive")
+            try:
+                projection = CashObservationHistory(self.connection).read(
+                    cutoff=request.as_of, lookback_days=request.lookback_days, run_id=request.run_id,
+                    limit=request.limit, cursor=request.cursor)
+            except ValueError as exc:
+                raise RemoteReadError(str(exc)) from None
+            items = projection["data"]["results"]
+            return self._envelope(data=projection["data"], items=items, dataset_id=dataset_id,
+                as_of=projection["as_of"], lineage_ref="bronze.source_observations",
+                quality_status="partial", freshness_status="not_assessed",
+                missing_coverage=[{"dataset_id": dataset_id, "reason": "observed_cash_not_settled_reconciliation"}])
         if dataset_id == "dataset.cash-balance-reconciliation":
             from kis_portfolio.services.cash_reconciliation_runtime import enabled
             from kis_portfolio.adapters.outbound.cash_reconciliation_warehouse import CashReconciliationRepository

@@ -1,7 +1,7 @@
 ---
 id: WI-071
 title: Reconcile cash balances with trade settlement and surface unexplained movements
-status: verified
+status: in_progress
 type: change
 owner: owner
 decision_refs: DEC-013, DEC-023, DEC-063, ADR-026, ADR-032, ADR-034
@@ -14,7 +14,7 @@ discovered_from: WI-068
 supersedes: none
 rollback_of: none
 work_lane: delivery
-execution_scope: production transition
+execution_scope: observation-history production activation
 production_effects: additive Control evidence migration, stored-input batch evaluation and existing authenticated data-quality projection
 architecture_impact: ADR-034 additive noncanonical Control evidence; no change to monetary SSOT or OAuth scopes
 data_impact: append-only diagnostic revisions; production numeric support remains disabled
@@ -100,3 +100,16 @@ None; continue the existing WI-071 outcome and immutable identity.
 
 In progress; implementation, release provenance and actual acceptance are tracked in the production runbook.
 No completion is inferred from synthetic tests, deployment health or a deferred result alone.
+
+
+## Observed cash history release — approved 2026-10-30
+
+Owner approved cash amount visibility, dated observation differences and unknown causes, then explicitly
+requested protected deployment and self-verification through actual MCP. DEC-063/ADR-034 addenda own this
+query-only extension; the settled-reconciliation guard and monetary facts remain untouched. Activate the exact
+`dataset.cash-observation-history` route and keep six last-known scopes, source basis/age, baseline/missing
+versus zero, PIT cursor and bounded execution-interval trade context explicit. Funding and RP remain hypotheses.
+
+Local verification: 12 focused cases and 971 full tests, one existing Authlib warning. Protected release and
+actual-client positive/partial/error/paging/unaffected reads are pending. Preserve existing production record
+privately. Owner acceptance is required before closure; no operational observations are published by this source PR.

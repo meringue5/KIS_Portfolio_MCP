@@ -399,3 +399,11 @@ are constrained NULL, and outcome is constrained `deferred` for this initial rel
 facts, external-flow coverage or performance inputs. No raw payload, account number, secret or URI is stored here.
 The existing catalog-driven private Parquet backup includes this table; fresh prefix-aware restore applies 0023.
 No automatic deletion. Rollback disables the evaluator flag/restores runtime; schema and evidence are retained.
+
+
+### WI-071 cash observation history (query-only)
+
+`dataset.cash-observation-history` rebuilds cash amount/difference history from existing immutable
+`bronze.source_observations` normalized cash payloads. No new physical object or migration. Backup/retention
+remain owned by Bronze. Previous observations are capped to 31 days and known by the query cutoff.
+Date-associated `silver.trade_event_revisions` are context only, never cash settlement or fee-completeness proof.
