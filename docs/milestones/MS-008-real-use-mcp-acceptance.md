@@ -95,3 +95,8 @@ gaps found there must be classified and routed to an owned follow-up.
 - 2026-10-21: WI-065 and WI-066/S01 close after direct actual-Claude positive/partial/error PASS.
   MS-008 is not auto-closed: independently approved WI-071 cash-reconciliation and WI-072 watchlist intake
   remain preserved in the shared local tracker, not implemented or included in this closeout.
+
+
+- 2026-11-02: owner accepted the revised observed-cash scope and explicitly authorized closing WI-071.
+  Close WI-071 only; complete cash-posting reconciliation remains unsupported. MS-008 and other Work Items
+  retain their existing status. No identity/dependency changes or additional production work are authorized.

@@ -1,7 +1,7 @@
 ---
 id: WI-071
 title: Reconcile cash balances with trade settlement and surface unexplained movements
-status: in_progress
+status: closed
 type: change
 owner: owner
 decision_refs: DEC-013, DEC-023, DEC-063, ADR-026, ADR-032, ADR-034
@@ -22,7 +22,7 @@ security_impact: aliases and opaque lineage only; no raw payload, credential or 
 cost_impact: existing runtime/cadence and database; zero additional broker calls or Scheduler
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: production OAuth positive/partial/error replay pending release
+real_use_evidence_refs: docs/operations/wi-071-observed-cash-history-2026-10-30.md; explicit owner acceptance 2026-11-02
 stabilization_window: immediate OAuth replay and next successful owned-portfolio batch slot
 stabilization_exit_refs: six-scope deferred read, replay no-op, failed/absent source handling, unchanged money/report behavior and owner acceptance
 rollback_plan: disable KIS_CASH_RECONCILIATION_ENABLED and restore exact prior Job/Remote definitions; retain additive schema and evidence
@@ -98,8 +98,9 @@ None; continue the existing WI-071 outcome and immutable identity.
 
 ## Closeout
 
-In progress; implementation, release provenance and actual acceptance are tracked in the production runbook.
-No completion is inferred from synthetic tests, deployment health or a deferred result alone.
+Closed 2026-11-02 on explicit owner acceptance of the observed-cash scope. Accepted behavior is last-observed
+cash with basis/time, dated differences, bounded trade context and unknown causes. This closure does not claim
+complete settled-cash reconciliation, external-flow coverage or performance eligibility.
 
 
 ## Observed cash history release — approved 2026-10-30
@@ -110,6 +111,15 @@ query-only extension; the settled-reconciliation guard and monetary facts remain
 `dataset.cash-observation-history` route and keep six last-known scopes, source basis/age, baseline/missing
 versus zero, PIT cursor and bounded execution-interval trade context explicit. Funding and RP remain hypotheses.
 
-Local verification: 12 focused cases and 971 full tests, one existing Authlib warning. Protected release and
-actual-client positive/partial/error/paging/unaffected reads are pending. Preserve existing production record
-privately. Owner acceptance is required before closure; no operational observations are published by this source PR.
+Local verification: 12 focused cases and 971 full tests, one existing Authlib warning. Implementation and
+acceptance records remain private. Owner accepted the revised observed-cash scope and approved closing WI-071
+on 2026-11-02. No operational observations are published by this closure update.
+
+
+## Owner acceptance — 2026-11-02
+
+Owner explicitly accepted WI-071 and authorized closure. Close the revised observed-cash feature only: amounts
+retain their source basis and observation time; missing is unavailable rather than zero; unexplained changes
+remain unknown. Funding/RP causes are not inferred or booked. Complete cash-posting reconciliation remains
+unsupported and its NULL-only guard stays in place. Any future numeric enablement requires separate review.
+This status update authorizes no runtime, data, scope, migration or collection changes.

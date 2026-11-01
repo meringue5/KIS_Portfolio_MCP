@@ -49,3 +49,11 @@ KIS public website provides RP/foreign-RP transaction inquiry. This establishes 
 availability/completeness of an API for the owner's auto-trading subscription/redemption events:
 https://securities.koreainvestment.com/main/mall/openptrade/FundTrade07.jsp?cmd=mainPage
 No instruction to install/check HTS or supply a statement is required for this observed-history implementation.
+
+
+## Owner acceptance — 2026-11-02
+
+Owner accepted the observed-cash feature and explicitly approved closing WI-071. The accepted scope is
+last-observed cash with source basis/time, dated differences, bounded trade context and unknown causes.
+Complete settled-cash reconciliation and RP/funding classification remain unsupported. The reconciliation
+NULL-only guard and all source limitations remain intact. Detailed acceptance records remain private.
