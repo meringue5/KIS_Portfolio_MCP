@@ -183,3 +183,7 @@ V2 구축은 [MS-008](milestones/MS-008-real-use-mcp-acceptance.md)까지 인수
 - [WI-075 — Prevent incomplete overseas coverage from being reported as total assets](work-items/WI-075-total-asset-overseas-coverage-recovery.md)
 - [WI-076 — Deliver held-position signal status at all three governed slots](work-items/WI-076-three-slot-held-signal-status.md)
 - [WI-077 — Make accepted V2 documents navigable by feature, current task and symptom](work-items/WI-077-operational-documentation-navigation.md)
+
+
+2026-11-02 owner review follow-up: WI-077-S01 displays each historical TODO candidate separately, preserving
+unreviewed status and distinguishing completed/superseded construction premises. [Candidate list](../TODO.md#이전-todo의-개별-미검토-후보).

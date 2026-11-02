@@ -67,7 +67,7 @@ Disposition metadata may classify new navigation/history files under the existin
 
 ## Sub-items
 
-None.
+- WI-077-S01: owner requested individual display of historical candidates after the initial grouped closeout; documentation-only correction.
 
 ## Stabilization plan
 
@@ -103,6 +103,19 @@ Document home, feature traceability, current TODO and symptom index are the ever
 snapshots and original WI/design/acceptance evidence remain reachable. No elapsed operational observation or
 MCP replay is applicable because the product behavior and public surface are unchanged.
 
-Remaining review preference: grouped versus individual display of unreviewed TODO ideas. Neither representation
+Initial closeout left a review preference: grouped versus individual display of unreviewed TODO ideas. Neither representation
 changes approval, priority or source facts. Product/source limitations and ambiguous historical identifiers are
 shown explicitly; no DEC/ADR renumbering or new requirement approval is part of this closeout.
+
+## WI-077-S01 — Individual TODO candidate display, 2026-11-02
+
+Owner answered the pending review question: “후보도 새 TODO에서 개별적으로 보여주세요”. Replace the catch-all
+candidate row with named, individually visible historical ideas. Keep every candidate unreviewed and unprioritized;
+identify already delivered/superseded construction premises separately so they do not become new work. Preserve the
+historical snapshot and product scope; no new feature, policy, tool or runtime effect.
+
+Result: closed as documentation-only follow-up. Twelve historical ideas are individually visible with review
+questions and original/current references. Delivered or superseded construction premises have a separate table.
+Quick gate passed; 244 TODO/traceability paths and heading links resolved. Required full regression validation is
+recorded in the follow-up PR/CI. All original snapshot files remain unchanged. The initial grouping preference
+above is superseded by this direct owner answer; no review preference remains pending.

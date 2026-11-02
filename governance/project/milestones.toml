@@ -1368,3 +1368,9 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 7
+
+[[subitems]]
+id = "WI-077-S01"
+parent_id = "WI-077"
+title = "Show each unreviewed historical TODO candidate separately after owner review"
+status = "closed"
