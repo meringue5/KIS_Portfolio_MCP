@@ -195,3 +195,11 @@ quality, held-positive scope, one post-baseline sent detail and zero duplicate s
 MS-006 closes after WI-059 and WI-070's separate exits are satisfied. No production write or external send occurred.
 
 | Cash-first dated observations with unknown cause | DEC-063 / ADR-034 observed-history addenda, owner release authorization 2026-10-30 | WI-071 | Query-only immutable cash history and bounded trade context | Implementation and acceptance records retained privately | closed 2026-11-02; owner accepted observed cash and unknown causes, source limitations retained |
+
+## MS-008 / V2 accepted operational handoff — 2026-11-02
+
+Owner explicitly approved closing MS-008 after its ten Work Items and four sub-items closed. Record maintenance
+under WI-061, retain the accepted WI-071 observed-cash scope and unsupported settled-reconciliation/performance
+boundary, and defer WI-072 to next-version consideration. [Milestone closeout](milestones/MS-008-real-use-mcp-acceptance.md)
+and [owner/closure audit](../governance/project/evidence/ms008-owner-handoff-2026-11-02.json) transfer the accepted V2
+scope to the existing owner/runbook/rollback controls. No new policy, product scope or production effect is introduced.

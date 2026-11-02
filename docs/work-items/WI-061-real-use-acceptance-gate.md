@@ -102,3 +102,11 @@ two public tools with no governed rows. None was visible from deployment success
 - Remaining risk: real-use evidence is necessarily external to static CI; concrete refs and owner acceptance remain
   review evidence rather than something CI can manufacture.
 - Follow-up Work Item: WI-062.
+
+## Milestone handoff record — 2026-11-02
+
+Maintenance within this accepted real-use-governance outcome records the owner-authorized MS-008/V2 operational
+handoff after all ten owning Work Items and four sub-items closed. This is documentation only, not a reopened
+implementation or a policy change. See [milestone closeout](../milestones/MS-008-real-use-mcp-acceptance.md)
+and [owner evidence](../../governance/project/evidence/ms008-owner-handoff-2026-11-02.json). Existing actual-client
+acceptance remains owned by each Work Item; this record does not manufacture new production evidence.

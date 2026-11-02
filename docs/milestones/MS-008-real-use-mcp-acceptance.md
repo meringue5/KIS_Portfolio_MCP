@@ -1,6 +1,6 @@
 # MS-008 — Real-use MCP acceptance and capability remediation
 
-> 상태: in_progress
+> 상태: closed; owner accepted V2 operational handoff 2026-11-02
 > 선행 milestone: MS-005 closed
 > machine registry: `governance/project/milestones.toml`
 
@@ -22,6 +22,8 @@ gaps found there must be classified and routed to an owned follow-up.
 | 6 | WI-066 legacy total-asset history quality recovery | WI-065 | closed; actual owner-Claude PASS and S01 acceptance 2026-10-21 |
 | 7 | WI-067 calendar-aware pipeline run status | WI-066 | closed |
 | 8 | WI-068 retained legacy history recovery | WI-066 | closed; owner-accepted noncanonical reference boundary |
+| 9 | WI-071 observed cash history and bounded trade context | WI-010, WI-042 | closed; revised scope owner-accepted 2026-11-02, PR #175 |
+| 11 | WI-074 domestic SOR execution recovery | WI-063 | closed; source recovery, recurring run and actual-client owner acceptance 2026-10-14 |
 
 ## Gates
 
@@ -100,3 +102,27 @@ gaps found there must be classified and routed to an owned follow-up.
 - 2026-11-02: owner accepted the revised observed-cash scope and explicitly authorized closing WI-071.
   Close WI-071 only; complete cash-posting reconciliation remains unsupported. MS-008 and other Work Items
   retain their existing status. No identity/dependency changes or additional production work are authorized.
+
+## Closeout and V2 operational handoff — 2026-11-02
+
+The owner explicitly approved closing MS-008 after review of current master. All ten registered Work Items and
+four sub-items are closed; predecessor MS-005 is closed and no acceptance blocker remains in the agreed scope.
+The outcome is accepted for ordinary operation, not additional product activation. This maintenance record is
+linked to WI-061's existing real-use acceptance outcome; no Work Item identity, dependency or history is rewound.
+[Owner authorization and bounded closure audit](../../governance/project/evidence/ms008-owner-handoff-2026-11-02.json)
+links the final disposition to the existing Work Item acceptance records; it publishes no new operational data.
+
+WI-071 closes only for observed cash amounts with basis/time, dated differences, bounded trade context and unknown
+causes. Complete settled-cash reconciliation, external-flow coverage and performance eligibility remain unsupported.
+The prior November2 entry closed WI-071 alone; this subsequent explicit owner decision now closes MS-008.
+WI-072 watchlist alerts are deferred to next-version consideration and are outside this accepted V2 delivery.
+They are neither declared complete nor activated; preserve separate artifacts and source blockers.
+
+The existing service owner retains daily failed/missing-slot, source quality/freshness, backup and delivery review,
+monthly cost/drift review and quarterly restore review under the
+[steady-state operations runbook](../operations/steady-state-operations-runbook.md).
+[Deployment/rollback](../deployment.md), [backup/restore](../backup.md), and
+[WI-071 recovery](../operations/wi-071-production-transition.md) remain the operating references. Do not infer a new
+monitor, scheduler, broker call, runtime change or notification from this handoff. Newly discovered same-outcome
+defects follow Project OS operations-lane correction without reopening this accepted milestone; new product scope
+is reviewed separately. Historical failed runs, accepted limitations and per-feature rollback controls remain.
