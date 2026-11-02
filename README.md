@@ -10,6 +10,8 @@
 이 프로젝트는 원래 `migusdn/KIS_MCP_Server` 포크에서 출발했지만, 현재는 OAuth Remote MCP, managed batch와
 Firestore/MotherDuck 데이터 경계를 가진 포트폴리오 서비스로 재설계되었습니다. 현재 문서의 단일 진입점은
 [docs/README.md](./docs/README.md)입니다.
+운영 중에는 [기능·요구·코드·테스트](./docs/traceability.md), [현재 할 일](./TODO.md),
+[증상별 트러블슈팅](./docs/troubleshooting.md)에서 시작하세요.
 
 한국투자증권과 무관한 비공식 오픈소스 프로젝트입니다.
 

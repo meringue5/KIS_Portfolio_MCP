@@ -63,3 +63,9 @@ cleanup은 WI-049의 명시적 inventory, 복구 증거와 별도 파괴적 변�
 | 2026-09-10.3 | 2026-09-10 | Added continuous isolated implementation overlap at MS-003 stabilizing while preserving MS-003 closed for retirement and cleanup effects | Work Item identities and dependencies unchanged |
 | 2026-08-28.2 | 2026-08-28 | V2-W0801~0806을 WI-047~051로 배정하고 WI-032를 최종 문서 gate로 연결 | 신규 WI append; WI-032 identity 불변 |
 | 2026-08-28.1 | 2026-08-28 | final MS-004와 WI-032 문서 정본화 작업을 최초 기준선화 | 기존 WI 변경 없음; WI-032 신규 발급 |
+
+## Operations maintenance — 2026-11-02
+
+WI-077 corrects the usability of WI-032 documentation navigation after accepted V2 operational handoff. This is a
+repository-only maintenance item in the operations lane; MS-004 remains closed. Preserve all delivery identities,
+history, canonical policy and product scope. Owner explicitly excluded new tools/databases/generated indexes.

@@ -27,6 +27,8 @@ paths = [
   "docs/deployment.md",
   "docs/security-and-secrets.md",
   "docs/traceability.md",
+  "docs/troubleshooting.md",
+  "TODO.md",
   "docs/design/kis-portfolio-v2-system-design.md",
 ]
 
@@ -47,8 +49,9 @@ globs = [
 [[rules]]
 id = "retained-work-history"
 classification = "retained_historical_evidence"
-paths = ["TODO.md"]
+paths = []
 globs = [
+  "docs/history/*.md",
   "docs/work-items/*.md",
   "docs/design/*.md",
   "docs/operations/*.md",
