@@ -8,9 +8,10 @@
 장기 비전은 개인 자산 포트폴리오 관리와 데이터 분석 기반 투자 의사결정 war-room입니다.
 
 이 프로젝트는 원래 `migusdn/KIS_MCP_Server` 포크에서 출발했지만, 현재는 OAuth Remote MCP, managed batch와
-Firestore/MotherDuck 데이터 경계를 가진 포트폴리오 서비스로 재설계되었습니다. 현재 문서의 단일 진입점은
+Firestore/MotherDuck 데이터 경계를 가진 포트폴리오 서비스로 재설계되었습니다. 현재 운영 지식의 단일 진입점은
 [docs/README.md](./docs/README.md)입니다.
-운영 중에는 [기능·요구·코드·테스트](./docs/traceability.md), [현재 할 일](./TODO.md),
+먼저 [운영 모델](./docs/operating-model.md)로 값과 판정 기준을 이해하고,
+수정할 때는 [기능·요구·코드·테스트](./docs/traceability.md), [현재 할 일](./TODO.md),
 [증상별 트러블슈팅](./docs/troubleshooting.md)에서 시작하세요.
 
 한국투자증권과 무관한 비공식 오픈소스 프로젝트입니다.
@@ -60,7 +61,7 @@ Firestore/MotherDuck 데이터 경계를 가진 포트폴리오 서비스로 재
 - Operational state: Firestore의 OAuth/KIS token·lease·run-request state
 - Security: Secret Manager의 장기 credential/key와 analytics DB 밖의 보안 경계
 
-현재 V2 registry의 79개 table과 27개 view, 그리고 보존된 legacy `main` 객체의 grain, key, 적재 방식,
+현재 V2 관리 객체와 보존된 legacy `main` 객체의 grain, key, 적재 방식,
 민감도와 백업 정책은
 [데이터 저장소 거버넌스와 카탈로그](./docs/data-catalog.md)에 정리되어 있습니다.
 

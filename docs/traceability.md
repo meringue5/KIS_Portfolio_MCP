@@ -1,6 +1,7 @@
 # 요구사항–기능 추적표
 
-> 기준: 2026-11-02 인수된 V2. 이 문서는 기능 수정 시 출발점이며 새 요구나 가용성 보증이 아닙니다.
+> 기준: 인수된 V2; 의미 통합 검토 2026-11-03. 새 요구나 가용성 보증이 아닙니다.
+> 먼저 [운영 모델](operating-model.md)과 [현행 설계 규칙](design/README.md)을 읽고, 아래는 필요한 기능 행만 찾습니다.
 > [문서 홈](README.md) · [현재 할 일](../TODO.md) · [트러블슈팅](troubleshooting.md)
 
 ## 읽는 방법
@@ -18,7 +19,7 @@ DEC-063 표기는 보유 신호와 현금 전환에 각각 사용된 원문이 �
 
 ## 기능별 수정 지도
 
-| 기능 / 제공 범위 | 요구·계약 | 사용자 경로 | 구현 출발점 | 관련 테스트 | 인수·제한 원문 |
+| 기능 / 제공 범위 | 요구·계약 | 사용자 경로 | 구현 출발점 | 관련 테스트 | 한계 / 사례(필요시) |
 | --- | --- | --- | --- | --- | --- |
 | 총자산·계좌 구성·평가액 변화 — 운영; 부분 기능 독립 제공 | DEC-048/055/057; [요구](requirements/kis-portfolio-data-platform-requirements.md) | `get-portfolio-overview` | [조회 어댑터](../src/kis_portfolio/adapters/outbound/remote_v2_warehouse.py), [평가 변화](../src/kis_portfolio/modules/monitoring/valuation_change.py) | [Remote 조회](../tests/test_remote_v2_warehouse.py), [평가 변화](../tests/test_v2_valuation_change.py) | [WI-060](work-items/WI-060-resilient-partial-portfolio.md); 불완전 합계를 총자산으로 표시하지 않음 |
 | 포지션·매수 lot·투자 thread — 운영; 근거 있는 재구성 | DEC-009/010/014/017; [거래 요구](requirements/review-package-a-transaction-ledger.md) | `get-position-analysis`, `get-trade-thread` | [재구성](../src/kis_portfolio/services/position_reconstruction_runtime.py), [조회 어댑터](../src/kis_portfolio/adapters/outbound/remote_v2_warehouse.py) | [재구성](../tests/test_position_reconstruction_runtime.py), [Remote](../tests/test_remote_v2_warehouse.py) | [WI-022](work-items/WI-022-position-lot-sell-reconstruction.md), [WI-025](work-items/WI-025-lot-thread-risk-metrics.md) |
@@ -51,9 +52,9 @@ DEC-063 표기는 보유 신호와 현금 전환에 각각 사용된 원문이 �
 
 ## Planned Milestone Work
 
-V2 구축은 [MS-008](milestones/MS-008-real-use-mcp-acceptance.md)까지 인수·종료했습니다.
-현재 단계와 후속 후보는 [마일스톤 안내](milestones/README.md)와 [TODO](../TODO.md)에서 찾습니다.
-과거 delivery mapping은 [구축 당시 추적표](history/traceability-before-operations-2026-11-02.md#planned-milestone-work)에 보존합니다.
+V2 구축은 [V2 인수 의미](milestones/v2-acceptance.md)까지 인수·종료했습니다.
+현재 단계와 후속 후보는 [인수·운영 변경 원칙](milestones/v2-acceptance.md)와 [TODO](../TODO.md)에서 찾습니다.
+과거 delivery mapping은 [압축된 구축 추적표](history/README.md)에 보존합니다.
 
 ## Governance Requirements
 
@@ -97,8 +98,8 @@ V2 구축은 [MS-008](milestones/MS-008-real-use-mcp-acceptance.md)까지 인수
 
 ## 구축 기록과 인수
 
-- [재편 직전 전체 추적표](history/traceability-before-operations-2026-11-02.md): 모든 기존 행·결정·증거 원문 보존.
-- [MS-008 / V2 운영 인수](milestones/MS-008-real-use-mcp-acceptance.md): WI-071의 제한된 인수 범위와 WI-072 차기 유보.
+- [재편 직전 전체 추적표](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/history/traceability-before-operations-2026-11-02.md): 모든 기존 행·결정·증거 원문 보존.
+- [V2 인수 의미](milestones/v2-acceptance.md): WI-071의 제한된 인수 범위와 WI-072 차기 유보.
 - [WI-077 문서 정리](work-items/WI-077-operational-documentation-navigation.md): 탐색 점검과 원문 보존 검증.
 
 ## 번호별 기록 찾기
@@ -187,3 +188,10 @@ V2 구축은 [MS-008](milestones/MS-008-real-use-mcp-acceptance.md)까지 인수
 
 2026-11-02 owner review follow-up: WI-077-S01 displays each historical TODO candidate separately, preserving
 unreviewed status and distinguishing completed/superseded construction premises. [Candidate list](../TODO.md#이전-todo의-개별-미검토-후보).
+
+
+2026-11-03 WI-077-S02: owner requested semantic operating knowledge rather than reordered construction episodes.
+Current semantic contracts and a byte-verified, fresh-restored compressed source archive are complete; product approval and runtime
+boundaries remain unchanged.
+
+현행 의미 규칙은 [운영 모델](operating-model.md)과 통합 계약에 있습니다. 위 WI·고정 commit 링크는 사례가 필요할 때만 읽습니다.

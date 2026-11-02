@@ -1,0 +1,252 @@
+{
+  "source_commit": "a8fdfa599ba1e4876ded726d23d577a4640eff9d",
+  "archive": "v2-construction-2026-11-03.tar.gz",
+  "archive_sha256": "e6b7aa90fca66b27637c6d5e3d87c994cab1032d5b4fdfa86466e9d333e1a056",
+  "files": [
+    {
+      "path": "docs/data-pipeline.md",
+      "bytes": 40908,
+      "sha256": "86e0fa57bc273a22e11048e34546b333eea0710a678617c72a225535fe833c2b",
+      "current_meaning": "docs/data-pipeline.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/kis-portfolio-v2-delivery-plan.md",
+      "bytes": 21590,
+      "sha256": "902b601e7958b832292d416c7bcfb2d99951743e237faa03e6b383f8b2946087",
+      "current_meaning": "docs/design/kis-portfolio-v2-delivery-plan.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/kis-portfolio-v2-system-design.md",
+      "bytes": 42644,
+      "sha256": "08c99a24d177d491cb9535c1bef8a41f3ebb8cc4bc0e9db39f8b19d8f077f941",
+      "current_meaning": "docs/design/kis-portfolio-v2-system-design.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/milestone-2-data-readiness-review.md",
+      "bytes": 13595,
+      "sha256": "15e50ae93b86980dccf2e348ca67dd59de9f1c4937f1647fc813b32e35c20220",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/design/resilient-capability-degradation-review.md",
+      "bytes": 8696,
+      "sha256": "f214510411107149265f6e2cda1ed6f0f36cf8afaa0042ffa0caa0efeb0f3a3d",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/design/v2-architecture-delta-review.md",
+      "bytes": 27237,
+      "sha256": "6c389a95147ce42faf290c45c640158bc2ee563065a2ca67b824ba313172d552",
+      "current_meaning": "docs/design/kis-portfolio-v2-system-design.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-021-s01-backfill-partition-plan.md",
+      "bytes": 4366,
+      "sha256": "102fef4ae3825be7158be808d796358c40bda453a5f536e4c9eaf6b3fef19e0f",
+      "current_meaning": "docs/design/portfolio-ledger-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-021-s02-call-budget.md",
+      "bytes": 4011,
+      "sha256": "78a4233b70584ac386621b5a6a0a296179f8488bdb3a8c08e70fcd75ca4cbc65",
+      "current_meaning": "docs/design/portfolio-ledger-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-021-s05-production-preflight.md",
+      "bytes": 1448,
+      "sha256": "fe128c02df59b3d5ed8564784a967ff4168cf617841cb9ab33ec1bf496cf4592",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/design/wi-021-s06-production-execution.md",
+      "bytes": 3477,
+      "sha256": "736a17300093acf31e064845797c50e0a974ec44d7ccfd6ab9bb49ec98a76b80",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/design/wi-022-s01-reconstruction-contract.md",
+      "bytes": 3698,
+      "sha256": "db04060051a9a6ecc2a6d0b276b3822c888b5a6a13f8cbe59ef3139575e13763",
+      "current_meaning": "docs/design/portfolio-ledger-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-022-s03-deterministic-replay.md",
+      "bytes": 4458,
+      "sha256": "fda0ac1152be11cccedf47e6e8b55761919175783f4802f64f26ae523c495324",
+      "current_meaning": "docs/design/portfolio-ledger-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-022-s04-append-only-persistence.md",
+      "bytes": 4587,
+      "sha256": "c3c65e1802da7112ecb87db6bd6bf95ec1314a4515c35962b3cb433c8d9ab916",
+      "current_meaning": "docs/design/portfolio-ledger-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-022-s05-production-dry-run.md",
+      "bytes": 2750,
+      "sha256": "9b6b801003ebbb2a05623ec37e6a318954323d4bcc5859d6b7d50ddee6ae994c",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/design/wi-022-s06-production-execution.md",
+      "bytes": 3862,
+      "sha256": "480abdad12ae6aea6fdd2f589edde7996c42e799ab3b4ab1841ab1deee324b6f",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/design/wi-023-portfolio-performance-contract.md",
+      "bytes": 3399,
+      "sha256": "e945976fd7f383a04b4d23b9c346755ded188a4a2450c0ad45d63cc1eeefa2b8",
+      "current_meaning": "docs/design/analytics-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-024-thread-risk-review-contract.md",
+      "bytes": 2132,
+      "sha256": "68dff369615c1af90cd242a1ae39ce413d255ad486660bbfe4220de59353f1ce",
+      "current_meaning": "docs/design/analytics-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-025-lot-thread-risk-contract.md",
+      "bytes": 2735,
+      "sha256": "8b45c30b91a52b717350686b411a0a28556c4f0459c1c876ae32991fc88c409d",
+      "current_meaning": "docs/design/analytics-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-028-alert-state-delivery-ledger-contract.md",
+      "bytes": 4480,
+      "sha256": "4e6e7cc37b19cb6443499311326995514ffaf552e913af8aae645c7b2dc88ccb",
+      "current_meaning": "docs/design/alert-delivery-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-029-signal-replay-shadow-contract.md",
+      "bytes": 6277,
+      "sha256": "b880d602af037164f046c6754972d04ea86d82cc8efb6c2866bc52b3b8ef8558",
+      "current_meaning": "docs/design/alert-delivery-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-030-telegram-delivery-contract.md",
+      "bytes": 11737,
+      "sha256": "b581b7c56f15cc69bdd876e4b12c9514c6b652611beb536610340cd47142078b",
+      "current_meaning": "docs/design/alert-delivery-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-033-total-asset-valuation-change-contract.md",
+      "bytes": 3130,
+      "sha256": "83c99a1d42a47377828a74af854fcdf8c5ef1a8bddc0ae11e354d14402a8e68d",
+      "current_meaning": "docs/design/analytics-contracts.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-068-legacy-total-recovery-contract.md",
+      "bytes": 6691,
+      "sha256": "a7f84f8323453f1f88d7173a1cb9994ba63ea7ff7c25fc398445b589b35e07d5",
+      "current_meaning": "docs/design/reference-history-contract.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/design/wi-068-proposed-reference-read-model.toml",
+      "bytes": 1733,
+      "sha256": "853c83930d2a491c557d811cbd1dd1c5043b81aea44f77f0b24fee1976905dea",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/history/milestone-map-before-operations-2026-11-02.md",
+      "bytes": 12712,
+      "sha256": "61f771c6d4531767f2f020d30ce41c0f0bf3a58e14026149131691330acc0e8e",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/history/todo-before-operations-2026-11-02.md",
+      "bytes": 11871,
+      "sha256": "64d6c455875e8c212a678643b9bbf206da1f734582b93de407555f7c3e1580a5",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/history/traceability-before-operations-2026-11-02.md",
+      "bytes": 52265,
+      "sha256": "764842dcd879a5d710319baae981251e31316efa0c1c39f36d364112b2de46f4",
+      "current_meaning": "docs/operating-model.md",
+      "disposition": "construction episode; retain only as evidence"
+    },
+    {
+      "path": "docs/milestones/MS-002-portfolio-analytics-alerting.md",
+      "bytes": 11261,
+      "sha256": "73b5ecd13437287b7dacd4363364c970a888396d9aa36c906c3580179aa1ed69",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/MS-003-enrichment-remote-cutover.md",
+      "bytes": 21323,
+      "sha256": "c7c41fcb750c5984d20595971a22fb3d36c5bf3e8dd8b3528ae693b4aa64cfaa",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/MS-004-v2-canonicalization-retirement.md",
+      "bytes": 7624,
+      "sha256": "4f5241c11d03c66befb52820490219d9579a4b3df533f33721e54b7ecb483438",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/MS-005-production-feedback-corrections.md",
+      "bytes": 2714,
+      "sha256": "10912547c3539fac8c6df4eb3f634b7f80199f4110619a1e98522177ab7c14ae",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/MS-006-scheduled-core-telegram-recovery.md",
+      "bytes": 4034,
+      "sha256": "5ca95dd069b4efbf68219c0c84ad2b64465f0e0ffb96818ffbc864c87194d56e",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/MS-007-resilient-partial-portfolio.md",
+      "bytes": 6028,
+      "sha256": "686aca863336ee391db7520bb4aa9160ca00d45efc6eeab5f9c647e9ce79afe6",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/MS-008-real-use-mcp-acceptance.md",
+      "bytes": 17508,
+      "sha256": "98edcab372ef633da124b3f30d5020a9637dac985c8dd4d2f22bde0f84fc0434",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    },
+    {
+      "path": "docs/milestones/README.md",
+      "bytes": 3742,
+      "sha256": "6548de658e415aa25b1c7b27efe9f51b6eb4a8738afa5567f58bec213f45daa0",
+      "current_meaning": "docs/milestones/v2-acceptance.md",
+      "disposition": "consolidated rule"
+    }
+  ]
+}

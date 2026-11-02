@@ -3,6 +3,9 @@
 > 기준: 2026-11-02 인수된 V2. [문서 홈](README.md) · [기능 추적표](traceability.md) · [현재 할 일](../TODO.md)
 > 사건 원문은 당시 진단/실행의 이력입니다. 아래 절차와 현재 정본을 먼저 확인합니다.
 
+사건을 매번 외우지 않고 [운영 모델](operating-model.md)의 근거·시간·값 구분으로 먼저 판정합니다.
+아래 원문 링크는 특정 원인/복구 사례가 필요할 때만 읽습니다.
+
 ## 공통 첫 확인
 
 1. 어떤 기능·client·관측 시각·계좌 alias/시장 범위의 문제인지 좁힙니다. 총자산 보고서, 신호 통합 현황,
@@ -15,7 +18,7 @@
 
 ## 증상별 첫 확인과 해결 경계
 
-| 증상 / 검색어 | 먼저 확인 | 해결·복구 경계 | 상세 이력 / 현재 정본 |
+| 증상 / 검색어 | 먼저 확인 | 해결·복구 경계 | 정본 / 사례(선택) |
 | --- | --- | --- | --- |
 | MCP 연결 실패·인증 만료·일지 쓰기 권한 없음 | OAuth Remote `KIS Portfolio` 연결인지, 읽기는 되는지, 쓰기 scope 동의와 오류 구분 | 동의 누락은 정본 온보딩 절차로 처리. 구 로컬 연결로 우회하거나 계좌 키를 client config에 넣지 않음 | [연결·scope](remote-mcp-v2-migration.md), [보안](security-and-secrets.md), [WI-073](work-items/WI-073-journal-oauth-recovery.md) |
 | KIS 토큰 만료·EGW00123·유량 제한·EGW00215 | source 응답과 수집 run 실패 시점, 계좌별 credential/refresh 경로, backoff 상태 | 기존 token/resilience 경로를 사용. 반복 수동 발급·병렬 전체 계좌 조회로 회복을 시험하지 않음 | [REST 복원력](kis-api-resilience.md), [유량](kis-api-rate-limits.md), [토큰 정책](security-and-secrets.md) |
