@@ -218,7 +218,7 @@ WI-066 quarantine, native-V2 priority and unavailable Aug 6/25 boundaries remain
   Earlier 27-date availability meant retained observations, not 27 verified repaired totals. The ten rows with
   missing KRW position valuation use actual public FRED DEXKOUS dated observations; May 22 additionally requires
   the cash-zero assumption. No missing position/quantity is fabricated. Retained V2 legacy-state count/hash unchanged.
-- [Concrete proposed consumption contract](../design/wi-068-legacy-total-recovery-contract.md) and
+- [Concrete proposed consumption contract](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/wi-068-legacy-total-recovery-contract.md) and
   [sanitized candidate evidence](../../governance/project/evidence/wi068/total-recovery-candidate-2026-10-13.json)
   define separate append-only noncanonical references and an explicit opt-in array on existing performance history.
   Dataset v0.1.0 is proposed; the read-model draft remains outside the runtime registry until architecture approval. Monetary preview stays owner-only under ignored var;

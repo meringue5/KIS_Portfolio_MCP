@@ -1374,3 +1374,9 @@ id = "WI-077-S01"
 parent_id = "WI-077"
 title = "Show each unreviewed historical TODO candidate separately after owner review"
 status = "closed"
+
+[[subitems]]
+id = "WI-077-S02"
+parent_id = "WI-077"
+title = "Distill construction episodes into current semantic operating contracts and verified archive"
+status = "closed"

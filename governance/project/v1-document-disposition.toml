@@ -30,6 +30,13 @@ paths = [
   "docs/troubleshooting.md",
   "TODO.md",
   "docs/design/kis-portfolio-v2-system-design.md",
+  "docs/operating-model.md",
+  "docs/design/README.md",
+  "docs/design/portfolio-ledger-contracts.md",
+  "docs/design/analytics-contracts.md",
+  "docs/design/alert-delivery-contracts.md",
+  "docs/design/reference-history-contract.md",
+  "docs/history/README.md",
 ]
 
 [[rules]]
@@ -59,3 +66,8 @@ globs = [
 
 # WI-032 found no documentation whose deletion is required for correctness.
 # Future deletion still requires an explicit path and approval; a broad glob is forbidden.
+
+# WI-077-S02: owner requested semantic compaction and recoverable compression of construction records.
+# Retired loose documents are listed exactly with original hashes in
+# docs/history/v2-construction-2026-11-03.manifest.json and retained byte-for-byte in its archive.
+# No product/source/financial data or existing Work Item identity is deleted by this documentation archive.

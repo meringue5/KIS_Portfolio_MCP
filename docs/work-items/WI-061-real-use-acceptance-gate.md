@@ -107,6 +107,6 @@ two public tools with no governed rows. None was visible from deployment success
 
 Maintenance within this accepted real-use-governance outcome records the owner-authorized MS-008/V2 operational
 handoff after all ten owning Work Items and four sub-items closed. This is documentation only, not a reopened
-implementation or a policy change. See [milestone closeout](../milestones/MS-008-real-use-mcp-acceptance.md)
+implementation or a policy change. See [milestone closeout](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/milestones/MS-008-real-use-mcp-acceptance.md)
 and [owner evidence](../../governance/project/evidence/ms008-owner-handoff-2026-11-02.json). Existing actual-client
 acceptance remains owned by each Work Item; this record does not manufacture new production evidence.

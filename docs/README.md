@@ -1,56 +1,32 @@
-# KIS Portfolio 문서 홈
+# 운영 지식
 
-> 기준: 2026-11-02 V2 운영 인수 완료 — [MS-008 종료](milestones/MS-008-real-use-mcp-acceptance.md)
-> 이 파일은 탐색의 입구입니다. 승인·계약·상태는 아래 소유 문서가 정본입니다.
+이 서비스는 **관측한 사실을 보존하고, 믿을 수 있는 범위만 계산·표시·전송**합니다. 이 문서는 구축 일지가 아니라
+현재 시스템을 이해하고 수정하는 입구입니다. 별도 DB·도구 없이 일반 Markdown과 기존 코드/계약을 사용합니다.
 
-## 지금 하려는 일부터 찾기
+## 평소에 읽을 것
 
-| 하려는 일 | 먼저 볼 문서 | 다음 단계 |
-| --- | --- | --- |
-| 기능을 이해하거나 수정하기 | [요구사항–기능 추적표](traceability.md) | 업무명 → 요구 → 구현 → 테스트 → 인수·제한 |
-| 현재 할 일과 차기 후보 확인 | [운영 TODO](../TODO.md) | 현재 작업과 미검토 후보를 구분 |
-| 오류·누락·알림 문제 해결 | [트러블슈팅](troubleshooting.md) | 증상 → 첫 확인 → 복구 경계 → 사건 원문 |
-| 매일·매월·분기 운영 점검 | [운영 런북](operations/steady-state-operations-runbook.md) | 품질·전송·백업·비용·복원 점검 |
-| 과거 결정·구축 경로 조사 | [구축 이력 안내](#구축-이력) | 당시 문서와 현재 정본을 구분 |
+1. [운영 모델](operating-model.md): 총자산/성과/관측 현금의 차이, 근거·시간·identity·실패 판정과 선택 이유.
+2. [기능 수정 지도](traceability.md): 해당 기능의 요구 → 코드 → 테스트 → 한계. 사례는 필요할 때만 열기.
+3. 작업에 따라 [TODO](../TODO.md), [증상 대응](troubleshooting.md), [운영 런북](operations/steady-state-operations-runbook.md).
 
-처음부터 모든 WI를 읽을 필요는 없습니다. 수정하려는 기능의 추적표 행에서 시작하고, 관련 테스트와
-원문만 확인합니다. 링크는 일반 Markdown 형식이며 별도 앱·DB·생성기가 필요하지 않습니다.
+## 더 정확한 규칙이 필요할 때
 
-## 정본 문서의 역할
-
-| 확인할 내용 | 정본 |
+| 질문 | 현행 설명 / 정본 |
 | --- | --- |
-| 승인된 제품 요구·DEC | [요구사항](requirements/kis-portfolio-data-platform-requirements.md), [요구 패키지](requirements/) |
-| 장기 설계 결정·현재 코드 경계 | [SPEC](../SPEC.md), [ARCHITECTURE](../ARCHITECTURE.md) |
-| 공개 기능·API 도입 판단 | [기능 경계](api-capability-map.md), [Remote 연결 안내](remote-mcp-v2-migration.md) |
-| 데이터 grain·key·민감도·pipeline | [데이터 카탈로그](data-catalog.md), [파이프라인](data-pipeline.md), [계약 레지스트리](../governance/catalog/) |
-| 시크릿·토큰·접근 경계 | [보안 정책](security-and-secrets.md) |
-| 배포·rollback·backup | [배포](deployment.md), [백업·복원](backup.md), [비용·릴리즈 가드](operations/production-cost-release-guardrails.md) |
-| 작업 상태·작업 관계·운영 변경 절차 | 개별 [WI](work-items/), [마일스톤 레지스트리](../governance/project/milestones.toml), [Project OS](governance/project-operating-system.md) |
+| 어디까지가 누구 책임인가? | [시스템 경계와 이유](design/kis-portfolio-v2-system-design.md), [코드 구조](../ARCHITECTURE.md) |
+| 언제 거래 없음/재구성/성과/배송을 믿는가? | [원장](design/portfolio-ledger-contracts.md), [분석](design/analytics-contracts.md), [알림](design/alert-delivery-contracts.md), [참고 이력](design/reference-history-contract.md) |
+| 값이 어떤 단계에서 공식 결과가 되는가? | [데이터 흐름과 판정 경계](data-pipeline.md), [객체 catalog](data-catalog.md), [versioned 계약](../governance/catalog/) |
+| 제품에 무엇을 약속했는가? | [인수된 의미·제외 범위](milestones/v2-acceptance.md), [승인 요구/DEC](requirements/kis-portfolio-data-platform-requirements.md), [SPEC/ADR](../SPEC.md) |
+| 실제 실행·접근·복구를 어떻게 하는가? | [연결](remote-mcp-v2-migration.md), [보안](security-and-secrets.md), [배포](deployment.md), [백업](backup.md), [비용 가드](operations/production-cost-release-guardrails.md) |
+| 작업·승인·상태의 소유자는? | [Project OS](governance/project-operating-system.md), 개별 [WI](work-items/), [identity/dependency registry](../governance/project/milestones.toml) |
 
-추적표는 정본으로 가는 지도입니다. TODO는 승인 기록이나 상세 작업 상태의 복제본이 아닙니다.
-원문과 충돌하면 조용히 요구를 바꾸지 말고, 해당 기능의 WI/Issue에 충돌과 근거를 기록합니다.
+의미 요약은 기존 계약을 이해하기 위한 설명입니다. 새 기능·source·권한을 승인하거나 현재 데이터 가용성을
+선언하지 않습니다. 상세 정본과 충돌하면 요구를 조용히 완화하지 말고 소유 작업에서 확인합니다.
 
-## 인수된 운영 기준선
+## 특정 사례가 필요할 때만
 
-- 사용자 연결은 OAuth Remote MCP `KIS Portfolio`의 안정 HTTPS `/mcp`입니다. 공개 도구는 18개이며 주문 도구는 없습니다.
-- Firestore가 OAuth/KIS-token/lease/run-request 운영 상태를, MotherDuck가 분석 데이터·진단 이력을 소유합니다.
-- 현재 관측·과거 이력·참고값·부분 결과를 구분합니다. 코드나 데이터가 존재한다는 이유로 완전성·성과 계산을 보장하지 않습니다.
-- WI-071은 관측 현금의 금액·기준·시각·날짜별 변화·거래 참고 정보·원인 미확인 표시로 인수했습니다.
-  완전한 결제 현금 대사·입출금 원장·RP/자금이동 원인 추정·성과 자격은 별도 미지원 범위입니다.
-- WI-072 관심종목 알림과 ETF 구성종목 look-through는 현재 인수 범위 밖입니다. [차기 후보](../TODO.md#차기-버전-검토-후보)를 참조합니다.
-- `kis-portfolio-mcp`와 루트 `server.py`는 폐기 연결 진단입니다. 운영 복구는 검증된 V2 이미지·설정으로 합니다.
+‘왜 이 규칙이 생겼나’는 운영 모델의 [사례 링크](operating-model.md#사례는-규칙의-근거가-필요할-때만)로 내려갑니다.
+옛 설계 대안·일회성 실행·Wave·마일스톤 경과·이전 TODO는 [검증된 원문 압축본](history/README.md)에 보존했습니다.
+날짜별 operations/WI는 근거/추적 기록이며 평소의 필수 읽기 순서가 아닙니다.
 
-## 구축 이력
-
-| 찾을 내용 | 원문 / 안내 |
-| --- | --- |
-| V2 운영 인수와 마일스톤별 목적 | [마일스톤 안내](milestones/README.md), [MS-008 handoff](milestones/MS-008-real-use-mcp-acceptance.md) |
-| 번호별 작업·검증·사용자 인수 | [Work Items](work-items/), [날짜별 운영 증거](operations/) |
-| 설계 대안과 채택 시점 | [설계 문서](design/), [SPEC](../SPEC.md) |
-| 재편 직전 전체 요구·구축 추적표 | [원문 스냅샷](history/traceability-before-operations-2026-11-02.md) |
-| 재편 직전 TODO·의존 그래프 | [TODO 원문](history/todo-before-operations-2026-11-02.md), [의존 그래프 원문](history/milestone-map-before-operations-2026-11-02.md) |
-
-스냅샷은 당시 본문·표·상태를 보존하고 상대 링크의 위치만 보정했습니다. 안에 있는 미완료 체크·당시 상태·명령·가격·경로는 **그 시점의 기록**이며
-현재 실행 지침이 아닙니다. 기존 WI·설계·검증 원문은 제자리에서 유지합니다.
-V1 문서 분류는 기존 [disposition](../governance/project/v1-document-disposition.toml)과 검사 절차를 따릅니다.
+[문서 분류](../governance/project/v1-document-disposition.toml)는 기존 검사 절차를 유지합니다.

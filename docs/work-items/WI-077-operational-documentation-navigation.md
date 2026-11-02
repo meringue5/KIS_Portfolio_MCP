@@ -119,3 +119,36 @@ questions and original/current references. Delivered or superseded construction 
 Quick gate passed; 244 TODO/traceability paths and heading links resolved. Required full regression validation is
 recorded in the follow-up PR/CI. All original snapshot files remain unchanged. The initial grouping preference
 above is superseded by this direct owner answer; no review preference remains pending.
+
+## WI-077-S02 — Semantic compaction requested 2026-11-03
+
+Owner rejected navigation-only reorganization as insufficient: retain meaning rather than every construction
+episode in everyday context; preserve original build records in a recoverable compressed backup and link to cases
+only when needed. This corrects the same documentation outcome, not product functionality or approval scope.
+
+Current work: derive an operating model and normalized current domain contracts from existing approved sources;
+retire loose construction design/history/milestone narratives after byte-verified archival; preserve every issued
+WI, delivery ID, registry relationship, requirement/ADR source and evidence. Update incoming references and retain
+both local archive recovery and fixed-commit source links. Existing checks remain unchanged. No database, new
+indexing tool, runtime, source or data effect. Current contract boundaries must not be weakened to shorten text.
+Semantic accuracy and archive/reference validation are required before completion.
+
+Result: closed after semantic consolidation and recovery validation. The original navigation-only closeout above
+is superseded for the design/history/milestone reading model by this correction.
+
+- Current knowledge separates operating meaning, system responsibility/why, ledger/coverage/reconstruction,
+  analytics, alert delivery and reference-history contracts. It preserves formulas, quality/publish conditions,
+  unknown/null semantics, owner authority and existing source/security limitations; construction phases and
+  dated execution counts are not current instructions.
+- 35 original construction documents (380,723 bytes, 4,509 lines) are archived at the exact base commit.
+  The 136,549-byte gzip archive and every member match the SHA-256 manifest. Fresh temporary extraction
+  was compared byte-for-byte with every original Git blob. Current core/index reading set: 774 lines.
+- Reviewed distinctions include source consistency versus completeness, observed cash versus settled/flow
+  evidence, valuation versus performance, independent partial capabilities, and terminal unknown delivery.
+  Old security/migration hypotheses defer to current accepted policy; no approved boundary was relaxed.
+- Existing local Markdown paths and heading links resolve after retirement; 69 issued delivery IDs are
+  preserved. Milestone/WI identities and dependencies remain byte-preserved with only this sub-item appended.
+  Original build prose is recoverable locally or through fixed-commit case links. Individual TODO candidates
+  remain visible and unreviewed. No new tools, checks, DB, generator, runtime or product behavior.
+- Existing full gate: 971 tests passed, one existing Authlib deprecation warning (52.16s). Quick/staged and
+  protected PR checks remain required. No production/MCP replay applies to documentation-only behavior.

@@ -4,6 +4,10 @@
 한국투자증권 Open API 기반 개인 포트폴리오 조회/저장/분석 서비스로 전환한 프로젝트입니다.
 MCP는 primary adapter이며, core service는 MCP에 종속되지 않아야 합니다.
 
+운영 의미 요약은 `docs/operating-model.md`, 현행 domain 규칙은 `docs/design/README.md`에서 찾는다.
+구축 타임라인을 기본 context로 읽지 않고, 사례가 필요할 때만 `docs/history/README.md`의 압축 원문/고정 링크로 내려간다.
+정확한 정책·승인·계약의 기존 소유권은 그대로 유지한다.
+
 ---
 
 ## 프로젝트 구조

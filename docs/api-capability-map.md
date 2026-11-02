@@ -8,10 +8,11 @@ core service 함수와 저장 정책을 설계한다.
 
 ## 승인된 V2 Public Boundary
 
-2026-08-28 승인된 V2 public catalog는 결과 중심 18개 tool과 `mcp:read`, `mcp:collect`,
-`mcp:journal.write` 세 scope를 사용한다. 주문 tool은 V2에서 제거한다. 정확한 목록, V1 35개 tool migration
-mapping과 compatibility gate는 [V2 Architecture Delta Review](./design/v2-architecture-delta-review.md)가
-소유한다. V1 이름은 migration mapping에서만 사용하며 현재 public catalog나 recovery target이 아니다.
+현재 V2 public catalog는 결과 중심 18개 tool과 `mcp:read`, `mcp:collect`, `mcp:journal.write`를 사용합니다.
+정확한 tool·입출력·scope는 [MCP 등록](../src/kis_portfolio/adapters/mcp/v2.py),
+[시스템 경계](design/kis-portfolio-v2-system-design.md), [연결 계약](remote-mcp-v2-migration.md)을 확인합니다.
+주문 tool은 없으며 코드/계약 존재가 현재 기간의 source 가용성을 뜻하지 않습니다.
+이전 tool migration·당시 대안 비교는 [고정 원문 압축본](history/README.md)에만 보존합니다.
 
 ## Source Of Truth
 
