@@ -122,7 +122,7 @@ implementation_gate = [{ milestone_id = "MS-003", minimum_status = "stabilizing"
 production_gate = [{ milestone_id = "MS-003", minimum_status = "closed" }]
 overlap_mode = "continuous_isolated"
 overlap_work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032"]
-work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032"]
+work_item_ids = ["WI-047", "WI-048", "WI-049", "WI-050", "WI-051", "WI-032", "WI-077"]
 
 [[milestones]]
 id = "MS-GOV"
@@ -1355,3 +1355,16 @@ supersedes = []
 rollback_of = []
 parent_id = ""
 sequence = 9
+
+[[work_items]]
+id = "WI-077"
+identity = "operational-documentation-navigation"
+title = "Make accepted V2 documents navigable by feature, current task and symptom"
+milestone_id = "MS-004"
+delivery_refs = []
+depends_on = ["WI-032"]
+discovered_from = ["WI-032"]
+supersedes = []
+rollback_of = []
+parent_id = ""
+sequence = 7
