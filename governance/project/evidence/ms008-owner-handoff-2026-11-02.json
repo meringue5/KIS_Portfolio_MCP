@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-02",
+  "milestone": "MS-008",
+  "status": "closed",
+  "classification": "maintenance of accepted milestone closeout under WI-061; no implementation WIP",
+  "audited_master": "d64c233b5c78e59478725d12a9625bc9cb808970",
+  "owner_authorization": "네, 닫읍시다. 생각보다 너무 길게 끌고 왔군요!",
+  "work_items": [
+    {
+      "id": "WI-061",
+      "status": "closed"
+    },
+    {
+      "id": "WI-062",
+      "status": "closed"
+    },
+    {
+      "id": "WI-063",
+      "status": "closed"
+    },
+    {
+      "id": "WI-064",
+      "status": "closed"
+    },
+    {
+      "id": "WI-065",
+      "status": "closed"
+    },
+    {
+      "id": "WI-066",
+      "status": "closed"
+    },
+    {
+      "id": "WI-067",
+      "status": "closed"
+    },
+    {
+      "id": "WI-068",
+      "status": "closed"
+    },
+    {
+      "id": "WI-071",
+      "status": "closed"
+    },
+    {
+      "id": "WI-074",
+      "status": "closed"
+    }
+  ],
+  "subitems": [
+    {
+      "id": "WI-063-S01",
+      "status": "closed"
+    },
+    {
+      "id": "WI-063-S02",
+      "status": "closed"
+    },
+    {
+      "id": "WI-066-S01",
+      "status": "closed"
+    },
+    {
+      "id": "WI-068-S01",
+      "status": "closed"
+    }
+  ],
+  "predecessor": {
+    "id": "MS-005",
+    "status": "closed"
+  },
+  "accepted_cash_scope": "observed cash amounts with basis/time, dated differences, bounded trade context and unknown causes; WI-071 owner acceptance PR175",
+  "unsupported": "complete settled-cash reconciliation, external-flow coverage and performance eligibility remain unsupported",
+  "deferred_next_version": [
+    "WI-072 watchlist observation alerts; preserved separately, not complete or activated"
+  ],
+  "operating_owner": "existing service owner",
+  "runbook": "docs/operations/steady-state-operations-runbook.md",
+  "rollback": "existing per-feature rollback controls and docs/deployment.md; preserve additive evidence",
+  "effects": {
+    "production_changes": 0,
+    "source_calls": 0,
+    "data_writes": 0,
+    "notifications": 0,
+    "new_monitor_or_schedule": 0
+  }
+}

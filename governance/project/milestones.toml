@@ -177,7 +177,7 @@ work_item_ids = ["WI-060"]
 [[milestones]]
 id = "MS-008"
 title = "Real-use MCP acceptance and capability remediation"
-status = "in_progress"
+status = "closed"
 depends_on = ["MS-005"]
 implementation_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-005", minimum_status = "closed" }]
