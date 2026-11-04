@@ -70,6 +70,10 @@ migration은 `docs/remote-mcp-v2-migration.md`가 소유한다.
 canonical policy는 `docs/governance/project-operating-system.md`, 요구·결정·작업·증거 연결은
 `docs/traceability.md`가 담당한다. `Project Governance`는 Project OS의 결정·권한·변경통제 하위 영역이다.
 
+정기 점검은 `docs/operations/steady-state-operations-runbook.md`, 장애는 `docs/troubleshooting.md`,
+기능 수정은 `docs/traceability.md`의 해당 행, 우선순위·후보는 `TODO.md`에서 시작한다.
+운영에서 반복 적용할 판단은 소유 계약을 갱신하고, 당시 증거는 사례 링크로 연결한다.
+
 repository를 변경하거나 비사소한 버그·요구·incident를 분류하기 전에는 다음을 수행한다.
 
 1. `.agent/skills/kis-project-os/SKILL.md`를 읽는다.
@@ -80,8 +84,9 @@ repository를 변경하거나 비사소한 버그·요구·incident를 분류하
 6. 사용자 노출 변경은 실제 승인 client/transport의 즉시 재현 가능한 positive·partial·error 시나리오를
    실행하고, 발견사항을 소유 Work Item에 연결한 뒤에만 완료한다. CI·배포·health smoke만으로 완료하지 않는다.
 
-운영 증거를 모으는 항목은 `stabilizing`으로 표시한다. milestone dependency는 DAG로 유지하되 rollback과
-보정은 이력을 되감지 않고 `discovered_from`/`rollback_of`/`supersedes` 관계의 새 sub-item 또는 Work Item으로
+운영 증거를 모으는 항목은 `stabilizing`으로 표시한다. 인수 후 동일 outcome의 결함과 유지보수는
+Project OS §6.4의 운영 교정 경로에 연결하고 닫힌 기준선을 보존한다. 활성 delivery의 milestone dependency는 DAG로 유지한다.
+rollback과 보정은 `discovered_from`/`rollback_of`/`supersedes` 관계의 새 sub-item 또는 Work Item으로
 append한다. 선행 milestone 안정화 중 후속 milestone은 `in_progress`로 전환해 registry의 reviewed
 continuous isolated-overlap Work Item을 dependency 순서대로 하나씩 `verified`까지 계속 진행한다. production
 migration·배포·source activation·public cutover는 선행 milestone `closed` 전까지 금지한다.
@@ -119,16 +124,6 @@ DB 작업에서는 이어서 `docs/data-catalog.md`를 읽는다. 이 문서가 
 민감도, 백업 정책과 schema migration 계획의 canonical governance 문서다. `schema.py` 또는 live DB에만
 객체를 추가하지 말고 `src/kis_portfolio/db/catalog.py`, DDL/migration, repository test, catalog 문서를
 같은 변경에서 갱신한다.
-
-### KIS access token DB cache
-KIS access token은 `kis_api_access_tokens` 테이블에 **암호화 저장**한다.
-cache key는 `sha256("{KIS_ACCOUNT_TYPE}:{KIS_CANO}:{KIS_APP_KEY}")` 규칙을 사용한다.
-
-- 기본 source of truth: DB (`MotherDuck` 또는 local DuckDB)
-- legacy migration 입력값: 프로젝트 루트 기준 `var/tokens/token_{CANO}.json`
-- 토큰 만료 판단: `expires_at - 10분`
-- refresh 직렬화: 프로세스 내 keyed async lock
-- 필수 env: `KIS_TOKEN_ENCRYPTION_KEY`
 
 ### Secret / token 관리 문서
 시크릿과 토큰의 canonical policy는 `docs/security-and-secrets.md`에 둔다.
@@ -168,34 +163,12 @@ bulkhead, policy deadline, idempotent retry와 endpoint circuit breaker를 담�
 - stale/partial 응답은 source, as-of, age와 upstream 상태를 표시한다.
 - 설정과 운영 계약은 `docs/kis-api-rate-limits.md`, `docs/kis-api-resilience.md`가 canonical이다.
 
-### Remote MCP 인증
-원격 Streamable HTTP MCP는 `kis-portfolio-remote` 엔트리포인트로 실행한다.
-`/mcp` endpoint는 `Authorization: Bearer <KIS_REMOTE_AUTH_TOKEN>` 헤더를 요구한다.
-`/health`만 인증 없이 노출한다. Cloud Run에서는 `/healthz` 같은 `z` suffix 경로가 예약 경로와 충돌할 수 있으므로 운영 health check는 `/health`를 사용한다. 운영 환경에서 `KIS_REMOTE_AUTH_DISABLED=true`를 사용하지 않는다.
+### Remote MCP 인증과 운영 증상
 
----
-
-## 트러블슈팅 기록
-
-### token.json 충돌
-- **증상**: RIA 토큰으로 ISA API 호출 → 인증 오류
-- **원인**: 여러 인스턴스가 동일 토큰 파일을 공유
-- **해결**: 초기에는 `token_{CANO}.json` 형식으로 분리했고, 현재는 재배포/cold start에서도 유지되도록 DB-backed encrypted cache로 전환
-
-### koreainvestment-mcp Python 버전 오류
-- **증상**: `uv run python server.py` 실행 시 pandas 빌드 실패
-- **원인**: Python 3.14에서 pandas 미지원
-- **해결**: `uv sync --python 3.13` 후 `--python 3.13` 플래그 명시
-
-### 연금저축 appSecret 파싱 오류
-- **증상**: 토큰 발급 실패
-- **원인**: KIS 발급 appSecret 끝에 `]` 문자 포함 (잘못된 base64)
-- **해결**: `]` 문자 제거
-
-### IRP/연금저축 "계좌 없음"
-- **증상**: `inquery-balance` 호출 시 계좌 조회 실패
-- **원인**: ACNT_PRDT_CD가 01이 아닌 계좌는 별도 처리 필요
-- **해결**: 환경변수 `KIS_ACNT_PRDT_CD` 추가 및 API 분기 로직 구현
+`kis-portfolio-remote`의 production OAuth, token 검증과 상태 저장은
+`docs/security-and-secrets.md`와 `docs/deployment.md`를 따른다. 상태 점검 경로는 `/health`다.
+운영 환경에서 `KIS_REMOTE_AUTH_DISABLED=true`를 사용하지 않는다.
+토큰·연결·수집 이상은 `docs/troubleshooting.md`에서 찾아 대응한다.
 
 ---
 
@@ -209,93 +182,14 @@ bulkhead, policy deadline, idempotent retry와 endpoint circuit breaker를 담�
 
 ---
 
-## 데이터베이스 (MotherDuck / DuckDB)
+## 데이터와 실행 진입점
 
-`src/kis_portfolio/db/` 패키지가 DB 레이어를 담당. MCP tool 등록은
-`src/kis_portfolio/adapters/mcp/server.py`가 담당하고, 핵심 로직은 `services/` 아래에 둔다.
-
-**연결 전략 (명시적 모드):**
-```python
-# 기본: MotherDuck. token이 없으면 로컬 fallback하지 않고 실패.
-KIS_DB_MODE=motherduck
-MOTHERDUCK_DATABASE=kis_portfolio
-MOTHERDUCK_TOKEN=... → md:kis_portfolio
-
-# 개발/장애 대응/백업용 local 모드
-KIS_DB_MODE=local → var/local/kis_portfolio.duckdb
-```
-
-상대경로 `KIS_DATA_DIR=var`는 현재 작업 디렉터리가 아니라 프로젝트 루트 기준으로 해석.
-
-**데이터 거버넌스:**
-
-- 전체 관리 객체: `docs/data-catalog.md` (25 tables + 2 views)
-- machine-readable allowlist: `src/kis_portfolio/db/catalog.py`
-- 현재 물리 schema: `kis_portfolio.main`
-- 목표 logical/physical schemas: `bronze`, `silver`, `gold`, `control`, `security`
-- 실제 DDL: `src/kis_portfolio/db/schema.py`
-- live inventory/drift 검사:
-  `uv run python .agent/skills/kis-warehouse-contract/scripts/inspect_portfolio_db.py --inventory`
-- live DB에만 있는 객체는 자동 채택·백업·삭제하지 않고 drift로 보고한다.
-- 현재 운영 DB에는 분기된 `codex/portfolio-pipeline-reliability`의 `cash_flow`, `trade_journal`,
-  `asset_return_daily`와 총자산 품질 컬럼이 적용돼 있다. 통합 상태와 계약은 `docs/data-catalog.md`의
-  Branch and Live Drift Register를 따른다.
-
-**DB 전용 조회 툴 (API 호출 없음):**
-- `get-portfolio-history` — 계좌 잔고 스냅샷 이력
-- `get-token-status` — 현재 MCP 인스턴스의 접근토큰 캐시 상태 조회 (토큰 값 제외)
-- `get-latest-portfolio-summary` — 국내/연금 feeder 최신 합산 요약
-- `get-total-asset-overview` — canonical 총자산 요약, 해외 예수금 포함, `해외우회투자` 분류/차트 데이터
-- `get-total-asset-history`, `get-total-asset-daily-change`
-- `get-total-asset-trend`, `get-total-asset-allocation-history`
-- `get-portfolio-daily-change` — 국내/연금 feeder 일별 대표 스냅샷 기준 평가금액 변화
-- `get-price-from-db` — 캐시된 주가 이력
-- `get-exchange-rate-from-db` — 캐시된 환율 이력
-
-**백업:**
-- 운영 DB는 MotherDuck
-- Parquet 백업 스크립트: `uv run python scripts/backup_motherduck.py`
-- 기본 백업 위치: `var/backup/parquet/YYYYMMDD_HHMMSS/`
-
-**정제/분석 방향:**
-- Bronze는 KIS 관측을 append-only로 보존
-- Silver는 정규화/dedup/canonical 총자산을 소유
-- Gold는 Silver에서 재생성 가능한 일별 대표값과 분석용 view/table을 소유
-- Control은 migration/reference/override, Security는 auth/token 상태를 소유
-- 분/일 단위 중복 제거는 저장 시점이 아니라 curated view/pipeline에서 처리
-- 현재 일별 대표값 view: `portfolio_daily_snapshots`
-- 현재 canonical 일별 대표값 view: `asset_overview_daily_snapshots`
-- 국내 상장 해외 ETF/REIT 분류는 `override > KIS master group code > 이름 heuristic > unknown`
-- 객체 계약/스키마 계획: `docs/data-catalog.md`
-- 데이터 흐름: `docs/data-pipeline.md`
-
-## KIS Portfolio MCP
-
-제품 실행 명령은 Cloud Run의 `kis-portfolio-remote`다. `kis-portfolio-mcp`는 retired-entrypoint diagnostic이다.
-
-## KIS Portfolio Batch
-
-실행 명령은 `kis-portfolio-batch`.
-
-현재 배치 command:
-- `collect-domestic-order-history --date today`
-- `collect-overseas-transaction-history --date today --account-label brokerage --exchange NAS`
-- `sync-market-calendar 2026 2027`
-
-Cloud Run 배포 target:
-- `batch` / `scheduler`: 국내 주문체결 이력 Job + 평일 15:35 KST 스케줄
-- `overseas-batch` / `overseas-scheduler`: 해외 일별거래내역 Job + 평일 07:35 KST 스케줄
-
-노출 tool:
-- `get-portfolio-overview`, `get-position-analysis`, `get-performance-history`
-- `get-market-snapshot`, `get-market-history`
-- `get-trade-ledger`, `get-trade-thread`, `get-dividend-summary`
-- `get-fundamental-outlook`, `get-exposure-analysis`, `get-signal-status`
-- `get-data-catalog`, `get-data-quality`, `get-pipeline-run`, `get-journal-review-queue`
-- `run-managed-pipeline`, `upsert-trade-journal`, `revise-trade-thread`
-
-V1 endpoint-shaped tool과 `inquery-*`/order alias는 public MCP 표면에 등록하지 않는다.
-토큰 원문과 secret은 응답에 포함하지 않는다. 계좌번호는 계좌 메타데이터에서는 항상 마스킹한다.
+- production 분석 저장소는 MotherDuck이며, 명시적인 local 모드는 DuckDB를 사용한다.
+  객체·계층·drift는 `docs/data-catalog.md`, 데이터 흐름은 `docs/data-pipeline.md`,
+  백업과 로컬 복원은 `docs/backup.md`를 따른다.
+- MCP는 `kis-portfolio-remote`, 배치는 `kis-portfolio-batch`를 사용한다. 공개 tool의 기능과 구현은
+  `docs/api-capability-map.md`와 `docs/traceability.md`, 배치 구성과 일정은 `docs/deployment.md`와 운영 런북을 확인한다.
+- 공개 응답에서 토큰과 secret을 제외하고, 계좌 메타데이터의 계좌번호를 마스킹한다.
 
 ## 신규 환경 온보딩
 

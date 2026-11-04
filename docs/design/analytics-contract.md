@@ -3,13 +3,17 @@
 > 기존 승인 계산을 용도별로 통합합니다. 원천 coverage나 미지원 값을 계산 가능으로 승격하지 않습니다.
 > [운영 모델](../operating-model.md) · [metric 계약](../../governance/catalog/metrics.toml) · [기능/검증 지도](../traceability.md)
 
-## 분석값을 구분하는 이유
+## 범위와 의미
+
+### 분석값을 구분하는 이유
 
 평가액 변화는 price·수량·FX·현금 관측의 변화를 포함합니다. 투자 성과는 외부 자본 흐름과 구간의
 비교 가능성을 따로 증명해야 합니다. lot path와 episode drawdown, owner-plan risk는 각각 lifecycle과
 판단 기준이 다르며 서로 대체하지 않습니다. 아래 식은 계약이지 현재 모든 계좌/기간에 제공된다는 선언이 아닙니다.
 
-## 원화 평가액 변화
+## 판단 규칙
+
+### 원화 평가액 변화
 
 비교 grain은 `(previous canonical daily state, current canonical daily state, instrument)`입니다. 동일 instrument는
 계좌 간 합산할 수 있고 account breakdown에는 설정된 alias만 반환합니다. 외화 position 변화는 FX 효과와 결합된 값입니다.
@@ -27,7 +31,7 @@ unexplained_residual_krw = total_asset_change_krw - explained_change_sum_krw
 holdings+cash 대사가 함께 통과할 때만 제공합니다. 실패 시 degraded/blockers와 null flags를 반환합니다.
 진단용 변화값이 보이더라도 공식 metric은 nullable quality outcome일 수 있습니다.
 
-## 현금흐름 조정 성과와 wealth chain
+### 현금흐름 조정 성과와 wealth chain
 
 BMV/EMV는 같은 범위의 시작/끝 평가액, CF는 부호 있는 외부 owner 자본 흐름입니다. 입금은 +, 출금은 −이며
 `w_i=(end-t_i)/(end-start)`입니다.
@@ -51,7 +55,7 @@ session, 정확한 time range/account hash의 cash-event coverage quality 증거
 첫 state wealth base는 1입니다. non-pass/missing return은 chain을 끊고, 나중 pass가 나와도 자동으로 1부터 다시 시작하지 않습니다.
 총자산 원화 최고점은 입출금의 영향을 받으므로 성과 high-water가 아닙니다. 현재 현금 관측/참고 이력은 이 gate를 충족시키지 않습니다.
 
-## lot·episode·owner risk
+### lot·episode·owner risk
 
 ```text
 lot_mfe = max(adjusted_high / adjusted_entry_cost - 1)
@@ -75,7 +79,7 @@ cash-flow-adjusted thread return이라고 부르지 않습니다.
 `operational_strict` pass price, owner plan·PIT FX·완전하고 양수인 총자산을 함께 요구합니다.
 instrument 합계는 모든 open thread가 numeric이고 수량도 맞을 때만 numeric입니다. 누락은 이유 있는 null입니다.
 
-## 검토 질문과 보정의 권한
+### 검토 질문과 보정의 권한
 
 risk plan 부재, 일지 부재, 미지정 FIFO 배분, 미해결 allocation exception은 각각 review item입니다.
 system은 발견만 하고 owner만 answer/dismiss합니다. 무응답을 기본 stop·일지·매도 의도로 채우지 않습니다.
@@ -84,12 +88,19 @@ resolution은 실제 authoritative revision을 참조하며 Control에 intent를
 metric은 definition/version·PIT·lineage를 고정합니다. 동일 논리키의 exact replay는 no-op, 값/lineage 충돌은 실패입니다.
 기존 통계/legacy view를 계약 없이 공식 성과로 채택하지 않습니다. source·pipeline 승인은 별개입니다.
 
-## 수정할 곳과 근거
+## 변경과 검증
+
+### 수정할 곳과 근거
 
 [성과](../../src/kis_portfolio/modules/monitoring/portfolio_performance.py),
 [평가 변화](../../src/kis_portfolio/modules/monitoring/valuation_change.py),
 [lot/thread risk](../../src/kis_portfolio/modules/monitoring/lot_thread_risk.py).
 검증은 [성과](../../tests/test_v2_portfolio_performance.py), [평가 변화](../../tests/test_v2_valuation_change.py),
 [Remote 계약](../../tests/test_remote_v2_warehouse.py), [owner 명령](../../tests/test_remote_v2_revisions.py)에서 시작합니다.
+
+## 관련 근거
+
+### 사례와 근거
+
 원래 단계별 승인·적용 결과는 [구축 압축본](../history/README.md), 계산 계약의 장기 근거는
 [요구사항](../requirements/kis-portfolio-data-platform-requirements.md)과 [SPEC](../../SPEC.md)에 있습니다.

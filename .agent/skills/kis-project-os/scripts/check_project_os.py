@@ -129,7 +129,7 @@ def split_refs(value: str) -> list[str]:
 
 
 def delivery_item_ids(root: Path, errors: list[str]) -> list[str]:
-    path = root / "docs/design/kis-portfolio-v2-delivery-plan.md"
+    path = root / "governance/project/delivery-identities.md"
     if not path.is_file():
         errors.append(f"missing required file: {path.relative_to(root)}")
         return []

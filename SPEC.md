@@ -511,8 +511,8 @@ core를 유지하면서 request-based scale-to-zero Cloud Run service와 실행 
 GCS, OAuth/KIS token·lease·run request 같은 operational state는 Firestore와 Secret Manager에 둔다.
 
 **상태**: 2026-08-28 사용자 승인. 상세 결정, 대안, 전환 계획은
-`docs/design/kis-portfolio-v2-system-design.md`, `docs/design/kis-portfolio-v2-delivery-plan.md`와
-`docs/design/v2-architecture-delta-review.md`가 소유한다. DEC-045가 Firestore API와 named state database
+[당시 설계](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/kis-portfolio-v2-system-design.md), [전환 계획](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/kis-portfolio-v2-delivery-plan.md),
+[대안 검토](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/v2-architecture-delta-review.md)에 기록했다. 현행 경계는 [시스템 계약](docs/design/system-contract.md)에서 확인한다. DEC-045가 Firestore API와 named state database
 provisioning을 후속 승인했으며, secret migration, 배포, connector cutover 또는 V1 제거 권한은 아니다.
 
 DEC-046는 private GCS를 포함한 합의된 GCP resource의 non-destructive provisioning과 Milestone 1

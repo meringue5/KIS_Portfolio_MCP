@@ -32,7 +32,7 @@ def _copy_project_os_fixture(target: Path) -> None:
         "docs/governance/project-operating-system.md",
         "docs/governance/data-governance-harness.md",
         "docs/milestones/README.md",
-        "docs/design/kis-portfolio-v2-delivery-plan.md",
+        "governance/project/delivery-identities.md",
         "docs/traceability.md",
         "docs/work-items/TEMPLATE.md",
         "governance/project/milestones.toml",
@@ -374,7 +374,7 @@ def test_project_os_rejects_duplicate_delivery_item_ids(tmp_path: Path):
     checker = _load_checker()
     target = tmp_path / "repo"
     _copy_project_os_fixture(target)
-    path = target / "docs/design/kis-portfolio-v2-delivery-plan.md"
+    path = target / "governance/project/delivery-identities.md"
     path.write_text(
         path.read_text(encoding="utf-8") + "\n- `V2-W0501` duplicate test item.\n",
         encoding="utf-8",

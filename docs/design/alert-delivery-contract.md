@@ -3,7 +3,9 @@
 > 신호를 계산한 것, 전달할 상태가 된 것, 실제 전송/수신한 것은 다릅니다.
 > 기존 승인 계약·후속 교정을 현행 의미로 통합합니다. 새 rule·destination·전송 권한을 주지 않습니다.
 
-## 서로 다른 세 제품
+## 범위와 의미
+
+### 서로 다른 세 제품
 
 | 결과 | 의미 / 지켜야 할 경계 |
 | --- | --- |
@@ -14,7 +16,9 @@
 미보유 관심종목은 이 보유종목 범위로 끼워 넣지 않습니다. ETF/REIT/leveraged/inverse도 자기 상장 종목의
 가격·추세·lot/평가 변화로 다루며 구성종목 look-through를 추정하지 않습니다.
 
-## identity·시간·rule
+## 판단 규칙
+
+### identity·시간·rule
 
 alert identity는 rule ID/version+opaque subject type/ID에 기반하며 slot retry를 넘어 유지됩니다.
 candidate는 logical session key와 slot을 추가합니다. slot은 `kr-1000`, `kr-1430`, `kr-1600`, `us-close`입니다.
@@ -25,7 +29,7 @@ rule version과 candidate logical key는 immutable입니다. 사용한 threshold
 현재 permanent rule은 expiry 없는 승인 successor이지만 revocation과 runtime flag는 항상 적용됩니다.
 이전 7일 canary·shadow 최초 활성화 순서는 과거 승인 경로이지 현재 rule의 자동 만료나 매 릴리즈 TODO가 아닙니다.
 
-## 상태와 전송 자격
+### 상태와 전송 자격
 
 severity는 `normal/정상`, `watch/주의`, `warning/경고`, `critical/긴급`이며 전달 floor는 watch(rank 1)입니다.
 partial/stale/reconstructed/insufficient_history 등 non-pass 입력은 suppressed evidence를 남기고 이전 alert state를 갱신하거나 claim하지 않습니다.
@@ -47,7 +51,7 @@ outcome만 남기고 현재 state를 바꾸지 않습니다. 같은 논리키의
 claim 때 approval/validity를 다시 확인하므로 뒤늦은 revoke가 이깁니다. disabled/불완전 설정은 요청·claim을 만들지 않습니다.
 expected-prior state revision과 unique insert/lease compare-update를 사용합니다. 한 run의 dispatch 상한은 기존 20입니다.
 
-## 전송 결과는 추측하지 않는다
+### 전송 결과는 추측하지 않는다
 
 | 관측 | ledger / 처리 |
 | --- | --- |
@@ -59,7 +63,7 @@ expected-prior state revision과 unique insert/lease compare-update를 사용합
 rule/state/candidate outcome/dispatch claim/delivery attempt는 별도 ledger입니다. evaluation 성공이 transport 성공은 아닙니다.
 logical no-change/zero-candidate slot도 terminal run/quality marker가 있어야 관측 완료로 인정합니다.
 
-## 사람이 읽는 메시지의 의미
+### 사람이 읽는 메시지의 의미
 
 ‘하회’는 현재 가격과 평균의 위치이고 ‘하향 이탈’은 이전 close≥이전 SMA20, 현재 close<현재 SMA20 사건입니다.
 price-to-average와 SMA20-to-SMA50 구조를 분리합니다. 누락 analytics는 계산 보류+이유이지 0/배분/PnL 대체가 아닙니다.
@@ -75,7 +79,9 @@ owner 총자산 보고서의 승인된 금액 표시는 **별도 renderer/승인
 완전한 현재 총액/구성이 있으면 이전 비교만 없다는 이유로 다른 형식으로 축소하지 않습니다. 해외 feeder/FX
 누락은 완전 총액을 막고, 이전 같은-slot 누락은 비교·기여도만 제한합니다. 다른 slot/이전 날짜로 조용히 대체하지 않습니다.
 
-## 새 rule·릴리즈를 검증하는 방법
+## 변경과 검증
+
+### 새 rule·릴리즈를 검증하는 방법
 
 - 재생 입력은 evaluation time/slot/subject 순서와 PIT를 고정합니다. `historical_live`와 retrospective reconstruction을 구분합니다.
 - bootstrap threshold는 versioned 후보이지 현행 모든 자산의 기준 선언이 아닙니다. asset-class별·전체 조합 budget을 같이 검토합니다.
@@ -91,4 +97,9 @@ owner 총자산 보고서의 승인된 금액 표시는 **별도 renderer/승인
 [현황](../../src/kis_portfolio/services/signal_slot_report.py), [리포트](../../src/kis_portfolio/services/total_asset_digest.py).
 검증: [replay](../../tests/test_v2_signal_replay.py), [calibration](../../tests/test_v2_signal_calibration.py),
 [전송](../../tests/test_telegram_delivery.py), [리포트](../../tests/test_total_asset_digest.py).
+
+## 관련 근거
+
+### 사례와 근거
+
 과거 canary·초기 shadow·배포 checklist와 특정 run 사례는 [압축 구축 기록](../history/README.md)에서만 펼칩니다.

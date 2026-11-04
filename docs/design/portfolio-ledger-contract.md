@@ -3,7 +3,9 @@
 > 기존 승인 계약의 현행 의미를 통합합니다. source 수집·보정·migration 권한을 새로 주지 않습니다.
 > [운영 모델](../operating-model.md) · [물리 객체](../data-catalog.md) · [구현·테스트 지도](../traceability.md)
 
-## 무엇이 사실이고 무엇이 파생인가
+## 범위와 의미
+
+### 무엇이 사실이고 무엇이 파생인가
 
 Bronze source 관측, canonical 거래 identity/revision, 현재 broker position, episode/lot/allocation은 다른 객체입니다.
 보유수량은 cutoff 시점의 기준일 뿐 과거 매수나 원가를 증명하지 않습니다. 원문은 append-only로 보존하고,
@@ -16,7 +18,9 @@ source-proven alias/보정 revision과 current/as-of projection으로 중복·�
 
 실제 체결이 있어도 전체 구간 재구성은 provisional일 수 있습니다. inferred opening은 실제 매수로 바뀌지 않습니다.
 
-## 수집 구간과 완전성
+## 판단 규칙
+
+### 수집 구간과 완전성
 
 - partition은 source operation·account alias·상품 code·real/virtual profile·시장/거래소·route·시작/끝을 포함합니다.
   credential은 identity나 공개 계획에 넣지 않습니다. 문법 변경은 plan version을 바꾸며 기존 checkpoint를 재해석하지 않습니다.
@@ -28,7 +32,7 @@ source-proven alias/보정 revision과 current/as-of projection으로 중복·�
   quality, lineage와 publish가 함께 증명한 구간만 union하고, 모든 필수 operation의 교집합으로 요청 구간을 판정합니다.
 - complete coverage 아래 빈 결과와 source failure/missing partition의 빈 결과는 다릅니다. 상한 날짜나 행 존재만으로 pass를 만들지 않습니다.
 
-## 호출 예산과 실행 효과
+### 호출 예산과 실행 효과
 
 기존 bounded backfill의 기본 page 정책은 domestic order 3, overseas order 3, overseas transaction 2이며
 60일 partition 기준입니다. global physical-call 기본 상한은 400, helper hard cap은 source당 10 pages입니다.
@@ -40,7 +44,7 @@ source-proven alias/보정 revision과 current/as-of projection으로 중복·�
 4. source가 다음 page를 가리키는데 상한에 닿으면 incomplete입니다. capped 행을 완전 구간으로 publish하지 않습니다.
 5. managed execution은 logical key·lease·stage evidence를 보존합니다. destructive replay·대량 backfill·운영 변경은 기존 승인 경로를 따릅니다.
 
-## 재구성과 sell allocation
+### 재구성과 sell allocation
 
 episode는 한 계좌·canonical instrument의 연속 비영(非零) 보유 구간입니다. 수량이 0이 되면 닫히고 재매수는
 새 episode입니다. account/instrument/episode를 넘어 lot이나 sell slice를 배분하지 않습니다.
@@ -59,7 +63,7 @@ source gap 없음 아래 양수 잔량만 `inferred_opening`이며 체결 참조
 매도 selector의 우선순위는 **명시 lot → 명시 thread → 같은 episode 전체 FIFO**입니다. FIFO는 `(opened_at, lot_id)`입니다.
 명시한 selector의 대상이 없거나 수량이 모자라면 범위를 넓히거나 가상 매수/음수 lot을 만들지 않습니다. 미지정 FIFO는 owner 검토 대상입니다.
 
-## 판정과 저장
+### 판정과 저장
 
 | 조건 | 결과 / 저장 경계 |
 | --- | --- |
@@ -82,12 +86,18 @@ source gap 없음 아래 양수 잔량만 `inferred_opening`이며 체결 참조
 - blocked plan은 Control exception의 open revision만 남깁니다. 같은 blocker는 no-op이며, 후속 성공이 passing replay를 가리키는
   resolved revision을 추가합니다. 이전 실패를 삭제하지 않습니다.
 
-## 변경과 검증의 출발점
+## 변경과 검증
+
+### 변경과 검증의 출발점
 
 [구간 증명](../../src/kis_portfolio/services/trade_coverage.py), [source 계획](../../src/kis_portfolio/services/trade_cash_backfill.py),
 [재생](../../src/kis_portfolio/services/position_replay.py), [저장](../../src/kis_portfolio/adapters/outbound/position_reconstruction_warehouse.py).
 독립 oracle은 [coverage](../../tests/test_trade_coverage_intervals.py), [계획](../../tests/test_trade_cash_backfill_planner.py),
 [재생](../../tests/test_position_replay.py), [저장/복원](../../tests/test_position_reconstruction_warehouse.py)에서 확인합니다.
+
+## 관련 근거
+
+### 사례와 근거
 
 개별 계좌·날짜의 dry-run/execute·복구 결과와 최초 단계의 계획은 [압축 구축 기록](../history/README.md)에 있습니다.
 그 당시 call count나 단계별 미활성 상태를 현재 계약/가용성으로 복제하지 않습니다.

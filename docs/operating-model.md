@@ -66,8 +66,8 @@ source가 뜻하는 effective/observation time, 우리가 알게 된 knowledge/r
 
 1. 어떤 값·상태·scope의 의미를 바꾸는가? [기능 지도](traceability.md)에서 기존 요구·구현·테스트를 찾습니다.
 2. 관측/coverage/identity/시간/계산/transport 중 어느 경계의 문제인가? 단순 no-rows를 source 미지원으로 단정하지 않습니다.
-3. [원장·재구성](design/portfolio-ledger-contracts.md), [분석](design/analytics-contracts.md),
-   [알림·전송](design/alert-delivery-contracts.md), [참고 이력](design/reference-history-contract.md)의 불변식을 유지하는가?
+3. [원장·재구성](design/portfolio-ledger-contract.md), [분석](design/analytics-contract.md),
+   [알림·전송](design/alert-delivery-contract.md), [참고 이력](design/reference-history-contract.md)의 불변식을 유지하는가?
 4. 정상·부분·오류에서 기대 결과와 독립 oracle을 고정했는가? unit PASS와 실제 client 인수는 구분합니다.
 5. runtime/data를 바꾸면 기존 배포·backup/restore·rollback 경로를 검증하고, 변경한 능력의 실제 사용을 확인합니다.
 6. 운영 결함은 같은 outcome의 보정으로 추적하고 완료 milestone을 되열지 않습니다. 새 기능은 별도 검토합니다.

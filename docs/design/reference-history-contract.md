@@ -3,13 +3,17 @@
 > 의미: 보존된 일부 관측으로 만든 **가정이 표시된 비정본 총액 수준값**. 공식 성과나 과거의 완전한 자산 상태가 아닙니다.
 > 승인 경계는 DEC-062/ADR-033 및 해당 [dataset/read 계약](../../governance/catalog/read-models.toml)을 따릅니다.
 
-## canonical과 섞지 않는 이유
+## 범위와 의미
+
+### canonical과 섞지 않는 이유
 
 합계가 원문 component와 일치해도 빠진 해외 feeder·현금·시점 차이를 증명하지 못합니다. source consistency는
 completeness가 아닙니다. 참고값은 원래 source와 현행 canonical state를 덮지 않고 별도 version/lineage로 제공합니다.
 같은 날짜의 native passing state가 우선이며 reference는 quality/return/drawdown/alert/contribution 자격을 충족시키지 않습니다.
 
-## 승인된 bounded 계산
+## 판단 규칙
+
+### 승인된 bounded 계산
 
 - 보존된 날짜별 latest overview와 **그 overview에 연결된 holding rows만** 사용합니다. 서로 다른 fetch의 계좌를 섞지 않습니다.
 - 관측된 원화금액은 그대로 보존합니다. KRW가 null이고 USD 평가액이 있는 foreign position만 승인된 external FX로 환산합니다.
@@ -23,7 +27,7 @@ completeness가 아닙니다. 참고값은 원래 source와 현행 canonical sta
 따라서 25일이 labelled total-level reference이며 canonical 성과 날짜가 아닙니다. 두 unavailable 날짜는
 2026-08-06/25입니다. 개별 날짜와 계산·source 검증의 원래 기록은 [압축 원문](../history/README.md)에 있습니다.
 
-## 저장·조회·수정
+### 저장·조회·수정
 
 `silver.portfolio_legacy_total_reference`의 grain은 recovery version+date+input hash입니다. 원본금액/reference금액,
 classification·assumptions·knowledge/recorded time·FX provenance를 append-only correction/supersession으로 보존합니다.
@@ -37,10 +41,18 @@ materialization/recovery는 별도 승인된 bounded 작업이며 추가 provide
 private Parquet manifest와 fresh local restore는 dataset을 포함합니다. rollback은 opt-in projection/version을
 비활성화하고 source/가정/이력을 보존합니다.
 
-## 수정·검증
+## 변경과 검증
+
+### 수정·검증
 
 코드: [reference service](../../src/kis_portfolio/services/legacy_total_reference.py),
 [Remote projection](../../src/kis_portfolio/adapters/outbound/remote_v2_warehouse.py).
 검증: [legacy cases](../../tests/test_legacy_total_reference.py), [Remote](../../tests/test_remote_v2_warehouse.py).
 필수 oracle은 native precedence, missing position→null, explicit zero-cash 가정의 한계,
-account-filter 오류, default quarantine 유지와 source/계산 hash입니다. 실제 인수 기록은 [WI-068](../work-items/WI-068-retained-legacy-history-recovery.md)에 연결합니다.
+account-filter 오류, default quarantine 유지와 source/계산 hash입니다.
+
+## 관련 근거
+
+### 사례와 근거
+
+실제 인수 기록은 [WI-068](../work-items/WI-068-retained-legacy-history-recovery.md)에 연결합니다.

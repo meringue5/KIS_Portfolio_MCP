@@ -152,3 +152,22 @@ is superseded for the design/history/milestone reading model by this correction.
   remain visible and unreviewed. No new tools, checks, DB, generator, runtime or product behavior.
 - Existing full gate: 971 tests passed, one existing Authlib deprecation warning (52.16s). Quick/staged and
   protected PR checks remain required. No production/MCP replay applies to documentation-only behavior.
+
+## WI-077-S03 — Steady-state Project OS alignment
+
+Governance correction within the existing documentation outcome. PR #179 left the policy and Skill
+on the construction-first reading path. The checker still treated a historical delivery-plan filename
+as its identifier source. The local review also compared the old PR branch to a stale base.
+Align policy, agent entry points, document format and existing identifier checks as one change.
+
+Closed after applying the operating maintenance path to this correction. Policy §0 now routes the
+work by symptom or feature, §3.1 owns the knowledge update, and the Skill and AGENTS use both.
+The five domain contracts share the agreed structural order. The choice of singular
+`<domain>-contract.md` names and placement of the delivery identity inventory beside the registry
+are implementation choices for this correction.
+
+Evidence: 570 local links and headings, five contract layouts, and all 69 issued delivery IDs
+verified. Existing registry entries and the archive match the previous main branch. The current
+checkout passed quick and full with 971 tests. Three restore subprocesses failed on an initial
+run using the shared environment's editable checkout and passed after binding imports to the
+current worktree. Repository-only governance change with no product client acceptance scenario.

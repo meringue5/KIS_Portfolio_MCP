@@ -4,8 +4,8 @@
 
 2026-09-13부터 Remote MCP V2가 유일한 production architecture다. V1 언급은
 `governance/project/v1-document-disposition.toml`에 분류된 migration/forensic history이며 현재 운영 계약이
-아니다. 현재 문서 지도는 `docs/README.md`, 승인된 V2 구조와 전환 근거는 `docs/design/kis-portfolio-v2-system-design.md`,
-`docs/design/kis-portfolio-v2-delivery-plan.md`, ADR-021과 ADR-028이 소유한다.
+아니다. 현재 문서 지도는 `docs/README.md`, 현행 시스템 경계는 `docs/design/system-contract.md`에서 설명한다. 승인 결정과 전환 근거는
+ADR-021과 ADR-028에서 찾는다.
 
 제품 architecture의 변경·검증·배포·운영 feedback은 상위 **Project Operating System**의 통제를 받는다.
 Project OS는 runtime component가 아니며 제품 code에 포함되지 않는다. canonical 운영 정책은

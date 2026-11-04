@@ -1218,8 +1218,8 @@ Remote MCP는 다음의 관리된 설명을 분석에 제공할 수 있어야 �
 
 ## 13. 명시적으로 유보한 구현 결정
 
-요구사항 분석 이후의 차세대 설계안은 `docs/design/kis-portfolio-v2-system-design.md`, 구현·전환 Wave는
-`docs/design/kis-portfolio-v2-delivery-plan.md`에 정리했다. 두 문서는 아래 미결정 사항에 대한 권고안을
+요구사항 분석 이후의 차세대 설계안은 [당시 설계](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/kis-portfolio-v2-system-design.md), 구현·전환 Wave는
+[당시 전환 계획](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/kis-portfolio-v2-delivery-plan.md)에 정리했다. 두 문서는 아래 미결정 사항에 대한 권고안을
 제시하며 DEC-044 범위의 repository-local 구현은 승인됐다. infrastructure와 production 변경은 승인하지 않는다.
 
 다음은 요구사항 기준선에서 아직 구현 결정으로 승인하지 않았다. V2 설계 문서가 제안한 항목도
