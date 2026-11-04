@@ -1,11 +1,8 @@
-# V2 delivery 식별자 보존 목록
+# V2 발급 식별자
 
-> 구축 순서나 현재 TODO가 아닙니다. 기존 Project OS가 검증하는 발급 식별자만 보존합니다.
-> 원래 Wave·순서·실행/rollback 계획은 [압축된 구축 기록](../history/README.md)에 있습니다.
-
-현재 동작은 [운영 모델](../operating-model.md), [시스템 경계](kis-portfolio-v2-system-design.md)를 읽습니다.
-Work Item 연결과 의존성은 [registry](../../governance/project/milestones.toml)가 정본입니다.
-새 기능을 아래 완료된 delivery에 끼워 넣거나 식별자를 재사용하지 않습니다.
+Project OS가 소유권과 중복을 검사하는 구축 식별자 목록이다. Work Item 관계는
+[마일스톤 레지스트리](milestones.toml)에서 확인한다. 당시 Wave와 전환 계획은
+[구축 원문](../../docs/history/README.md)에서 찾는다.
 
 ## 발급된 delivery IDs
 

@@ -12,13 +12,15 @@ Use this Skill before mutating the repository or classifying a non-trivial produ
 Read `docs/governance/project-operating-system.md`. It owns the workflow, document authority, change taxonomy,
 ADR gate, WIP limit and evidence rules. Do not copy those policies into this Skill or infer a new policy from code.
 
-Also read:
+Start with the operating entry points in §0 of that policy. For routine operations use the steady-state
+runbook. For a symptom use troubleshooting and the affected current contract. For a feature change
+use the operating model and the relevant traceability row to find its requirements, code and tests.
+Check TODO for current priorities and candidate status.
 
-- `docs/traceability.md` for current work and decision links.
-- `governance/project/milestones.toml` and the applicable `docs/milestones/` baseline for stable Work Item identity,
-  dependency and sub-item relationships.
-- The active `docs/work-items/WI-*.md`, if one exists.
-- The specialized Skill selected by the change: architecture, warehouse, MCP surface, API capability or release ops.
+Before editing, check the active Work Item and the registry for identity, dependencies and WIP.
+Consult the delivery baseline for an active delivery gate or an acceptance question. Open historical
+build records through the linked case when the decision or evidence requires it. Select the specialized
+Skill for any affected architecture, warehouse, MCP, API capability, data governance or release boundary.
 
 ## Workflow
 
@@ -32,7 +34,8 @@ Also read:
 6. Run `bash scripts/check.sh quick` during work and `bash scripts/check.sh full` before closeout.
 7. If live or elapsed evidence is required, move verified work to `stabilizing`, keep its observation/rollback/exit
    contract current, and mark it closed only after exit evidence and owner acceptance.
-8. Record actual evidence, remaining risk and follow-up work.
+8. Record actual evidence, remaining risk and follow-up work. Apply policy §3.1 to update reusable
+   knowledge in the owning contract and link the dated evidence from its relevant case or Work Item.
 9. For a user-visible Work Item, execute immediate positive and applicable partial/error scenarios through the actual
    approved client and transport. CI, deployment and health smoke are not substitutes; route every finding to an
    owned defect, clarification, data/operations gap, approved-inactive scope or accepted degraded behavior.

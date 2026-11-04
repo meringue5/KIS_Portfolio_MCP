@@ -195,3 +195,6 @@ Current semantic contracts and a byte-verified, fresh-restored compressed source
 boundaries remain unchanged.
 
 현행 의미 규칙은 [운영 모델](operating-model.md)과 통합 계약에 있습니다. 위 WI·고정 commit 링크는 사례가 필요할 때만 읽습니다.
+
+WI-077-S03 applies the operating knowledge structure to [Project OS](governance/project-operating-system.md)
+and its Skill. See [work and evidence](work-items/WI-077-operational-documentation-navigation.md#wi-077-s03--steady-state-project-os-alignment).

@@ -4,8 +4,22 @@
 > 한국어 명칭: 프로젝트 운영체계
 > 약칭: Project OS
 > 상태: 승인·활성
-> 기준일: 2026-08-27
+> 현행 운영 기준 검토: 2026-11-04
 > 소유 범위: 요구·결정·작업·검증·배포·운영 피드백의 개발 운영체계
+
+## 0. 운영 작업의 진입점
+
+V2 구축 인수 범위는 [인수 기준선](../milestones/v2-acceptance.md)에 있다. 평소에는 실제 증상, 기능
+또는 승인된 요청에서 출발한다. [운영 모델](../operating-model.md)에서 결과의 의미를 확인하고 필요한
+[현행 계약](../design/README.md) 한 편과 [기능 추적표](../traceability.md)의 해당 행으로 좁힌다.
+
+| 들어온 일 | 출발점 | 남길 결과 |
+| --- | --- | --- |
+| 정기 운영 점검 | [운영 런북](../operations/steady-state-operations-runbook.md)의 점검 주기와 증거 | 실제 run·품질·전송·복원 결과. 후속 조치가 필요한 발견은 triage |
+| 장애·품질 이상 | [증상별 대응](../troubleshooting.md), 현재 계약, 영향 범위와 관측 증거 | 완화·재검증 및 남은 조치의 소유자. 닫힌 인수 기준선의 교정은 §6.4 적용 |
+| 유지보수·기능 수정 | [작업 큐](../../TODO.md)와 기능 추적표. 요구 → 계약 → 구현 → 테스트 | 해당 작업의 상태·검증과 바뀐 규칙의 정본 갱신 |
+| 새 제품 범위 | 제안·후보의 승인 여부와 기존 DEC/ADR 확인 | 승인된 변경만 요구·작업으로 등록. 새 delivery 경계가 필요할 때 §6.2–6.3 적용 |
+| 판단의 배경·당시 사례 | 현행 문서의 관련 근거, [구축 원문 목록](../history/README.md) | 필요한 사례만 열고 해당 버전과 당시 조건을 확인 |
 
 ## 1. 목적과 경계
 
@@ -58,7 +72,10 @@ Project OS는 제품의 자동 주문 권한, 운영 secret 접근 또는 배포
 | --- | --- | --- |
 | 제품 목적·사용자 동작·인수 기준 | `docs/requirements/`의 승인된 DEC | 사용자 승인 |
 | 장기 architecture decision | `SPEC.md`의 승인 ADR | 사용자 승인 |
-| 현재·목표 코드/신뢰 경계 | `ARCHITECTURE.md`와 승인된 design 문서 | ADR/Work Item에 따라 변경 |
+| 현재 코드·신뢰 경계 | [ARCHITECTURE](../../ARCHITECTURE.md)와 승인 ADR | ADR/Work Item에 따라 변경 |
+| 운영 의미·분야별 판단 규칙 | [운영 모델](../operating-model.md)과 [현행 계약](../design/README.md) | 소유 정본을 근거로 갱신 |
+| 일상 점검·장애 대응 | [운영 런북](../operations/steady-state-operations-runbook.md)과 [증상별 대응](../troubleshooting.md) | 운영 절차 및 기존 승인 범위 |
+| 구축 원문·사례 | [원문 목록](../history/README.md), 고정 Git 버전, Work Item·운영 증거 | 출처와 당시 조건을 보존 |
 | 데이터 객체·grain·key·민감도 | `docs/data-catalog.md` + `db/catalog.py` | warehouse change contract |
 | source·collection·dataset·metric·pipeline 계약 | `docs/governance/data-governance-harness.md` + `governance/catalog/` | Data Governance Harness |
 | 보안·secret·token | `docs/security-and-secrets.md` | security review |
@@ -71,6 +88,18 @@ Project OS는 제품의 자동 주문 권한, 운영 secret 접근 또는 배포
 
 충돌 시 더 구체적인 canonical 문서가 우선하지만 상위 사용자 요구나 승인 ADR을 위반할 수 없다. 충돌을
 발견하면 임의로 하나를 선택하지 않고 Issue/Work Item에 기록해 계약을 먼저 정리한다.
+
+### 3.1 운영 지식 갱신
+
+분야별 계약은 `docs/design/<영역>-contract.md`에 범위와 의미, 판단 규칙, 변경과 검증, 관련 근거
+순서로 작성한다. 다른 작업에도 적용할 수 있는 판단 규칙은 승인 근거와 함께 운영 모델 또는 소유 계약에
+반영한다. 날짜·특정 실행의 증거는 작업 기록에 두고 관련 근거에서 연결한다. 인수 근거가 바뀌면 기능
+추적표의 해당 행을 갱신하고, 작업 우선순위나 후보 상태는 TODO에서 확인한다. 계약의 적용 범위나
+권한을 바꾸려면 기존 승인 절차를 따른다.
+
+버전 인수 문서는 `docs/milestones/v<버전>-acceptance.md`에 인수 범위와 한계, 종료 기준, 운영 책임을
+기록한다. 구축 보관본은 `docs/history/`에 버전과 기준일을 붙이고 원문 경로, 출처 버전, 해시를
+manifest에 남긴다. 운영 중 발견한 재사용 가능한 교훈은 해당 계약이나 런북에 반영하고 원래 사례를 연결한다.
 
 ## 4. 변경 분류
 
@@ -178,8 +207,10 @@ rollback은 과거 상태·증거·release를 삭제하거나 milestone을 과�
 ### 6.2 Milestone baseline
 
 `governance/project/milestones.toml`은 milestone, Work Item identity, design delivery ref, dependency와 sub-item
-관계의 machine-readable SSOT다. `docs/milestones/`는 같은 기준선의 목적, acceptance, 순서 변경 사유와
-남은 범위를 사람이 검토하는 문서다. Work Item 본문은 실행 상태와 증거의 SSOT이고
+관계의 machine-readable SSOT다. 발급된 V2 delivery ID는 레지스트리 옆
+[식별자 목록](../../governance/project/delivery-identities.md)에 보존한다. `docs/milestones/`는
+인수 범위와 한계를 설명하고, 구축 당시 계획과 증거는 고정된 원문으로 연결한다. 새 delivery 기준선은
+목적·인수 조건·순서 변경 사유를 해당 마일스톤 기록에 남긴다. Work Item 본문은 실행 상태와 증거의 SSOT이고
 `docs/traceability.md`는 요구→결정→작업→증거 연결을 제공한다.
 
 새 요구나 조사 결과가 생기면 다음 순서로 처리한다.
@@ -191,6 +222,8 @@ rollback은 과거 상태·증거·release를 삭제하거나 milestone을 과�
 5. registry, Work Item, traceability를 같은 변경에서 갱신한다.
 
 ### 6.3 Milestone lifecycle and overlap gates
+
+이 절은 활성 delivery 기준선을 진행할 때 적용한다. 인수 후 운영 작업은 §6.4의 교정 경로를 적용한다.
 
 Milestone 상태는 `proposed → ready → in_progress → stabilizing → closed`이며 `blocked`, `rejected`는 side
 state다. milestone에는 구조적 `depends_on`과 별도로 각 dependency를 정확히 한 번 포함하는 두 gate가 있다.
@@ -258,7 +291,7 @@ pipeline 또는 DB 변경은 `docs/governance/data-governance-harness.md`를 먼
 | Mode | 용도 | 기본 검사 |
 | --- | --- | --- |
 | `staged` | commit 직전 | staged whitespace, Project OS, data governance, architecture, warehouse contract |
-| `quick` | 작업 중 | Project OS, data governance, architecture, warehouse, MCP surface, shell/JSON |
+| `quick` | 작업 중 | Project OS, data governance, architecture, warehouse, MCP surface, V2 문서 분류·탐색, shell/JSON |
 | `full` | push/PR | quick + 전체 pytest + tracked diff check |
 
 - `.githooks/pre-commit`은 `staged`, `.githooks/pre-push`는 `full`을 실행한다.

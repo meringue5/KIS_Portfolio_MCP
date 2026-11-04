@@ -10,7 +10,7 @@ core service 함수와 저장 정책을 설계한다.
 
 현재 V2 public catalog는 결과 중심 18개 tool과 `mcp:read`, `mcp:collect`, `mcp:journal.write`를 사용합니다.
 정확한 tool·입출력·scope는 [MCP 등록](../src/kis_portfolio/adapters/mcp/v2.py),
-[시스템 경계](design/kis-portfolio-v2-system-design.md), [연결 계약](remote-mcp-v2-migration.md)을 확인합니다.
+[시스템 경계](design/system-contract.md), [연결 계약](remote-mcp-v2-migration.md)을 확인합니다.
 주문 tool은 없으며 코드/계약 존재가 현재 기간의 source 가용성을 뜻하지 않습니다.
 이전 tool migration·당시 대안 비교는 [고정 원문 압축본](history/README.md)에만 보존합니다.
 

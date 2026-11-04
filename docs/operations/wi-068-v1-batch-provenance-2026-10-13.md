@@ -19,7 +19,7 @@ account identifier, token, backup URI or endpoint URI is included.
 
 ## Before-V2 documents located
 
-- [V2 system design](../design/kis-portfolio-v2-system-design.md), section 2, records the 2026-08-27 inspection:
+- [V2 system design](https://github.com/meringue5/KIS_Portfolio_MCP/blob/a8fdfa599ba1e4876ded726d23d577a4640eff9d/docs/design/kis-portfolio-v2-system-design.md), section 2, records the 2026-08-27 inspection:
   three Jobs, domestic-order/overseas-transaction/token batch commands; 07:35/08:30/15:35 enabled schedules;
   retained `main` 27 tables + 3 views, with known drift.
 - [Cost baseline](cost-baseline-2026-08.md), Cloud Run Jobs and MotherDuck sections, records three Jobs and

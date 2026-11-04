@@ -9,12 +9,14 @@
 2. [기능 수정 지도](traceability.md): 해당 기능의 요구 → 코드 → 테스트 → 한계. 사례는 필요할 때만 열기.
 3. 작업에 따라 [TODO](../TODO.md), [증상 대응](troubleshooting.md), [운영 런북](operations/steady-state-operations-runbook.md).
 
+운영 작업을 접수하거나 닫을 때는 [Project OS의 운영 진입점](governance/project-operating-system.md#0-운영-작업의-진입점)을 따릅니다.
+
 ## 더 정확한 규칙이 필요할 때
 
 | 질문 | 현행 설명 / 정본 |
 | --- | --- |
-| 어디까지가 누구 책임인가? | [시스템 경계와 이유](design/kis-portfolio-v2-system-design.md), [코드 구조](../ARCHITECTURE.md) |
-| 언제 거래 없음/재구성/성과/배송을 믿는가? | [원장](design/portfolio-ledger-contracts.md), [분석](design/analytics-contracts.md), [알림](design/alert-delivery-contracts.md), [참고 이력](design/reference-history-contract.md) |
+| 어디까지가 누구 책임인가? | [시스템 경계와 이유](design/system-contract.md), [코드 구조](../ARCHITECTURE.md) |
+| 언제 거래 없음/재구성/성과/배송을 믿는가? | [원장](design/portfolio-ledger-contract.md), [분석](design/analytics-contract.md), [알림](design/alert-delivery-contract.md), [참고 이력](design/reference-history-contract.md) |
 | 값이 어떤 단계에서 공식 결과가 되는가? | [데이터 흐름과 판정 경계](data-pipeline.md), [객체 catalog](data-catalog.md), [versioned 계약](../governance/catalog/) |
 | 제품에 무엇을 약속했는가? | [인수된 의미·제외 범위](milestones/v2-acceptance.md), [승인 요구/DEC](requirements/kis-portfolio-data-platform-requirements.md), [SPEC/ADR](../SPEC.md) |
 | 실제 실행·접근·복구를 어떻게 하는가? | [연결](remote-mcp-v2-migration.md), [보안](security-and-secrets.md), [배포](deployment.md), [백업](backup.md), [비용 가드](operations/production-cost-release-guardrails.md) |

@@ -1380,3 +1380,9 @@ id = "WI-077-S02"
 parent_id = "WI-077"
 title = "Distill construction episodes into current semantic operating contracts and verified archive"
 status = "closed"
+
+[[subitems]]
+id = "WI-077-S03"
+parent_id = "WI-077"
+title = "Align Project OS and contract format with steady-state operations"
+status = "closed"

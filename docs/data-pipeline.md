@@ -54,8 +54,8 @@ effective/observation time과 knowledge/recording time은 분리합니다. 과�
 | 성과·위험 | 각 formula의 PIT·flow/owner-plan·가격/FX·reconciliation gate | numeric null과 원인; valuation change로 대체하지 않음 |
 | signal/전송 | pass metric/input·approved immutable rule·전이·claim·provider terminal 결과 | 상태/전송을 분리한 suppression/failure/unknown |
 
-[원장·재구성](design/portfolio-ledger-contracts.md), [분석](design/analytics-contracts.md),
-[알림·전송](design/alert-delivery-contracts.md)이 상세 불변식과 테스트 출발점을 소유합니다.
+[원장·재구성](design/portfolio-ledger-contract.md), [분석](design/analytics-contract.md),
+[알림·전송](design/alert-delivery-contract.md)이 상세 불변식과 테스트 출발점을 소유합니다.
 
 ## 기본 경로·독립 경로·조건부 경로
 
