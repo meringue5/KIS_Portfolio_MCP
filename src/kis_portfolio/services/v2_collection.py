@@ -45,8 +45,8 @@ from kis_portfolio.security.redaction import redact_nested
 
 SEOUL = ZoneInfo("Asia/Seoul")
 PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
-PIPELINE_VERSION = "1.3.0"
-ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
+PIPELINE_VERSION = "1.4.0"
+ALLOWED_SLOTS = frozenset({"kr-0800", "kr-1000", "kr-1400", "kr-1430", "kr-1600"})
 FX_FALLBACK_SOURCE_ID = "source.korea-eximbank-open-api"
 FX_FALLBACK_DATASET_ID = "dataset.fx-rate-fallback-observation"
 FX_FALLBACK_RATE_TYPE = "deal_bas_r"
@@ -178,7 +178,7 @@ async def _collect_sources(
     price_observations: list[dict[str, Any]] = []
     fx_observations: list[dict[str, Any]] = []
     fx_fallback_observation: dict[str, Any] | None = None
-    collect_overseas = slot == "kr-1000" if include_overseas is None else include_overseas
+    collect_overseas = slot in {"kr-0800", "kr-1000"} if include_overseas is None else include_overseas
     if collect_overseas:
         brokerage = next(account for account in accounts if account.label == "brokerage")
         with scoped_account_env(brokerage):
@@ -374,7 +374,7 @@ def build_owned_portfolio_pipeline(
 
     def collect(context: StageContext) -> StageResult:
         existing_overseas_anchor = _has_same_day_overseas_anchor(connection, context.logical_date)
-        recover_overseas = context.slot == "kr-1000" or not existing_overseas_anchor
+        recover_overseas = context.slot in {"kr-0800", "kr-1000"} or not existing_overseas_anchor
         collected = asyncio.run(_collect_sources(
             context.slot,
             context.logical_date,
@@ -812,7 +812,7 @@ def build_owned_portfolio_pipeline(
                         "slot": context.slot,
                         "source_slot": collected.get("overseas_scope_source_slot"),
                         "recovery_collection": bool(collected.get("overseas_scope_collected"))
-                        and context.slot != "kr-1000",
+                        and context.slot not in {"kr-0800", "kr-1000"},
                     },
                 ),
             ),

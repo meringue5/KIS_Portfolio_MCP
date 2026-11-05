@@ -209,10 +209,11 @@ def test_digest_is_disabled_by_default_before_any_ledger_write() -> None:
 
 def test_owner_report_sends_exact_values_alias_composition_and_chart_once() -> None:
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     client = RecordingPhotoClient()
     kwargs = {
         "logical_date": date(2026, 9, 8),
-        "slot": "kr-1000",
+        "slot": "kr-0800",
         "config": OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
         "telegram_config": _telegram_config(),
         "client": client,
@@ -252,6 +253,7 @@ def test_owner_report_sends_exact_values_alias_composition_and_chart_once() -> N
 
 def test_owner_report_ranks_top_five_holdings_by_absolute_krw_impact() -> None:
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     additions = [
         ("100001", "Impact A", 200, 290),
         ("100002", "Impact B", 200, 120),
@@ -272,7 +274,7 @@ def test_owner_report_ranks_top_five_holdings_by_absolute_krw_impact() -> None:
                     evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,quantity,
                     value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,as_of,
                     input_watermarks,quality_status,lineage_hash
-                ) VALUES (?, 'kr-1000','acct-1',?,'position',NULL,?,NULL,NULL,NULL,NULL,?,'{}','pass',?)
+                ) VALUES (?, 'kr-0800','acct-1',?,'position',NULL,?,NULL,NULL,NULL,NULL,?,'{}','pass',?)
             """, [
                 date(2026, 9, day), instrument, value,
                 datetime(2026, 9, day, 1, tzinfo=UTC), f"lineage-{day}-{instrument}",
@@ -282,7 +284,7 @@ def test_owner_report_ranks_top_five_holdings_by_absolute_krw_impact() -> None:
     result = run_owner_portfolio_report(
         connection,
         logical_date=date(2026, 9, 8),
-        slot="kr-1000",
+        slot="kr-0800",
         config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
         telegram_config=_telegram_config(),
         client=client,
@@ -299,7 +301,7 @@ def test_owner_report_ranks_top_five_holdings_by_absolute_krw_impact() -> None:
 
 def test_owner_report_rejects_internal_or_unreconciled_impact_values() -> None:
     base = OwnerPortfolioReport(
-        slot="kr-1000",
+        slot="kr-0800",
         source_at=datetime(2026, 9, 8, 1, tzinfo=UTC),
         quality_status="pass",
         total_asset_krw=1_050,
@@ -329,13 +331,14 @@ def test_owner_report_rejects_internal_or_unreconciled_impact_values() -> None:
 
 def test_owner_report_keeps_complete_current_total_when_only_prior_state_is_missing() -> None:
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     connection.execute("DELETE FROM gold.portfolio_daily_state WHERE evaluation_date='2026-09-07'")
     client = RecordingPhotoClient()
 
     result = run_owner_portfolio_report(
         connection,
         logical_date=date(2026, 9, 8),
-        slot="kr-1000",
+        slot="kr-0800",
         config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
         telegram_config=_telegram_config(),
         client=client,
@@ -355,6 +358,7 @@ def test_owner_report_keeps_complete_current_total_when_only_prior_state_is_miss
 def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None:
     """A failed prior 10:00 cannot be replaced by 16:00 or an older 10:00."""
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     connection.execute("UPDATE control.market_calendar SET trade_date='2026-09-15' WHERE trade_date='2026-09-07'")
     connection.execute("UPDATE control.market_calendar SET trade_date='2026-09-17' WHERE trade_date='2026-09-08'")
     connection.execute(
@@ -374,7 +378,7 @@ def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None
     )
 
     report, evidence = _build_owner_report(
-        connection, logical_date=date(2026, 9, 17), slot="kr-1000", top_n=5,
+        connection, logical_date=date(2026, 9, 17), slot="kr-0800", top_n=5,
     )
 
     assert report.quality_status == "partial"
@@ -387,9 +391,9 @@ def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None
     }
     assert report.total_asset_krw == 1050
     assert inspect_owner_report_readiness(
-        connection, logical_date=date(2026, 9, 17), slot="kr-1000",
+        connection, logical_date=date(2026, 9, 17), slot="kr-0800",
     ) == {
-        "logical_date": "2026-09-17", "slot": "kr-1000", "status": "ready_partial",
+        "logical_date": "2026-09-17", "slot": "kr-0800", "status": "ready_partial",
         "quality_status": "partial", "prior_date": "2026-09-16",
         "blocker_codes": ["missing_prior_state"], "send_attempted": False,
     }
@@ -402,6 +406,7 @@ def test_report_readiness_reproduces_failed_prior_1000_without_sending() -> None
 def test_report_readiness_rejects_stale_fx_even_when_gold_was_marked_pass() -> None:
     """A historical pass label cannot launder a missing FX freshness check."""
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     observed = datetime(2026, 9, 8, 1, tzinfo=UTC)
     connection.execute(
         "INSERT INTO silver.instruments VALUES ('v1|NAS|TEST','NAS','TEST','Synthetic','equity','USD',NULL,?,NULL,'source','{}')",
@@ -412,15 +417,15 @@ def test_report_readiness_rejects_stale_fx_even_when_gold_was_marked_pass() -> N
             evaluation_date,evaluation_slot,account_id,instrument_id,aggregate_level,quantity,
             value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,as_of,
             input_watermarks,quality_status,lineage_hash
-        ) VALUES ('2026-09-08','kr-1000','acct-1','v1|NAS|TEST','position',1,
+        ) VALUES ('2026-09-08','kr-0800','acct-1','v1|NAS|TEST','position',1,
                   1300,NULL,NULL,NULL,NULL,?,'{"fx_date":"2026-09-01"}','pass','stale-fx-lineage')
     """, [observed])
 
     readiness = inspect_owner_report_readiness(
-        connection, logical_date=date(2026, 9, 8), slot="kr-1000",
+        connection, logical_date=date(2026, 9, 8), slot="kr-0800",
     )
     report, evidence = _build_owner_report(
-        connection, logical_date=date(2026, 9, 8), slot="kr-1000", top_n=5,
+        connection, logical_date=date(2026, 9, 8), slot="kr-0800", top_n=5,
     )
     message = render_owner_portfolio_report(report)
 
@@ -440,13 +445,14 @@ def test_report_readiness_rejects_stale_fx_even_when_gold_was_marked_pass() -> N
 
 def test_owner_report_exposes_only_scoped_krw_subset_when_account_is_missing() -> None:
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     connection.execute(
         "INSERT INTO silver.accounts VALUES ('acct-2','isa','isa','KRW',?,NULL,'{}')",
         [datetime(2026, 9, 1, tzinfo=UTC)],
     )
 
     report, evidence = _build_owner_report(
-        connection, logical_date=date(2026, 9, 8), slot="kr-1000", top_n=5,
+        connection, logical_date=date(2026, 9, 8), slot="kr-0800", top_n=5,
     )
     message = render_owner_portfolio_report(report)
 
@@ -472,12 +478,13 @@ def test_owner_report_requires_private_destination_approval_and_exclusive_mode()
 
 def test_owner_report_rejects_non_owner_destination_before_ledger_or_send() -> None:
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     client = RecordingPhotoClient()
     with pytest.raises(RuntimeError, match="verified owner destination"):
         run_owner_portfolio_report(
             connection,
             logical_date=date(2026, 9, 8),
-            slot="kr-1000",
+            slot="kr-0800",
             config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
             telegram_config=TelegramDeliveryConfig(
                 enabled=True, bot_token="test-token", chat_id="test-chat", destination_ref="dest.group",
@@ -492,10 +499,11 @@ def test_owner_report_rejects_non_owner_destination_before_ledger_or_send() -> N
 
 def test_ambiguous_owner_photo_send_is_sealed_and_never_replayed() -> None:
     connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     crashed = CrashAfterPhotoClient()
     kwargs = {
         "logical_date": date(2026, 9, 8),
-        "slot": "kr-1000",
+        "slot": "kr-0800",
         "config": OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
         "telegram_config": _telegram_config(),
     }
@@ -508,3 +516,28 @@ def test_ambiguous_owner_photo_send_is_sealed_and_never_replayed() -> None:
     assert recovered["outcome"] == "unknown"
     assert recovered["error_code"] == "PREVIOUS_SEND_AMBIGUOUS"
     assert len(crashed.photos) == 1 and not replacement.photos and not replacement.rich
+
+
+@pytest.mark.parametrize("slot", ["kr-1000", "kr-1430", "kr-1600"])
+def test_owner_report_does_not_send_outside_new_cadence(slot):
+    connection = _connection()
+    client = RecordingPhotoClient()
+    result = run_owner_portfolio_report(
+        connection, logical_date=date(2026, 9, 8), slot=slot,
+        config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        telegram_config=_telegram_config(), client=client,
+    )
+    assert result["status"] == "skipped" and not client.photos and not client.rich
+
+
+def test_afternoon_owner_report_uses_only_exact_1400_rows():
+    connection = _connection()
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-1400'")
+    client = RecordingPhotoClient()
+    result = run_owner_portfolio_report(
+        connection, logical_date=date(2026, 9, 8), slot="kr-1400",
+        config=OwnerPortfolioReportConfig(enabled=True, owner_destination_approved=True),
+        telegram_config=_telegram_config(), client=client,
+    )
+    assert result["outcome"] == "sent" and len(client.photos) == 1
+    assert "오후 2시" in client.photos[0].caption_html

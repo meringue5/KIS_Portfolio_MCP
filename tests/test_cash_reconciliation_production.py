@@ -123,7 +123,7 @@ def test_deploy_target_updates_only_reviewed_jobs_and_reuses_same_digest(monkeyp
         KIS_GCS_BUCKET='fixture',KIS_AUTH_BASE_URL='https://auth.test',KIS_RESOURCE_SERVER_URL='https://remote.test/mcp')
     assert m._deploy_wi071(args,env=env,project='fixture')==0 and remote==[image]
     updates=[c for c in commands if c[:4]==['gcloud','run','jobs','update']]
-    assert len(updates)==3 and all(c[c.index('--image')+1]==image for c in updates)
+    assert len(updates)==4 and all(c[c.index('--image')+1]==image for c in updates)
     assert all('KIS_CASH_RECONCILIATION_ENABLED=true' in c for c in updates)
     executes=[c for c in commands if c[:4]==['gcloud','run','jobs','execute']]
     assert len(executes)==1 and executes[0][4]=='kis-portfolio-wi071'

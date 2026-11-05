@@ -29,10 +29,11 @@ V2_COMMAND_TOOL_NAMES = (
 )
 PIPELINE_ALIAS = "portfolio-refresh"
 MANAGED_PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
-MANAGED_PIPELINE_VERSION = "1.0.0"
+MANAGED_PIPELINE_VERSION = "1.4.0"
 MANAGED_JOB_BY_SLOT = {
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
     "kr-1430": "kis-portfolio-owned-core-v2-1430",
+    "kr-1400": "kis-portfolio-owned-core-v2-1430",
     "kr-1600": "kis-portfolio-owned-core-v2-1600",
 }
 IDEMPOTENCY_TTL = timedelta(days=7)
@@ -40,6 +41,7 @@ IDEMPOTENCY_TTL = timedelta(days=7)
 
 def managed_pipeline_logical_run_id(logical_date: date, slot: str) -> str:
     """Return the warehouse logical key exposed as the pollable run handle."""
+    slot = "kr-1400" if slot == "kr-1430" else slot
     raw = (
         f"{MANAGED_PIPELINE_ID}|{MANAGED_PIPELINE_VERSION}|"
         f"{logical_date.isoformat()}|{slot}|all-accounts"
@@ -294,14 +296,15 @@ class RemoteCommandApplication:
         return CommandResponse.model_validate(response).model_dump(mode="json")
 
     async def _run_pipeline(self, request, actor, fingerprint) -> CommandResponse:
-        run_id = managed_pipeline_logical_run_id(request.logical_date, request.slot)
+        slot = "kr-1400" if request.slot == "kr-1430" else request.slot
+        run_id = managed_pipeline_logical_run_id(request.logical_date, slot)
         command = ManagedRunCommand(
             run_id=run_id,
             pipeline_id=MANAGED_PIPELINE_ID,
             pipeline_version=MANAGED_PIPELINE_VERSION,
-            job_name=MANAGED_JOB_BY_SLOT[request.slot],
+            job_name=MANAGED_JOB_BY_SLOT[slot],
             logical_date=request.logical_date,
-            slot=request.slot,
+            slot=slot,
             actor_id=actor.actor_id,
             client_id=actor.client_id,
             request_id=actor.request_id,

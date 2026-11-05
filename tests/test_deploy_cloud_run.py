@@ -1322,12 +1322,13 @@ def test_v2_jobs_reuse_one_digest_and_have_fixed_slot_args(monkeypatch):
     result = deploy_cloud_run._deploy_v2_core_jobs(
         args, env=env, project="grand-forge-279904", deploy_label="fixture-fixed-slot",
     )
-    assert result == 0 and len(commands) == 3
+    assert result == 0 and len(commands) == 4
     assert {command[command.index("--image") + 1] for command in commands} == {"image@sha256:one-build"}
     fixed_args = {command[command.index("--args") + 1] for command in commands}
     assert fixed_args == {
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1000,--partition-key,all-accounts",
-        "collect-owned-portfolio-v2,--date,today,--slot,kr-1430,--partition-key,all-accounts",
+        "collect-owned-portfolio-v2,--date,today,--slot,kr-1400,--partition-key,all-accounts",
+        "collect-owned-portfolio-v2,--date,today,--slot,kr-0800,--partition-key,all-accounts",
         "collect-owned-portfolio-v2,--date,today,--slot,kr-1600,--partition-key,all-accounts",
     }
 
@@ -1882,7 +1883,7 @@ def test_v2_schedulers_use_dedicated_invoker_instead_of_legacy_default(monkeypat
         args, env=env, project="grand-forge-279904",
     )
 
-    assert result == 0 and len(calls) == 3
+    assert result == 0 and len(calls) == 4
     assert {
         call["env"]["KIS_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT"]
         for call in calls
@@ -1930,7 +1931,7 @@ def test_wi029_s04_migrates_before_same_digest_core_and_verifies_private_restore
     assert "--args=--motherduck,--through,0013" in commands[0]
     assert commands[1][:5] == ["gcloud", "run", "jobs", "execute", "kis-portfolio-wi029-s04-migration"]
     core_deploys = [command for command in commands if "v2-core-batch" in " ".join(command)]
-    assert len(core_deploys) == 3
+    assert len(core_deploys) == 4
     assert {command[command.index("--image") + 1] for command in core_deploys} == {
         "image@sha256:" + "b" * 64
     }
@@ -1987,7 +1988,7 @@ def test_wi030_s02_pins_secrets_activates_once_and_reuses_one_core_digest(monkey
         if command[:4] == ["gcloud", "run", "jobs", "deploy"]
         and command[4].startswith("kis-portfolio-owned-core-v2-")
     ]
-    assert len(core) == 3
+    assert len(core) == 4
     assert {command[command.index("--image") + 1] for command in core} == {
         "image@sha256:" + "c" * 64
     }
@@ -2502,15 +2503,15 @@ def test_wi051_release_updates_all_canonical_runtimes_with_one_digest(monkeypatc
     )
 
     assert result == 0
-    assert len(commands) == 10
+    assert len(commands) == 11
     image_updates = [command for command in commands if "--image" in command]
-    assert len(image_updates) == 8
+    assert len(image_updates) == 9
     assert {command[command.index("--image") + 1] for command in image_updates} == {image}
-    assert [command[3] for command in commands[:6]] == ["update"] * 6
-    assert all(command[:3] == ["gcloud", "run", "jobs"] for command in commands[:6])
-    assert all(command[:3] == ["gcloud", "run", "services"] for command in commands[6:])
-    assert all("--revision-suffix" in command for command in commands[6:8])
-    assert all(command[3] == "update-traffic" for command in commands[8:])
+    assert [command[3] for command in commands[:7]] == ["update"] * 7
+    assert all(command[:3] == ["gcloud", "run", "jobs"] for command in commands[:7])
+    assert all(command[:3] == ["gcloud", "run", "services"] for command in commands[7:])
+    assert all("--revision-suffix" in command for command in commands[7:9])
+    assert all(command[3] == "update-traffic" for command in commands[9:])
     flattened = {part for command in commands for part in command}
     assert "execute" not in flattened
     assert "scheduler" not in flattened
@@ -2623,3 +2624,41 @@ def test_wi074_changes_only_domestic_job_image_and_executes_fixed_recovery(monke
     workflow = WORKFLOW_PATH.read_text()
     assert "github.event.inputs.target == 'wi074'" in workflow
     assert 'scripts/deploy_cloud_run.py wi074' in workflow
+
+
+@pytest.mark.parametrize("migration_failed", [False, True])
+def test_wi078_migrates_before_outbound_jobs_and_updates_schedulers_last(monkeypatch, migration_failed):
+    commands = []
+    stages = []
+    image = "image@sha256:" + "a" * 64
+    args = argparse.Namespace(target="wi078", region="asia-northeast3", dry_run=True,
+                              secret_mode="env-file", job=None)
+    env = dict(KIS_DB_MODE="motherduck", MOTHERDUCK_DATABASE="fixture", MOTHERDUCK_TOKEN="synthetic",
+               KIS_GCS_BUCKET="private-fixture", KIS_TELEGRAM_BOT_TOKEN_VERSION="2",
+               KIS_TELEGRAM_CHAT_ID_VERSION="1")
+    monkeypatch.setattr(deploy_cloud_run, "_build_release_image", lambda *a, **k: image)
+    def run(command, **kwargs):
+        commands.append(command)
+        if command[:4] == ["gcloud", "run", "jobs", "execute"]:
+            stages.append("migration")
+            return int(migration_failed)
+        return 0
+    monkeypatch.setattr(deploy_cloud_run, "_run", run)
+    def core(*args, **kwargs):
+        assert kwargs["release_image"] == image and kwargs["signal_slot_report_enabled"] is True
+        stages.append("core")
+        return 0
+    def remote(*args, **kwargs):
+        assert kwargs["release_image"] == image
+        stages.append("remote")
+        return 0
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_wi055_s01", core)
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_wi065", remote)
+    monkeypatch.setattr(deploy_cloud_run, "_deploy_v2_core_schedulers", lambda *a, **k: stages.append("schedulers") or 0)
+    result = deploy_cloud_run._deploy_wi078(args, env=env, project="fixture")
+    assert result == int(migration_failed)
+    assert stages == (["migration"] if migration_failed else ["migration", "core", "remote", "schedulers"])
+    assert "run-wi078-release,--bucket,private-fixture" in commands[0]
+    assert deploy_cloud_run.DEFAULT_V2_CORE_SCHEDULES["kr-0800"] == "0 8 * * 1-5"
+    assert deploy_cloud_run.DEFAULT_V2_CORE_SCHEDULES["kr-1400"] == "0 14 * * 1-5"
+    assert "kr-1430" not in deploy_cloud_run.DEFAULT_V2_CORE_JOBS

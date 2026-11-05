@@ -14,7 +14,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner = MigrationRunner(con)
     assert runner.apply() == [
         "0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-        "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022", "0023",
+        "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022", "0023", "0024",
     ]
     assert runner.apply() == []
     runner.require("0006")
@@ -33,7 +33,7 @@ def test_fresh_v2_migration_is_idempotent(tmp_path: Path) -> None:
     runner.require("0020")
     schemas = {row[0] for row in con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
     assert {"bronze", "silver", "gold", "control"} <= schemas
-    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 23
+    assert con.execute("SELECT count(*) FROM control.schema_migrations").fetchone()[0] == 24
     con.close()
 
 
@@ -149,3 +149,23 @@ def test_migration_failure_resumes_and_checksum_drift_fails(tmp_path: Path) -> N
     with pytest.raises(MigrationError, match="checksum mismatch"):
         runner.apply()
     con.close()
+
+
+def test_alert_slot_upgrade_preserves_history_and_keys():
+    con = duckdb.connect(":memory:")
+    runner = MigrationRunner(con)
+    runner.apply(through="0023")
+    sql = """INSERT INTO gold.alert_candidates VALUES (
+        ?, 'identity','rule','1.0.0','instrument','synthetic',date '2026-11-05',?,
+        'session',current_timestamp,'normal','normal','fingerprint','pass','lineage','{}','run',current_timestamp
+    )"""
+    con.execute(sql, ['legacy', 'kr-1430'])
+    before = con.execute("SELECT * FROM gold.alert_candidates").fetchall()
+    assert runner.apply() == ['0024']
+    assert con.execute("SELECT * FROM gold.alert_candidates").fetchall() == before
+    con.execute(sql, ['afternoon', 'kr-1400'])
+    with pytest.raises(duckdb.ConstraintException):
+        con.execute(sql, ['duplicate-logical-key', 'kr-1400'])
+    with pytest.raises(duckdb.ConstraintException):
+        con.execute(sql, ['bad-slot', 'invalid'])
+    assert runner.apply() == []

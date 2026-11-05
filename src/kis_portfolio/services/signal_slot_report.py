@@ -22,8 +22,8 @@ from kis_portfolio.services.telegram_delivery import TelegramDeliveryConfig
 
 
 PIPELINE_ID = "pipeline.telegram-delivery-v2"
-PIPELINE_VERSION = "1.5.0"
-ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
+PIPELINE_VERSION = "1.6.0"
+ALLOWED_SLOTS = frozenset({"kr-0800", "kr-1000", "kr-1400", "kr-1430", "kr-1600"})
 PARTITION_KEY = "owner-held-signal-status"
 
 
@@ -143,6 +143,7 @@ def _build_report(
         active_count=len(active_rows),
         quality_suppressed_count=quality_suppressed_count,
         active_items=tuple(items),
+        reused_session_count=int(evaluation.get("reused_session_count", 0)),
     )
     evidence = {
         "evaluation_run_id": evaluation_run_id,

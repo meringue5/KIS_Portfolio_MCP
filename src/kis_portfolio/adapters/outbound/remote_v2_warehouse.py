@@ -46,11 +46,13 @@ PUBLIC_PIPELINE_ALIASES = {
 }
 OWNED_PORTFOLIO_PIPELINE_ID = "pipeline.owned-portfolio-core-v2"
 KOREA_TZ = ZoneInfo("Asia/Seoul")
-OWNED_PORTFOLIO_KR_SLOTS = (
+LEGACY_OWNED_PORTFOLIO_KR_SLOTS = (
     ("kr-1000", time(10, 0)),
     ("kr-1430", time(14, 30)),
     ("kr-1600", time(16, 0)),
 )
+OWNED_PORTFOLIO_KR_SLOTS = (("kr-0800", time(8, 0)), ("kr-1000", time(10, 0)),
+                            ("kr-1400", time(14, 0)), ("kr-1600", time(16, 0)))
 PUBLIC_DATASET_ALIASES = {
     "price-bar-daily": "dataset.price-bar-daily",
 }
@@ -1003,11 +1005,19 @@ class WarehouseReadQueryPort:
                 "missing_run_count": None,
             }
 
+        cutover_rows = self._rows(
+            "SELECT min(logical_date) AS effective_date FROM control.pipeline_runs "
+            "WHERE pipeline_id=? AND slot='kr-0800' AND started_at<=?",
+            [OWNED_PORTFOLIO_PIPELINE_ID, cutoff],
+        )
+        effective = cutover_rows[0].get("effective_date") if cutover_rows else None
+        effective_date = date.fromisoformat(str(effective)) if effective is not None else None
         expected_keys: set[tuple[date, str]] = set()
         for trade_date, is_open in calendar_by_date.items():
             if not is_open:
                 continue
-            for slot, slot_time in OWNED_PORTFOLIO_KR_SLOTS:
+            slots = OWNED_PORTFOLIO_KR_SLOTS if effective_date is not None and trade_date >= effective_date else LEGACY_OWNED_PORTFOLIO_KR_SLOTS
+            for slot, slot_time in slots:
                 due_at = datetime.combine(trade_date, slot_time, tzinfo=KOREA_TZ).astimezone(UTC)
                 if window_start <= due_at <= cutoff:
                     expected_keys.add((trade_date, slot))

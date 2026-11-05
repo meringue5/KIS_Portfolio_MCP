@@ -42,7 +42,7 @@ PERMANENT_REAL_USE_VALID_FROM = datetime(2026, 10, 13, 0, 0, tzinfo=SEOUL).astim
 CALIBRATION_REPORT_HASH = "a9048d06d758d5923899f15f2a6a034e9bb5f2b7e9efc2844706df6ebf13dc8d"
 THRESHOLD_MULTIPLIER = Decimal("0.75")
 US_MARKETS = frozenset({"NAS", "NYS", "AMS"})
-KR_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600"})
+KR_SLOTS = frozenset({"kr-0800", "kr-1000", "kr-1400", "kr-1430", "kr-1600"})
 
 
 def _rule() -> AlertRuleVersion:
@@ -179,10 +179,12 @@ def permanent_real_use_rule() -> AlertRuleVersion:
 
 def _fixed_slot_time(logical_date: date, slot: str) -> datetime:
     wall = {
+        "kr-0800": time(8, 0),
         "kr-1000": time(10, 0),
+        "kr-1400": time(14, 0),
         "kr-1430": time(14, 30),
         "kr-1600": time(16, 0),
-        "us-close": time(10, 0),
+        "us-close": time(8, 0),
     }[slot]
     return datetime.combine(logical_date, wall, tzinfo=SEOUL).astimezone(UTC)
 
@@ -299,7 +301,7 @@ def _target_observations(
             subject_label=subject_label,
             market=market,
             volume_ratio20=(
-                None if evaluation_slot in {"kr-1000", "kr-1430"}
+                None if evaluation_slot in {"kr-1000", "kr-1400", "kr-1430"}
                 else item.volume_ratio20
             ),
         ))
@@ -361,7 +363,7 @@ def _production_value_context(observation: SignalObservation, decision: Any) -> 
         unavailable.append("episode_drawdown_not_ready")
     if observation.portfolio_contribution is None:
         unavailable.append("valuation_contribution_not_ready")
-    if observation.evaluation_slot in {"kr-1000", "kr-1430"}:
+    if observation.evaluation_slot in {"kr-1000", "kr-1400", "kr-1430"}:
         unavailable.append("intraday_volume_not_comparable")
     source_at = observation.input_known_at or observation.evaluation_at
     return {
@@ -450,10 +452,10 @@ def _run_signal_evaluation(
     """Evaluate one rule without performing an external network request."""
     if source_slot not in KR_SLOTS:
         raise ValueError("shadow source slot is not governed")
-    MigrationRunner(connection).require("0013")
+    MigrationRunner(connection).require("0024" if source_slot == "kr-1400" else "0013")
     repository = AlertWarehouseRepository(connection)
     repository.register_rule(rule)
-    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    slots = ("us-close",) if source_slot == "kr-0800" else (source_slot,)
     run_id = hashlib.sha256(
         f"signal-evaluation-v1|{logical_date}|{source_slot}|{rule.version}".encode()
     ).hexdigest()
@@ -607,7 +609,7 @@ def run_external_canary_signal_evaluation(
 ) -> dict[str, Any]:
     """Create bounded external candidates; Telegram delivery remains a later stage."""
     rule = canary_rule()
-    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    slots = ("us-close",) if source_slot == "kr-0800" else (source_slot,)
     evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
     if all(value < rule.valid_from for value in evaluation_times):
         return {
@@ -644,7 +646,7 @@ def run_external_real_use_signal_evaluation(
 ) -> dict[str, Any]:
     """Create preserved DEC-053 bounded release-candidate alerts."""
     rule = real_use_rule()
-    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    slots = ("us-close",) if source_slot == "kr-0800" else (source_slot,)
     evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
     if all(value < rule.valid_from for value in evaluation_times):
         return {
@@ -681,7 +683,7 @@ def run_external_permanent_signal_evaluation(
 ) -> dict[str, Any]:
     """Create DEC-061 permanent held-position Rich Message candidates."""
     rule = permanent_real_use_rule()
-    slots = (source_slot, "us-close") if source_slot == "kr-1000" else (source_slot,)
+    slots = ("us-close",) if source_slot == "kr-0800" else (source_slot,)
     evaluation_times = tuple(_fixed_slot_time(logical_date, slot) for slot in slots)
     if all(value < rule.valid_from for value in evaluation_times):
         return {

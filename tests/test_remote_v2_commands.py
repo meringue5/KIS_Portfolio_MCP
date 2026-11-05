@@ -324,7 +324,7 @@ def test_managed_pipeline_accepts_only_fixed_alias_and_slots_and_returns_run_id(
     assert len(managed.commands) == 1
     command = managed.commands[0]
     assert command.pipeline_id == "pipeline.owned-portfolio-core-v2"
-    assert command.pipeline_version == "1.0.0"
+    assert command.pipeline_version == "1.4.0"
     assert command.job_name == "kis-portfolio-owned-core-v2-1430"
     assert not hasattr(command, "args")
     assert not hasattr(command, "environment")
@@ -568,3 +568,18 @@ def test_v2_command_catalog_is_the_only_production_surface():
     assert "The V1 Remote MCP public surface is retired" in remote_source
     assert "_build_v2_runtime_server" in remote_source
     assert "RemoteCommandApplication" in remote_source
+
+
+def test_legacy_afternoon_request_keeps_actual_job_slot_and_pollable_handle():
+    application, managed, _ = _command_application()
+    response = asyncio.run(application.execute("run-managed-pipeline", dict(
+        logical_date=date(2026, 9, 11), slot="kr-1430", idempotency_key="afternoon-alias-0001"), COMMAND_ACTOR))
+    command = managed.commands[0]
+    assert command.slot == "kr-1400" and command.pipeline_version == "1.4.0"
+    assert command.job_name == "kis-portfolio-owned-core-v2-1430"
+    assert response["run_id"] == managed_pipeline_logical_run_id(date(2026, 9, 11), "kr-1400")
+    from kis_portfolio.platform.pipeline import ManagedPipelineRunner
+    from kis_portfolio.services.v2_collection import PIPELINE_ID, PIPELINE_VERSION
+    from types import SimpleNamespace
+    assert response["run_id"] == ManagedPipelineRunner.logical_key(
+        SimpleNamespace(pipeline_id=PIPELINE_ID, version=PIPELINE_VERSION), date(2026, 9, 11), "kr-1400", "all-accounts")
