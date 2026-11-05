@@ -144,6 +144,7 @@ class HeldSignalSlotReport:
     active_count: int
     quality_suppressed_count: int
     active_items: Sequence[HeldSignalSlotItem] = ()
+    reused_session_count: int = 0
 
 
 def _safe_text(value: object, *, field: str, maximum: int, forbid_absolute: bool = False) -> str:
@@ -175,7 +176,7 @@ def _bounded_percent(value: Decimal, *, field: str) -> str:
 
 def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
     """Render a scheduled total-asset digest without absolute assets or account data."""
-    slot_labels = {"kr-1000": "오전 10시", "kr-1600": "오후 4시"}
+    slot_labels = {"kr-0800": "오전 8시", "kr-1000": "오전 10시", "kr-1400": "오후 2시", "kr-1600": "오후 4시"}
     slot_label = slot_labels.get(digest.slot)
     if slot_label is None:
         raise UnsafeTelegramPayload("total-asset digest slot is not allowlisted")
@@ -256,7 +257,9 @@ def render_total_asset_digest(digest: TotalAssetDigest) -> TelegramRichMessage:
 def render_held_signal_slot_report(report: HeldSignalSlotReport) -> TelegramRichMessage:
     """Render a bounded per-slot status without weakening detailed-alert de-duplication."""
     slot_labels = {
+        "kr-0800": "오전 8시",
         "kr-1000": "오전 10시",
+        "kr-1400": "오후 2시",
         "kr-1430": "오후 2시 30분",
         "kr-1600": "오후 4시",
     }
@@ -265,7 +268,7 @@ def render_held_signal_slot_report(report: HeldSignalSlotReport) -> TelegramRich
         raise UnsafeTelegramPayload("signal slot report has an invalid slot or source time")
     counts = (
         report.evaluated_count, report.changed_count, report.active_count,
-        report.quality_suppressed_count,
+        report.quality_suppressed_count, report.reused_session_count,
     )
     if any(value < 0 or value > 1000 for value in counts):
         raise UnsafeTelegramPayload("signal slot report counts are out of bounds")
@@ -284,7 +287,7 @@ def render_held_signal_slot_report(report: HeldSignalSlotReport) -> TelegramRich
     }
     transition_labels = {
         None: "유지", "entered": "신규", "reentered": "재발생", "updated": "변화",
-        "escalated": "악화", "deescalated": "완화", "recovered": "회복",
+        "escalated": "악화", "deescalated": "완화", "recovered": "이전 경고 조건 해제",
     }
     rows: list[str] = []
     for item in report.active_items:
@@ -302,7 +305,7 @@ def render_held_signal_slot_report(report: HeldSignalSlotReport) -> TelegramRich
             change = f" {'+' if item.change_percent > 0 else ''}{value}%"
         signal = reason_labels.get(item.reason_code, "상태 변화")
         rows.append(
-            f"{severity[0]} {escape(label)}{escape(change)} · {escape(signal)} · "
+            f"{severity[0]} {severity[1]} · {escape(label)}{escape(change)} · {escape(signal)} · "
             f"{escape(transition)} · {escape(market)}"
         )
 
@@ -321,6 +324,10 @@ def render_held_signal_slot_report(report: HeldSignalSlotReport) -> TelegramRich
         hidden = report.active_count - len(rows)
         if hidden:
             body.append(f"<p>외 {hidden}종목은 DB에 보존했습니다.</p>")
+    elif report.reused_session_count:
+        body.append("<p>새로 평가할 미국장 마감 세션이 없습니다. 직전 세션 신호를 재발송하지 않았습니다.</p>")
+    elif report.quality_suppressed_count:
+        body.append("<p>자료 품질로 평가를 보류했습니다. 경고가 없다고 판단할 수 없습니다.</p>")
     else:
         body.append("<p>현재 주의 이상 신호가 없습니다.</p>")
     if report.changed_count == 0:
@@ -387,7 +394,7 @@ def _validate_allocations(
 
 def render_owner_portfolio_report(report: OwnerPortfolioReport) -> TelegramRichMessage | TelegramPhotoMessage:
     """Render complete or explicitly scoped owner values after boundary validation."""
-    slot_labels = {"kr-1000": "오전 10시", "kr-1600": "오후 4시"}
+    slot_labels = {"kr-0800": "오전 8시", "kr-1000": "오전 10시", "kr-1400": "오후 2시", "kr-1600": "오후 4시"}
     slot_label = slot_labels.get(report.slot)
     if slot_label is None or report.source_at.tzinfo is None:
         raise UnsafeTelegramPayload("owner report slot and source_at must be valid")
@@ -618,7 +625,7 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
     if source_at.tzinfo is None:
         raise UnsafeTelegramPayload("source_at must be timezone-aware")
     source_at = source_at.astimezone(_SEOUL)
-    severity_icon = {"주의": "🟡", "경고": "🟠", "긴급": "🔴"}[severity]
+    severity_icon = "⚪" if candidate.transition_type == "recovered" else {"주의": "🟡", "경고": "🟠", "긴급": "🔴"}[severity]
     signal_labels = {
         "price_shock_up": "급등 신호", "price_shock_down": "급락 신호",
         "sma20_downward_cross": "20일선 하향 이탈", "bearish_sma20_regime": "20일선 하회",
@@ -627,10 +634,10 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         "thread_stop_breach": "손절 기준 이탈", "thread_risk_ratio": "계획손실 경고",
     }
     reasons = [str(value) for value in context.get("reason_codes", [])]
-    signal = signal_labels.get(reasons[0], "상태 변화")
+    signal = "현재 경고 조건 없음" if candidate.transition_type == "recovered" else signal_labels.get(reasons[0], "상태 변화")
     transition_suffix = {
         "주의 신호 신규 감지": "신규", "주의 신호 재발생": "재발생",
-        "심각도 상승": "강도 상승", "상태 변화": "상태 변화", "정상화": "정상화",
+        "심각도 상승": "강도 상승", "상태 변화": "상태 변화", "이전 경고 조건 해제": "이전 경고 조건 해제",
     }[transition]
     headline_change = ""
     if change is not None:
@@ -686,7 +693,8 @@ def _production_value_message(candidate: TelegramDispatchCandidate, severity: st
         )
     return (
         f"<h3>{severity_icon} {escape(subject)}{escape(headline_change)}</h3>"
-        f"<p><b>{escape(signal)} · {escape(transition_suffix)}</b><br>{escape(summary)}</p>"
+        f"<p>{escape('경고 조건 해제 · 반등·추세 전환을 확인한 것은 아닙니다.' if candidate.transition_type == 'recovered' else '경고 수준: ' + severity)}</p>"
+        f"<p><b>{escape(signal)} · {escape(transition_suffix)}</b><br>{escape('직전 알림의 경고 조건이 이번 평가에서는 충족되지 않았습니다.' if candidate.transition_type == 'recovered' else summary)}</p>"
         f"{table}{details}"
         f"<footer>{source_at:%Y-%m-%d %H:%M} · {escape(market)} {escape(asset_type)}</footer>"
     )
@@ -725,7 +733,7 @@ def render_telegram_alert(candidate: TelegramDispatchCandidate) -> TelegramRichM
         "reentered": "주의 신호 재발생",
         "escalated": "심각도 상승",
         "updated": "상태 변화",
-        "recovered": "정상화",
+        "recovered": "이전 경고 조건 해제",
     }.get(candidate.transition_type, "상태 변화")
     if context.get("presentation_version") in {
         "production-value-v1", "production-value-v2", "production-value-v3",
@@ -737,9 +745,10 @@ def render_telegram_alert(candidate: TelegramDispatchCandidate) -> TelegramRichM
             context.get("summary"), field="summary", maximum=500, forbid_absolute=True,
         )
         message = (
-            f"<h3>{escape({'주의': '🟡', '경고': '🟠', '긴급': '🔴'}[severity])} "
+            f"<h3>{escape('⚪' if candidate.transition_type == 'recovered' else {'주의': '🟡', '경고': '🟠', '긴급': '🔴'}[severity])} "
             f"{escape(subject)}{escape(change_line.replace(chr(10) + '변화율:', ''))}</h3>"
             f"<p><b>{escape(transition)}</b><br>{escape(summary)}</p>"
+            f"<p>{escape('반등·추세 전환을 확인한 것은 아닙니다.' if candidate.transition_type == 'recovered' else '경고 수준: ' + severity)}</p>"
             f"<footer>{candidate.evaluation_at.astimezone(_SEOUL):%Y-%m-%d %H:%M}</footer>"
         )
     # Every dynamic string and numeric value is validated before interpolation.

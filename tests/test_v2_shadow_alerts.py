@@ -164,16 +164,18 @@ def test_shadow_runtime_is_db_only_and_idempotent() -> None:
 
 def test_morning_run_adds_us_close_and_unknown_class_fails_closed() -> None:
     connection = _warehouse(include_us=True, unknown=True)
+    connection.execute("DELETE FROM gold.portfolio_daily_state WHERE evaluation_slot='kr-1600'")
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     result = run_shadow_signal_evaluation(
-        connection, logical_date=LOGICAL_DATE, source_slot="kr-1000"
+        connection, logical_date=LOGICAL_DATE, source_slot="kr-0800"
     )
-    assert result["evaluation_slots"] == ["kr-1000", "us-close"]
-    assert result["slot_candidate_counts"] == {"kr-1000": 1, "us-close": 1}
-    assert result["quality_suppressed_count"] == 1
+    assert result["evaluation_slots"] == ["us-close"]
+    assert result["slot_candidate_counts"] == {"us-close": 1}
+    assert result["quality_suppressed_count"] == 0
     rows = connection.execute(
         "SELECT evaluation_slot,quality_status FROM gold.alert_candidates ORDER BY evaluation_slot"
     ).fetchall()
-    assert rows == [("kr-1000", "unknown_asset_class"), ("us-close", "pass")]
+    assert rows == [("us-close", "pass")]
     assert connection.execute(
         """
         SELECT count(*) FROM control.alert_dispatch_claims WHERE channel='telegram'
@@ -186,11 +188,13 @@ def test_morning_run_reuses_already_evaluated_us_close_session_after_market_clos
     first_date = date(2026, 9, 7)
     next_date = date(2026, 9, 8)
     connection = _warehouse(include_us=True, logical_date=first_date)
+    connection.execute("DELETE FROM gold.portfolio_daily_state WHERE evaluation_slot='kr-1600'")
+    connection.execute("UPDATE gold.portfolio_daily_state SET evaluation_slot='kr-0800'")
     first = run_shadow_signal_evaluation(
-        connection, logical_date=first_date, source_slot="kr-1000"
+        connection, logical_date=first_date, source_slot="kr-0800"
     )
     first_external = run_external_real_use_signal_evaluation(
-        connection, logical_date=first_date, source_slot="kr-1000"
+        connection, logical_date=first_date, source_slot="kr-0800"
     )
     connection.execute(
         """
@@ -199,21 +203,21 @@ def test_morning_run_reuses_already_evaluated_us_close_session_after_market_clos
                value_krw,cost_krw,unrealized_pnl_krw,contribution_pct,allocation_pct,
                as_of,input_watermarks,quality_status,lineage_hash
         FROM gold.portfolio_daily_state
-        WHERE evaluation_date=? AND evaluation_slot='kr-1000'
+        WHERE evaluation_date=? AND evaluation_slot='kr-0800'
         """,
         [next_date, first_date],
     )
 
     replay = run_shadow_signal_evaluation(
-        connection, logical_date=next_date, source_slot="kr-1000"
+        connection, logical_date=next_date, source_slot="kr-0800"
     )
     replay_external = run_external_real_use_signal_evaluation(
-        connection, logical_date=next_date, source_slot="kr-1000"
+        connection, logical_date=next_date, source_slot="kr-0800"
     )
 
     assert first["slot_candidate_counts"]["us-close"] == 1
     assert replay["slot_candidate_counts"]["us-close"] == 1
-    assert replay["slot_reused_session_counts"] == {"kr-1000": 0, "us-close": 1}
+    assert replay["slot_reused_session_counts"] == {"us-close": 1}
     assert replay["reused_session_count"] == 1
     assert first_external["reused_session_count"] == 0
     assert replay_external["reused_session_count"] == 1

@@ -208,7 +208,7 @@ class AlertCalibrationWarehouse:
         marker_slots: set[str] = set()
         for marker_date, source_slot in marker_rows:
             marker_slots.add(f"evaluation:{marker_date}|{source_slot}")
-            if source_slot == "kr-1000":
+            if source_slot in {"kr-0800", "kr-1000"}:
                 marker_slots.add(f"evaluation:{marker_date}|us-close")
         observed_set: set[str] = set()
         for key in terminal_candidate_slots | marker_slots:

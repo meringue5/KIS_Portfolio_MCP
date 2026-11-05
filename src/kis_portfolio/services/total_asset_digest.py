@@ -44,7 +44,8 @@ PIPELINE_VERSION = "1.0.0"
 ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1600"})
 PARTITION_KEY = "owner-consolidated"
 V2_PIPELINE_ID = "pipeline.telegram-total-asset-report-v2"
-V2_PIPELINE_VERSION = "2.4.0"
+V2_PIPELINE_VERSION = "2.5.0"
+OWNER_REPORT_SLOTS = frozenset({"kr-0800", "kr-1400"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -518,7 +519,7 @@ def inspect_owner_report_readiness(
     connection: Any, *, logical_date: date, slot: str,
 ) -> dict[str, object]:
     """Read-only, value-free preview of the exact scheduled owner-report gate."""
-    if slot not in ALLOWED_SLOTS:
+    if slot not in OWNER_REPORT_SLOTS:
         raise ValueError("slot is not an owner-report slot")
     report, evidence = _build_owner_report(
         connection, logical_date=logical_date, slot=slot, top_n=5,
@@ -690,7 +691,7 @@ def run_owner_portfolio_report(
     config.validate()
     if not config.enabled:
         return {"status": "disabled", "attempt_count": 0}
-    if slot not in ALLOWED_SLOTS:
+    if slot not in OWNER_REPORT_SLOTS:
         return {"status": "skipped", "reason": "slot_not_enabled", "attempt_count": 0}
     telegram_config = telegram_config or TelegramDeliveryConfig.from_env()
     telegram_config.validate_for_send()

@@ -48,16 +48,16 @@ trigger_policy = "fixed-argument scale-to-zero managed Job and Scheduler; owner 
 
 [[contracts]]
 id = "pipeline.owned-portfolio-core-v2"
-version = "1.3.0"
+version = "1.4.0"
 status = "approved"
 owner = "owner"
 description = "현재 보유 국내·미국 계좌·가격·환율을 immutable observation과 canonical daily state로 만드는 managed pipeline; 거래 수집은 독립 pipeline이 소유한다."
-decision_refs = ["DEC-003", "DEC-005", "DEC-015", "DEC-030", "DEC-044", "DEC-057", "DEC-060", "ADR-029", "ADR-032"]
+decision_refs = ["DEC-003", "DEC-005", "DEC-015", "DEC-030", "DEC-044", "DEC-057", "DEC-060", "ADR-029", "ADR-032", "DEC-064"]
 source_ids = ["source.kis-open-api", "source.korea-eximbank-open-api", "source.portfolio-owner", "source.us-exchange-calendars"]
 input_dataset_ids = []
 output_dataset_ids = ["dataset.portfolio-position-observation", "dataset.instrument-master", "dataset.price-bar-daily", "dataset.fx-rate-fallback-observation", "dataset.fx-rate-daily", "dataset.trade-journal", "dataset.portfolio-daily-state"]
 stages = ["collect", "land", "normalize", "fallback-quarantine", "reconcile", "quality", "publish"]
-schedule_policy = "KR 10:00, 14:30 and 16:00 KST slots plus next Korean-morning U.S. close; local fixture rehearsal has no schedule"
+schedule_policy = "KST 08:00 full portfolio collection plus U.S. close signals; domestic 10:00, 14:00 and 16:00; exact-slot evidence required"
 calendar_gate = "approved KR/US market calendar and explicit closed/early-close state"
 idempotency_key = "pipeline id, version, logical date, slot and account or instrument partition"
 timeout_policy = "bounded per stage and run; no request-scoped long execution"
@@ -348,16 +348,16 @@ trigger_policy = "repository-local fixture in S01 through S04; S05 is read-only 
 
 [[contracts]]
 id = "pipeline.alert-evaluation-v2"
-version = "1.5.0"
+version = "1.4.0"
 status = "approved"
 owner = "owner"
 description = "승인 metric contract를 point-in-time price/state에서 평가하고 immutable rule version, state transition과 DB-only shadow claim을 기록한다."
-decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051", "DEC-052", "DEC-053", "DEC-061"]
+decision_refs = ["DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-049", "DEC-051", "DEC-052", "DEC-053", "DEC-061", "DEC-064"]
 source_ids = []
 input_dataset_ids = ["dataset.instrument-master", "dataset.price-bar-daily", "dataset.metric-value", "dataset.portfolio-daily-state"]
 output_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger", "dataset.alert-calibration-evidence"]
 stages = ["resolve-rule", "select-point-in-time-input", "evaluate", "quality", "transition", "claim-shadow", "record-shadow-slot-completion"]
-schedule_policy = "fixed V2 scale-to-zero jobs evaluate 10:00, 14:30 and 16:00 KST; kr-1000 also evaluates the exact prior U.S. close session"
+schedule_policy = "08:00 evaluates only exact prior U.S. close; 10:00, 14:00 and 16:00 evaluate domestic holdings"
 calendar_gate = "inherits the governed portfolio state market session and quality status; U.S. close uses its exact session key once"
 idempotency_key = "rule id/version, opaque subject, market session key and evaluation slot"
 timeout_policy = "bounded held-subject shards in an existing scale-to-zero job"
@@ -394,16 +394,16 @@ trigger_policy = "manual bounded replay and existing Scheduler shadow slots; ext
 
 [[contracts]]
 id = "pipeline.telegram-delivery-v2"
-version = "1.5.0"
+version = "1.6.0"
 status = "approved"
 owner = "owner"
-description = "owner-approved 상세 alert transition을 once-only Rich Message로 전달하고 DEC-063의 10:00·14:30·16:00 통합 보유종목 시그널 현황을 date-slot당 한 번 전달한다."
-decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-050", "DEC-051", "DEC-052", "DEC-053", "DEC-061", "DEC-063"]
+description = "owner-approved 상세 alert transition을 once-only Rich Message로 전달하고 DEC-064의 08:00·10:00·14:00·16:00 통합 보유종목 시그널 현황을 date-slot당 한 번 전달한다."
+decision_refs = ["DEC-006", "DEC-026", "DEC-027", "DEC-028", "DEC-030", "DEC-038", "DEC-041", "DEC-044", "DEC-050", "DEC-051", "DEC-052", "DEC-053", "DEC-061", "DEC-063", "DEC-064"]
 source_ids = []
 input_dataset_ids = ["dataset.alert-candidate", "dataset.alert-delivery-ledger", "dataset.alert-calibration-evidence"]
 output_dataset_ids = ["dataset.alert-delivery-ledger", "dataset.pipeline-run-evidence", "dataset.pipeline-stage-evidence"]
 stages = ["verify-owner-approval", "render-rich-message", "redact", "claim", "send-rich-message", "record-outcome", "build-slot-report", "send-slot-report"]
-schedule_policy = "composed after the existing 10:00, 14:30 and 16:00 KST monitoring jobs; detailed transitions remain event-de-duplicated while one consolidated status is attempted at every slot; U.S. close remains morning-only"
+schedule_policy = "08:00 overseas close status; 10:00, 14:00, 16:00 domestic status; event details retain session deduplication"
 calendar_gate = "inherits the exact candidate evaluation slot and session; no independent delivery schedule"
 idempotency_key = "detailed alert uses candidate id, channel and opaque destination; consolidated status uses pipeline version, logical date, slot and owner-held-signal-status partition"
 timeout_policy = "one bounded HTTPS sendRichMessage request per acquired claim; post-send timeout is terminal unknown and never falls back to sendMessage"
@@ -440,16 +440,16 @@ trigger_policy = "DEC-054 owner-approved activation through the manual wi055 dep
 
 [[contracts]]
 id = "pipeline.telegram-total-asset-report-v2"
-version = "2.4.0"
+version = "2.5.0"
 status = "approved"
 owner = "owner"
 description = "owner 전용 정확 총자산 photo를 전달하며 현재 합계가 완전하면 비교 품질과 무관하게 동일 photo에서 총자산·계좌·자산 구성을 유지한다; 현재 합계가 불완전할 때만 명시적 KRX/KRW 부분합 Rich Message로 축소한다."
-decision_refs = ["DEC-055", "DEC-057"]
+decision_refs = ["DEC-055", "DEC-057", "DEC-064"]
 source_ids = []
 input_dataset_ids = ["dataset.portfolio-daily-state", "dataset.market-calendar", "dataset.fx-rate-daily"]
 output_dataset_ids = ["dataset.pipeline-run-evidence", "dataset.pipeline-stage-evidence"]
 stages = ["build-report", "send-owner-report"]
-schedule_policy = "composed after existing kr-1000 and kr-1600 V2 core Jobs; no independent Scheduler and kr-1430 is excluded"
+schedule_policy = "composed after kr-0800 and kr-1400 owned-core Jobs; 10:00 and 16:00 reports disabled"
 calendar_gate = "current state uses the exact requested slot; comparison uses the latest earlier open KRX date at the same slot and may degrade independently"
 idempotency_key = "pipeline version, logical date, evaluation slot and owner-consolidated partition shared by complete and partial presentation"
 timeout_policy = "one bounded Telegram sendPhoto or sendRichMessage request; an interrupted or ambiguous provider request is sealed terminal unknown"

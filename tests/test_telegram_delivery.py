@@ -34,7 +34,7 @@ NOW = datetime(2026, 8, 30, 1, tzinfo=UTC)
 
 @pytest.mark.parametrize(
     ("slot", "label"),
-    [("kr-1000", "오전 10시"), ("kr-1430", "오후 2시 30분"), ("kr-1600", "오후 4시")],
+    [("kr-0800", "오전 8시"), ("kr-1000", "오전 10시"), ("kr-1400", "오후 2시"), ("kr-1600", "오후 4시")],
 )
 def test_consolidated_signal_status_has_one_allowlisted_message_for_every_slot(
     slot: str, label: str,
@@ -333,6 +333,16 @@ def test_production_value_renderer_is_owner_readable_and_explicit_about_unavaila
     assert message.count("2026-08-30 09:55") == 1 and "KST" not in message
     assert "규칙:" not in message and "sma20_downward_cross" not in message
 
+    from dataclasses import replace
+    released = replace(rich, transition_type="recovered", delivery_severity="critical")
+    released_html = render_telegram_alert(released).html
+    assert "⚪" in released_html and "🔴" not in released_html
+    assert "이전 경고 조건 해제" in released_html and "정상화" not in released_html
+    assert "반등·추세 전환을 확인한 것은 아닙니다" in released_html
+    assert "이번 평가에서는 충족되지 않았습니다" in released_html
+    assert "20일선 하향 이탈 · 이전 경고" not in released_html
+    assert "경고 수준: 주의" in message
+
     missing_reason = rich.__class__(
         **{**{field: getattr(rich, field) for field in rich.__dataclass_fields__},
            "public_context": {**rich.public_context, "unavailable_codes": []}},
@@ -597,3 +607,16 @@ def test_config_repr_does_not_expose_runtime_secrets() -> None:
     representation = repr(_config())
 
     assert "bot-secret" not in representation and "private-chat" not in representation
+
+
+@pytest.mark.parametrize("reused,suppressed,expected", [
+    (2, 0, "새로 평가할 미국장 마감 세션이 없습니다"),
+    (0, 2, "경고가 없다고 판단할 수 없습니다"),
+])
+def test_no_new_session_and_quality_failure_do_not_claim_no_warning(reused, suppressed, expected):
+    report = HeldSignalSlotReport(slot="kr-0800", source_at=NOW,
+        evaluated_count=suppressed, changed_count=0, active_count=0,
+        quality_suppressed_count=suppressed, reused_session_count=reused)
+    html = render_held_signal_slot_report(report).html
+    assert expected in html
+    assert "현재 주의 이상 신호가 없습니다" not in html

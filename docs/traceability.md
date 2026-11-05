@@ -198,3 +198,5 @@ boundaries remain unchanged.
 
 WI-077-S03 applies the operating knowledge structure to [Project OS](governance/project-operating-system.md)
 and its Skill. See [work and evidence](work-items/WI-077-operational-documentation-navigation.md#wi-077-s03--steady-state-project-os-alignment).
+
+- [WI-078 — Telegram wording and 08:00/14:00 reports](work-items/WI-078-telegram-message-and-schedule.md) — DEC-064; actual-client acceptance pending.

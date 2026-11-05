@@ -54,13 +54,15 @@ DEFAULT_WI066_JOB = "kis-portfolio-wi066"
 DEFAULT_WI066_TASK_TIMEOUT = "3600s"
 DEFAULT_WI066_MEMORY = "2Gi"
 DEFAULT_V2_CORE_JOBS = {
+    "kr-0800": "kis-portfolio-owned-core-v2-0800",
     "kr-1000": "kis-portfolio-owned-core-v2-1000",
-    "kr-1430": "kis-portfolio-owned-core-v2-1430",
+    "kr-1400": "kis-portfolio-owned-core-v2-1430",
     "kr-1600": "kis-portfolio-owned-core-v2-1600",
 }
 DEFAULT_V2_CORE_SCHEDULES = {
+    "kr-0800": "0 8 * * 1-5",
     "kr-1000": "0 10 * * 1-5",
-    "kr-1430": "30 14 * * 1-5",
+    "kr-1400": "0 14 * * 1-5",
     "kr-1600": "0 16 * * 1-5",
 }
 DEFAULT_AUTH_MIN_INSTANCES = "0"
@@ -367,6 +369,7 @@ def _build_v2_pipeline_env(env: dict[str, str], project: str) -> dict[str, str]:
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_ENABLED",
         "KIS_TELEGRAM_TOTAL_ASSET_REPORT_V2_ENABLED",
         "KIS_TELEGRAM_SIGNAL_SLOT_REPORT_ENABLED",
+        "KIS_CASH_RECONCILIATION_ENABLED",
         "KIS_TELEGRAM_OWNER_DESTINATION_APPROVED",
         "KIS_TELEGRAM_DESTINATION_REF",
     ):
@@ -2418,13 +2421,14 @@ def _deploy_wi055_s01(
     smoke_label: str = "wi055-s01-photo-transport-smoke",
     signal_slot_report_enabled: bool = False,
     smoke_command_name: str = "send-telegram-photo-transport-smoke",
+    release_image: str | None = None,
 ) -> int:
     """Atomically replace the legacy digest with the approved owner-only photo report."""
     for key in ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"):
         if not env.get(key, "").strip().isdigit():
             print(f"Missing or non-numeric pinned secret version: {key}")
             return 1
-    image = _build_release_image(args, project=project)
+    image = release_image or _build_release_image(args, project=project)
     if not image:
         print("Failed to resolve the build-once image digest.")
         return 1
@@ -2508,6 +2512,71 @@ def _deploy_wi055_s03(
         deploy_label="wi055-s03-top5-impact",
         smoke_label="wi055-s03-photo-transport-smoke",
     )
+
+
+def _deploy_wi078(args: argparse.Namespace, *, env: dict[str, str], project: str) -> int:
+    """Private recovery/migration, one-image Jobs, Remote handle compatibility, then schedulers."""
+    required = ["KIS_DB_MODE", "MOTHERDUCK_DATABASE", "MOTHERDUCK_TOKEN", "KIS_GCS_BUCKET"]
+    if (_validate_required(env, required, secret_mode=args.secret_mode)
+            or env.get("KIS_DB_MODE") != "motherduck"
+            or any(not env.get(key, "").isdigit() for key in
+                   ("KIS_TELEGRAM_BOT_TOKEN_VERSION", "KIS_TELEGRAM_CHAT_ID_VERSION"))):
+        print("WI-078 requires MotherDuck, private backup and pinned Telegram configuration.")
+        return 1
+    env = dict(env)
+    if not args.dry_run:
+        current_flags = []
+        for slot in ("kr-1000", "kr-1400", "kr-1600"):
+            job = env.get(f"KIS_V2_CORE_JOB_{slot.split('-')[1]}", DEFAULT_V2_CORE_JOBS[slot])
+            description = _run_capture(["gcloud", "run", "jobs", "describe", job,
+                "--region", args.region, "--project", project, "--format=json"], dry_run=False)
+            if description.returncode:
+                return 1
+            try:
+                entries = _first_nested_value(json.loads(description.stdout), "env") or []
+                values = {entry["name"]: entry.get("value") for entry in entries}
+                value = values.get("KIS_CASH_RECONCILIATION_ENABLED", "false")
+            except (ValueError, TypeError, KeyError):
+                return 1
+            if value not in {"true", "false"}:
+                return 1
+            current_flags.append(value)
+        if len(set(current_flags)) != 1:
+            print("WI-078 requires review of inconsistent existing cash feature flags.")
+            return 1
+        env["KIS_CASH_RECONCILIATION_ENABLED"] = current_flags[0]
+    image = _build_release_image(args, project=project)
+    if not image:
+        return 1
+    plain, secrets = _split_runtime_env(
+        env=env, payload={"KIS_DB_MODE": "motherduck",
+            "MOTHERDUCK_DATABASE": env["MOTHERDUCK_DATABASE"],
+            "KIS_RELEASE_GIT_SHA": os.getenv("GITHUB_SHA", "") or _git_stdout(["rev-parse", "HEAD"]),
+            "KIS_RELEASE_IMAGE_DIGEST": image.rsplit("@", 1)[-1]}, required=required,
+        secret_mode=args.secret_mode, include_account_secrets=False)
+    path = _write_env_yaml(plain)
+    job = "kis-portfolio-wi078-migration"
+    sa = env.get("KIS_CLOUD_RUN_V2_PIPELINE_SERVICE_ACCOUNT", f"kis-portfolio-pipeline@{project}.iam.gserviceaccount.com")
+    try:
+        if _run(["gcloud", "run", "jobs", "deploy", job, "--image", image,
+                 "--region", args.region, "--env-vars-file", path,
+                 "--command", "kis-portfolio-batch", "--args", f"run-wi078-release,--bucket,{env['KIS_GCS_BUCKET']}",
+                 "--tasks", "1", "--parallelism", "1", "--task-timeout", "3600s", "--memory", "2Gi",
+                 "--max-retries", "0", "--service-account", sa, *_build_secret_flags(secrets),
+                 *_build_label_flags("wi078-migration"), "--project", project], dry_run=args.dry_run):
+            return 1
+        if _run(["gcloud", "run", "jobs", "execute", job, "--region", args.region,
+                 "--wait", "--project", project], dry_run=args.dry_run):
+            return 1
+    finally:
+        os.unlink(path)
+    code = _deploy_wi055_s01(args, env=env, project=project, release_image=image,
+        deploy_label="wi078-telegram-schedule", smoke_label="wi078-rich-transport-smoke",
+        signal_slot_report_enabled=True, smoke_command_name="send-telegram-rich-transport-smoke")
+    if code:
+        return code
+    code = _deploy_wi065(args, env=env, project=project, release_image=image)
+    return code or _deploy_v2_core_schedulers(args, env=env, project=project)
 
 
 def _deploy_wi076(
@@ -4025,6 +4094,7 @@ def main() -> int:
             "wi070",
             "wi075",
             "wi076",
+            "wi078",
             "wi046-stage",
             "wi046-auth-candidate",
             "wi046-promote-auth",
@@ -4320,6 +4390,11 @@ def main() -> int:
             print("Missing required environment variables:\n- GOOGLE_CLOUD_PROJECT")
             return 1
         return _deploy_wi075(args, env=env, project=project)
+
+    if args.target == "wi078":
+        if not project:
+            return 1
+        return _deploy_wi078(args, env=env, project=project)
 
     if args.target == "wi076":
         if not project:

@@ -35,7 +35,7 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 검사에서는 항상 catalog와 schema를 함께 제한한다.
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
-registry의 **81 tables + 28 views = 109 objects**를 관리한다. repository migration ceiling은 `0023`이며,
+registry의 **81 tables + 28 views = 109 objects**를 관리한다. repository migration ceiling은 `0024`이며,
 운영 V2는 checksum migration `0022`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
@@ -407,3 +407,7 @@ No automatic deletion. Rollback disables the evaluator flag/restores runtime; sc
 `bronze.source_observations` normalized cash payloads. No new physical object or migration. Backup/retention
 remain owned by Bronze. Previous observations are capped to 31 days and known by the query cutoff.
 Date-associated `silver.trade_event_revisions` are context only, never cash settlement or fee-completeness proof.
+
+### WI-078 additive alert slot (0024)
+
+Explicit transactional migration expands gold.alert_candidates slot constraint with kr-1400. All columns, keys, rows and backup policy are preserved; kr-1430 remains valid history. No runtime DDL. Protected release must apply migration before 14:00 evaluation.

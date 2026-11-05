@@ -10,7 +10,7 @@ from datetime import date, datetime
 from typing import Mapping
 
 
-ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1430", "kr-1600", "us-close"})
+ALLOWED_SLOTS = frozenset({"kr-1000", "kr-1400", "kr-1430", "kr-1600", "us-close"})
 SEVERITY_RANK = {"normal": 0, "watch": 1, "warning": 2, "critical": 3}
 PUBLIC_CONTEXT_KEYS = frozenset({
     "presentation_version", "subject_label", "market_label", "asset_type_label", "summary",

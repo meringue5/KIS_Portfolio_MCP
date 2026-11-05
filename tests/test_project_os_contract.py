@@ -533,6 +533,7 @@ def _activate_overlap_fixture(target: Path, item_id: str, filename: str) -> None
             r"(?m)^production_effects: .+$", "production_effects: none", document, count=1
         )
         candidate.write_text(document, encoding="utf-8")
+    _set_milestone_status(target, "MS-009", "proposed")
     registry = target / "governance/project/milestones.toml"
     registry.write_text(
         registry.read_text(encoding="utf-8").replace(

@@ -1344,3 +1344,16 @@ valuation-residual and USD deposit/withdrawable fallback limitations remain expl
 not zero. Historical zero omissions cannot be repaired from absent records; last-known values carry source age.
 Existing backed-up observations supply persistence; no new table, provider call, collector or schedule.
 Owner authorized production activation on 2026-10-30; require protected release and actual-client replay.
+
+
+## DEC-064 — Telegram 상태 의미와 08:00/14:00 보고
+
+승인: owner 직접 요청 2026-11-05, 오후 종목 알림도 14:00 이동 명시 확인.
+
+- 해외 보유종목 마감 평가·현황은 KST 08:00. 국내 10:00/16:00 유지, 14:30은 14:00로 이동.
+- owner 총자산 보고서는 08:00/14:00. 이전 동일 slot 없으면 비교만 보류한다.
+- ‘정상화’를 쓰지 않는다. recovered는 ‘이전 경고 조건 해제’이며 반등·추세 전환 확인이 아니다.
+- 아이콘과 주의/경고/긴급을 함께 표시하고 해제에는 중립 표시를 쓴다.
+- 가격 변화율·이평선 위치·경고 조건 및 source 시각을 유지한다. 신호는 매매 권고가 아니다.
+- threshold·미보유 관심종목·주문·provider는 변경하지 않는다. quality gate와 session dedup은 유지한다.
+- 개장 전 국내 자산은 마지막 관측 기준이며 당일 장중 시세로 표현하지 않는다.

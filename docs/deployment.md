@@ -434,13 +434,13 @@ unauthenticated MCP 401을 검사한다. 어느 smoke라도 실패하면 직전 
 V2 owned-portfolio pipeline은 기존 배치와 별도의 최소권한 identity를 사용한다.
 
 - Job names: `kis-portfolio-owned-core-v2-{1000,1430,1600}`
-- Schedules: 평일 `10:00`, `14:30`, `16:00` KST
+- Schedules: WI-078 보호 배포 후 평일 `08:00`, `10:00`, `14:00`, `16:00` KST; 배포 전 기존 `10:00`, `14:30`, `16:00` 유지
 - Runtime service account: `kis-portfolio-pipeline@PROJECT.iam.gserviceaccount.com`
 - Scheduler invoker service account: `kis-portfolio-scheduler@PROJECT.iam.gserviceaccount.com`
 - 선택 override: `KIS_V2_SCHEDULER_INVOKER_SERVICE_ACCOUNT`
 
 WI-029-S04부터 같은 세 Job은 portfolio publish 뒤 DB-only shadow evaluation까지 수행한다. `kr-1000`은
-국내 10시와 전일 미국 close session을 함께 평가하고, `kr-1430`·`kr-1600`은 해당 국내 slot만 평가한다.
+WI-078 이후 `kr-0800`은 미국 close session만 평가하고 `kr-1000`·`kr-1400`·`kr-1600`은 국내만 평가한다. 기존 `kr-1430` 기록은 보존한다.
 별도 상시 서비스나 Scheduler는 만들지 않는다. 오전 Job은 현재 보유 해외 `unknown`만 최대 8개 KIS+SEC
 공식 근거로 분류하며 `SEC_EDGAR_USER_AGENT`는 연락 이메일을 포함한 공개 fair-access identity다.
 이 값은 secret이 아니며 GitHub repository/environment variable로 둔다.
@@ -641,3 +641,18 @@ broker collectors and Telegram settings are not changed. No manual portfolio Job
 On failure restore exact Job definitions and prior stable/tag routes; retain additive schema/evidence. Actual
 owner OAuth `get-data-quality(dataset_id="dataset.cash-balance-reconciliation")` and the next scheduled companion
 run provide acceptance/stabilization evidence; health checks alone are insufficient.
+
+
+### WI-078 Telegram wording and schedule release
+
+Protected target `wi078` (DEC-064) uses one immutable image. It first runs private pre-backup/fresh restore,
+0024 rehearsal, row-preserving migration and post-backup/fresh restore; then transport smoke, four core Jobs,
+Remote command-handle compatibility and Scheduler definitions. Requires existing 0023 and pinned Telegram secrets.
+The existing `...-1430` Job/Scheduler name is retained but its fixed argument is kr-1400 and cron is `0 14 * * 1-5`.
+New `...-0800` uses `0 8 * * 1-5`; 10:00/16:00 stay domestic. Current KRX calendar gate remains in force.
+Totals run only 08:00/14:00. The old public MCP kr-1430 request is a backward-compatible alias of the same
+14:00 Job, with its current logical handle; no new scope/tool or runtime override permission.
+Before approval capture prior Job definitions and Scheduler configs. Rollback restores those definitions and
+old schedule together; retain 0024 and all candidate history. Partial rollout failure requires immediate rollback
+before the next slot. Immediate actual positive/partial/error Telegram acceptance and next 08:00/14:00 receipts
+remain pending after unit tests; never label a dry run or smoke as user acceptance.

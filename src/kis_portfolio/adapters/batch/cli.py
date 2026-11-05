@@ -315,6 +315,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wi066.add_argument("--project", required=True)
     wi066.add_argument("--bucket", required=True)
+    wi078 = subparsers.add_parser("run-wi078-release", help="Private backup and row-preserving alert slot migration.")
+    wi078.add_argument("--bucket", required=True)
     wi071 = subparsers.add_parser("run-wi071-release", help="Protected diagnostic migration and stored-input bootstrap; no broker calls.")
     wi071.add_argument("--project", required=True)
     wi071.add_argument("--bucket", required=True)
@@ -411,7 +413,7 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
         requested_run_id=args.requested_run_id,
     )
     if result["status"] in {"succeeded", "skipped"} and result.get("reason") is None:
-        if args.slot == "kr-1000":
+        if args.slot == "kr-0800":
             result["overseas_classification"] = sync_held_overseas_classifications(
                 get_connection(),
                 logical_date=logical_date,
@@ -874,6 +876,10 @@ def main() -> None:
         raise SystemExit(_run_wi029_s04_verify(args))
     if args.command == "run-wi048-s02":
         raise SystemExit(_run_wi048_s02(args))
+    if args.command == "run-wi078-release":
+        from kis_portfolio.services.wi078_release import run_wi078_release
+        print(json.dumps(run_wi078_release(bucket=args.bucket), ensure_ascii=False))
+        return
     if args.command == "run-wi071-release":
         try:
             result = run_wi071_release(WI071ReleaseConfig(args.project,args.bucket))

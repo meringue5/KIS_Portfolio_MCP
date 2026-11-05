@@ -3,15 +3,17 @@
 > 신호를 계산한 것, 전달할 상태가 된 것, 실제 전송/수신한 것은 다릅니다.
 > 기존 승인 계약·후속 교정을 현행 의미로 통합합니다. 새 rule·destination·전송 권한을 주지 않습니다.
 
+> DEC-064 시간·문구 변경은 owner 승인 상태이며 WI-078 보호 배포·실제 수신 인수는 대기 중입니다.
+
 ## 범위와 의미
 
 ### 서로 다른 세 제품
 
 | 결과 | 의미 / 지켜야 할 경계 |
 | --- | --- |
-| 세 시각 보유종목 현황 | 10:00/14:30/16:00 각 평가 slot의 통합 상태. 상태 변화가 없어도 현황 요구를 충족 |
+| 세 시각 보유종목 현황 | 08:00 해외 및 10:00/14:00/16:00 국내 평가 slot의 통합 상태. 상태 변화가 없어도 현황 요구를 충족 |
 | 종목별 상세 신호 | quality-pass의 eligible transition만 전달. 현황 수신이 상세 수신의 증거는 아님 |
-| 총자산 이미지 보고서 | 10:00/16:00 현재 금액·구성, 가능할 때 이전 같은 slot 비교. 신호 건강의 증거가 아님 |
+| 총자산 이미지 보고서 | 08:00/14:00 현재 금액·구성, 가능할 때 이전 같은 slot 비교. 신호 건강의 증거가 아님 |
 
 미보유 관심종목은 이 보유종목 범위로 끼워 넣지 않습니다. ETF/REIT/leveraged/inverse도 자기 상장 종목의
 가격·추세·lot/평가 변화로 다루며 구성종목 look-through를 추정하지 않습니다.
@@ -21,9 +23,9 @@
 ### identity·시간·rule
 
 alert identity는 rule ID/version+opaque subject type/ID에 기반하며 slot retry를 넘어 유지됩니다.
-candidate는 logical session key와 slot을 추가합니다. slot은 `kr-1000`, `kr-1430`, `kr-1600`, `us-close`입니다.
+candidate는 logical session key와 slot을 추가합니다. 현재 source slot은 `kr-0800`, `kr-1000`, `kr-1400`, `kr-1600`이며 해외 평가 identity는 `us-close`입니다. 과거 `kr-1430` 기록을 보존합니다.
 U.S. close는 **미국 session date**가 identity를 소유합니다. 다른 한국 날짜/휴일에 같은 session을 선택하면
-기존 candidate를 재사용하며 14:30/16:00에 새 상태전이나 전송을 만들지 않습니다.
+기존 candidate를 재사용하며 10:00/14:00/16:00에 같은 미국장 상태전이나 전송을 만들지 않습니다.
 
 rule version과 candidate logical key는 immutable입니다. 사용한 threshold를 덮지 않고 새 version과 owner 승인/철회를 남깁니다.
 현재 permanent rule은 expiry 없는 승인 successor이지만 revocation과 runtime flag는 항상 적용됩니다.
@@ -65,9 +67,17 @@ logical no-change/zero-candidate slot도 terminal run/quality marker가 있어�
 
 ### 사람이 읽는 메시지의 의미
 
+DEC-064: recovered는 ‘이전 경고 조건 해제’이며 반등·추세 전환 확인이 아닙니다. 직전 경고의
+조건이 이번 평가에서 충족되지 않았다고 설명하고 중립 ⚪ 표시를 씁니다. 활성 신호는 아이콘과
+주의/경고/긴급 텍스트를 함께 표시합니다. 노란색은 일반 불렛이 아니라 watch 수준입니다.
+해외 마감 평가는 08:00에만 수행하고 10:00 국내 평가에 반복 편입하지 않습니다.
+총자산은 08:00/14:00 exact slot을 사용합니다. 첫 slot의 전일 비교 부재는 비교 영역만 보류합니다.
+개장 전 국내 값은 마지막 source 시각의 관측이며 당일 장중 방향 신호로 평가하지 않습니다.
+
+
 ‘하회’는 현재 가격과 평균의 위치이고 ‘하향 이탈’은 이전 close≥이전 SMA20, 현재 close<현재 SMA20 사건입니다.
 price-to-average와 SMA20-to-SMA50 구조를 분리합니다. 누락 analytics는 계산 보류+이유이지 0/배분/PnL 대체가 아닙니다.
-KRX 10:00/14:30 누적거래량은 같은-slot 정규화 전까지 unavailable이며 full-day 평균과 비교하지 않습니다.
+KRX 10:00/14:00 누적거래량은 같은-slot 정규화 전까지 unavailable이며 full-day 평균과 비교하지 않습니다.
 KRX close/U.S. close만 이전 20 completed sessions를 full-day baseline으로 사용합니다.
 
 상세 메시지는 approved Rich HTML representation 하나, dynamic HTML escaping, allowlisted public_context만 사용합니다.
@@ -103,3 +113,5 @@ owner 총자산 보고서의 승인된 금액 표시는 **별도 renderer/승인
 ### 사례와 근거
 
 과거 canary·초기 shadow·배포 checklist와 특정 run 사례는 [압축 구축 기록](../history/README.md)에서만 펼칩니다.
+
+DEC-064는 public MCP tool/scope를 늘리지 않습니다. 기존 kr-1430 수동 refresh 입력은 현재 오후 14:00 Job의 호환 alias이며 run handle도 실제 slot/version과 일치해야 합니다.
