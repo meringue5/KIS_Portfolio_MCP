@@ -411,3 +411,5 @@ Date-associated `silver.trade_event_revisions` are context only, never cash sett
 ### WI-078 additive alert slot (0024)
 
 Explicit transactional migration expands gold.alert_candidates slot constraint with kr-1400. All columns, keys, rows and backup policy are preserved; kr-1430 remains valid history. No runtime DDL. Protected release must apply migration before 14:00 evaluation.
+
+WI-078-S01: Gold daily-state positions/cash select the explicit Asia/Seoul observation date and exclude observations later than publication as_of. This corrects UTC-date leakage at 08:00 KST; no schema/key/retention/backup changes or historical rewrite.

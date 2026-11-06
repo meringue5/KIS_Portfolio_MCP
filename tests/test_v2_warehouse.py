@@ -143,3 +143,29 @@ def test_foreign_daily_state_requires_recent_governed_fx(
     ).fetchone()
     assert quality == expected_quality
     con.close()
+
+
+def test_morning_materialization_uses_korean_date_and_publication_cutoff():
+    con = duckdb.connect(":memory:")
+    MigrationRunner(con).apply()
+    con.execute("""INSERT INTO silver.instruments VALUES
+        ('synthetic','KRX','TEST','Synthetic','equity','KRW',NULL,current_timestamp,NULL,'source','{}')""")
+    con.execute("""INSERT INTO silver.price_bars_daily
+        (instrument_id,session_date,price_basis,open,high,low,close,volume,source_observation_id,quality_status)
+        VALUES ('synthetic','2026-11-05','raw',100,100,100,100,1000,'fixture','pass')""")
+    rows = [
+        ('2026-11-05T14:59:00+00:00', 1, 10),  # previous Korean date
+        ('2026-11-05T23:00:00+00:00', 2, 20),  # current date 08:00 KST, previous UTC date
+        ('2026-11-06T01:00:00+00:00', 9, 90),  # later same Korean day, unknown at cutoff
+        ('2026-11-06T15:00:00+00:00', 8, 80),  # next Korean date, same UTC date
+    ]
+    for stamp, qty, amount in rows:
+        con.execute("INSERT INTO silver.position_snapshots VALUES ('acct','synthetic',?, ?,50,'KRW','fixture','pass')",[stamp,qty])
+        con.execute("INSERT INTO silver.cash_snapshots VALUES ('acct','KRW',?,?,'fixture','pass')",[stamp,amount])
+    repository = V2WarehouseRepository(con)
+    cutoff = datetime(2026,11,5,23,5,tzinfo=UTC)
+    assert repository.materialize_daily_state(evaluation_date=date(2026,11,6),slot='kr-0800',as_of=cutoff) == 2
+    values = con.execute("SELECT aggregate_level,value_krw,quality_status FROM gold.portfolio_daily_state ORDER BY aggregate_level").fetchall()
+    assert values == [('cash',20,'pass'),('position',200,'pass')]
+    assert repository.materialize_daily_state(evaluation_date=date(2026,11,6),slot='kr-0800',as_of=cutoff) == 2
+    con.close()

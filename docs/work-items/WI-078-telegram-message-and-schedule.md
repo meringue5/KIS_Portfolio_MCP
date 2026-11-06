@@ -1,7 +1,7 @@
 ---
 id: WI-078
 title: Clarify Telegram signals and align morning and afternoon reports
-status: verified
+status: stabilizing
 type: change
 owner: owner
 decision_refs: DEC-064
@@ -14,17 +14,17 @@ discovered_from: WI-070, WI-076
 supersedes: none
 rollback_of: none
 work_lane: delivery
-execution_scope: isolated
-production_effects: none
+execution_scope: owner-approved protected production release
+production_effects: explicit 0024 migration; four core Jobs and Remote image; 08:00/14:00 Scheduler activation
 architecture_impact: none; reuse existing Jobs and adapters
 data_impact: additive evaluation slot constraint and versioned schedule contracts
 security_impact: unchanged owner-only destination
 cost_impact: one additional bounded daily portfolio run; no new service or provider
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: pending
-stabilization_window: none
-stabilization_exit_refs: none
+real_use_evidence_refs: governance/project/evidence/wi078/protected-release.json; actual Cloud Run Telegram fixture and scheduled 08:00/10:00 findings
+stabilization_window: immediate actual Telegram scenarios plus next 08:00 and 14:00 KST scheduled receipts
+stabilization_exit_refs: provider-confirmed once-per-slot results and owner receipt; governance/project/evidence/wi078/protected-release.json
 rollback_plan: restore prior immutable Jobs and Scheduler definitions; preserve all alert history
 ---
 
@@ -58,7 +58,7 @@ Condition release must not claim rebound or trend reversal. Show severity in wor
 ## Change impact
 
 No new financial metric. Add kr-1400 while retaining historical kr-1430 records.
-No live migration or deployment during isolated implementation.
+Initial isolated implementation had no live effects. Owner approved protected production release on 2026-11-05; release succeeded.
 
 ## Plan
 
@@ -68,7 +68,7 @@ No live migration or deployment during isolated implementation.
 
 ## Sub-items
 
-none
+- WI-078-S01 — KST morning observation selection recovery.
 
 ## Stabilization plan
 
@@ -87,12 +87,16 @@ Private Telegram through protected Cloud Run Jobs. Pending release; tests do not
 - Synthetic verification covers explicit severity/release meaning, unavailable metrics, foreign-only morning,
   U.S.-session reuse, afternoon exact-slot totals, date-slot idempotency, provider ambiguity, migration history/PK
   preservation, failed private backup, fresh restore, single-image release order and legacy MCP handle compatibility.
-- Production migration, deployment, external messages and actual Telegram receipt: not executed.
+- Protected release run 42018708208 succeeded from merged master 733116843a8971c9ddf5ef7fef09aa87207b4c42.
+  Runtime image sha256:542df53dfdc765cd11c4c9401940d54f7ec011f733d9c65f859fbe698bf36f7a matches all four Jobs.
+  08:00/10:00/14:00/16:00 Scheduler definitions are ENABLED, Asia/Seoul; old afternoon resource name retained.
+  Actual Cloud Run Telegram fixtures sent three provider-confirmed marked synthetic messages; unsafe payload rejected before I/O.
+  Scheduled 08:00 exposed WI-078-S01; 10:00 domestic details and status succeeded. Owner-value acceptance remains open.
 
 
 ## Closeout
 
-Repository implementation verified. Production approval, protected release and real-use acceptance remain open.
+Protected production release verified; stabilizing for actual scenarios, next scheduled receipts and owner acceptance.
 
 
 ## Release review notes
@@ -104,3 +108,23 @@ before production approval; partial rollout failures require restoring Jobs and 
 Existing KRX-open-date/weekday calendar policy is retained; weekends/US-only holidays are not newly activated.
 The new 08:00 run may legitimately expose unavailable FX or prior same-slot comparison; it must not invent totals.
 MCP input schema/scopes stay unchanged; old kr-1430 input is a compatibility alias of the current afternoon Job.
+
+
+## Production authorization — 2026-11-05
+
+Owner explicitly instructed “배포해주세요” after reviewing PR #181 and the 985-test/CI result.
+Proceed through the protected master workflow with private backup/restore and runtime identity checks.
+Prior Job/Scheduler definitions captured privately under /private/tmp/wi078-production-rollback; never commit raw configs.
+
+
+## WI-078-S01 — KST morning observation selection recovery
+
+- Classification: defect; work_lane stabilization_recovery; discovered_from WI-078 actual scheduled use.
+- 2026-11-06 08:00 run e5c8bcc8-7fa6-4945-8daf-905b604c4be4 succeeded in collection but produced zero evaluated
+  overseas candidates and sent an unavailable owner report. 10:00 evaluated 17 domestic candidates and sent five details.
+- Root cause: materialize_daily_state filters TIMESTAMPTZ observations by UTC CAST(as_of AS DATE), excluding the
+  prior-UTC-date observations made at 08:00 KST. Approved logical date is Korean calendar date.
+- Fix: explicitly select Asia/Seoul date for positions and cash, bounded by the publication as_of cutoff. No new
+  dataset, schema, threshold, financial fact, source or history rewrite. Preserve original failed 08:00 evidence.
+- Verification: cross-UTC/KST-day regression for positions and cash, future observation exclusion, quick/full,
+  protected same-runtime release and actual source/transport verification. Quick and full passed with 986 tests; protected corrective release pending.

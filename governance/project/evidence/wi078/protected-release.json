@@ -1,0 +1,120 @@
+{
+  "work_item": "WI-078",
+  "release_run_id": "42018708208",
+  "git_sha": "733116843a8971c9ddf5ef7fef09aa87207b4c42",
+  "image_digest": "sha256:542df53dfdc765cd11c4c9401940d54f7ec011f733d9c65f859fbe698bf36f7a",
+  "migration": {
+    "applied": [
+      "0024"
+    ],
+    "preserved_tables": 80,
+    "pre_backup_objects": 81,
+    "post_backup_objects": 81,
+    "pre_backup_bytes": 27820434,
+    "post_backup_bytes": 27820595
+  },
+  "schedules_kst": [
+    "08:00",
+    "10:00",
+    "14:00",
+    "16:00"
+  ],
+  "actual_transport": {
+    "execution": "kis-portfolio-wi078-acceptance-7bxbk",
+    "synthetic": true,
+    "broker_calls": 0,
+    "financial_writes": 0,
+    "outcomes": {
+      "active-watch": "sent",
+      "condition-released": "sent",
+      "quality-deferred": "sent"
+    },
+    "unsafe_payload_rejected_before_io": true
+  },
+  "scheduled_runs": [
+    {
+      "job": "kis-portfolio-owned-core-v2-0800",
+      "log_entries": 226,
+      "traceback_present": false,
+      "pipeline_status": "succeeded",
+      "run_id": "e5c8bcc8-7fa6-4945-8daf-905b604c4be4",
+      "source_calls": 57,
+      "telegram_delivery": {
+        "status": "completed",
+        "attempt_count": 0,
+        "sent_count": 0
+      },
+      "signal_slot_report": {
+        "status": "completed",
+        "run_id": "a671989d-bd34-4d18-a293-435738c3a27d",
+        "reused": false,
+        "outcome": "sent",
+        "evaluated_count": 0,
+        "changed_count": 0,
+        "active_count": 0,
+        "quality_suppressed_count": 0
+      },
+      "owner_portfolio_report": {
+        "status": "completed",
+        "run_id": "98d6d946-5769-47e6-bb31-5f42be71cd5c",
+        "reused": false,
+        "outcome": "sent",
+        "error_code": null,
+        "quality_status": "unavailable"
+      },
+      "telegram_real_use": {
+        "status": "succeeded",
+        "evaluation_slots": [
+          "us-close"
+        ],
+        "candidate_count": 0,
+        "quality_suppressed_count": 0,
+        "run_id": "8d5a3173dbdce157a442431ac1d5f82713edde3369171ffe9bd96f2a3ad2d52a"
+      }
+    },
+    {
+      "job": "kis-portfolio-owned-core-v2-1000",
+      "log_entries": 237,
+      "traceback_present": false,
+      "pipeline_status": "succeeded",
+      "run_id": "f267747a-018b-4180-bbeb-8e1802986782",
+      "source_calls": 57,
+      "telegram_delivery": {
+        "status": "completed",
+        "attempt_count": 5,
+        "sent_count": 5
+      },
+      "signal_slot_report": {
+        "status": "completed",
+        "run_id": "2a9fc42d-a434-4487-b806-2b0b13bee8e6",
+        "reused": false,
+        "outcome": "sent",
+        "evaluated_count": 17,
+        "changed_count": 5,
+        "active_count": 16,
+        "quality_suppressed_count": 0
+      },
+      "owner_portfolio_report": {
+        "status": "skipped",
+        "reason": "slot_not_enabled",
+        "attempt_count": 0
+      },
+      "telegram_real_use": {
+        "status": "succeeded",
+        "evaluation_slots": [
+          "kr-1000"
+        ],
+        "candidate_count": 17,
+        "quality_suppressed_count": 0,
+        "run_id": "32fdb1e48ec0dff68272dab4106f6b75072de0d93a415d0d196164add0d2e15d"
+      }
+    }
+  ],
+  "finding": {
+    "id": "WI-078-S01",
+    "root_cause": "UTC date selection excludes 08:00 KST observations from prior UTC date",
+    "correction": "in progress",
+    "historical_rewrite": false
+  },
+  "owner_receipt": "pending"
+}

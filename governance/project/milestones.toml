@@ -1403,7 +1403,7 @@ sequence = 8
 [[milestones]]
 id = "MS-009"
 title = "Owner-requested Telegram clarity and schedule update"
-status = "in_progress"
+status = "stabilizing"
 depends_on = ["MS-008"]
 implementation_gate = [{ milestone_id = "MS-008", minimum_status = "closed" }]
 production_gate = [{ milestone_id = "MS-008", minimum_status = "closed" }]
@@ -1412,3 +1412,9 @@ overlap_mode = "none"
 stabilization_exit_work_item_ids = ["WI-078"]
 rollback_policy = "append_only_feedback"
 work_item_ids = ["WI-078"]
+
+[[subitems]]
+id = "WI-078-S01"
+parent_id = "WI-078"
+title = "Repair KST morning observation selection after actual scheduled use"
+status = "verified"
