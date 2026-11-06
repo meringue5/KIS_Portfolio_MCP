@@ -1,0 +1,93 @@
+{
+  "work_item": "WI-078-S01",
+  "release_run_id": "42144894046",
+  "git_sha": "83cc004e2e108313afda1a2528046a8565aa0cf9",
+  "image_digest": "sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59",
+  "jobs": [
+    {
+      "job": "kis-portfolio-owned-core-v2-0800",
+      "slot": "kr-0800",
+      "cron": "0 8 * * 1-5",
+      "state": "ENABLED",
+      "image_digest": "sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59",
+      "git_sha": "83cc004e2e108313afda1a2528046a8565aa0cf9"
+    },
+    {
+      "job": "kis-portfolio-owned-core-v2-1000",
+      "slot": "kr-1000",
+      "cron": "0 10 * * 1-5",
+      "state": "ENABLED",
+      "image_digest": "sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59",
+      "git_sha": "83cc004e2e108313afda1a2528046a8565aa0cf9"
+    },
+    {
+      "job": "kis-portfolio-owned-core-v2-1430",
+      "slot": "kr-1400",
+      "cron": "0 14 * * 1-5",
+      "state": "ENABLED",
+      "image_digest": "sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59",
+      "git_sha": "83cc004e2e108313afda1a2528046a8565aa0cf9"
+    },
+    {
+      "job": "kis-portfolio-owned-core-v2-1600",
+      "slot": "kr-1600",
+      "cron": "0 16 * * 1-5",
+      "state": "ENABLED",
+      "image_digest": "sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59",
+      "git_sha": "83cc004e2e108313afda1a2528046a8565aa0cf9"
+    }
+  ],
+  "remote_revision": "kis-portfolio-remote-00068-r7k",
+  "remote_serving_percent": 100,
+  "scheduled_0800_rewrite": false,
+  "validation": {
+    "kis-portfolio-wi078-source-acceptance": {
+      "actual_source_slot": "kr-1000",
+      "blocker_codes": [],
+      "broker_calls": 0,
+      "deployed_kst_boundary_regression": "passed",
+      "early_source_position_counts": [
+        [
+          "KRX",
+          22
+        ],
+        [
+          "NAS",
+          4
+        ]
+      ],
+      "error_code": null,
+      "historical_0800_rewrite": false,
+      "logical_date": "2026-11-06",
+      "outcome": "sent",
+      "production_financial_writes": 0,
+      "quality_status": "pass",
+      "source_at": "2026-11-06T01:16:15.826903+00:00",
+      "work_item": "WI-078-S01"
+    },
+    "kis-portfolio-wi078-migration": {
+      "applied_migrations": [],
+      "git_sha": "83cc004e2e108313afda1a2528046a8565aa0cf9",
+      "image_digest": "sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59",
+      "post_backup": {
+        "byte_size": 28387242,
+        "index_sha256": "b3e0dda356e03604884bee66254966f06a3426d69478f1f77aa4d6f9a8a20128",
+        "object_count": 81
+      },
+      "pre_backup": {
+        "byte_size": 28387242,
+        "index_sha256": "a40e411f656d65e2695d067dac44e70205020aabcf3c8f144272d073c37a1158",
+        "object_count": 81
+      },
+      "preserved_tables": 80,
+      "status": "verified"
+    }
+  },
+  "supplement_authorization": "Owner explicitly answered 보완 보고서 전송 승인 on 2026-11-06; one actual 10:00-source total-asset supplement to existing private Telegram destination.",
+  "source_acceptance_execution": "kis-portfolio-wi078-source-acceptance-dtkv2",
+  "remaining_acceptance": [
+    "next scheduled 14:00 receipt",
+    "next scheduled 08:00 source and report receipt",
+    "owner-value acceptance"
+  ]
+}

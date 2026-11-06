@@ -22,7 +22,7 @@ security_impact: unchanged owner-only destination
 cost_impact: one additional bounded daily portfolio run; no new service or provider
 user_visible_impact: yes
 real_use_acceptance: required
-real_use_evidence_refs: governance/project/evidence/wi078/protected-release.json; actual Cloud Run Telegram fixture and scheduled 08:00/10:00 findings
+real_use_evidence_refs: governance/project/evidence/wi078/protected-release.json; governance/project/evidence/wi078/corrective-release-2026-11-06.json
 stabilization_window: immediate actual Telegram scenarios plus next 08:00 and 14:00 KST scheduled receipts
 stabilization_exit_refs: provider-confirmed once-per-slot results and owner receipt; governance/project/evidence/wi078/protected-release.json
 rollback_plan: restore prior immutable Jobs and Scheduler definitions; preserve all alert history
@@ -127,4 +127,25 @@ Prior Job/Scheduler definitions captured privately under /private/tmp/wi078-prod
 - Fix: explicitly select Asia/Seoul date for positions and cash, bounded by the publication as_of cutoff. No new
   dataset, schema, threshold, financial fact, source or history rewrite. Preserve original failed 08:00 evidence.
 - Verification: cross-UTC/KST-day regression for positions and cash, future observation exclusion, quick/full,
-  protected same-runtime release and actual source/transport verification. Quick and full passed with 986 tests; protected corrective release pending.
+  protected same-runtime release and actual source/transport verification. Quick/full/CI passed with 986 tests; corrective release 42144894046 succeeded.
+
+
+### WI-078-S01 protected corrective release — 2026-11-06
+
+- PR #182 merged as 83cc004e2e108313afda1a2528046a8565aa0cf9. Protected run 42144894046 succeeded.
+  Image sha256:f6b6102edbd73fdfac525f30ea676d3fd4864a0dc52706f24cb0677b93ae8c59 is verified on all four Jobs
+  and Remote revision kis-portfolio-remote-00068-r7k (100% stable traffic and compatibility tag).
+- Migration replay applied nothing; private pre/post backup/fresh restore preserved all 80 non-migration tables.
+- Actual deployed image executed the in-memory KST boundary regression successfully. Read-only source query found
+  22 KRX account-position rows and four NAS rows in the original pre-09:00 KST collection window, confirming data
+  existed while the original UTC-day materialization selected none.
+- After separate explicit owner approval, one supplement using the actual 10:00 slot/source timestamp
+  2026-11-06T01:16:15.826903+00:00 was sent to the existing private Telegram destination: quality pass, no blockers,
+  provider outcome sent. The caption explicitly identifies the 10:00 basis. No old 08:00 rows were rewritten;
+  zero KIS calls and zero production financial writes in acceptance.
+- Original marked synthetic active/recovered/quality-deferred messages were provider-confirmed, and unsafe input
+  was rejected before I/O. These are distinct from the actual-data supplement and future scheduled receipts.
+- Remain stabilizing: next 14:00 and 08:00 scheduled source/report receipts plus owner information-value acceptance.
+  Do not close from deployment, controlled validation or provider-confirmed delivery alone.
+
+Evidence: governance/project/evidence/wi078/corrective-release-2026-11-06.json.

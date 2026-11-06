@@ -656,3 +656,5 @@ Before approval capture prior Job definitions and Scheduler configs. Rollback re
 old schedule together; retain 0024 and all candidate history. Partial rollout failure requires immediate rollback
 before the next slot. Immediate actual positive/partial/error Telegram acceptance and next 08:00/14:00 receipts
 remain pending after unit tests; never label a dry run or smoke as user acceptance.
+
+WI-078 rollout: protected runs 42018708208 and 42144894046 succeeded. Current image and runtime/schedule evidence are in [WI-078](work-items/WI-078-telegram-message-and-schedule.md#wi-078-s01-protected-corrective-release--2026-11-06). Morning source selection uses explicit Asia/Seoul date, bounded by publication as_of; historical failed 08:00 evidence is retained.
