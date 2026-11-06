@@ -36,7 +36,7 @@ legacy database이며 모든 table이 0행이다. MCP·auth·세 batch Job과 re
 
 현재 checkout은 보존된 `main` compatibility registry의 **25 tables + 2 views = 27 objects**와 canonical V2
 registry의 **81 tables + 28 views = 109 objects**를 관리한다. repository migration ceiling은 `0024`이며,
-운영 V2는 checksum migration `0022`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
+운영 V2는 checksum migration `0024`까지의 `bronze/silver/gold/control` physical schema를 사용한다.
 active operational Security state는 Seoul의 Firestore `kis-portfolio-state`가 소유한다. `main` 객체와 등록된
 네 live-drift fingerprint는 migration/history 호환을 위해 보존되며 V2 분석 SSOT가 아니다.
 
@@ -302,7 +302,7 @@ descendant가 아니라 공통 base 이후 분기돼 있으므로, 코드상 자
 
 ### Managed V2 production register
 
-Canonical production은 migration `0022`까지 적용됐다. 초기 WI-048의 `0019` release는 private pre/post backup,
+Canonical production은 migration `0024`까지 적용됐다. 초기 WI-048의 `0019` release는 private pre/post backup,
 fresh restore와 reference reconciliation을 통과했고 후속 WI-066/WI-068도 개별 복구 증거를 보존한다.
 아래 항목은 날짜별 append-only release history이며,
 초기 migration 번호를 현재 ceiling으로 해석하지 않는다.
@@ -413,3 +413,5 @@ Date-associated `silver.trade_event_revisions` are context only, never cash sett
 Explicit transactional migration expands gold.alert_candidates slot constraint with kr-1400. All columns, keys, rows and backup policy are preserved; kr-1430 remains valid history. No runtime DDL. Protected release must apply migration before 14:00 evaluation.
 
 WI-078-S01: Gold daily-state positions/cash select the explicit Asia/Seoul observation date and exclude observations later than publication as_of. This corrects UTC-date leakage at 08:00 KST; no schema/key/retention/backup changes or historical rewrite.
+
+WI-078 protected release 2026-11-05 applied 0024 with all 80 non-migration table fingerprints preserved and 81-object pre/post private backups restored. The 2026-11-06 corrective release changed no schema or historical rows; it verifies KST selection and explicit as-of cutoff in the deployed runtime. Evidence: `governance/project/evidence/wi078/corrective-release-2026-11-06.json`.

@@ -1417,4 +1417,4 @@ work_item_ids = ["WI-078"]
 id = "WI-078-S01"
 parent_id = "WI-078"
 title = "Repair KST morning observation selection after actual scheduled use"
-status = "verified"
+status = "stabilizing"
