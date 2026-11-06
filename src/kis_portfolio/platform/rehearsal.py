@@ -102,7 +102,8 @@ def build_owned_portfolio_fixture_pipeline(
         count = repository.materialize_daily_state(
             evaluation_date=context.logical_date,
             slot=context.slot,
-            as_of=datetime.combine(context.logical_date, datetime.min.time(), tzinfo=UTC),
+            as_of=max((item.fetched_at for item in source.collect({})),
+                      default=datetime.combine(context.logical_date, datetime.min.time(), tzinfo=UTC)),
         )
         return StageResult(
             output_count=count,

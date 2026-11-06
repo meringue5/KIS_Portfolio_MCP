@@ -551,7 +551,7 @@ class V2WarehouseRepository:
             INSERT INTO gold.portfolio_daily_state
             WITH latest_positions AS (
                 SELECT * FROM silver.position_snapshots
-                WHERE CAST(as_of AS DATE) = ?
+                WHERE CAST(timezone('Asia/Seoul', as_of) AS DATE) = ? AND as_of <= ?
                 QUALIFY row_number() OVER (
                     PARTITION BY account_id, instrument_id ORDER BY as_of DESC, source_observation_id DESC
                 ) = 1
@@ -583,13 +583,13 @@ class V2WarehouseRepository:
                 )=1
             ) f ON f.base_currency = i.currency AND f.quote_currency = 'KRW'
             ON CONFLICT DO NOTHING
-        """, [evaluation_date, evaluation_date, evaluation_date, slot, as_of,
+        """, [evaluation_date, as_of, evaluation_date, evaluation_date, slot, as_of,
               earliest_fx_date, evaluation_date])
         self.connection.execute("""
             INSERT INTO gold.portfolio_daily_state
             WITH latest_cash AS (
                 SELECT * FROM silver.cash_snapshots
-                WHERE CAST(as_of AS DATE) = ?
+                WHERE CAST(timezone('Asia/Seoul', as_of) AS DATE) = ? AND as_of <= ?
                 QUALIFY row_number() OVER (
                     PARTITION BY account_id, currency ORDER BY as_of DESC, source_observation_id DESC
                 ) = 1
@@ -612,7 +612,7 @@ class V2WarehouseRepository:
                 )=1
             ) f ON f.base_currency=c.currency AND f.quote_currency='KRW'
             ON CONFLICT DO NOTHING
-        """, [evaluation_date, evaluation_date, slot, as_of, earliest_fx_date, evaluation_date])
+        """, [evaluation_date, as_of, evaluation_date, slot, as_of, earliest_fx_date, evaluation_date])
         return self.connection.execute(
             "SELECT count(*) FROM gold.portfolio_daily_state WHERE evaluation_date=? AND evaluation_slot=?",
             [evaluation_date, slot],

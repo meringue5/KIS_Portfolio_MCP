@@ -200,3 +200,5 @@ WI-077-S03 applies the operating knowledge structure to [Project OS](governance/
 and its Skill. See [work and evidence](work-items/WI-077-operational-documentation-navigation.md#wi-077-s03--steady-state-project-os-alignment).
 
 - [WI-078 — Telegram wording and 08:00/14:00 reports](work-items/WI-078-telegram-message-and-schedule.md) — DEC-064; actual-client acceptance pending.
+
+WI-078-S01 corrects pre-09:00 KST materialization after actual 08:00 use; source and original failed-slot evidence are preserved.
