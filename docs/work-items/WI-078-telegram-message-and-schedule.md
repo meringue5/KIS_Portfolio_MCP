@@ -69,6 +69,7 @@ Initial isolated implementation had no live effects. Owner approved protected pr
 ## Sub-items
 
 - WI-078-S01 — KST morning observation selection recovery.
+- WI-078-S02 — overseas exchange row deduplication and scheduled Telegram recovery.
 
 ## Stabilization plan
 
@@ -149,3 +150,12 @@ Prior Job/Scheduler definitions captured privately under /private/tmp/wi078-prod
   Do not close from deployment, controlled validation or provider-confirmed delivery alone.
 
 Evidence: governance/project/evidence/wi078/corrective-release-2026-11-06.json.
+
+## WI-078-S02 — Overseas exchange row recovery
+
+- Classification: incident; work_lane: stabilization_recovery; discovered_from: WI-078 scheduled use.
+- 2026-11-09 and 2026-11-10 all four owner-report Jobs failed at price coverage 44/46 before Telegram delivery. Scheduler remained enabled. A KIS NASD balance response included a holding with `ovrs_excg_cd=AMEX`; the AMEX balance response included the same holding. The collector treated the queried exchange as the instrument exchange, requested NAS prices and received successful but empty responses. AMS prices were present. The duplicate row also produced an extra position identity.
+- Preserve the failed run and raw-source evidence. Use the row's exchange code, deduplicate the same account/instrument across exchange queries, and keep a strict failure when a genuinely held instrument lacks price coverage. Avoid fabricating price or delivery success.
+- Affected contracts: `collection.owned-portfolio-core-v1`, `pipeline.owned-portfolio-core-v2`, `dataset.portfolio-position-observation`, and `dataset.price-bar-daily`. The approved held-instrument grain and strict quality gate are unchanged.
+- Isolated verification: quick/full gates passed, 987 tests. Read-only replay of the 2026-11-10 10:00 landed bundle reduced 46 price requests to 44 canonical requests, all 44 covered; the two removed requests were wrong-exchange reads. No production data or delivery was changed by this replay.
+- Release and exit: quick/full gates, protected deployment, actual positive/partial/error transport scenarios, next scheduled source/provider results, and owner receipt. Until these pass, WI-078 remains stabilizing.

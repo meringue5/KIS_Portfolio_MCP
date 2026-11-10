@@ -151,6 +151,28 @@ def _has_exact_kis_fx(raw: dict[str, Any], logical_date: date) -> bool:
     )
 
 
+def _canonical_overseas_rows(overseas: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
+    """Select each held instrument once using its reported exchange, not the query exchange."""
+    market_map = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}
+    selected: dict[tuple[str, str], tuple[bool, dict[str, Any]]] = {}
+    for queried_market, result in overseas.items():
+        if not isinstance(result, dict):
+            continue
+        for row in result.get("output1") or []:
+            symbol = str(row.get("ovrs_pdno") or "").strip()
+            if not symbol:
+                continue
+            reported_market = str(row.get("ovrs_excg_cd") or "").strip()
+            source_market = reported_market or queried_market
+            market = market_map.get(source_market, source_market[:3])
+            key = (market, symbol)
+            exact_query = source_market == queried_market
+            previous = selected.get(key)
+            if previous is None or (exact_query and not previous[0]):
+                selected[key] = (exact_query, row)
+    return {key: row for key, (_, row) in selected.items()}
+
+
 async def _collect_sources(
     slot: str,
     logical_date: date | None = None,
@@ -191,12 +213,7 @@ async def _collect_sources(
         for item in domestic for row in (item["raw"].get("output1") or [])
         if str(row.get("pdno") or "").strip()
     })
-    overseas_symbols = sorted({
-        (market, str(row.get("ovrs_pdno") or "").strip())
-        for market, result in overseas.items() if isinstance(result, dict)
-        for row in (result.get("output1") or [])
-        if str(row.get("ovrs_pdno") or "").strip()
-    })
+    overseas_symbols = sorted(_canonical_overseas_rows(overseas))
     quote_account = next(account for account in accounts if account.label == "brokerage")
     ymd = datetime.now(SEOUL).strftime("%Y%m%d")
     with scoped_account_env(quote_account):
@@ -597,12 +614,7 @@ def build_owned_portfolio_pipeline(
         if collected.get("overseas"):
             account_id = _account_id("brokerage")
             observed = datetime.now(UTC)
-            for market, result in collected["overseas"].items():
-                if not isinstance(result, dict):
-                    continue
-                normalized_market = {"NASD": "NAS", "NYSE": "NYS", "AMEX": "AMS"}.get(market, market[:3])
-                for row in result.get("output1") or []:
-                    symbol = str(row.get("ovrs_pdno") or "").strip()
+            for (normalized_market, symbol), row in _canonical_overseas_rows(collected["overseas"]).items():
                     quantity = _decimal(row.get("ovrs_cblc_qty") or row.get("cblc_qty"))
                     if not symbol or quantity <= 0:
                         continue
