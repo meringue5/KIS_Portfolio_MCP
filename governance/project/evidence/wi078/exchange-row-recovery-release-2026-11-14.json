@@ -1,0 +1,24 @@
+{
+  "work_item": "WI-078-S02",
+  "release_run_id": "43537052840",
+  "release_conclusion": "success",
+  "git_sha": "09ff119ec070b31288c92936e315c6731c05fdf6",
+  "image_digest": "sha256:a570126974152e85dac04b20aba714903c8fae2b9b2542027dba0bf2622eb274",
+  "migration_execution": "kis-portfolio-wi078-migration-dfg2b",
+  "migration_execution_completed": true,
+  "transport_smoke_execution": "kis-portfolio-wi030-s03-2wkj8",
+  "transport_smoke_provider_outcome": "sent",
+  "jobs_verified_on_same_image": [
+    "kis-portfolio-owned-core-v2-0800",
+    "kis-portfolio-owned-core-v2-1000",
+    "kis-portfolio-owned-core-v2-1430",
+    "kis-portfolio-owned-core-v2-1600"
+  ],
+  "schedulers": "four enabled Asia/Seoul weekday schedules at 08:00, 10:00, 14:00 and 16:00",
+  "remote_revision": "kis-portfolio-remote-00069-2s2",
+  "remote_serving_percent": 100,
+  "previous_runtime_definitions": "private rollback exports outside the repository",
+  "first_post_release_scheduled_receipt": "pending",
+  "owner_transport_receipt": "pending",
+  "status": "stabilizing"
+}
