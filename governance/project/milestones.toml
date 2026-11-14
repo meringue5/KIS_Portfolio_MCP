@@ -1418,3 +1418,9 @@ id = "WI-078-S01"
 parent_id = "WI-078"
 title = "Repair KST morning observation selection after actual scheduled use"
 status = "stabilizing"
+
+[[subitems]]
+id = "WI-078-S02"
+parent_id = "WI-078"
+title = "Recover Telegram collection from duplicated overseas exchange rows"
+status = "verified"

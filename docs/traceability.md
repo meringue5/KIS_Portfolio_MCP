@@ -202,3 +202,4 @@ and its Skill. See [work and evidence](work-items/WI-077-operational-documentati
 - [WI-078 — Telegram wording and 08:00/14:00 reports](work-items/WI-078-telegram-message-and-schedule.md) — DEC-064; actual-client acceptance pending.
 
 WI-078-S01 corrects pre-09:00 KST materialization after actual 08:00 use; source and original failed-slot evidence are preserved.
+WI-078-S02 tracks the 2026-11-09/10 four-slot Telegram interruption: a holding reported under two queried U.S. exchanges caused empty wrong-exchange price reads and strict quality failure (44/46). Recovery uses the row exchange and deduplicates positions and price requests; failed-run evidence remains preserved.

@@ -35,6 +35,16 @@ class FakeObjectStore:
         return destination
 
 
+def test_overseas_balance_uses_reported_exchange_and_deduplicates_cross_query_row():
+    overseas = {
+        "NASD": {"output1": [{"ovrs_pdno": "TEST", "ovrs_excg_cd": "AMEX", "ovrs_cblc_qty": "2"}]},
+        "AMEX": {"output1": [{"ovrs_pdno": "TEST", "ovrs_excg_cd": "AMEX", "ovrs_cblc_qty": "3"}]},
+    }
+    selected = v2_collection._canonical_overseas_rows(overseas)
+    assert list(selected) == [("AMS", "TEST")]
+    assert selected[("AMS", "TEST")]["ovrs_cblc_qty"] == "3"
+
+
 def test_managed_collection_is_calendar_gated_governed_and_idempotent(monkeypatch):
     con = duckdb.connect(":memory:")
     MigrationRunner(con).apply()
