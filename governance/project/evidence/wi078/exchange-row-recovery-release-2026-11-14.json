@@ -19,6 +19,6 @@
   "remote_serving_percent": 100,
   "previous_runtime_definitions": "private rollback exports outside the repository",
   "first_post_release_scheduled_receipt": "pending",
-  "owner_transport_receipt": "pending",
+  "owner_transport_receipt": "confirmed by owner on 2026-11-14 for the marked validation message",
   "status": "stabilizing"
 }

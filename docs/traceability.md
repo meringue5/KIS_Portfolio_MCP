@@ -203,4 +203,4 @@ and its Skill. See [work and evidence](work-items/WI-077-operational-documentati
 
 WI-078-S01 corrects pre-09:00 KST materialization after actual 08:00 use; source and original failed-slot evidence are preserved.
 WI-078-S02 tracks the 2026-11-09/10 four-slot Telegram interruption: a holding reported under two queried U.S. exchanges caused empty wrong-exchange price reads and strict quality failure (44/46). Recovery uses the row exchange and deduplicates positions and price requests; failed-run evidence remains preserved.
-PR #184 / master `09ff119e` and protected run `43537052840` deployed the correction on 2026-11-14; four Jobs and the serving Remote share digest `a5701269...eb274`, transport smoke was provider-confirmed, and WI-078-S02 remains stabilizing for scheduled reports and owner receipt.
+PR #184 / master `09ff119e` and protected run `43537052840` deployed the correction on 2026-11-14; four Jobs and the serving Remote share digest `a5701269...eb274`. The marked transport smoke was provider-confirmed and owner-received on 2026-11-14. WI-078-S02 remains stabilizing for scheduled report acceptance.
