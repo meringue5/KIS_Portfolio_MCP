@@ -27,12 +27,25 @@
 
 | 후보 | 현재 판정 | 검토 원문 |
 | --- | --- | --- |
-| WI-072 관심종목 관찰·알림 | owner가 운영 전환 후로 유보. 기존 별도 세션의 격리 산출물/원천 blocker 보존; 완료·운영 활성으로 취급하지 않음 | [V2 인수 경계](docs/milestones/v2-acceptance.md) |
+| 관심종목 관찰·알림 (기존 WI-072 초안) | 차기 제품 범위 후보. 실제 그룹 조회 실패와 MTS 동등성 미확인으로 보류; 격리 구현은 운영·V2 인수 범위 밖 | [V2 인수 경계](docs/milestones/v2-acceptance.md), 아래 WI-072 보존 메모 |
 | ETF 구성종목 수집·look-through | 초기 V2 제외. source 권리·비용·coverage와 새 승인 필요; WI-026/027 번호 재사용 안 함 | [WI-052](docs/work-items/WI-052-defer-etf-from-initial-v2.md), [요구 DEC-049](docs/requirements/kis-portfolio-data-platform-requirements.md) |
 | 완전한 결제 현금 대사·외부 입출금/자금이동 원인·성과 자격 | WI-071 인수 범위 밖. 현재 관측 이력의 결손·미확인 원인을 조용히 승격하지 않음; 구현 일정/활성 승인 없음 | [WI-071](docs/work-items/WI-071-owner-cash-flow-history-management.md), [현금 관측 제한](docs/operations/wi-071-observed-cash-history-2026-10-30.md) |
 
 후보는 중요도·승인·착수 순서를 뜻하지 않습니다. 새 요구가 확정되면 [Project OS](docs/governance/project-operating-system.md)
 절차로 상세 WI/Issue를 만들고, 그때 이 문서의 현재 진행에 올립니다.
+
+### WI-072 보존 메모 — 2026-11-14
+
+- 로컬 `codex/wi072-watchlist-isolation` 브랜치의 `cf81cc0`에 KIS 그룹 조회 adapter, 격리 관찰 core,
+  proposed 데이터 계약, 테스트와 마스킹된 조사 증거를 보존했습니다. 이 브랜치는 미병합·미배포이며
+  현행 `master`의 Work Item registry나 운영 계약에 WI-072를 소급 등록하지 않습니다.
+- 당시 실제 그룹 목록 요청은 HTTP 200이었으나 `rt_cd=1`이고 `output2`가 없었습니다. 빈 관심종목 목록이나
+  MTS와의 동등성이 증명된 결과로 취급하지 않습니다. 재검토 시 원천 접근·선택 그룹 membership을 확인하거나
+  출처를 명시한 수동 동기화 대안을 owner가 별도로 인수해야 합니다.
+- 착수 결정 전 [Project OS §6.4](docs/governance/project-operating-system.md#64-stabilization-exit-and-steady-state-operations)에 따라
+  닫힌 MS-008 기준선을 보존하면서 새 제품 범위의 요구·인수 경계와 milestone 배치를 검토합니다. 원천 및
+  membership SSOT, 신호·중복 전송 조정의 DEC/ADR, Data Governance 계약, 비용과 실제 client/transport 검증을
+  승인한 뒤 필요한 산출물만 분리 브랜치에서 가져옵니다. 이 후보 기록은 구현·source 활성·알림 전송 승인이 아닙니다.
 
 ## 이전 TODO의 개별 미검토 후보
 
