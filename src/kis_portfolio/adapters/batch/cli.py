@@ -29,6 +29,7 @@ from kis_portfolio.services.fx_fallback import (
 from kis_portfolio.services.market_calendar import sync_krx_market_calendar_years
 from kis_portfolio.services.order_history import collect_domestic_order_history, resolve_yyyymmdd
 from kis_portfolio.services.overseas_classification_sync import sync_held_overseas_classifications
+from kis_portfolio.services.sec_issuer_info import SecTickerMappingUnresolved
 from kis_portfolio.services.overseas_history import collect_overseas_transaction_history
 from kis_portfolio.services.price_history import run_held_price_backfill
 from kis_portfolio.services.shadow_alerts import (
@@ -413,13 +414,20 @@ def _run_owned_portfolio_v2(args: argparse.Namespace) -> int:
         requested_run_id=args.requested_run_id,
     )
     if result["status"] in {"succeeded", "skipped"} and result.get("reason") is None:
-        if args.slot == "kr-0800":
-            result["overseas_classification"] = sync_held_overseas_classifications(
-                get_connection(),
-                logical_date=logical_date,
-                source_slot=args.slot,
-                sec_user_agent=os.environ.get("SEC_EDGAR_USER_AGENT", ""),
-            )
+        if args.slot == "kr-1000":
+            try:
+                result["overseas_classification"] = sync_held_overseas_classifications(
+                    get_connection(),
+                    logical_date=logical_date,
+                    source_slot=args.slot,
+                    sec_user_agent=os.environ.get("SEC_EDGAR_USER_AGENT", ""),
+                )
+            except SecTickerMappingUnresolved:
+                # Classification stays unresolved; a reference lookup cannot suppress
+                # the separate portfolio and Telegram quality-gated consumers.
+                result["overseas_classification"] = {
+                    "status": "deferred", "reason": "sec_ticker_mapping_unresolved",
+                }
         result["shadow"] = run_shadow_signal_evaluation(
             get_connection(), logical_date=logical_date, source_slot=args.slot,
         )
