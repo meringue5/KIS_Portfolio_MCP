@@ -1,0 +1,19 @@
+{
+  "work_item": "WI-078-S03",
+  "window_kst": "2026-11-16 through 2026-11-17",
+  "source": "Cloud Run Job executions and structured Cloud Logging outcomes",
+  "scheduled_slots": [
+    {"date": "2026-11-16", "slot": "08:00", "execution": "kis-portfolio-owned-core-v2-0800-s9sst", "job": "failed", "cause": "SEC exact ticker mapping unresolved in pre-delivery overseas classification", "signal_status": "not_sent", "owner_report": "not_sent"},
+    {"date": "2026-11-16", "slot": "10:00", "execution": "kis-portfolio-owned-core-v2-1000-zk4w7", "job": "succeeded", "signal_status": "provider_sent", "owner_report": "slot_not_enabled", "detail_attempts": 0},
+    {"date": "2026-11-16", "slot": "14:00", "execution": "kis-portfolio-owned-core-v2-1430-ws9lm", "job": "succeeded", "signal_status": "provider_sent", "owner_report": "provider_sent", "owner_report_quality": "partial", "detail_attempts": 0},
+    {"date": "2026-11-16", "slot": "16:00", "execution": "kis-portfolio-owned-core-v2-1600-rwnvt", "job": "succeeded", "signal_status": "provider_sent", "owner_report": "slot_not_enabled", "detail_attempts": 0},
+    {"date": "2026-11-17", "slot": "08:00", "execution": "kis-portfolio-owned-core-v2-0800-zzb99", "job": "failed", "cause": "SEC exact ticker mapping unresolved in pre-delivery overseas classification", "signal_status": "not_sent", "owner_report": "not_sent"},
+    {"date": "2026-11-17", "slot": "10:00", "execution": "kis-portfolio-owned-core-v2-1000-z9x6v", "job": "failed", "cause": "KIS token issuance connect timeout during collect-land", "signal_status": "not_sent", "owner_report": "slot_not_enabled"},
+    {"date": "2026-11-17", "slot": "14:00", "execution": "kis-portfolio-owned-core-v2-1430-dtxcp", "job": "succeeded", "signal_status": "provider_sent", "owner_report": "provider_sent", "owner_report_quality": "pass", "detail_attempts": 0},
+    {"date": "2026-11-17", "slot": "16:00", "execution": "kis-portfolio-owned-core-v2-1600-jqrws", "job": "succeeded", "signal_status": "provider_sent", "owner_report": "slot_not_enabled", "detail_attempts": 0}
+  ],
+  "isolated_fix": "move optional classification to contracted 10:00 slot and defer exact SEC ticker mapping gap without changing classification facts",
+  "verification": "quick and full gates passed; 991 tests",
+  "production_release": "pending",
+  "owner_scheduled_receipt": "pending"
+}

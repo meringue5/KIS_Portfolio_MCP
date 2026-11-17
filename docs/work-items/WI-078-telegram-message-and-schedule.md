@@ -70,6 +70,7 @@ Initial isolated implementation had no live effects. Owner approved protected pr
 
 - WI-078-S01 — KST morning observation selection recovery.
 - WI-078-S02 — overseas exchange row deduplication and scheduled Telegram recovery.
+- WI-078-S03 — isolate unresolved overseas classification from morning Telegram reports.
 
 ## Stabilization plan
 
@@ -164,3 +165,15 @@ Evidence: governance/project/evidence/wi078/corrective-release-2026-11-06.json.
 - Next verification: observe the next KRX-open scheduled 08:00/10:00/14:00/16:00 runs, confirm price coverage and per-slot delivery outcomes, and obtain owner receipt before closing. Do not replay failed historical dates as current reports.
 
 Evidence: governance/project/evidence/wi078/exchange-row-recovery-release-2026-11-14.json.
+
+## WI-078-S03 — Morning report isolation
+
+- Classification: incident; work_lane: stabilization_recovery; discovered_from: WI-078-S02 scheduled use.
+- On 2026-11-16 and 2026-11-17, both 08:00 core Jobs completed portfolio collection but exited before all Telegram stages when the optional overseas classification step raised `SecIssuerInfoError` for an unresolved SEC ticker mapping. No 08:00 signal status or owner report was sent. The classification pipeline contract schedules it after the 10:00 core run, but the batch composer invokes it at 08:00.
+- On 2026-11-17 the 10:00 Job separately failed at collection because KIS token issuance hit `httpx.ConnectTimeout`; 14:00 and 16:00 succeeded. This transient token fault is tracked separately from the repeatable 08:00 classification defect.
+- Correction scope: invoke classification only after the governed 10:00 collection; if its exact SEC ticker lookup is unresolved, leave that instrument unknown and record a deferred classification result while the approved downstream quality gates continue. Do not coerce an asset type or claim classification success. Other unexpected classification failures retain the existing error behavior.
+- Acceptance: full gate; original failure and 08:00 positive/10:00 unresolved/error isolation regressions; protected release; immediate approved-client positive, partial and error observations; first scheduled 08:00 report and owner receipt. Remain stabilizing until actual delivery is confirmed.
+- Provider outcomes in the incident window: 2026-11-16 10:00 signal status sent; 14:00 signal status and partial-quality owner report sent; 16:00 signal status sent. On 2026-11-17, 14:00 signal status and pass-quality owner report sent, and 16:00 signal status sent. No individual detail alert was attempted in these completed runs. Provider outcomes do not establish owner receipt.
+- Isolated correction passed quick/full gates with 991 tests. The regression verifies 08:00 reaches all report stages without classification, unresolved SEC mapping at 10:00 is explicit and nonblocking, and SEC response or warehouse failures still propagate. Production release and real-client acceptance remain pending.
+
+Evidence: governance/project/evidence/wi078/morning-report-incident-2026-11-17.json.

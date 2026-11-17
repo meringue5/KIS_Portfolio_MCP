@@ -21,6 +21,10 @@ class SecIssuerInfoError(RuntimeError):
     """Raised when SEC issuer metadata is unavailable or ambiguous."""
 
 
+class SecTickerMappingUnresolved(SecIssuerInfoError):
+    """Raised when the published ticker file has no unique exact match."""
+
+
 @dataclass(frozen=True, slots=True)
 class SecIssuerInfo:
     cik: str
@@ -120,7 +124,7 @@ async def fetch_sec_ticker_ciks(
             matches[ticker].add(str(item.get("cik_str") or "").zfill(10))
     ambiguous = sorted(symbol for symbol, ciks in matches.items() if len(ciks) != 1)
     if ambiguous:
-        raise SecIssuerInfoError("SEC ticker mapping is missing or ambiguous for requested scope")
+        raise SecTickerMappingUnresolved("SEC ticker mapping is missing or ambiguous for requested scope")
     return {symbol: next(iter(matches[symbol])) for symbol in normalized}
 
 
