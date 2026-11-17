@@ -9,10 +9,10 @@ from kis_portfolio.adapters.batch import cli
 from kis_portfolio.services.sec_issuer_info import SecIssuerInfoError, SecTickerMappingUnresolved
 
 
-def _stub_downstream(monkeypatch):
+def _stub_downstream(monkeypatch, *, real_use=False):
     events = []
     monkeypatch.setenv("KIS_TELEGRAM_CANARY_ENABLED", "false")
-    monkeypatch.setenv("KIS_TELEGRAM_REAL_USE_ENABLED", "false")
+    monkeypatch.setenv("KIS_TELEGRAM_REAL_USE_ENABLED", "true" if real_use else "false")
     monkeypatch.setattr(cli, "get_connection", lambda: object())
     monkeypatch.setattr(cli, "run_owned_portfolio_pipeline", lambda *a, **k: {"status": "succeeded"})
 
@@ -24,14 +24,16 @@ def _stub_downstream(monkeypatch):
 
     monkeypatch.setattr(cli, "run_shadow_signal_evaluation", stage("shadow"))
     monkeypatch.setattr(cli, "refresh_wi029_s05_evidence", stage("shadow_evidence"))
+    monkeypatch.setattr(cli, "run_external_permanent_signal_evaluation", stage("real_use"))
     monkeypatch.setattr(cli, "run_telegram_delivery", stage("delivery"))
+    monkeypatch.setattr(cli, "run_signal_slot_report", stage("signal_status"))
     monkeypatch.setattr(cli, "run_total_asset_digest", stage("digest"))
     monkeypatch.setattr(cli, "run_owner_portfolio_report", stage("owner_report"))
     return events
 
 
 def test_0800_skips_1000_only_classification_and_reaches_reports(monkeypatch, capsys):
-    events = _stub_downstream(monkeypatch)
+    events = _stub_downstream(monkeypatch, real_use=True)
     monkeypatch.setattr(cli, "sync_held_overseas_classifications", lambda *a, **k: pytest.fail("08:00 classification call"))
 
     exit_code = cli._run_owned_portfolio_v2(Namespace(
@@ -39,7 +41,7 @@ def test_0800_skips_1000_only_classification_and_reaches_reports(monkeypatch, ca
     ))
 
     assert exit_code == 0
-    assert events == ["shadow", "shadow_evidence", "delivery", "digest", "owner_report"]
+    assert events == ["shadow", "shadow_evidence", "real_use", "delivery", "signal_status", "digest", "owner_report"]
     assert "overseas_classification" not in json.loads(capsys.readouterr().out)
 
 

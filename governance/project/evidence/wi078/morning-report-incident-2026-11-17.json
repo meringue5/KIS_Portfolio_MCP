@@ -14,6 +14,6 @@
   ],
   "isolated_fix": "move optional classification to contracted 10:00 slot and defer exact SEC ticker mapping gap without changing classification facts",
   "verification": "quick and full gates passed; 991 tests",
-  "production_release": "pending",
+  "production_release": {"pr": 187, "merge_sha": "f72764dd091d64309d6e881ea407e0cd4b28558c", "workflow_run": 44082511931, "status": "success", "region": "asia-northeast3", "core_jobs": 4, "remote_updated": true, "image_digest": "sha256:5ab1af60567e0545fc381e7af13656ee90d89400625fb0afb01aa2093312550b", "schedulers_enabled": 4, "transport_smoke_execution": "kis-portfolio-wi030-s03-ll7c2", "transport_provider_outcome": "sent", "owner_transport_receipt": "unconfirmed"},
   "owner_scheduled_receipt": "pending"
 }
