@@ -1,0 +1,17 @@
+{
+  "work_item": "WI-078-S03",
+  "requested_use": "owner-authorized one-time current total-asset Telegram test",
+  "observed_kst": "2026-11-17 22:10 KST",
+  "source_path": "live get-total-asset-overview implementation with refresh=true and save_snapshot=false",
+  "current_data_quality": "pass",
+  "refreshed_account_count": 5,
+  "destination_ref": "dest.owner.primary",
+  "transport": "Telegram Rich Message",
+  "execution": "kis-portfolio-owner-current-once-20261117-4bmdg",
+  "execution_attempt_count": 1,
+  "provider_outcome": "sent",
+  "provider_response_ref_hash": "8660f6f80132f502c7002a49c742dfe148033bbbfda469e06898dd53e088b71f",
+  "owner_receipt": "pending",
+  "cleanup": "one-time Cloud Run Job definition deleted after preserving execution and Cloud Logging evidence",
+  "acceptance_boundary": "This one-time live overview tests current-value delivery; it does not verify the scheduled V2 08:00 report path. No asset amounts, account numbers, chat ID, token, or message body are stored here."
+}
