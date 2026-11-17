@@ -11,7 +11,7 @@
   "execution_attempt_count": 1,
   "provider_outcome": "sent",
   "provider_response_ref_hash": "8660f6f80132f502c7002a49c742dfe148033bbbfda469e06898dd53e088b71f",
-  "owner_receipt": "pending",
+  "owner_receipt": "confirmed; owner rejected the simplified Rich Message format as different from the scheduled report",
   "cleanup": "one-time Cloud Run Job definition deleted after preserving execution and Cloud Logging evidence",
   "acceptance_boundary": "This one-time live overview tests current-value delivery; it does not verify the scheduled V2 08:00 report path. No asset amounts, account numbers, chat ID, token, or message body are stored here."
 }

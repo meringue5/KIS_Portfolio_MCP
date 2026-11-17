@@ -1,0 +1,17 @@
+{
+  "work_item": "WI-078-S03",
+  "discovered_from": "owner-current-total-test-2026-11-17.json",
+  "owner_feedback": "first current-value message arrived but did not use the familiar scheduled photo layout",
+  "correction": "one-time live overview rendered through the existing owner portfolio photo renderer; caption identifies manual lookup, prior same-time comparison and contribution Top 5 remain unavailable",
+  "source_at_kst": "2026-11-17 22:45 KST",
+  "live_overview_quality": "pass",
+  "refreshed_account_count": 5,
+  "destination_ref": "dest.owner.primary",
+  "execution": "kis-portfolio-owner-photo-once-20261117-fpxjw",
+  "execution_attempt_count": 1,
+  "provider_outcome": "sent",
+  "provider_response_ref_hash": "53e3ca441f0eb33e6079425ce3a16d0703a16cf0958c6c4d8ce128c925bbdabf",
+  "owner_receipt_and_format_acceptance": "pending",
+  "cleanup": "one-time Cloud Run Job definition deleted after preserving execution and Cloud Logging evidence",
+  "acceptance_boundary": "The message used the existing photo renderer with live overview data and explicit unavailable comparison. It does not establish the next scheduled V2 08:00 delivery. No financial values, account numbers, chat ID, token, caption, or image are stored here."
+}
