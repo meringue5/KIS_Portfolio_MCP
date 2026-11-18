@@ -1,0 +1,15 @@
+{
+  "work_item": "WI-078-S03",
+  "date_kst": "2026-11-18",
+  "source": "Cloud Run Job executions and structured Cloud Logging results",
+  "deployed_git_sha": "f72764dd091d64309d6e881ea407e0cd4b28558c",
+  "scheduled_slots": [
+    {"slot": "08:00", "execution": "kis-portfolio-owned-core-v2-0800-9pvmz", "job": "succeeded", "signal_status": "provider_sent", "detail_sent_count": 1, "owner_report": "provider_sent", "owner_report_quality": "pass"},
+    {"slot": "10:00", "execution": "kis-portfolio-owned-core-v2-1000-99dhv", "job": "succeeded", "classification": "skipped_no_unknown_held_overseas_instrument", "signal_status": "provider_sent", "detail_sent_count": 0, "owner_report": "slot_not_enabled"},
+    {"slot": "14:00", "execution": "kis-portfolio-owned-core-v2-1430-k8swl", "job": "succeeded", "signal_status": "provider_sent", "detail_sent_count": 0, "owner_report": "provider_sent", "owner_report_quality": "pass"},
+    {"slot": "16:00", "execution": "kis-portfolio-owned-core-v2-1600-6jxr2", "job": "succeeded", "signal_status": "provider_sent", "detail_sent_count": 0, "owner_report": "slot_not_enabled"}
+  ],
+  "owner_08_receipt": "pending",
+  "owner_14_receipt": "pending",
+  "acceptance_boundary": "Cloud Run success and Telegram provider outcomes do not establish client receipt or information-value acceptance. No account identifiers, asset values, or message bodies are recorded."
+}
