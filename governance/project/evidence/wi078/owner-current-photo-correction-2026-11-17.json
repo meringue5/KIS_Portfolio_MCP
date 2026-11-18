@@ -11,7 +11,7 @@
   "execution_attempt_count": 1,
   "provider_outcome": "sent",
   "provider_response_ref_hash": "53e3ca441f0eb33e6079425ce3a16d0703a16cf0958c6c4d8ce128c925bbdabf",
-  "owner_receipt_and_format_acceptance": "pending",
+  "owner_receipt_and_format_acceptance": "confirmed by owner; photo arrived and familiar layout accepted",
   "cleanup": "one-time Cloud Run Job definition deleted after preserving execution and Cloud Logging evidence",
   "acceptance_boundary": "The message used the existing photo renderer with live overview data and explicit unavailable comparison. It does not establish the next scheduled V2 08:00 delivery. No financial values, account numbers, chat ID, token, caption, or image are stored here."
 }
